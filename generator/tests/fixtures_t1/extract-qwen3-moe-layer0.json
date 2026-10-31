@@ -373,11 +373,7 @@
           "symbol": "vllm_ascend.ops.fused_moe.fused_moe.AscendMoERunner"
         }
       },
-      "attrs": {
-        "ep_rank": 0,
-        "hidden_size": 2048,
-        "local_num_experts": 128
-      },
+      "attrs": {},
       "class": "vllm.model_executor.layers.fused_moe.runner.moe_runner.MoERunner",
       "params": [],
       "path": "model.layers.0.mlp.experts",
@@ -401,12 +397,11 @@
         }
       },
       "attrs": {
-        "ep_rank": 0,
         "global_num_experts": 128,
         "hidden_size": 2048,
         "intermediate_size_per_partition": 192,
         "local_num_experts": 128,
-        "quant_method": "vllm_ascend.ops.fused_moe.routed_experts.AscendUnquantizedFusedMoEMethod",
+        "quant_method": "vllm.model_executor.layers.fused_moe.unquantized_fused_moe_method.UnquantizedFusedMoEMethod",
         "top_k": 8,
         "use_ep": false
       },
@@ -481,7 +476,7 @@
           128
         ],
         "output_size": 128,
-        "quant_method": "vllm_ascend.ops.linear.AscendUnquantizedLinearMethod",
+        "quant_method": "vllm.model_executor.layers.linear.UnquantizedLinearMethod",
         "skip_bias_add": false,
         "tp_rank": 0,
         "tp_size": 4
@@ -638,7 +633,7 @@
         ],
         "output_size": 2048,
         "output_size_per_partition": 2048,
-        "quant_method": "vllm_ascend.ops.linear.AscendUnquantizedLinearMethod",
+        "quant_method": "vllm.model_executor.layers.linear.UnquantizedLinearMethod",
         "reduce_results": true,
         "skip_bias_add": false,
         "tp_rank": 0,
@@ -730,7 +725,7 @@
           512,
           512
         ],
-        "quant_method": "vllm_ascend.ops.linear.AscendUnquantizedLinearMethod",
+        "quant_method": "vllm.model_executor.layers.linear.UnquantizedLinearMethod",
         "skip_bias_add": false,
         "total_num_heads": 32,
         "total_num_kv_heads": 4,

@@ -3,6 +3,8 @@
 import importlib
 import importlib.util
 import json
+import os
+import stat
 import subprocess
 import sys
 from pathlib import Path
@@ -42,6 +44,10 @@ def mock_worker(monkeypatch, tmp_path, sample, response=None, returncode=0):
         assert kwargs["env"]["VLLM_TARGET_DEVICE"] == "cpu"
         assert kwargs["env"]["HF_HUB_OFFLINE"] == "1"
         assert kwargs["env"]["VLLM_PLUGINS"] == ""
+        assert {key for key in kwargs["env"] if key.startswith("VLLM_")} == {
+            "VLLM_TARGET_DEVICE",
+            "VLLM_PLUGINS",
+        }
         assert kwargs["env"]["PYTHONPATH"] == str(Path(worker.__file__).parent)
         request = json.loads(Path(command[-2]).read_text())
         assert json.loads(Path(request["model_dir"], "config.json").read_text()) == sample.config
@@ -52,6 +58,8 @@ def mock_worker(monkeypatch, tmp_path, sample, response=None, returncode=0):
 
 
 def test_host_uses_isolated_worker_and_validates_before_publishing(monkeypatch, tmp_path, sample):
+    monkeypatch.setenv("VLLM_PP_LAYER_PARTITION", "1,2")
+    monkeypatch.setenv("VLLM_USE_V1", "0")
     mock_worker(monkeypatch, tmp_path, sample)
     destination = tmp_path / "out.json"
     result = host.extract(sample.snapshot, "qwen3-30b-a3b", 4, False, "A2", destination)
@@ -60,6 +68,19 @@ def test_host_uses_isolated_worker_and_validates_before_publishing(monkeypatch, 
     first = destination.read_bytes()
     host.extract(sample.snapshot, "qwen3-30b-a3b", 4, False, "A2", destination)
     assert destination.read_bytes() == first
+
+
+@pytest.mark.parametrize("mask", [0o022, 0o027, 0o077])
+def test_published_output_permissions_follow_umask(monkeypatch, tmp_path, sample, mask):
+    mock_worker(monkeypatch, tmp_path, sample)
+    destination = tmp_path / "out.json"
+    previous = os.umask(mask)
+    try:
+        for _ in range(2):
+            host.extract(sample.snapshot, "qwen3-30b-a3b", 4, False, "A2", destination)
+            assert stat.S_IMODE(destination.stat().st_mode) == 0o666 & ~mask
+    finally:
+        os.umask(previous)
 
 
 @pytest.mark.parametrize("failure", ["schema", "identity", "process", "timeout"])

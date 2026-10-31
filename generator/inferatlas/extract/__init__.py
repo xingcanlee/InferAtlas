@@ -50,7 +50,7 @@ def extract(
     sources = checkout_sources(snapshot)
     worker = Path(__file__).with_name("worker.py")
     env = {
-        **os.environ,
+        **{key: value for key, value in os.environ.items() if not key.startswith("VLLM_")},
         "PYTHONPATH": str(worker.parent),
         "VLLM_TARGET_DEVICE": "cpu",
         "VLLM_PLUGINS": "",
@@ -107,6 +107,9 @@ def extract(
                     + "\n"
                 )
                 stream.close()
+                umask = os.umask(0)
+                os.umask(umask)
+                pending.chmod(0o666 & ~umask)
                 pending.replace(destination)
             finally:
                 pending.unlink(missing_ok=True)

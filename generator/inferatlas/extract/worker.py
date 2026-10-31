@@ -7,6 +7,7 @@ paths are installed explicitly from the host's commit-checked request.
 from __future__ import annotations
 
 import ast
+import copy
 import importlib.util
 import inspect
 import json
@@ -191,7 +192,7 @@ def engine_config(request):
     ).create_engine_config()
 
 
-def init_dist(config, request):
+def init_dist(config, request, ascend=False):
     import vllm.distributed.parallel_state as ps
     from vllm.config import set_current_vllm_config
 
@@ -206,11 +207,20 @@ def init_dist(config, request):
                 backend="gloo",
             )
             ps.ensure_model_parallel_initialized(1, 1)
+            if ascend:
+                from vllm_ascend.distributed import parallel_state as ascend_ps
+
+                # Initialize real one-rank groups before exposing construction-time sizes.
+                parallel = copy.copy(config.parallel_config)
+                parallel.tensor_parallel_size = 1
+                ascend_ps.init_ascend_model_parallel(parallel)
     tp = request["parallel"]["tp"]
     if tp > 1:
         ps._TP = _ShimTP(ps._TP, tp)
         if request["parallel"]["ep"] and ps._EP is not None:
             ps._EP = _ShimTP(ps._EP, tp)
+        if ascend:
+            ascend_ps._MC2 = _ShimTP(ascend_ps._MC2, tp)
 
 
 def build(config):
@@ -336,6 +346,11 @@ def run(request):
         "External container sources are null; shared parameters are emitted once.",
     ]
     if request["device"]:
+        import vllm.distributed.parallel_state as ps
+
+        # Recreate groups after patching, matching exp3's patch-before-init order.
+        ps.destroy_model_parallel()
+        ps.destroy_distributed_environment()
         overlay = ascend_overlay(request)
         from vllm.model_executor.layers.rotary_embedding import _ROPE_DICT
 
@@ -345,6 +360,7 @@ def run(request):
         from vllm_ascend.ascend_config import init_ascend_config
 
         init_ascend_config(overlay_config)
+        init_dist(overlay_config, request, ascend=True)
         actual = {row["path"]: row for row in flatten(build(overlay_config), request)}
         if set(actual) != {row["path"] for row in modules}:
             raise ValueError("Ascend overlay changed module paths; cannot align baseline")
@@ -352,7 +368,6 @@ def run(request):
             replacement = actual[row["path"]]
             if row["params"] != replacement["params"]:
                 raise ValueError(f"Ascend overlay changed parameter shapes: {row['path']}")
-            row["attrs"] = replacement["attrs"]
             if row["class"] != replacement["class"]:
                 row["ascend"] = {"class": replacement["class"], "src": replacement["src"]}
         notes.append("Ascend mocks preserve baseline parameter shapes; CPU attention backend only.")
