@@ -1,7 +1,9 @@
 {
   "extends": "../contracts/tsconfig.base.json",
   "compilerOptions": {
-    "noEmit": true
+    "outDir": "dist",
+    "rootDir": "src",
+    "types": ["node"]
   },
-  "files": ["../contracts/src/expr.ts"]
+  "include": ["src/**/*.ts"]
 }

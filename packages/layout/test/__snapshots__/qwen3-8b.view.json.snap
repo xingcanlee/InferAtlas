@@ -1,0 +1,285 @@
+{
+  "views": [
+    {
+      "collapsed_of": [
+        "decoder",
+        "embed",
+        "embed.reduce",
+        "final_norm",
+        "lm_head",
+        "logits.gather",
+        "output"
+      ],
+      "edges": [
+        {
+          "from": "decoder",
+          "id": "decoder->final_norm:data",
+          "ir_edges": [
+            "decoder->final_norm:data"
+          ],
+          "kind": "data",
+          "label": [
+            "T",
+            "H"
+          ],
+          "label_pos": [
+            280,
+            548
+          ],
+          "points": [
+            [
+              316,
+              472
+            ],
+            [
+              316,
+              620
+            ]
+          ],
+          "to": "final_norm"
+        },
+        {
+          "from": "embed",
+          "id": "embed->embed.reduce:data",
+          "ir_edges": [
+            "embed->embed.reduce:data"
+          ],
+          "kind": "data",
+          "label": [
+            "T",
+            "H"
+          ],
+          "label_pos": [
+            280,
+            144
+          ],
+          "points": [
+            [
+              316,
+              68
+            ],
+            [
+              316,
+              216
+            ]
+          ],
+          "to": "embed.reduce"
+        },
+        {
+          "from": "embed.reduce",
+          "id": "embed.reduce->decoder:data",
+          "ir_edges": [
+            "embed.reduce->decoder:data"
+          ],
+          "kind": "data",
+          "label": [
+            "T",
+            "H"
+          ],
+          "label_pos": [
+            280,
+            336
+          ],
+          "points": [
+            [
+              316,
+              260
+            ],
+            [
+              316,
+              408
+            ]
+          ],
+          "to": "decoder"
+        },
+        {
+          "from": "final_norm",
+          "id": "final_norm->lm_head:data",
+          "ir_edges": [
+            "final_norm->lm_head:data"
+          ],
+          "kind": "data",
+          "label": {
+            "decode": [
+              "S",
+              "H"
+            ],
+            "prefill": [
+              "batch",
+              "H"
+            ]
+          },
+          "label_pos": [
+            232,
+            748
+          ],
+          "points": [
+            [
+              316,
+              664
+            ],
+            [
+              316,
+              832
+            ]
+          ],
+          "to": "lm_head"
+        },
+        {
+          "from": "lm_head",
+          "id": "lm_head->logits.gather:data",
+          "ir_edges": [
+            "lm_head->logits.gather:data"
+          ],
+          "kind": "data",
+          "label": {
+            "decode": [
+              "S",
+              "round_up(V,64)/tp"
+            ],
+            "prefill": [
+              "batch",
+              "round_up(V,64)/tp"
+            ]
+          },
+          "label_pos": [
+            168,
+            960
+          ],
+          "points": [
+            [
+              316,
+              876
+            ],
+            [
+              316,
+              1044
+            ]
+          ],
+          "to": "logits.gather"
+        },
+        {
+          "from": "logits.gather",
+          "id": "logits.gather->output:data",
+          "ir_edges": [
+            "logits.gather->output:data"
+          ],
+          "kind": "data",
+          "label": {
+            "decode": [
+              "S",
+              "round_up(V,64)"
+            ],
+            "prefill": [
+              "batch",
+              "round_up(V,64)"
+            ]
+          },
+          "label_pos": [
+            180,
+            1172
+          ],
+          "points": [
+            [
+              316,
+              1088
+            ],
+            [
+              316,
+              1256
+            ]
+          ],
+          "to": "output"
+        }
+      ],
+      "height": 1324,
+      "id": "L0",
+      "nodes": [
+        {
+          "h": 64,
+          "id": "decoder",
+          "ir_node": "decoder",
+          "label": "decoder\nLayers 0…L-1",
+          "w": 140,
+          "x": 244,
+          "y": 408
+        },
+        {
+          "h": 44,
+          "id": "embed",
+          "ir_node": "embed",
+          "label": "embed",
+          "w": 96,
+          "x": 268,
+          "y": 24
+        },
+        {
+          "h": 44,
+          "id": "embed.reduce",
+          "ir_node": "embed.reduce",
+          "label": "Embedding TP all-reduce",
+          "w": 212,
+          "x": 208,
+          "y": 216
+        },
+        {
+          "h": 44,
+          "id": "final_norm",
+          "ir_node": "final_norm",
+          "label": "final norm",
+          "w": 108,
+          "x": 260,
+          "y": 620
+        },
+        {
+          "h": 44,
+          "id": "lm_head",
+          "ir_node": "lm_head",
+          "label": "LM head",
+          "w": 100,
+          "x": 264,
+          "y": 832
+        },
+        {
+          "h": 44,
+          "id": "logits.gather",
+          "ir_node": "logits.gather",
+          "label": "TP logits gather",
+          "w": 148,
+          "x": 240,
+          "y": 1044
+        },
+        {
+          "h": 44,
+          "id": "output",
+          "ir_node": "output",
+          "label": "Logits / sampling",
+          "w": 160,
+          "x": 236,
+          "y": 1256
+        }
+      ],
+      "width": 444
+    },
+    {
+      "collapsed_of": [
+        "decoder"
+      ],
+      "edges": [],
+      "height": 112,
+      "id": "L1:decoder",
+      "nodes": [
+        {
+          "h": 64,
+          "id": "decoder",
+          "ir_node": "decoder",
+          "label": "decoder\nLayers 0…L-1",
+          "w": 140,
+          "x": 24,
+          "y": 24
+        }
+      ],
+      "width": 188
+    }
+  ]
+}

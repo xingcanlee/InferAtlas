@@ -3,12 +3,28 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "inferatlas-layout": "./dist/cli.js"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test": "tsc -p tsconfig.json"
+    "inferatlas-layout": "node dist/cli.js",
+    "test": "vitest run",
+    "lint": "biome check ."
   },
   "dependencies": {
     "@inferatlas/contracts": "workspace:*",
-    "@inferatlas/expr": "workspace:*"
+    "ajv": "8.17.1",
+    "elkjs": "0.11.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.15.30",
+    "vitest": "3.2.4"
   }
 }
