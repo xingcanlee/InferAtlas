@@ -1,5 +1,5 @@
-import type { IR, IRNode, ViewEdge } from "@inferatlas/contracts";
-import { assertBudget } from "./budget.js";
+import type { IR, IRNode, LayerGroup, ViewEdge } from "@inferatlas/contracts";
+import { assertBudget, BUDGET, checkBudget } from "./budget.js";
 
 export type TemplateEdge = Omit<ViewEdge, "points" | "label_pos">;
 export interface Template {
@@ -14,6 +14,36 @@ export const compare = (a: string, b: string): number => (a < b ? -1 : a > b ? 1
 const byId = <T extends { id: string }>(items: readonly T[]): T[] =>
   [...items].sort((a, b) => compare(a.id, b.id));
 
+function bandRuns(ir: IR): LayerGroup[][] {
+  const bands = [...ir.groups].sort((a, b) => {
+    const delta = Number(a.layers[0]) - Number(b.layers[0]);
+    return (Number.isFinite(delta) && delta !== 0 ? delta : 0) || compare(a.id, b.id);
+  });
+  const runs: LayerGroup[][] = [];
+  for (const band of bands) {
+    const run = runs.at(-1);
+    const end = run?.at(-1)?.layers[1];
+    if (end != null && Number(band.layers[0]) === Number(end) + 1) run?.push(band);
+    else runs.push([band]);
+  }
+  return runs;
+}
+
+/** Ordered strip segments for an L0 decoder anchor; targets remain valid L1 view ids. */
+export function layerBandTargets(ir: IR, irNode: string): { label: string; target: string }[] {
+  const run = bandRuns(ir).find((bands) => bands[0]?.template === irNode) ?? [];
+  return run.map((band) => {
+    const name = ir.nodes.find((node) => node.id === band.template)?.label ?? band.id;
+    const type = name.replace(/\s*(?:decoder|layers?|stack).*$/i, "").trim() || name;
+    const [start, end] = band.layers;
+    const count = Number(end) - Number(start) + 1;
+    return {
+      label: `[${type} ×${Number.isFinite(count) ? count : `(${end})-(${start})+1`}]`,
+      target: `L1:${band.id}`,
+    };
+  });
+}
+
 export function templates(ir: IR, warn: (message: string) => void): Template[] {
   const nodes = byId(ir.nodes);
   const lookup = new Map(nodes.map((node) => [node.id, node]));
@@ -27,6 +57,8 @@ export function templates(ir: IR, warn: (message: string) => void): Template[] {
     scope: IRNode[],
     visible: IRNode[],
     labels = new Map<string, string>(),
+    aliases = new Map<string, string>(),
+    genericSummary = false,
   ): Template {
     const selected = new Set(visible.map((node) => node.id));
     const membership = new Set(scope.map((node) => node.id));
@@ -34,8 +66,9 @@ export function templates(ir: IR, warn: (message: string) => void): Template[] {
     for (const node of scope) {
       let ancestor: IRNode | undefined = node;
       while (ancestor && membership.has(ancestor.id)) {
-        if (selected.has(ancestor.id)) {
-          representative.set(node.id, ancestor.id);
+        const owner = aliases.get(ancestor.id) ?? ancestor.id;
+        if (selected.has(owner)) {
+          representative.set(node.id, owner);
           break;
         }
         ancestor = ancestor.parent ? lookup.get(ancestor.parent) : undefined;
@@ -46,7 +79,13 @@ export function templates(ir: IR, warn: (message: string) => void): Template[] {
     for (const edge of relevant) {
       const from = representative.get(edge.from);
       const to = representative.get(edge.to);
-      if (!from || !to || (from === to && !(edge.kind === "kv" && selected.has(edge.from))))
+      if (!from || !to) {
+        warn(
+          `${id}: dropped in-scope IR edge ${edge.id}: no visible representative for ${!from ? edge.from : edge.to}.`,
+        );
+        continue;
+      }
+      if (from === to && (genericSummary || !(edge.kind === "kv" && selected.has(edge.from))))
         continue;
       const key = JSON.stringify([from, to, edge.kind, edge.tensor.shape]);
       let route = routes.get(key);
@@ -90,7 +129,7 @@ export function templates(ir: IR, warn: (message: string) => void): Template[] {
     }
     const result: Template = {
       id,
-      direction: id === "L0" ? "DOWN" : "RIGHT",
+      direction: "DOWN",
       nodes: byId(visible).map((node) => ({
         node,
         label: labels.get(node.id) ?? node.label,
@@ -98,6 +137,21 @@ export function templates(ir: IR, warn: (message: string) => void): Template[] {
       edges: byId([...routes.values()]),
       collapsed_of: scope.map((node) => node.id).sort(compare),
     };
+    const issues = checkBudget(result);
+    if (issues.length && !supported) {
+      warn(`${issues.join("; ")}; collapsing generic fallback to one summary (see IR).`);
+      const anchor = visible[0];
+      if (anchor) {
+        return project(
+          id,
+          scope,
+          [anchor],
+          new Map([[anchor.id, `${ir.views.family} summary\n${scope.length} IR nodes`]]),
+          new Map(scope.map((node) => [node.id, anchor.id])),
+          true,
+        );
+      }
+    }
     assertBudget(result);
     return result;
   }
@@ -114,8 +168,37 @@ export function templates(ir: IR, warn: (message: string) => void): Template[] {
       `${lookup.get(band.template)?.label}\nLayers ${band.layers[0]}…${band.layers[1]}`,
     );
   }
-  const roots = nodes.filter((node) => node.parent == null);
-  const result = [project("L0", nodes, roots, labels)];
+  const overviewLabels = new Map(labels);
+  let roots = nodes.filter((node) => node.parent == null);
+  const aliases = new Map<string, string>();
+  for (const run of bandRuns(ir)) {
+    const anchor = run[0];
+    if (!anchor || run.length < 2) continue;
+    for (const band of run.slice(1)) aliases.set(band.template, anchor.template);
+    const strip = layerBandTargets(ir, anchor.template).map((segment) => segment.label);
+    // Two segments per line keeps alternating attention stacks readable.
+    overviewLabels.set(
+      anchor.template,
+      `Decoder stack\n${strip.map((part, i) => `${i > 0 && i % 2 === 0 ? "\n" : ""}${part}`).join("")}`,
+    );
+  }
+  roots = roots.filter((node) => !aliases.has(node.id));
+  for (const node of roots) {
+    if (roots.length <= BUDGET.nodes) break;
+    if (node.kind !== "comm" || !/embed|logits/.test(node.id)) continue;
+    const neighbourId = edges.find((edge) => edge.to === node.id && edge.kind === "data")?.from;
+    const neighbour = roots.find(
+      (candidate) => candidate.id === neighbourId && candidate.kind !== "comm",
+    );
+    if (!neighbour) continue;
+    aliases.set(node.id, neighbour.id);
+    overviewLabels.set(
+      neighbour.id,
+      `${overviewLabels.get(neighbour.id) ?? neighbour.label}\n+ ${node.label}`,
+    );
+    roots = roots.filter((candidate) => candidate.id !== node.id);
+  }
+  const result = [project("L0", nodes, roots, overviewLabels, aliases)];
   for (const band of byId(ir.groups)) {
     const scope = descendants(band.template);
     if (scope.length === 0) {

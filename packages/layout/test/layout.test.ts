@@ -1,5 +1,13 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  cpSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -8,10 +16,12 @@ import { describe, expect, it, vi } from "vitest";
 import {
   assertBudget,
   checkBudget,
+  layerBandTargets,
   layoutIR,
   nodeSize,
   rankBoundaryLanes,
   serializeView,
+  shapeText,
   textWidth,
   validateIR,
   validateView,
@@ -73,7 +83,10 @@ describe.each(["qwen3-30b-a3b", "qwen3-8b"])("%s fixture", (name) => {
           expect(x % 4).toBe(0);
           expect(y % 4).toBe(0);
           const before = edge.points[i - 1] as [number, number] | undefined;
-          if (before) expect(before[0] === x || before[1] === y).toBe(true);
+          if (before) {
+            expect(before[0] === x || before[1] === y).toBe(true);
+            expect(Math.abs(before[0] - x) + Math.abs(before[1] - y)).toBeGreaterThan(8);
+          }
         }
         for (const [id, point] of [
           [edge.from, edge.points[0]],
@@ -97,13 +110,8 @@ describe.each(["qwen3-30b-a3b", "qwen3-8b"])("%s fixture", (name) => {
         expect(
           start.every((value) => value % 4 === 0) && end.every((value) => value % 4 === 0),
         ).toBe(true);
-        if (graph.id === "L0") {
-          expect(start[0]).toBeLessThan(node.x);
-          expect(end[0]).toBeGreaterThan(node.x + node.w);
-        } else {
-          expect(start[1]).toBeLessThan(node.y);
-          expect(end[1]).toBeGreaterThan(node.y + node.h);
-        }
+        expect(start[0]).toBeLessThan(node.x);
+        expect(end[0]).toBeGreaterThan(node.x + node.w);
       }
     }
     const overview = view.views[0];
@@ -147,6 +155,166 @@ function denseIR(): IR {
   });
   return ir;
 }
+
+function multiBandIR(): IR {
+  const ir = denseIR();
+  const decoder = ir.nodes.find((node) => node.id === "decoder") as IRNode;
+  const internals = ir.nodes.filter((node) => node.parent != null);
+  const bands = [
+    { id: "band_0_2", layers: ["0", "2"], label: "dense" },
+    { id: "band_3_60", layers: ["3", "60"], label: "MoE" },
+    { id: "band_61_63", layers: ["61", "63"], label: "sliding" },
+    { id: "band_64_67", layers: ["64", "67"], label: "full" },
+  ];
+  const internalIds = new Set(internals.map((node) => node.id));
+  const internalEdges = ir.edges.filter((edge) => internalIds.has(edge.from));
+  ir.nodes = ir.nodes.filter((node) => node.parent == null && node.id !== decoder.id);
+  ir.edges = ir.edges
+    .filter((edge) => !internalIds.has(edge.from))
+    .map((edge) => ({
+      ...edge,
+      from: edge.from === decoder.id ? "band_64_67" : edge.from,
+      to: edge.to === decoder.id ? "band_0_2" : edge.to,
+    }));
+  ir.groups = bands.map((band) => ({
+    id: band.id,
+    template: band.id,
+    representative_layer: band.layers[0] as string,
+    layers: band.layers as [string, string],
+  }));
+  for (const [i, band] of bands.entries()) {
+    ir.nodes.push({ ...decoder, id: band.id, label: `${band.label} decoder` });
+    ir.nodes.push(
+      ...internals.map((node) => ({
+        ...node,
+        id: `${band.id}.${node.id}`,
+        parent: node.parent === decoder.id ? band.id : `${band.id}.${node.parent}`,
+      })),
+    );
+    ir.edges.push(
+      ...internalEdges.map((edge) => ({
+        ...edge,
+        id: `${band.id}.${edge.id}`,
+        from: `${band.id}.${edge.from}`,
+        to: `${band.id}.${edge.to}`,
+      })),
+    );
+    const next = bands[i + 1];
+    if (next)
+      ir.edges.push({
+        ...(ir.edges[0] as IREdge),
+        id: `${band.id}->${next.id}`,
+        from: band.id,
+        to: next.id,
+      });
+  }
+  return ir;
+}
+
+it("folds four contiguous T3 bands into a decoder strip with each L1 target and edge provenance", async () => {
+  const ir = multiBandIR();
+  const view = await layoutIR(ir, quiet);
+  const overview = view.views[0];
+  expect(overview?.nodes).toHaveLength(8);
+  expect(overview?.nodes.find((node) => node.ir_node === "band_0_2")?.label).toBe(
+    "Decoder stack\n[dense ×3][MoE ×58]\n[sliding ×3][full ×4]",
+  );
+  const targets = layerBandTargets(ir, "band_0_2");
+  expect(targets.map((band) => band.target)).toEqual(ir.groups.map((band) => `L1:${band.id}`));
+  for (const band of targets)
+    expect(view.views.some((graph) => graph.id === band.target)).toBe(true);
+  expect(overview?.collapsed_of).toEqual(sorted(ir.nodes.map((node) => node.id)));
+  expect(overview?.edges.find((edge) => edge.to === "final_norm")?.ir_edges).toEqual([
+    "band_0_2->band_3_60",
+    "band_3_60->band_61_63",
+    "band_61_63->band_64_67",
+    "decoder->final_norm:data",
+  ]);
+  expect(
+    serializeView(
+      await layoutIR(
+        {
+          ...ir,
+          nodes: [...ir.nodes].reverse(),
+          edges: [...ir.edges].reverse(),
+          groups: [...ir.groups].reverse(),
+        },
+        quiet,
+      ),
+    ),
+  ).toBe(serializeView(view));
+});
+
+it("folds embedding and logits collectives into neighbours when the overview is over budget", async () => {
+  const ir = fixture("qwen3-30b-a3b");
+  const output = ir.nodes.find((node) => node.id === "output") as IRNode;
+  ir.nodes.push(...[1, 2, 3].map((i) => ({ ...output, id: `extra${i}` })));
+  const overview = (await layoutIR(ir, quiet)).views[0];
+  expect(overview?.nodes).toHaveLength(9);
+  expect(overview?.nodes.find((node) => node.id === "embed")?.label).toContain("all-reduce");
+  expect(overview?.nodes.find((node) => node.id === "lm_head")?.label).toContain("logits gather");
+  expect(overview?.edges.find((edge) => edge.from === "lm_head")?.ir_edges).toEqual([
+    "lm_head->logits.gather:data",
+    "logits.gather->output:data",
+  ]);
+});
+
+it("keeps each band's L1 summary specific when decoder internals are missing", async () => {
+  const ir = multiBandIR();
+  ir.nodes = ir.nodes.filter((node) => node.parent == null);
+  const ids = new Set(ir.nodes.map((node) => node.id));
+  ir.edges = ir.edges.filter((edge) => ids.has(edge.from) && ids.has(edge.to));
+  const view = await layoutIR(ir, quiet);
+  expect(view.views.find((graph) => graph.id === "L1:band_0_2")?.nodes[0]?.label).toBe(
+    "dense decoder\nLayers 0…2",
+  );
+});
+
+it("keeps fixture and dense/multiband views within 1:3..3:1 and 1200×800 at 0.6 scale", async () => {
+  for (const ir of [fixture("qwen3-8b"), fixture("qwen3-30b-a3b"), denseIR(), multiBandIR()]) {
+    for (const graph of (await layoutIR(ir, quiet)).views) {
+      expect(graph.width / graph.height, graph.id).toBeGreaterThanOrEqual(1 / 3);
+      expect(graph.width / graph.height, graph.id).toBeLessThanOrEqual(3);
+      expect(Math.min(1200 / graph.width, 800 / graph.height), graph.id).toBeGreaterThanOrEqual(
+        0.6,
+      );
+      for (const edge of graph.edges) {
+        for (let i = 1; i < edge.points.length; i++) {
+          const [x, y] = edge.points[i] as [number, number];
+          const [px, py] = edge.points[i - 1] as [number, number];
+          expect(Math.abs(x - px) + Math.abs(y - py), `${graph.id}/${edge.id}`).toBeGreaterThan(8);
+        }
+      }
+    }
+  }
+});
+
+it("uses the template's DOWN direction for subgraph lanes and accepts an explicit RIGHT direction", async () => {
+  const ir = fixture("qwen3-30b-a3b");
+  const graph = (await layoutIR(ir, quiet)).views.find((graph) => graph.id === "L2:moe");
+  if (!graph) throw new Error("Missing MoE view");
+  for (const lane of rankBoundaryLanes(graph, ir))
+    expect(lane.points[0][1]).toBe(lane.points[1][1]);
+  for (const lane of rankBoundaryLanes(graph, ir, "RIGHT"))
+    expect(lane.points[0][0]).toBe(lane.points[1][0]);
+});
+
+it("warns when an in-scope edge has no curated representative, while intentional collapse stays quiet", async () => {
+  const ir = fixture("qwen3-30b-a3b");
+  const node = ir.nodes.find((node) => node.id === "moe.act") as IRNode;
+  ir.nodes.push({ ...node, id: "moe.unknown", parent: "moe" });
+  ir.edges.push({
+    ...(ir.edges[0] as IREdge),
+    id: "unknown->gate",
+    from: "moe.unknown",
+    to: "moe.gate",
+  });
+  const warn = vi.fn();
+  await layoutIR(ir, { onWarning: warn });
+  expect(warn).toHaveBeenCalledExactlyOnceWith(
+    expect.stringContaining("L2:moe: dropped in-scope IR edge unknown->gate"),
+  );
+});
 
 it("curates full dense attention and MLP internals without fabricating missing fixture nodes", async () => {
   const ir = denseIR();
@@ -264,13 +432,33 @@ it.each(["mla", "hybrid", "vlm"] as const)(
   },
 );
 
+it.each(["mla", "hybrid", "vlm"] as const)(
+  "warns and summarizes oversized %s fallbacks within the schema budget",
+  async (family) => {
+    const ir = fixture("qwen3-30b-a3b");
+    ir.views.family = family;
+    ir.nodes.push(
+      ...Array.from({ length: 5 }, (_, i) => ({
+        ...(ir.nodes.find((node) => node.id === "output") as IRNode),
+        id: `extra${i}`,
+      })),
+    );
+    const warn = vi.fn();
+    const view = await layoutIR(ir, { onWarning: warn });
+    expect(view.views[0]?.nodes).toHaveLength(1);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("collapsing generic fallback"));
+    expect(() => validateView(view)).not.toThrow();
+    expect(view.views[0]?.collapsed_of).toEqual(sorted(ir.nodes.map((node) => node.id)));
+  },
+);
+
 it("fails excessive budgets instead of silently dropping nodes or edges", async () => {
   expect(checkBudget({ id: "bad", nodes: Array(10), edges: Array(13) }, 3)).toHaveLength(3);
   expect(() => assertBudget({ id: "bad", nodes: [], edges: [] }, 3)).toThrow("accents 3");
   const ir = fixture("qwen3-8b");
   const node = ir.nodes[0] as IRNode;
-  ir.nodes.push(...[1, 2, 3].map((i) => ({ ...node, id: `extra${i}` })));
-  await expect(layoutIR(ir, quiet)).rejects.toThrow("nodes 10 exceeds budget 9");
+  ir.nodes.push(...[1, 2, 3, 4, 5].map((i) => ({ ...node, id: `extra${i}` })));
+  await expect(layoutIR(ir, quiet)).rejects.toThrow("exceeds budget 9");
 });
 
 it("rejects invalid schema, dangling references, duplicates, cycles and diagonal output", async () => {
@@ -307,6 +495,13 @@ it("measures mono shapes and sans names with fixed glyph widths, including multi
   expect(textWidth("[T, H]", "mono")).toBe(48);
   expect(textWidth("模型")).toBe(28);
   expect(nodeSize("Attention\nLayers 0…L-1").h).toBeGreaterThan(nodeSize("Attention").h);
+  expect(shapeText(["T", "max(1,Hkv/tp)", "D"])).toBe("[T, max(1,Hkv/tp), D]");
+  expect(shapeText(["T*dp*topk/(ep>1 ? ep : 1)", "2*I_moe/(ep>1 ? 1 : tp*dp)"])).toBe(
+    "[T*dp*topk/(ep>1 ? ep : 1),\n 2*I_moe/(ep>1 ? 1 : tp*dp)]",
+  );
+  expect(shapeText({ prefill: ["batch", "round_up(V,64)/tp"], decode: ["S", "H"] })).toBe(
+    "prefill [batch,\n round_up(V,64)/tp]\ndecode [S, H]",
+  );
 });
 
 it("runs the built Node CLI twice with identical bytes and preserves output on invalid input", () => {
@@ -331,6 +526,41 @@ it("runs the built Node CLI twice with identical bytes and preserves output on i
         );
       expect(readFileSync(outputs[0] as string)).toEqual(readFileSync(outputs[1] as string));
     }
+    // Resolve contracts through node_modules even when layout is outside the repository.
+    cpSync(join(root, "packages/layout/dist"), join(directory, "dist"), { recursive: true });
+    cpSync(join(root, "packages/layout/package.json"), join(directory, "package.json"));
+    symlinkSync(join(root, "packages/layout/node_modules"), join(directory, "node_modules"), "dir");
+    const relocated = join(directory, "dist/cli.js");
+    const input = join(root, "fixtures/qwen3-8b/ir.json");
+    const relocatedOutput = join(directory, "relocated.json");
+    execFileSync(process.execPath, [relocated, input, "-o", relocatedOutput], {
+      cwd: directory,
+      stdio: "pipe",
+    });
+    expect(readFileSync(relocatedOutput)).toEqual(readFileSync(join(directory, "a.json")));
+    const schemaDirectory = join(directory, "schemas");
+    mkdirSync(schemaDirectory);
+    for (const name of ["ir", "view"])
+      cpSync(
+        join(root, `schemas/${name}.schema.json`),
+        join(schemaDirectory, `${name}.schema.json`),
+      );
+    const env = { ...process.env, INFERATLAS_SCHEMA_DIR: schemaDirectory };
+    execFileSync(process.execPath, [relocated, input, "-o", relocatedOutput], {
+      cwd: directory,
+      env,
+      stdio: "pipe",
+    });
+    writeFileSync(
+      join(schemaDirectory, "ir.schema.json"),
+      JSON.stringify({ type: "object", required: ["custom_schema_marker"] }),
+    );
+    const customFailure = spawnSync(process.execPath, [relocated, input, "-o", relocatedOutput], {
+      cwd: directory,
+      env,
+    });
+    expect(customFailure.status).toBe(1);
+    expect(customFailure.stderr.toString()).toContain("custom_schema_marker");
     const invalid = join(directory, "invalid.json");
     const output = join(directory, "keep.json");
     writeFileSync(invalid, "{}");
@@ -344,4 +574,4 @@ it("runs the built Node CLI twice with identical bytes and preserves output on i
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
-}, 30000);
+}, 45000);

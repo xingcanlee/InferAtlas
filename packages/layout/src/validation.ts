@@ -1,16 +1,22 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, realpathSync } from "node:fs";
+import { findPackageJSON } from "node:module";
+import { dirname, join, resolve } from "node:path";
 import type { IR, View } from "@inferatlas/contracts";
 import { Ajv2020 } from "ajv/dist/2020.js";
 
 const ajv = new Ajv2020({ allErrors: true, strictTuples: false });
+function schemaPath(): string {
+  if (process.env.INFERATLAS_SCHEMA_DIR) return resolve(process.env.INFERATLAS_SCHEMA_DIR);
+  const contracts = findPackageJSON("@inferatlas/contracts", import.meta.url);
+  if (!contracts)
+    throw new Error("Cannot resolve @inferatlas/contracts; set INFERATLAS_SCHEMA_DIR");
+  return resolve(dirname(realpathSync(contracts)), "../../schemas");
+}
+const schemaDirectory = schemaPath();
 const validators = Object.fromEntries(
   ["ir", "view"].map((name) => [
     name,
-    ajv.compile(
-      JSON.parse(
-        readFileSync(new URL(`../../../schemas/${name}.schema.json`, import.meta.url), "utf8"),
-      ),
-    ),
+    ajv.compile(JSON.parse(readFileSync(join(schemaDirectory, `${name}.schema.json`), "utf8"))),
   ]),
 );
 

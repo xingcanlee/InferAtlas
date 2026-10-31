@@ -37,7 +37,11 @@ export function nodeSize(label: string): { w: number; h: number } {
 }
 
 export function shapeText(shape: string[] | PhaseShape): string {
+  const dimensions = (values: string[]): string => {
+    const inline = `[${values.join(", ")}]`;
+    return inline.length <= 24 ? inline : `[${values.join(",\n ")}]`;
+  };
   return Array.isArray(shape)
-    ? `[${shape.join(", ")}]`
-    : `prefill [${shape.prefill.join(", ")}]\ndecode [${shape.decode.join(", ")}]`;
+    ? dimensions(shape)
+    : `prefill ${dimensions(shape.prefill)}\ndecode ${dimensions(shape.decode)}`;
 }

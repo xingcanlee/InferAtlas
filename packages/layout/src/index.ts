@@ -7,6 +7,7 @@ import { ceilGrid, nodeSize, shapeText, snap, textWidth } from "./text.js";
 import { validateIR, validateView } from "./validation.js";
 
 export { assertBudget, BUDGET, checkBudget } from "./budget.js";
+export { layerBandTargets } from "./templates.js";
 export { nodeSize, shapeText, textWidth } from "./text.js";
 export { validateIR, validateView } from "./validation.js";
 
@@ -29,14 +30,22 @@ export const ELK_OPTIONS = Object.freeze({
   "elk.layered.spacing.nodeNodeBetweenLayers": "64",
   "elk.layered.spacing.edgeNodeBetweenLayers": "24",
   "elk.layered.considerModelOrder.strategy": "NODES_AND_EDGES",
-  "elk.layered.nodePlacement.strategy": "NETWORK_SIMPLEX",
+  "elk.layered.nodePlacement.strategy": "BRANDES_KOEPF",
+  "elk.layered.nodePlacement.favorStraightEdges": "true",
+  "elk.layered.nodePlacement.bk.fixedAlignment": "BALANCED",
+  "elk.layered.wrapping.strategy": "MULTI_EDGE",
+  "elk.aspectRatio": "1.5",
 });
 
-async function place(template: Template): Promise<GraphView> {
+async function place(template: Template, wrapping = true): Promise<GraphView> {
   const elk: ElkInstance = new ELK();
   const placed = await elk.layout<ElkNode>({
     id: template.id,
-    layoutOptions: { ...ELK_OPTIONS, "elk.direction": template.direction },
+    layoutOptions: {
+      ...ELK_OPTIONS,
+      "elk.direction": template.direction,
+      "elk.layered.wrapping.strategy": wrapping ? "MULTI_EDGE" : "OFF",
+    },
     children: template.nodes.map(({ node, label }) => {
       const { w, h } = nodeSize(label);
       return { id: node.id, width: w, height: h };
@@ -51,6 +60,7 @@ async function place(template: Template): Promise<GraphView> {
           ? [
               {
                 text,
+                layoutOptions: { "elk.edgeLabels.inline": "true" },
                 width: ceilGrid(textWidth(text, "mono") + 16),
                 height: text.split("\n").length * 20,
               },
@@ -89,6 +99,18 @@ async function place(template: Template): Promise<GraphView> {
         : (points[Math.floor(points.length / 2)] as Point);
     return { ...edge, points: points as [Point, Point, ...Point[]], label_pos };
   });
+  // ELK 0.11's wrapping can leave diagonal or tiny segments around label dummies.
+  // Retry its unwrapped router rather than exporting invalid orthogonal geometry.
+  if (
+    wrapping &&
+    edges.some((edge) =>
+      (edge.points as Point[]).slice(1).some(([x, y], i) => {
+        const [px, py] = edge.points[i] as Point;
+        return (px !== x && py !== y) || Math.abs(px - x) + Math.abs(py - y) <= 8;
+      }),
+    )
+  )
+    return place(template, false);
   return {
     id: template.id,
     nodes: nodes as GraphView["nodes"],
@@ -129,6 +151,7 @@ export function serializeView(view: View): string {
 export function rankBoundaryLanes(
   view: GraphView,
   ir: IR,
+  direction = templates(ir, () => {}).find((template) => template.id === view.id)?.direction,
 ): { ir_node: string; points: [Point, Point] }[] {
   const comm = new Set(ir.nodes.filter((node) => node.kind === "comm").map((node) => node.id));
   return view.nodes
@@ -136,7 +159,7 @@ export function rankBoundaryLanes(
     .map((node) => ({
       ir_node: node.ir_node,
       points:
-        view.id !== "L0"
+        direction === "RIGHT"
           ? [
               [snap(node.x + node.w / 2), node.y - 16],
               [snap(node.x + node.w / 2), node.y + node.h + 16],
