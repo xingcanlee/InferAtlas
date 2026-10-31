@@ -22,7 +22,7 @@ cpu_env = module("cpu_env")
 draft = module("draft")
 
 PAIR = {"ascend": "a" * 40, "vllm": "b" * 40}
-SNAPSHOT = pipeline.snapshot_id(PAIR, "c" * 40)
+SNAPSHOT = pipeline.snapshot_id(PAIR)
 
 
 def catalog():
@@ -54,7 +54,7 @@ def test_catalog_order_identity_and_no_architecture_assumptions():
     data["models"].reverse()
     data["devices"].reverse()
     assert pipeline.catalog_matrix(data) == matrix
-    assert pipeline.snapshot_id(PAIR, "d" * 40) != SNAPSHOT
+    assert pipeline.snapshot_id({**PAIR, "vllm": "d" * 40}) != SNAPSHOT
     assert pipeline.pair_key(dict(reversed(list(PAIR.items())))) == pipeline.pair_key(PAIR)
 
 
@@ -227,7 +227,10 @@ def test_real_contract_cell_turns_golden_drift_into_actionable_triage(
         }
 
 
-def test_state_roundtrip_preserves_history_and_rejects_snapshot_overwrites(tmp_path, monkeypatch):
+@pytest.mark.parametrize("bootstrap_failure", [False, True])
+def test_state_roundtrip_preserves_history_and_rejects_snapshot_overwrites(
+    tmp_path, monkeypatch, bootstrap_failure
+):
     remote = tmp_path / "remote.git"
     subprocess.run(["git", "init", "--bare", str(remote)], check=True, capture_output=True)
     monkeypatch.setenv("GITHUB_REPOSITORY", "test/atlas")
@@ -243,6 +246,14 @@ def test_state_roundtrip_preserves_history_and_rejects_snapshot_overwrites(tmp_p
         return original_git(*arguments, **kwargs)
 
     monkeypatch.setattr(pipeline, "git", local_git)
+    if bootstrap_failure:
+        cache = tmp_path / "bootstrap-failure"
+        monkeypatch.setattr(pipeline, "CACHE", cache)
+        pipeline.write_json(cache / "bundle/data/partial/ir.json", {"partial": True})
+        pipeline.record_failure()
+        state = json.loads((cache / "state/state.json").read_text())
+        assert state == {"pairs": {}, "failures": {pipeline.pair_key(PAIR): {"c" * 40: True}}}
+        assert not (cache / "state/data").exists()
     for iteration in ("old", "new"):
         cache = tmp_path / iteration
         monkeypatch.setattr(pipeline, "CACHE", cache)
@@ -262,11 +273,60 @@ def test_state_roundtrip_preserves_history_and_rejects_snapshot_overwrites(tmp_p
     assert json.loads((retained / "new/ir.json").read_text()) == {"version": "new"}
     state = json.loads((tmp_path / "new/state/state.json").read_text())
     assert state["pairs"][pipeline.pair_key(PAIR)]["snapshot"] == SNAPSHOT
+    # A hard failure must retain successes and historical JSON without publishing data.
+    cache = tmp_path / "failed"
+    monkeypatch.setattr(pipeline, "CACHE", cache)
+    pipeline.record_failure()
+    state = json.loads((cache / "state/state.json").read_text())
+    assert state["failures"] == {pipeline.pair_key(PAIR): {"c" * 40: True}}
+    assert state["pairs"][pipeline.pair_key(PAIR)]["snapshot"] == SNAPSHOT
+    assert (cache / "state/data/old/ir.json").exists()
+    # A different generator revision gets its own failure record.
+    cache = tmp_path / "failed-again"
+    monkeypatch.setattr(pipeline, "CACHE", cache)
+    monkeypatch.setenv("GITHUB_SHA", "d" * 40)
+    pipeline.record_failure()
+    state = json.loads((cache / "state/state.json").read_text())
+    assert state["failures"][pipeline.pair_key(PAIR)] == {"c" * 40: True, "d" * 40: True}
     cache = tmp_path / "conflict"
     monkeypatch.setattr(pipeline, "CACHE", cache)
     pipeline.write_json(cache / "bundle/data/old/ir.json", {"overwritten": True})
     with pytest.raises(ValueError, match="Immutable snapshot changed"):
         pipeline.restore()
+
+
+def test_snapshot_hashes_relevant_git_trees_and_ignores_docs(tmp_path, monkeypatch):
+    def git(*args):
+        return subprocess.run(
+            ["git", "-C", str(tmp_path), *args], check=True, capture_output=True, text=True
+        ).stdout.strip()
+
+    git("init")
+    git("config", "user.name", "Test")
+    git("config", "user.email", "test@example.com")
+    for path in ("generator/code.py", "rules/rule.yaml", "annotations/note.yaml", "catalog.yaml"):
+        dest = tmp_path / path
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_text("original\n")
+    git("add", ".")
+    git("commit", "-m", "initial")
+    monkeypatch.setattr(pipeline, "ROOT", tmp_path)
+    initial = pipeline.snapshot_id(PAIR)
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs/ci.md").write_text("docs only\n")
+    git("add", ".")
+    git("commit", "-m", "docs")
+    assert pipeline.snapshot_id(PAIR) == initial
+    for path in ("generator/code.py", "rules/rule.yaml", "annotations/note.yaml", "catalog.yaml"):
+        before = pipeline.snapshot_id(PAIR)
+        (tmp_path / path).write_text("changed\n")
+        git("add", ".")
+        git("commit", "-m", f"change {path}")
+        assert pipeline.snapshot_id(PAIR) != before
+    before = pipeline.snapshot_id(PAIR)
+    git("rm", "annotations/note.yaml")
+    git("commit", "-m", "remove annotation tree")
+    assert pipeline.snapshot_id(PAIR) != before
 
 
 def test_plan_expands_the_real_catalog_without_running_the_generator(tmp_path, monkeypatch):

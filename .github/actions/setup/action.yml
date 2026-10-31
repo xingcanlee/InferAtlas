@@ -3,21 +3,21 @@ description: Install the Python and Node workspaces with native package caches.
 runs:
   using: composite
   steps:
-    - uses: astral-sh/setup-uv@v7
+    - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
       with:
         python-version: '3.12'
         enable-cache: true
         cache-dependency-glob: |
           generator/pyproject.toml
           generator/uv.lock
-    - uses: pnpm/action-setup@v4
-    - uses: actions/setup-node@v6
+    - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+    - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
       with:
         node-version: '22'
         cache: pnpm
         cache-dependency-path: pnpm-lock.yaml
         registry-url: https://registry.npmjs.org
-    - uses: taiki-e/install-action@v2
+    - uses: taiki-e/install-action@68a389c788b2cd04016ce8c80ee23b80d2ab3d68 # v2.88.1
       with:
         tool: just
     - name: Install workspaces

@@ -42,14 +42,25 @@ def pins() -> dict[str, str]:
     return result
 
 
-def pair_key(pair: dict[str, str]) -> str:
+def pair_key(pair: dict[str, object]) -> str:
     return hashlib.sha256(canonical(pair).encode()).hexdigest()
 
 
-def snapshot_id(pair: dict[str, str], generator: str) -> str:
-    if not SHA.fullmatch(generator):
-        raise ValueError("Generator revision must be a full SHA")
-    return "snapshot-" + pair_key({**pair, "generator": generator})
+def snapshot_id(pair: dict[str, str]) -> str:
+    paths = ("generator", "rules", "annotations", "catalog.yaml")
+    trees = dict.fromkeys(paths)
+    entries = subprocess.run(
+        ["git", "ls-tree", "-z", "HEAD", "--", *paths],
+        cwd=ROOT,
+        check=True,
+        text=True,
+        capture_output=True,
+    ).stdout
+    for entry in entries.split("\0"):
+        if entry:
+            metadata, path = entry.split("\t", 1)
+            trees[path] = metadata.split()[2]
+    return "snapshot-" + pair_key({**pair, "trees": trees})
 
 
 def catalog_matrix(catalog: dict) -> list[dict]:
@@ -85,7 +96,7 @@ def plan() -> None:
     pair = pins()
     catalog = YAML(typ="safe").load((ROOT / "catalog.yaml").read_text())
     output("matrix", canonical({"include": catalog_matrix(catalog)}))
-    output("snapshot", snapshot_id(pair, os.environ["GITHUB_SHA"]))
+    output("snapshot", snapshot_id(pair))
 
 
 def load_contract(path: Path, schema: str) -> dict:
@@ -174,7 +185,7 @@ def cell() -> None:
         elif not report_passes(report):
             raise RuntimeError("Verification report lacks passing schema/coverage/source checks")
     result["status"] = "triage" if triage["items"] else "ok"
-    result["snapshot"] = snapshot_id(pair, os.environ["GITHUB_SHA"])
+    result["snapshot"] = snapshot_id(pair)
     write_json(dest / "result.json", result)
 
 
@@ -245,7 +256,7 @@ def git(*arguments: str, check: bool = True) -> subprocess.CompletedProcess:
     )
 
 
-def restore() -> None:
+def restore(*, merge_data: bool = True) -> None:
     state_dir = CACHE / "state"
     state_dir.mkdir(parents=True, exist_ok=True)
     git("init", "--initial-branch=state")
@@ -261,7 +272,7 @@ def restore() -> None:
     else:
         write_json(state_dir / "state.json", {"pairs": {}})
     source = CACHE / "bundle/data"
-    if source.exists():
+    if merge_data and source.exists():
         for path in sorted(source.rglob("*.json")):
             target = state_dir / "data" / path.relative_to(source)
             if target.exists() and target.read_bytes() != path.read_bytes():
@@ -340,12 +351,28 @@ def publish() -> None:
         "generator": os.environ["GITHUB_SHA"],
         "blocked_models": summary["blocked_models"],
     }
+    save_state(state, f"chore(ci): retain {snapshot}")
+
+
+def record_failure() -> None:
+    # Failure jobs restore only the ledger/history, never partially built artifacts.
+    restore(merge_data=False)
+    state = json.loads((CACHE / "state/state.json").read_text())
+    generator = os.environ["GITHUB_SHA"]
+    if not SHA.fullmatch(generator):
+        raise ValueError("Generator revision must be a full SHA")
+    state.setdefault("failures", {}).setdefault(pair_key(pins()), {})[generator] = True
+    save_state(state, f"chore(ci): record failed pair at {generator}")
+
+
+def save_state(state: dict, message: str) -> None:
+    state_file = CACHE / "state/state.json"
     write_json(state_file, state)
     git("config", "user.name", "github-actions[bot]")
     git("config", "user.email", "41898282+github-actions[bot]@users.noreply.github.com")
     git("add", "--all")
     if git("diff", "--cached", "--quiet", check=False).returncode:
-        git("commit", "-m", f"chore(ci): retain {snapshot}")
+        git("commit", "-m", message)
         git("push", "origin", "HEAD:state")
 
 
@@ -372,6 +399,7 @@ if __name__ == "__main__":
             restore,
             publish,
             release_snapshot,
+            record_failure,
         )
     }
     commands[sys.argv[1]]()

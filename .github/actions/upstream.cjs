@@ -1,5 +1,6 @@
 // Use vllm-ascend's declared compatibility; never form a Cartesian product of tags.
 const { createHash } = require("node:crypto");
+const config = require("./poll-config.json");
 
 const owner = "vllm-project";
 const shaPattern = /^[0-9a-f]{40}$/;
@@ -31,7 +32,21 @@ async function pairing(github, ascendCommit, main) {
   return ref;
 }
 
-async function candidates(github, core) {
+function meetsFloor(tag, minimum) {
+  const floor = /^(\d+)\.(\d+)\.(\d+)$/.exec(minimum);
+  if (!floor) throw new Error("minimum_ascend_version must be major.minor.patch");
+  const version = /^v?(\d+)\.(\d+)\.(\d+)(.*)$/.exec(tag);
+  if (!version) return false;
+  for (let i = 1; i <= 3; i++) {
+    if (Number(version[i]) !== Number(floor[i])) {
+      return Number(version[i]) > Number(floor[i]);
+    }
+  }
+  // A prerelease of the floor itself precedes that stable version.
+  return !version[4] || /^\.post\d+$/.test(version[4]);
+}
+
+async function candidates(github, core, settings = config) {
   const releases = {};
   for (const repo of ["vllm", "vllm-ascend"]) {
     releases[repo] = await github.paginate(github.rest.repos.listReleases, {
@@ -42,7 +57,11 @@ async function candidates(github, core) {
   }
   const vllmTags = new Set(releases.vllm.filter((r) => !r.draft).map((r) => r.tag_name));
   const tags = [
-    ...new Set(releases["vllm-ascend"].filter((r) => !r.draft).map((r) => r.tag_name)),
+    ...new Set(
+      releases["vllm-ascend"]
+        .filter((r) => !r.draft && meetsFloor(r.tag_name, settings.minimum_ascend_version))
+        .map((r) => r.tag_name),
+    ),
   ].sort();
   const pairs = [];
   for (const ascendTag of [...tags, "main"]) {
@@ -95,17 +114,70 @@ async function poll({ github, context, core }) {
       if (branchError.status !== 404) throw branchError;
     }
   }
+  const defaultBranch = context.payload.repository.default_branch;
+  // Do not replace a pending publisher with a backfill burst or duplicate a slow build.
+  for (const status of ["queued", "in_progress", "waiting", "pending", "requested"]) {
+    const runs = await github.paginate(github.rest.actions.listWorkflowRuns, {
+      owner: repoOwner,
+      repo,
+      workflow_id: "build.yml",
+      branch: defaultBranch,
+      status,
+      per_page: 100,
+    });
+    if (runs.length) {
+      core.info("A build is still active; deferring dispatch");
+      return;
+    }
+  }
+  const { data: head } = await github.rest.repos.getCommit({
+    owner: repoOwner,
+    repo,
+    ref: defaultBranch,
+  });
+  if (!shaPattern.test(head.sha)) throw new Error("Invalid generator SHA");
+  const trees = new Map();
+  async function maintenanceTrees(revision) {
+    if (!shaPattern.test(revision)) throw new Error("Invalid ledger generator SHA");
+    if (!trees.has(revision)) {
+      const { data } = await github.rest.repos.getCommit({
+        owner: repoOwner,
+        repo,
+        ref: revision,
+      });
+      const { data: tree } = await github.rest.git.getTree({
+        owner: repoOwner,
+        repo,
+        tree_sha: data.commit.tree.sha,
+      });
+      trees.set(
+        revision,
+        JSON.stringify(
+          ["rules", "annotations"].map((path) => tree.tree.find((t) => t.path === path)?.sha),
+        ),
+      );
+    }
+    return trees.get(revision);
+  }
   for (const pair of await candidates(github, core)) {
-    if (Object.hasOwn(state.pairs, pairKey(pair))) continue;
+    const key = pairKey(pair);
+    if (Object.hasOwn(state.failures?.[key] ?? {}, head.sha)) continue;
+    const entry = state.pairs[key];
+    if (entry) {
+      if (!entry.blocked_models?.length || entry.generator === head.sha) continue;
+      if ((await maintenanceTrees(entry.generator)) === (await maintenanceTrees(head.sha)))
+        continue;
+    }
     await github.rest.actions.createWorkflowDispatch({
       owner: repoOwner,
       repo,
       workflow_id: "build.yml",
-      ref: context.payload.repository.default_branch,
+      ref: defaultBranch,
       inputs: { ...pair, publish: "true" },
     });
     core.info(`Dispatched ${pair.vllm_tag} + ${pair.ascend_tag} (${pairKey(pair)})`);
+    return;
   }
 }
 
-module.exports = { candidates, pairKey, poll };
+module.exports = { candidates, meetsFloor, pairKey, poll };

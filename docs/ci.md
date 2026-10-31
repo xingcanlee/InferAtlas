@@ -52,7 +52,37 @@ Publication and maintenance dispatch are restricted to the default branch.
 Commit `pnpm-lock.yaml` and `generator/uv.lock` before enabling the workflows. Setup
 uses frozen/locked installs, Node 22, Python 3.12, uv's download cache and pnpm's store
 cache. GitHub jobs use public PyPI/npm/PyTorch indexes, including an explicit override
-of the local mirror default in `justfile`. Local development can keep using mirrors.
+of the local mirror default in `justfile`.
+
+`generator/pyproject.toml` declares PyPI as its default uv index. The committed lock
+uses `https://pypi.org/simple` and canonical `files.pythonhosted.org` artifacts;
+package versions and dependency requirements are unchanged by the index migration.
+Use PyPI when validating or updating that lock:
+
+```sh
+env -u UV_INDEX_URL -u UV_DEFAULT_INDEX uv sync --project generator --locked --index-url https://pypi.org/simple
+env -u UV_INDEX_URL -u UV_DEFAULT_INDEX uv lock --project generator --index-url https://pypi.org/simple
+```
+
+For local mirror installs into an existing environment, `uv pip` does not rewrite the
+project lock. Use the mirror for the experiment/bootstrap or a dedicated environment:
+
+```sh
+UV_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/ uv pip install --python .cache/checks/bin/python pytest ruff
+```
+
+`uv sync --project generator --frozen` and `uv run --project generator --frozen ...`
+also leave the lock untouched, but install the artifact URLs already in it; setting
+`UV_INDEX_URL` does not redirect those locked URLs to a mirror. Do not run a resolving
+`uv lock`/`uv sync --locked` with the mirror override: a different index changes the
+resolution identity. The mirror default in `justfile` must be overridden with
+`just --set UV_INDEX_URL https://pypi.org/simple/ ...` for resolving project commands.
+
+All third-party `uses:` references, including those in composite actions, are full
+commit SHAs with exact `# vX.Y.Z` comments. Pins were resolved from release tags using
+`gh api repos/<owner>/<repo>/git/ref/tags/<tag>`; annotated tag objects were followed
+through `git/tags/<sha>` until the object was a commit. Repeat that lookup when updating
+a pin; retain the full SHA and version comment together.
 
 ## Pair discovery and state
 
@@ -66,12 +96,21 @@ data/<snapshot-id>/<catalog-model-id>/<device>/{ir,view,report}.json
 `state.json` is sorted JSON with a `pairs` object. Its keys are SHA-256 of compact,
 sorted JSON `{"ascend":"<40-char-sha>","vllm":"<40-char-sha>"}`. Each handled
 entry records `snapshot`, `generator` (the InferAtlas commit), and `blocked_models`.
+Hard failures live separately at `failures[<pair-key>][<generator-commit>] = true`,
+preserving any prior successful entry and its data. Old ledgers without `failures`
+remain valid.
 There are no timestamps in the ledger or generated manifests. The branch is created
-on the first successful publication/triage handling; an existing branch missing its
+on the first successful publication/triage handling or recorded hard failure; an existing branch missing its
 ledger is an error. Do not force-push or independently write this branch.
 
 Polling paginates both upstream repositories' releases APIs, including prereleases
-and excluding drafts. For each vllm-ascend release, it resolves the tag to a full SHA
+and excluding drafts. `.github/actions/poll-config.json` sets `minimum_ascend_version`
+to **0.30.0**, the current stable Ascend release confirmed through GitHub's releases API.
+Releases below that floor
+are excluded before reading their commits/pairing declarations. Versions compare
+numerically; a prerelease of the minimum stable version is below the floor, while
+prereleases of later versions remain eligible. Verified main is always considered.
+For each eligible vllm-ascend release, it resolves the tag to a full SHA
 and reads `.github/vllm-release-tag.commit` **at that SHA**. The declared vLLM tag must
 also be a published vLLM release. Unpaired vLLM releases wait for an ascend declaration;
 there is no tag Cartesian product. Older ascend releases without the declaration are
@@ -79,20 +118,33 @@ reported and skipped. For ascend main, polling resolves its head once and reads
 `.github/vllm-main-verified.commit` at that immutable revision. API failures other than
 missing historical declarations fail the poll rather than dropping candidates.
 
-Pairs absent from the ledger are dispatched to `build.yml` on the default branch.
-The first poll backfills **all compatible published releases** plus verified main;
-expect a backlog on an empty ledger. A dispatch alone never marks a pair handled.
-Hard build, release, deployment, or state-write failures are retried by the next poll.
-A successful partial publication records the blocked model IDs, so unresolved triage
-does not repeatedly spend agent credits. After merging reviewed rules/annotations,
-manually replay the pinned build; its new generator commit creates a new snapshot.
+Each poll dispatches **at most one pair** to `build.yml` on the default branch, using
+stable pair-key order. It waits if any build on that branch is queued, running, or
+waiting for execution/approval. Backfill therefore advances across polls without
+replacing pending publication jobs. A dispatch alone never marks a pair handled.
 
-Publication uses the repository-wide `inferatlas-pages` concurrency group. Each writer
+An always-evaluated failure job records hard plan, extraction, collection, release,
+or deployment failures for publication-enabled default-branch runs. Polling resolves
+the current default-branch SHA and suppresses pairs with a failure at that SHA; they
+become eligible again only when that SHA changes. Diagnostic/nightly builds and
+cancelled runs do not change the ledger. If the ledger write itself fails, the next
+poll cannot see that failure and can retry; the failed writer is visible in Actions.
+
+A successful partial publication records blocked model IDs, so unresolved triage
+does not repeatedly spend agent credits. Entries with non-empty `blocked_models`
+become eligible when the `rules/` or `annotations/` Git tree differs from the entry's
+`generator` commit. This implements design §5.5's reviewed maintenance → rebuild loop
+on the next poll. Docs-only and unrelated code changes do not trigger triage retries;
+a hard failure at the current SHA takes precedence over maintenance retries.
+
+Publication and hard-failure recording use the repository-wide `inferatlas-pages`
+concurrency group. Each writer
 restores the latest `state` branch before merging new public JSON and regenerating the
 whole site. Old snapshots survive subsequent deployments; differing bytes at an existing
 snapshot path are rejected. GitHub keeps only one pending job per concurrency group,
-so a burst can replace a pending publisher. Replaced runs have no ledger entry and are
-retried by polling. State pushes use ordinary fast-forward checks, never force pushes.
+so manually dispatched bursts can still replace pending jobs. Polling's single dispatch
+and active-build check avoid creating such bursts. Replaced runs have no ledger entry
+and remain eligible. State pushes use ordinary fast-forward checks, never force pushes.
 
 ## Build and publication gates
 
@@ -122,8 +174,8 @@ uv run --project generator inferatlas site --input .cache/state/data --out dist
 ```
 
 CI also runs `inferatlas golden check` without `--input` for committed goldens.
-These integration requirements are recorded in `docs/requests/T7.md`; on the T0 base
-the CLI implementation and lockfiles are still supplied by the other tasks.
+These integration requirements are recorded in `docs/requests/T7.md`; the remaining
+CLI/site implementation is supplied by the other tasks.
 
 `build` must honor the checked-out SHAs and `INFERATLAS_{VLLM,ASCEND}_{COMMIT,TAG}`
 environment values; `--out` must contain `triage.json` even for a coverage failure.
@@ -148,8 +200,11 @@ and `just single`/the corresponding web package scripts. Files for exactly the c
 clean matrix are checked before creating the release.
 
 A snapshot ID/release tag is `snapshot-<sha256>` of sorted JSON containing both upstream
-SHAs and the full InferAtlas commit. The latter also pins catalog configs, rules,
-annotations and generator code; changing them produces a new snapshot. Release assets
+SHAs and a `trees` map of committed Git object hashes for `generator/`, `rules/`,
+`annotations/`, and `catalog.yaml` (a blob hash for the catalog). Missing directories
+use JSON `null`, supporting the scaffold before rule/annotation tasks are merged.
+Changing these inputs produces a new snapshot; docs-only commits retain the same ID.
+The ledger still records the full generator commit for retry decisions. Release assets
 are the single files plus a sorted `SHA256SUMS`. Uploads occur in a draft release, which
 is published only when complete. A retry can repair a draft; a published release is
 downloaded and compared byte-for-byte and is never overwritten. Release validation
@@ -195,9 +250,11 @@ uv run --project generator pytest .github/actions/tests
 node --test .github/actions/tests/*.test.cjs
 ```
 
-The helper tests use mocks, real contract fixtures and a local bare Git remote. They
-exercise pairing/state handling, model-wide triage, report gates, release immutability,
-and state retention without GitHub writes, NPU access or weights.
+The explicit `*.test.cjs` glob is required on Node 22; passing the tests directory as
+the sole argument fails. The helper tests use mocks, real contract fixtures and local
+Git repositories. They exercise failure suppression/retry, bounded backfill, maintenance
+rebuilds, content-based snapshot identity, model-wide triage, report gates, release
+immutability and state retention without GitHub writes, NPU access or weights.
 
 Replay a known pair after integration, from a checkout of the default branch:
 
