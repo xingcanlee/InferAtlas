@@ -118,10 +118,12 @@ reported and skipped. For ascend main, polling resolves its head once and reads
 `.github/vllm-main-verified.commit` at that immutable revision. API failures other than
 missing historical declarations fail the poll rather than dropping candidates.
 
-Each poll dispatches **at most one pair** to `build.yml` on the default branch, using
-stable pair-key order. It waits if any build on that branch is queued, running, or
-waiting for execution/approval. Backfill therefore advances across polls without
-replacing pending publication jobs. A dispatch alone never marks a pair handled.
+Each poll dispatches **at most one pair** to `build.yml` on the default branch, with
+release pairs first in ascending numeric tag order, followed by verified main.
+Duplicate commit pairs retain their first release label. It waits if any build on that
+branch is queued, running, or waiting for execution/approval. Backfill therefore advances
+across polls without replacing pending publication jobs. A dispatch alone never marks
+a pair handled.
 
 An always-evaluated failure job records hard plan, extraction, collection, release,
 or deployment failures for publication-enabled default-branch runs. Polling resolves
@@ -200,9 +202,11 @@ and `just single`/the corresponding web package scripts. Files for exactly the c
 clean matrix are checked before creating the release.
 
 A snapshot ID/release tag is `snapshot-<sha256>` of sorted JSON containing both upstream
-SHAs and a `trees` map of committed Git object hashes for `generator/`, `rules/`,
-`annotations/`, and `catalog.yaml` (a blob hash for the catalog). Missing directories
-use JSON `null`, supporting the scaffold before rule/annotation tasks are merged.
+SHAs and a `trees` map of committed Git object hashes for `generator/` (including
+`generator/uv.lock`), `rules/`, `annotations/`, `catalog.yaml`, `packages/`, `web/`,
+`schemas/`, `pnpm-lock.yaml`, and `.github/actions/`. Files use blob hashes; directories
+use tree hashes. Missing paths use JSON `null`, supporting the scaffold before
+rule/annotation tasks are merged.
 Changing these inputs produces a new snapshot; docs-only commits retain the same ID.
 The ledger still records the full generator commit for retry decisions. Release assets
 are the single files plus a sorted `SHA256SUMS`. Uploads occur in a draft release, which

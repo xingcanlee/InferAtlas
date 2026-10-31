@@ -62,7 +62,7 @@ async function candidates(github, core, settings = config) {
         .filter((r) => !r.draft && meetsFloor(r.tag_name, settings.minimum_ascend_version))
         .map((r) => r.tag_name),
     ),
-  ].sort();
+  ].sort((a, b) => a.localeCompare(b, "en", { numeric: true }));
   const pairs = [];
   for (const ascendTag of [...tags, "main"]) {
     const ascendCommit = await commit(github, "vllm-ascend", ascendTag);
@@ -86,8 +86,12 @@ async function candidates(github, core, settings = config) {
       vllm_tag: ascendTag === "main" ? "main-verified" : ref,
     });
   }
-  const unique = new Map(pairs.map((pair) => [pairKey(pair), pair]));
-  return [...unique.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([, pair]) => pair);
+  const unique = new Map();
+  for (const pair of pairs) {
+    const key = pairKey(pair);
+    if (!unique.has(key)) unique.set(key, pair);
+  }
+  return [...unique.values()];
 }
 
 async function poll({ github, context, core }) {

@@ -84,11 +84,47 @@ test("candidates use only the declared release and verified-main pairs above the
   assert.deepEqual(new Set(pairs.map((pair) => pair.vllm_commit)), new Set([vllm, verified]));
 });
 
+test("candidates put releases in numeric version order before main regardless of hashes", async () => {
+  const { github } = fake();
+  const tags = ["v0.100.0", "v0.9.0", "v0.10.0", "v0.32.0"];
+  const commits = new Map(tags.map((tag, i) => [tag, String(i + 1).repeat(40)]));
+  const getCommit = github.rest.repos.getCommit;
+  github.rest.repos.getCommit = async (request) =>
+    request.repo === "vllm-ascend" && commits.has(request.ref)
+      ? { data: { sha: commits.get(request.ref) } }
+      : getCommit(request);
+  github.paginate = async () => tags.map((tag_name) => ({ tag_name }));
+
+  const pairs = await candidates(github, core, { minimum_ascend_version: "0.9.0" });
+  assert.deepEqual(
+    pairs.map((pair) => pair.ascend_tag),
+    ["v0.9.0", "v0.10.0", "v0.32.0", "v0.100.0", "main"],
+  );
+});
+
+test("a release keeps priority when main resolves to the same commit pair", async () => {
+  const { github } = fake();
+  const getCommit = github.rest.repos.getCommit;
+  github.rest.repos.getCommit = async (request) => {
+    if (request.repo === "vllm-ascend" && request.ref === "main") return { data: { sha: asc } };
+    if (request.repo === "vllm" && request.ref === vllm) return { data: { sha: vllm } };
+    return getCommit(request);
+  };
+  const getContent = github.rest.repos.getContent;
+  github.rest.repos.getContent = async (request) =>
+    request.path.endsWith("main-verified.commit")
+      ? { data: { encoding: "base64", content: Buffer.from(vllm).toString("base64") } }
+      : getContent(request);
+  const pairs = await candidates(github, core);
+  assert.equal(pairs.length, 1);
+  assert.equal(pairs[0].ascend_tag, "v0.32.0");
+});
+
 test("a poll dispatches at most one eligible pair", async () => {
   const { github, dispatched } = fake();
   await poll({ github, context, core });
   assert.equal(dispatched.length, 1);
-  assert.ok([vllm, verified].includes(dispatched[0].inputs.vllm_commit));
+  assert.equal(dispatched[0].inputs.vllm_commit, vllm);
   for (const request of dispatched) {
     assert.equal(request.ref, "main");
     assert.equal(request.workflow_id, "build.yml");

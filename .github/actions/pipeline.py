@@ -47,7 +47,17 @@ def pair_key(pair: dict[str, object]) -> str:
 
 
 def snapshot_id(pair: dict[str, str]) -> str:
-    paths = ("generator", "rules", "annotations", "catalog.yaml")
+    paths = (
+        "generator",  # Includes uv.lock.
+        "rules",
+        "annotations",
+        "catalog.yaml",
+        "packages",
+        "web",
+        "schemas",
+        "pnpm-lock.yaml",
+        ".github/actions",
+    )
     trees = dict.fromkeys(paths)
     entries = subprocess.run(
         ["git", "ls-tree", "-z", "HEAD", "--", *paths],

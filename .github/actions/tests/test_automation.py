@@ -304,7 +304,19 @@ def test_snapshot_hashes_relevant_git_trees_and_ignores_docs(tmp_path, monkeypat
     git("init")
     git("config", "user.name", "Test")
     git("config", "user.email", "test@example.com")
-    for path in ("generator/code.py", "rules/rule.yaml", "annotations/note.yaml", "catalog.yaml"):
+    inputs = (
+        "generator/code.py",
+        "rules/rule.yaml",
+        "annotations/note.yaml",
+        "catalog.yaml",
+        "packages/layout/src/index.ts",
+        "web/src/App.tsx",
+        "schemas/ir.schema.json",
+        "pnpm-lock.yaml",
+        "generator/uv.lock",
+        ".github/actions/pipeline.py",
+    )
+    for path in inputs:
         dest = tmp_path / path
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_text("original\n")
@@ -317,7 +329,7 @@ def test_snapshot_hashes_relevant_git_trees_and_ignores_docs(tmp_path, monkeypat
     git("add", ".")
     git("commit", "-m", "docs")
     assert pipeline.snapshot_id(PAIR) == initial
-    for path in ("generator/code.py", "rules/rule.yaml", "annotations/note.yaml", "catalog.yaml"):
+    for path in inputs:
         before = pipeline.snapshot_id(PAIR)
         (tmp_path / path).write_text("changed\n")
         git("add", ".")
