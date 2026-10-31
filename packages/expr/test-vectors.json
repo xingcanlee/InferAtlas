@@ -792,6 +792,61 @@
   {
     "env": {},
     "error": "syntax",
+    "expr": "max"
+  },
+  {
+    "env": {},
+    "error": "syntax",
+    "expr": "min"
+  },
+  {
+    "env": {},
+    "error": "syntax",
+    "expr": "ceil"
+  },
+  {
+    "env": {},
+    "error": "syntax",
+    "expr": "floor"
+  },
+  {
+    "env": {},
+    "error": "syntax",
+    "expr": "cdiv"
+  },
+  {
+    "env": {},
+    "error": "syntax",
+    "expr": "round_up"
+  },
+  {
+    "env": {},
+    "error": "syntax",
+    "expr": "bytes"
+  },
+  {
+    "env": {},
+    "error": "syntax",
+    "expr": "max + 1"
+  },
+  {
+    "env": {},
+    "error": "syntax",
+    "expr": "true ? 1 : bytes"
+  },
+  {
+    "env": {},
+    "error": "syntax",
+    "expr": "false && ceil"
+  },
+  {
+    "env": {},
+    "error": "syntax",
+    "expr": "max(1, min)"
+  },
+  {
+    "env": {},
+    "error": "syntax",
     "expr": " "
   },
   {

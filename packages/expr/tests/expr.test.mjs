@@ -23,11 +23,19 @@ describe("shared DSL vectors", () => {
   it.each(vectors.map((vector, index) => ({ ...vector, index })))("$index: $expr", (vector) => {
     const { expr, env, value, error } = vector;
     if (error) {
-      for (const run of [
+      const runs = [
         () => evaluate(expr, env),
         () => compile(expr)(env),
         () => evaluate(parse(expr), env),
-      ]) {
+      ];
+      if (["syntax", "arity"].includes(error)) {
+        runs.push(
+          () => parse(expr),
+          () => free(expr),
+          () => format(expr, "symbolic"),
+        );
+      }
+      for (const run of runs) {
         expect(run).toThrow(ExprError);
         try {
           run();
@@ -42,7 +50,7 @@ describe("shared DSL vectors", () => {
       expect(evaluate(expr, env)).toBe(value);
       expect(compile(expr)(env)).toBe(value);
       expect(evaluate(parse(expr), env)).toBe(value);
-      expect(format(expr, "numeric", env)).toBe(String(value));
+      expect(format(expr, "numeric", env, 17)).toBe(String(value));
       expect(evaluate(format(expr, "symbolic"), env)).toBe(value);
       if (vector.free) expect(free(expr)).toEqual(vector.free);
       if (vector.symbolic) expect(format(expr, "symbolic")).toBe(vector.symbolic);
@@ -184,6 +192,86 @@ it("compiled closures read each environment without capturing its values", () =>
   expect(format("x + 1", "symbolic", { fp32: 99 })).toBe("(x + 1)");
   expect(format("-0", "numeric")).toBe("0");
   expect(Object.is(evaluate("-0", {}), -0)).toBe(false);
+});
+
+it.each([
+  [{ type: "unknown" }, "syntax"],
+  [{}, "syntax"],
+  [null, "syntax"],
+  [undefined, "syntax"],
+  [{ type: "unary", op: "~", argument: { type: "number", value: 1 } }, "syntax"],
+  [
+    {
+      type: "binary",
+      op: "&",
+      left: { type: "number", value: 1 },
+      right: { type: "number", value: 2 },
+    },
+    "syntax",
+  ],
+  [{ type: "number", value: "1" }, "type"],
+  [{ type: "number", value: true }, "type"],
+  [{ type: "number", value: null }, "type"],
+  [{ type: "number" }, "type"],
+  [{ type: "boolean", value: 1 }, "type"],
+  [{ type: "identifier", name: "max" }, "syntax"],
+  [{ type: "identifier", name: "bytes" }, "syntax"],
+  [{ type: "identifier", name: 1 }, "syntax"],
+  [{ type: "identifier", name: "a.b" }, "syntax"],
+  [{ type: "call", name: "unknown", args: [] }, "syntax"],
+  [{ type: "call", name: "max", args: null }, "syntax"],
+  [{ type: "unary", op: "+" }, "syntax"],
+])("rejects malformed external ASTs, including skipped branches: %j", (ast, code) => {
+  const lazy = {
+    type: "conditional",
+    test: { type: "boolean", value: false },
+    consequent: ast,
+    alternate: { type: "number", value: 1 },
+  };
+  for (const input of [ast, lazy]) {
+    expect(() => evaluate(input, {})).toThrow(ExprError);
+    expect(() => evaluate(input, {})).toThrow(expect.objectContaining({ code }));
+  }
+});
+
+it.each([
+  ["1.1497809458523989", undefined, "1.15"],
+  ["1.1497809458523989", 6, "1.14978"],
+  ["1.1497809458523989", 2, "1.1"],
+  ["12.300", undefined, "12.3"],
+  ["1234567", undefined, "1235000"],
+  [".00001234567", undefined, "0.00001235"],
+  ["-1.1497809458523989", undefined, "-1.15"],
+  ["-0", undefined, "0"],
+  ["1e308", undefined, "1e+308"],
+  ["1.7976931348623157e308", undefined, "1.798e+308"],
+  ["1.7976931348623157e308", 3, "1.8e+308"],
+  ["1e-308", undefined, "1e-308"],
+])("formats significant digits: %s at precision %s", (src, precision, expected) => {
+  expect(format(src, "numeric", {}, precision)).toBe(expected);
+});
+
+it("formats rounded units after scaling and supports custom precision", () => {
+  expect(format("x / 3", "numeric", { x: 1 })).toBe("0.3333");
+  expect(format("x / 3", "numeric", { x: 1 }, 6)).toBe("0.333333");
+  expect(evaluator.format("x / 3", "numeric", { x: 1 }, 6)).toBe("0.333333");
+  expect(format("x / 3", "symbolic", {}, 2)).toBe("(x / 3)");
+  expect(formatHuman("1234567890", "bytes")).toBe("1.15 GiB");
+  expect(formatHuman("1234567890", "bytes", {}, 6)).toBe("1.14978 GiB");
+  expect(formatHuman("1234567890", "GFLOP")).toBe("1.235 GFLOP");
+  expect(formatHuman("1234567890123", "TFLOP", {}, 6)).toBe("1.23457 TFLOP");
+  expect(formatHuman("12.300", "FLOP")).toBe("12.3 FLOP");
+});
+
+it.each([0, 101, 1.5, NaN, Infinity, "4", null])("rejects invalid precision: %s", (precision) => {
+  for (const run of [
+    () => format("1", "numeric", {}, precision),
+    () => formatHuman("1", "bytes", {}, precision),
+    () => formatHuman("1", "FLOP", {}, precision),
+  ]) {
+    expect(run).toThrow(ExprError);
+    expect(run).toThrow(expect.objectContaining({ code: "domain" }));
+  }
 });
 
 it.each([

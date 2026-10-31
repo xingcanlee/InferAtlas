@@ -85,20 +85,52 @@ function children(ast: Ast): Ast[] {
 
 // Check every branch before execution, including branches that will be skipped.
 function check(ast: Ast): void {
-  if (ast.type === "number") finite(ast.value, ast);
-  if (ast.type === "identifier" && ["NaN", "Infinity"].includes(ast.name)) {
-    fail("syntax", `${ast.name} is not a DSL literal`, ast);
-  }
-  if (ast.type === "call") {
-    if (!functions.has(ast.name)) fail("syntax", "Unknown function", ast);
-    const n = ast.args.length;
-    const valid =
-      ast.name === "max" || ast.name === "min"
-        ? n >= 1
-        : ast.name === "cdiv" || ast.name === "round_up"
-          ? n === 2
-          : n === 1;
-    if (!valid) fail("arity", `Invalid arity for ${ast.name}`, ast);
+  if (!ast || typeof ast !== "object") fail("syntax", "Expected an AST node", ast);
+  switch (ast.type) {
+    case "number":
+      numeric(ast.value, ast);
+      break;
+    case "boolean":
+      if (typeof ast.value !== "boolean") fail("type", "Expected a boolean literal", ast);
+      break;
+    case "identifier":
+      if (typeof ast.name !== "string" || !/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(ast.name)) {
+        fail("syntax", "Invalid identifier", ast);
+      }
+      if (["NaN", "Infinity", "true", "false"].includes(ast.name)) {
+        fail("syntax", `${ast.name} is not a DSL identifier`, ast);
+      }
+      if (functions.has(ast.name)) fail("syntax", "Function names require parentheses", ast);
+      break;
+    case "unary":
+      if (!["+", "-", "!"].includes(ast.op)) fail("syntax", "Unknown unary operator", ast);
+      break;
+    case "binary":
+      if (
+        !["+", "-", "*", "/", "%", "**", "<", "<=", ">", ">=", "==", "!=", "&&", "||"].includes(
+          ast.op,
+        )
+      ) {
+        fail("syntax", "Unknown binary operator", ast);
+      }
+      break;
+    case "conditional":
+      break;
+    case "call": {
+      if (!functions.has(ast.name)) fail("syntax", "Unknown function", ast);
+      if (!Array.isArray(ast.args)) fail("syntax", "Expected function arguments", ast);
+      const n = ast.args.length;
+      const valid =
+        ast.name === "max" || ast.name === "min"
+          ? n >= 1
+          : ast.name === "cdiv" || ast.name === "round_up"
+            ? n === 2
+            : n === 1;
+      if (!valid) fail("arity", `Invalid arity for ${ast.name}`, ast);
+      break;
+    }
+    default:
+      fail("syntax", "Unknown AST node type", ast);
   }
   for (const child of children(ast)) check(child);
 }
@@ -281,23 +313,40 @@ function symbolic(ast: Ast): string {
   }
 }
 
-export function format(src: string, mode: "symbolic" | "numeric", env: ExprEnv = {}): string {
-  return mode === "symbolic" ? symbolic(parse(src)) : String(evaluate(src, env));
+function formatNumber(value: number, precision: number): string {
+  if (!Number.isInteger(precision) || precision < 1 || precision > 100) {
+    throw new ExprError("domain", "Precision must be an integer from 1 to 100");
+  }
+  const rounded = value.toPrecision(precision);
+  // Rounding near Number.MAX_VALUE can exceed the representable range.
+  return Number.isFinite(Number(rounded))
+    ? String(Number(rounded))
+    : rounded.replace(/\.?0+e/, "e");
 }
 
-/** Display-only units; contract format('numeric') remains an exact plain decimal. */
+export function format(
+  src: string,
+  mode: "symbolic" | "numeric",
+  env: ExprEnv = {},
+  precision = 4,
+): string {
+  return mode === "symbolic" ? symbolic(parse(src)) : formatNumber(evaluate(src, env), precision);
+}
+
+/** Display-only units with significant-digit rounding after scaling. */
 export function formatHuman(
   src: string,
   unit: "bytes" | "FLOP" | "GFLOP" | "TFLOP",
   env: ExprEnv = {},
+  precision = 4,
 ): string {
   const value = evaluate(src, env);
   if (unit !== "bytes") {
     const scale = unit === "TFLOP" ? 1e12 : unit === "GFLOP" ? 1e9 : 1;
-    return `${value / scale} ${unit}`;
+    return `${formatNumber(value / scale, precision)} ${unit}`;
   }
   const index = Math.min(3, Math.max(0, Math.floor(Math.log2(Math.abs(value) || 1) / 10)));
-  return `${value / 1024 ** index} ${["B", "KiB", "MiB", "GiB"][index]}`;
+  return `${formatNumber(value / 1024 ** index, precision)} ${["B", "KiB", "MiB", "GiB"][index]}`;
 }
 
-export const evaluator: ExprEvaluator = { parse, evaluate, free, format };
+export const evaluator = { parse, evaluate, free, format } satisfies ExprEvaluator;

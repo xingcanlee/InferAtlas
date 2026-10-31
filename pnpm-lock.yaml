@@ -22,10 +22,11 @@ importers:
         version: 15.0.4
 
   packages/expr:
-    devDependencies:
+    dependencies:
       '@inferatlas/contracts':
         specifier: workspace:*
         version: link:../contracts
+    devDependencies:
       peggy:
         specifier: 5.0.6
         version: 5.0.6

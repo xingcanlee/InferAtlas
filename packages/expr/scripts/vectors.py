@@ -156,6 +156,17 @@ value("1e2 + .5", 100.5, symbolic="(100 + 0.5)")
 
 for expr in [
     "",
+    "max",
+    "min",
+    "ceil",
+    "floor",
+    "cdiv",
+    "round_up",
+    "bytes",
+    "max + 1",
+    "true ? 1 : bytes",
+    "false && ceil",
+    "max(1, min)",
     " ",
     "1+",
     "(1",

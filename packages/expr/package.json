@@ -16,8 +16,10 @@
     "test": "pnpm --filter @inferatlas/contracts build && pnpm build && vitest run",
     "benchmark": "pnpm build && node scripts/benchmark.mjs"
   },
+  "dependencies": {
+    "@inferatlas/contracts": "workspace:*"
+  },
   "devDependencies": {
-    "@inferatlas/contracts": "workspace:*",
     "peggy": "5.0.6",
     "vitest": "3.2.4"
   }

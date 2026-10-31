@@ -63,6 +63,8 @@ def _parse(src: str) -> Tree:
             _error("Non-finite literal", node, "non_finite")
         if node.data == "identifier" and str(node.children[0]) in {"NaN", "Infinity"}:
             _error("Non-finite names are not DSL literals", node)
+        if node.data == "identifier" and str(node.children[0]) in FUNCTIONS:
+            _error("Function names require parentheses", node)
         if node.data == "call":
             name = str(node.children[0])
             if name not in FUNCTIONS:
