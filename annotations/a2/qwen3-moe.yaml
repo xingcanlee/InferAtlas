@@ -1,0 +1,230 @@
+- anchor_hash: sha256:4e474e6e08ae6074b5cff9ab0ab3d224fa0cccd27d0c69a11ac8ac3c44fa6ef0
+  applies_when: is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16
+  id: a2.qwen3_moe.apply_rotary
+  level: KERNEL
+  note: 以 npu_rotary_mul 应用旋转，预处理后恢复原始形状和类型，部分旋转维度外的分量保持不变。
+  resolves_to: vllm_ascend.ops.rotary_embedding.AscendApplyRotaryEmb
+  reviewed_by: pending
+  tag:
+  - OOT
+  target: vllm_ascend.ops.rotary_embedding.AscendApplyRotaryEmb
+- anchor_hash: sha256:552788744a07de30fccabeacad217968ac6bc3e550bf33d3f19bb515c1505d0e
+  applies_when: is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16 && (!vocab_parallel_override)
+  id: a2.qwen3_moe.embedding.kernel
+  level: KERNEL
+  note: 标准词表并行模式保持词表分片与输出形状，使用昇腾实现；独立词表并行及上下文并行路径不在本标注条件内。
+  resolves_to: vllm_ascend.ops.vocab_parallel_embedding.AscendVocabParallelEmbedding
+  reviewed_by: pending
+  tag:
+  - OOT
+  target: vllm_ascend.ops.vocab_parallel_embedding.AscendVocabParallelEmbedding
+- anchor_hash: sha256:552788744a07de30fccabeacad217968ac6bc3e550bf33d3f19bb515c1505d0e
+  applies_when: is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16 && (vocab_parallel_override)
+  id: a2.qwen3_moe.embedding.parallel
+  level: SEMANTIC
+  note: 独立词表并行或上下文并行改变词表权重所属通信组；输入嵌入可交换 token 并归约散射，logits 可按独立组全交换或聚合，须按实际模式区分。
+  resolves_to: vllm_ascend.ops.vocab_parallel_embedding.AscendVocabParallelEmbedding
+  reviewed_by: pending
+  tag:
+  - OOT
+  target: vllm_ascend.ops.vocab_parallel_embedding.AscendVocabParallelEmbedding
+- anchor_hash: sha256:5d707999a4ac7f4901e5853c791381db54818f7554512a9e04fa5baff9db7ddc
+  applies_when: is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16
+  id: a2.qwen3_moe.gate
+  level: SEMANTIC
+  note: Qwen 构造路由层时未指定输出类型；昇腾将默认 logits 改为单精度，上游则保留未指定状态，因此中间类型与激活字节口径会变化，路由权重仍为复制参数。
+  resolves_to: vllm_ascend.ops.fused_moe.gate_linear.AscendGateLinear
+  reviewed_by: pending
+  tag:
+  - OOT
+  target: vllm_ascend.ops.fused_moe.gate_linear.AscendGateLinear
+- anchor_hash: sha256:e65e727c08018bf26d206e8d69fa8476bdb4f8940e8f7da76766e0ae7cd39561
+  applies_when: is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16 && (!custom_parallel && !linear_nz)
+  id: a2.qwen3_moe.linear.qkv.kernel
+  level: KERNEL
+  note: QKV 投影沿用标准张量并行分片及通信，未启用 NZ 权重转换时仅替换矩阵乘内核。
+  resolves_to: vllm_ascend.ops.linear.AscendQKVParallelLinear
+  reviewed_by: pending
+  tag:
+  - OOT
+  target: vllm_ascend.ops.linear.AscendQKVParallelLinear
+- anchor_hash: sha256:e65e727c08018bf26d206e8d69fa8476bdb4f8940e8f7da76766e0ae7cd39561
+  applies_when: is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16 && (!custom_parallel && linear_nz)
+  id: a2.qwen3_moe.linear.qkv.layout
+  level: LAYOUT
+  note: QKV 投影保持逻辑参数形状，加载后的非量化矩阵乘权重按 NZ 策略转换存储；meta 构造不执行该转换。
+  resolves_to: vllm_ascend.ops.linear.AscendQKVParallelLinear
+  reviewed_by: pending
+  tag:
+  - OOT
+  target: vllm_ascend.ops.linear.AscendQKVParallelLinear
+- anchor_hash: sha256:e65e727c08018bf26d206e8d69fa8476bdb4f8940e8f7da76766e0ae7cd39561
+  applies_when: is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16 && (custom_parallel)
+  id: a2.qwen3_moe.linear.qkv.parallel
+  level: SEMANTIC
+  note: QKV 投影经 get_parallel_op 选择自定义并行操作；启用输出投影独立并行或 FlashComm 时，通信组与激活切分需按实际分支建模。
+  resolves_to: vllm_ascend.ops.linear.AscendQKVParallelLinear
+  reviewed_by: pending
+  tag:
+  - OOT
+  target: vllm_ascend.ops.linear.AscendQKVParallelLinear
+- anchor_hash: sha256:fa9a6613a3d9bf677e19592e14815bcea553f75249f76dd7216445f4978c7ea4
+  applies_when: is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16 && (!custom_parallel && !linear_nz)
+  id: a2.qwen3_moe.linear.row.kernel
+  level: KERNEL
+  note: 输出投影沿用标准张量并行分片及通信，未启用 NZ 权重转换时仅替换矩阵乘内核。
+  resolves_to: vllm_ascend.ops.linear.AscendRowParallelLinear
+  reviewed_by: pending
+  tag:
+  - OOT
+  target: vllm_ascend.ops.linear.AscendRowParallelLinear
+- anchor_hash: sha256:fa9a6613a3d9bf677e19592e14815bcea553f75249f76dd7216445f4978c7ea4
+  applies_when: is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16 && (!custom_parallel && linear_nz)
+  id: a2.qwen3_moe.linear.row.layout
+  level: LAYOUT
+  note: 输出投影保持逻辑参数形状，加载后的非量化矩阵乘权重按 NZ 策略转换存储；meta 构造不执行该转换。
+  resolves_to: vllm_ascend.ops.linear.AscendRowParallelLinear
+  reviewed_by: pending
+  tag:
+  - OOT
+  target: vllm_ascend.ops.linear.AscendRowParallelLinear
+- anchor_hash: sha256:fa9a6613a3d9bf677e19592e14815bcea553f75249f76dd7216445f4978c7ea4
+  applies_when: is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16 && (custom_parallel)
+  id: a2.qwen3_moe.linear.row.parallel
+  level: SEMANTIC
+  note: 输出投影经 get_parallel_op 选择自定义并行操作；启用输出投影独立并行或 FlashComm 时，通信组与激活切分需按实际分支建模。
+  resolves_to: vllm_ascend.ops.linear.AscendRowParallelLinear
+  reviewed_by: pending
+  tag:
+  - OOT
+  target: vllm_ascend.ops.linear.AscendRowParallelLinear
+- anchor_hash: sha256:ca24b3e68c4d7dea195fa5203e4170421fe814a171ffafb5fa5cc7f9791de678
+  applies_when: is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16 && (!vocab_parallel_override)
+  id: a2.qwen3_moe.lm_head.kernel
+  level: KERNEL
+  note: 标准词表并行模式保持词表分片与输出形状，使用昇腾实现；独立词表并行及上下文并行路径不在本标注条件内。
+  resolves_to: vllm_ascend.ops.vocab_parallel_embedding.AscendParallelLMHead
+  reviewed_by: pending
+  tag:
+  - OOT
+  target: vllm_ascend.ops.vocab_parallel_embedding.AscendParallelLMHead
+- anchor_hash: sha256:ca24b3e68c4d7dea195fa5203e4170421fe814a171ffafb5fa5cc7f9791de678
+  applies_when: is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16 && (vocab_parallel_override)
+  id: a2.qwen3_moe.lm_head.parallel
+  level: SEMANTIC
+  note: 独立词表并行或上下文并行改变词表权重所属通信组；输入嵌入可交换 token 并归约散射，logits 可按独立组全交换或聚合，须按实际模式区分。
+  resolves_to: vllm_ascend.ops.vocab_parallel_embedding.AscendParallelLMHead
+  reviewed_by: pending
+  tag:
+  - OOT
+  target: vllm_ascend.ops.vocab_parallel_embedding.AscendParallelLMHead
+- anchor_hash: sha256:1867fa474db519610d06f7cef8a2a57ea9ca4a3ad6afd2d79be8c628aa5a2deb
+  applies_when: is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16 && (!vocab_parallel_override)
+  id: a2.qwen3_moe.logits.kernel
+  level: KERNEL
+  note: 标准词表并行模式保持词表分片与输出形状，使用昇腾实现；独立词表并行及上下文并行路径不在本标注条件内。
+  resolves_to: vllm_ascend.ops.vocab_parallel_embedding.AscendLogitsProcessor
+  reviewed_by: pending
+  tag:
+  - OOT
+  target: vllm_ascend.ops.vocab_parallel_embedding.AscendLogitsProcessor
+- anchor_hash: sha256:1867fa474db519610d06f7cef8a2a57ea9ca4a3ad6afd2d79be8c628aa5a2deb
+  applies_when: is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16 && (vocab_parallel_override)
+  id: a2.qwen3_moe.logits.parallel
+  level: SEMANTIC
+  note: 独立词表并行或上下文并行改变词表权重所属通信组；输入嵌入可交换 token 并归约散射，logits 可按独立组全交换或聚合，须按实际模式区分。
+  resolves_to: vllm_ascend.ops.vocab_parallel_embedding.AscendLogitsProcessor
+  reviewed_by: pending
+  tag:
+  - OOT
+  target: vllm_ascend.ops.vocab_parallel_embedding.AscendLogitsProcessor
+- anchor_hash: sha256:67a1e8c568620b45bf300cbd0cc44f5ec80583c6688bf1c8eeb1fec394ceb051
+  applies_when: is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16
+  id: a2.qwen3_moe.moe_runner
+  level: SEMANTIC
+  note: 初始化昇腾 MoE 通信方法并接入路由专家执行；EP 或序列并行及融合通信路径会改变分发、合并与归约位置，单卡不能据此宣称发生集合通信。
+  resolves_to: vllm_ascend.ops.fused_moe.fused_moe.AscendMoERunner
+  reviewed_by: pending
+  tag:
+  - OOT
+  target: vllm_ascend.ops.fused_moe.fused_moe.AscendMoERunner
+- anchor_hash: sha256:1d6a99e36a7ac9e7ef480299b60c07bce6b9ab47a0aaf159f22e72438d9c856f
+  applies_when: is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16 && (!use_mrope)
+  id: a2.qwen3_moe.patch.attention
+  level: KERNEL
+  note: 该函数实际替换 Qwen3MoeAttention.forward；普通旋转分支仍依次执行 QKV 拆分、按头归一化、旋转和 attention，不能因补丁文件名将其误判为视觉专用融合。
+  resolves_to: vllm_ascend.patch.worker.patch_qwen3vl.forward_with_split_qkv_rmsnorm_mrope
+  reviewed_by: pending
+  tag:
+  - PATCH
+  target: vllm_ascend.patch.worker.patch_qwen3vl.forward_with_split_qkv_rmsnorm_mrope
+- anchor_hash: sha256:93692ffe2f80334e65d6e28dd8478cbd9f6719a4c40781016f61747840245545
+  applies_when: is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16 && (redundant_experts)
+  id: a2.qwen3_moe.patch.expert_mapping
+  level: LAYOUT
+  note: 包装专家映射接口以传入实际 EP 大小，令冗余专家在物理槽位间分布并与权重装载映射一致；未启用冗余专家时不推断额外权重。
+  resolves_to: vllm_ascend.patch.platform.patch_eplb._with_expert_mapping_ep_size
+  reviewed_by: pending
+  tag:
+  - PATCH
+  target: vllm_ascend.patch.platform.patch_eplb._with_expert_mapping_ep_size
+- anchor_hash: sha256:af4504f1cf0e8fdb98fbb146108381a85bcda2a774385a7ca1a15966b2363ecc
+  applies_when: is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16
+  id: a2.qwen3_moe.patch.factory
+  level: SEMANTIC
+  note: 替换 Qwen 模型持有的 FusedMoEFactory，创建昇腾路由器与专家执行链；EPLB 生效时向工厂传递冗余专家容量，影响实际权重分配。
+  resolves_to: vllm_ascend.patch.platform.patch_fused_moe._ascend_FusedMoE
+  reviewed_by: pending
+  tag:
+  - PATCH
+  target: vllm_ascend.patch.platform.patch_fused_moe._ascend_FusedMoE
+- anchor_hash: sha256:703a0de775af231760f0035b0fee456f9c1444997c2470288582d85475fbf0f4
+  applies_when: is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16 && (capture_routing)
+  id: a2.qwen3_moe.patch.routing_capture
+  level: SEMANTIC
+  note: 路由记录需重建本 DP 的 token 顺序；被 TP 切分的路由结果先聚合再裁剪填充，会引入额外集合通信，仅路由记录开启时相关。
+  resolves_to: vllm_ascend.patch.worker.patch_routed_experts_capture.capture
+  reviewed_by: pending
+  tag:
+  - PATCH
+  target: vllm_ascend.patch.worker.patch_routed_experts_capture.capture
+- anchor_hash: sha256:1da639f62e72445aabc8f90eb7d26bd7372792442053f94ca54cb498de026f74
+  applies_when: is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16
+  id: a2.qwen3_moe.rms_norm
+  level: KERNEL
+  note: 未量化路径以昇腾归一化及残差融合内核替换实现，保持归一化维度和权重；量化反偏置路径需另行审阅。
+  resolves_to: vllm_ascend.ops.layernorm.AscendRMSNorm
+  reviewed_by: pending
+  tag:
+  - OOT
+  target: vllm_ascend.ops.layernorm.AscendRMSNorm
+- anchor_hash: sha256:6cd4a14090f7b3b25a022b38c883818f3c258b3ef0691387e0398d090244c665
+  applies_when: is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16 && (!mtp_draft)
+  id: a2.qwen3_moe.rotary
+  level: LAYOUT
+  note: 保留旋转位置编码语义，同时为 cos/sin 建立交错派生缓存并登记为非持久缓冲；这会改变缓存存储，不能从参数形状推断其占用。
+  resolves_to: vllm_ascend.ops.rotary_embedding.AscendRotaryEmbedding
+  reviewed_by: pending
+  tag:
+  - OOT
+  target: vllm_ascend.ops.rotary_embedding.AscendRotaryEmbedding
+- anchor_hash: sha256:bfb387493836058a538b2779f6744d4c6fc26ed3d3ce96197f61d335a6b3605a
+  applies_when: is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16
+  id: a2.qwen3_moe.routed_experts
+  level: SEMANTIC
+  note: 专家容器绑定昇腾计算方法，前向经所选通信方法 prepare、路由和 finalize；序列切分与 EP 分发决定中间激活形状。
+  resolves_to: vllm_ascend.ops.fused_moe.routed_experts.AscendRoutedExperts
+  reviewed_by: pending
+  tag:
+  - OOT
+  target: vllm_ascend.ops.fused_moe.routed_experts.AscendRoutedExperts
+- anchor_hash: sha256:f44897236a713e51b592402fcf77a659e9c38b2979ff381969a763fa751536cd
+  applies_when: is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16
+  id: a2.qwen3_moe.unquantized_experts
+  level: LAYOUT
+  note: 加载后将专家矩阵转置为分组矩阵乘布局，并按 NZ 或融合通信策略转换格式；构造时逻辑形状相同不代表加载后存储相同。
+  resolves_to: vllm_ascend.ops.fused_moe.routed_experts.AscendUnquantizedFusedMoEMethod
+  reviewed_by: pending
+  tag:
+  - OOT
+  target: vllm_ascend.ops.fused_moe.routed_experts.AscendUnquantizedFusedMoEMethod

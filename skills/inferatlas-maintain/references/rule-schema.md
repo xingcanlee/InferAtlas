@@ -1,0 +1,13 @@
+# Rule and annotation contracts
+
+The authority is `generator/inferatlas/schema/models.py`, exported to `schemas/rule.schema.json`, `schemas/annotation.schema.json` and `schemas/triage.schema.json`. Read them at the working revision; documentation cannot extend a contract.
+
+Rule YAML is a list ordered by `id`. Each entry has `match` (exact qualified or short `class`, PEP version specifiers for `vllm`/`ascend`, and `when`), `shard`, `out`, `weight`, phase-specific `flops` and `bytes_moved`, optional `comm`, and `notes`. Qualified matches take priority; ambiguous matching must fail rather than depend on file order. Output tensor slots use symbolic `shape` dimensions and a dtype symbol. All quantities are DSL strings, never YAML numbers. Reuse declared configuration symbols and existing source-backed expressions; keep version lanes explicit.
+
+Annotation YAML is also a list. Required keys are `id`, `target`, `anchor_hash`, `applies_when`, `resolves_to`, `level`, `note`, and `reviewed_by`; `tag` contains sorted badge names. `target` is the qualified declaration whose behavior the note describes, usually the Ascend implementation. `resolves_to` names the implementation declaration to link, often the same symbol. Upstream patched bindings come from extraction facts, not invented paths. Symbols must resolve without imports. Script-computed hashes have the `sha256:` prefix. A missing declaration fails verification; a changed hash produces `stale_annotation` and invalidates the old note.
+
+Read `docs/expr-dsl.md` for syntax, builtins, symbol binding and type rules. `applies_when` is a DSL predicate over declared symbols; dtype comparisons use builtin dtype identifiers, not quoted strings. Do not add a string literal for a device name: bind a source-backed boolean such as `is_a2`. Unknown symbols must remain unresolved, not default to false. Python validates syntax/symbols; the shared TypeScript implementation evaluates.
+
+`conditional_override` records candidate targets and conditions needing review. `unknown_layer_class` records reachable unmatched classes. `golden_diff` needs a source-backed explanation. `stale_annotation` requires reviewing changed implementation code before replacing its hash. Schema validation does not prove a note or formula correct.
+
+An IR node has a single `ascend.annotation_id`. Lowering must explicitly choose the applicable note for a node using observed swaps/patches and predicate results; do not concatenate identifiers or silently prefer the highest level. Preserve separately relevant patches on their own semantic node, or keep the ambiguity in triage.
