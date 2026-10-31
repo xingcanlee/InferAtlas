@@ -45,6 +45,10 @@ export type Id = string;
  */
 export type Kind2 = "stale_annotation";
 /**
+ * Qualified symbol of the changed primary or additional source anchor, if known.
+ */
+export type Target = string | null;
+/**
  * Stable human-readable diff, no timestamps or absolute local paths.
  */
 export type Diff = string;
@@ -105,6 +109,7 @@ export interface StaleAnnotation {
   anchor_hash_old: AnchorHashOld;
   id: Id;
   kind: Kind2;
+  target?: Target;
 }
 export interface GoldenDiffItem {
   diff: Diff;

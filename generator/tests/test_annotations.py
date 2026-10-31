@@ -9,7 +9,6 @@ from pydantic import ValidationError
 from ruamel.yaml import YAML
 
 from inferatlas.annotations import (
-    AnchoredAnnotation,
     ResolvedAnnotation,
     SourceTree,
     anchor_hash,
@@ -299,8 +298,11 @@ def test_stale_detection_across_commits_and_schema(source_tree):
     assert valid == [] and len(stale) == 1
     assert stale[0].anchor_hash_new != stale[0].anchor_hash_old
     assert stale[0].id == annotation.id
+    assert stale[0].target == symbol
     snapshot = IR.model_validate_json(FIXTURE.read_text()).snapshot
     assert Triage(snapshot=snapshot, items=stale).items[0].kind == "stale_annotation"
+    legacy = stale[0].model_dump(exclude={"target"})
+    assert Triage(snapshot=snapshot, items=[legacy]).items[0].target is None
     with pytest.raises(ValueError, match="Duplicate"):
         check_annotations([annotation, annotation], sources)
     missing = annotation.model_copy(update={"target": "sample.layer.Removed"})
@@ -354,6 +356,7 @@ def test_all_anchors_are_linked_and_any_change_invalidates_note(source_tree, tmp
     valid, stale = check_annotations(annotations, {"sample": tree})
     assert valid == [] and len(stale) == 1
     assert stale[0].id == primary.id
+    assert stale[0].target == "sample.layer." + changed
     assert stale[0].anchor_hash_new == tree.resolve("sample.layer." + changed).anchor_hash
     assert stale[0].anchor_hash_old != stale[0].anchor_hash_new
     # Anchor input order never changes the stale record.
@@ -363,7 +366,7 @@ def test_all_anchors_are_linked_and_any_change_invalidates_note(source_tree, tmp
 
 def test_extra_anchors_reject_duplicates_and_missing_declarations(source_tree):
     primary = annotation_for(source_tree.resolve("sample.layer.Layer.forward"))
-    duplicate = AnchoredAnnotation.model_validate(
+    duplicate = Annotation.model_validate(
         {
             **primary.model_dump(),
             "anchors": [{"target": primary.target, "anchor_hash": primary.anchor_hash}],

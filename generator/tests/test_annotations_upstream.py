@@ -6,17 +6,33 @@ from pathlib import Path
 
 import pytest
 from jsonschema import Draft202012Validator
+from ruamel.yaml import YAML
 
 from inferatlas.annotations import (
-    AnchoredAnnotation,
     SourceTree,
     apply_annotations,
     check_annotations,
     load_annotations,
 )
-from inferatlas.schema import IR
+from inferatlas.schema import IR, Annotation, Annotations
 
 ROOT = Path(__file__).resolve().parents[2]
+
+
+def test_committed_yaml_matches_shared_exported_schemas():
+    path = ROOT / "annotations/a2/qwen3-moe.yaml"
+    data = YAML(typ="safe").load(path.read_text())
+    assert any(item.get("anchors") for item in data)
+    list_schema = json.loads((ROOT / "schemas/annotations.schema.json").read_text())
+    Draft202012Validator(list_schema).validate(data)
+    item_schema = json.loads((ROOT / "schemas/annotation.schema.json").read_text())
+    validator = Draft202012Validator(item_schema)
+    for item in data:
+        validator.validate(item)
+    shared = Annotations.model_validate(data).root
+    loaded = load_annotations(path)
+    assert loaded == sorted(shared, key=lambda annotation: annotation.id)
+    assert all(type(annotation) is Annotation for annotation in loaded)
 
 
 @pytest.fixture(scope="module")
@@ -48,11 +64,8 @@ def checked_annotations(source_trees):
 def test_all_committed_annotations_resolve_and_validate(checked_annotations):
     schema = json.loads((ROOT / "schemas/annotation.schema.json").read_text())
     validator = Draft202012Validator(schema)
-    extended = Draft202012Validator(AnchoredAnnotation.model_json_schema())
     for item in checked_annotations:
-        # Shared schema adoption of optional anchors is requested in docs/requests/T5.md.
-        validator.validate(item.annotation.model_dump(mode="json", exclude={"anchors"}))
-        extended.validate(item.annotation.model_dump(mode="json"))
+        validator.validate(item.annotation.model_dump(mode="json"))
         assert item.annotation.reviewed_by == "pending"
         assert item.annotation.note
         assert all(src.commit and src.line > 0 for src in item.src)

@@ -32,12 +32,10 @@ annotations = load_annotations("annotations/a2")
 resolved, stale_items = check_annotations(annotations, sources)
 ```
 
-The loader uses `AnchoredAnnotation`, a local Pydantic subclass of the shared
-Annotation model with optional `anchors: [{target, anchor_hash}]` for additional
-implementation dependencies. The shared contract cannot yet express these
-anchors; its adoption is requested in `docs/requests/T5.md`. Until then, load these
-files through `load_annotations`, not the shared Annotations model. Both the base
-fields and the extension have schema validation tests. The loader rejects
+The loader uses the shared Annotation model with optional
+`anchors: [{target, anchor_hash}]` for additional implementation dependencies,
+defaulting to an empty list. The shared Annotations model and exported JSON
+schemas validate these files directly, including all helper anchors. The loader rejects
 duplicate ids across files and returns entries ordered by id. YAML duplicate keys
 and unknown fields (including inside anchors) fail. The caller performs T2's
 syntax/symbol checks on `applies_when` in its declared lowering context; the
@@ -61,8 +59,11 @@ whitespace/comment edits stable while preserving code and block changes. Hashes
 include the `sha256:` prefix. Each hash covers one declaration and its nested
 definitions. List relevant external implementations as additional anchors.
 
-To compute a draft's anchor, call `sources[package].resolve(target).anchor_hash`;
-never author a digest or a source line manually. Every committed annotation uses
+To compute a draft's anchors, run a deterministic script calling
+`sources[package].resolve(target).anchor_hash` for the primary target and every
+additional anchor at the paired snapshot commits. Never author a digest or a
+source line manually, or patch hashes by value (including search/replace).
+Every committed annotation uses
 the replacement class/function as both `target` and `resolves_to`. Linear notes
 add the post-load method, NZ policy/conversion helpers and parallel selector;
 the row parallel note anchors the independent output projection implementation.
@@ -74,8 +75,9 @@ invalidate the note too. Unlisted helper definitions are not recursively hashed.
 `check_annotations` returns `(list[ResolvedAnnotation], list[StaleAnnotation])`.
 The primary target and all extra anchors must match. A change in any declaration
 excludes the entire annotation from the usable list. One stale item per annotation
-reports the first changed target in symbol order, with that target's old/new
-hashes, preserving the existing triage wire format. Append stale items to the
+reports the first changed target in symbol order in `target`, with that target's
+old/new hashes. `target` is optional for compatibility with legacy triage items.
+Append stale items to the
 snapshot's existing Triage.items. Repeated anchor targets are rejected. Missing
 targets, helpers or replacements raise ValueError and fail the build because the
 triage schema has no unresolved-target variant.

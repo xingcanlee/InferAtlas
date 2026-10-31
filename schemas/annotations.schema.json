@@ -9,6 +9,14 @@
           "title": "Anchor Hash",
           "type": "string"
         },
+        "anchors": {
+          "description": "Additional independently hashed implementation dependencies, sorted by target and distinct from each other and the primary target; every hash must match.",
+          "items": {
+            "$ref": "#/$defs/AnnotationAnchor"
+          },
+          "title": "Anchors",
+          "type": "array"
+        },
         "applies_when": {
           "description": "DSL predicate over declared config/runtime/profile symbols.",
           "minLength": 1,
@@ -77,6 +85,28 @@
         "reviewed_by"
       ],
       "title": "Annotation",
+      "type": "object"
+    },
+    "AnnotationAnchor": {
+      "additionalProperties": false,
+      "properties": {
+        "anchor_hash": {
+          "description": "sha256 of this dependency's source declaration computed by scripts; a change invalidates the whole annotation.",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Anchor Hash",
+          "type": "string"
+        },
+        "target": {
+          "description": "Qualified implementation dependency symbol resolved by scripts, without source paths/line numbers.",
+          "title": "Target",
+          "type": "string"
+        }
+      },
+      "required": [
+        "target",
+        "anchor_hash"
+      ],
+      "title": "AnnotationAnchor",
       "type": "object"
     }
   },

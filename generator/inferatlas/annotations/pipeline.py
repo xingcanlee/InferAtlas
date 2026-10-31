@@ -4,33 +4,23 @@ from collections.abc import Collection, Iterable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
-from pydantic import Field, TypeAdapter
+from pydantic import TypeAdapter
 from ruamel.yaml import YAML
 
 from inferatlas.schema import IR, Annotation
-from inferatlas.schema.models import AnchorHash, AscendTag, Contract, SourceRef, StaleAnnotation
+from inferatlas.schema.models import AscendTag, SourceRef, StaleAnnotation
 
 from .source import SourceTree, resolve_target
 
 
-class AnnotationAnchor(Contract):
-    target: str
-    anchor_hash: AnchorHash
-
-
-class AnchoredAnnotation(Annotation):
-    # Pending shared-contract addition; see docs/requests/T5.md.
-    anchors: list[AnnotationAnchor] = Field(default_factory=list)
-
-
-def load_annotations(path: str | Path) -> list[AnchoredAnnotation]:
+def load_annotations(path: str | Path) -> list[Annotation]:
     """Load one YAML list or a directory recursively; reject duplicate ids."""
     path = Path(path)
     files = sorted([*path.rglob("*.yaml"), *path.rglob("*.yml")]) if path.is_dir() else [path]
     annotations = []
     yaml = YAML(typ="safe")
     for file in files:
-        annotations.extend(TypeAdapter(list[AnchoredAnnotation]).validate_python(yaml.load(file)))
+        annotations.extend(TypeAdapter(list[Annotation]).validate_python(yaml.load(file)))
     ids = [annotation.id for annotation in annotations]
     if len(ids) != len(set(ids)):
         raise ValueError("Duplicate annotation id")
@@ -59,7 +49,7 @@ def check_annotations(
             raise ValueError(f"Duplicate annotation id: {annotation.id}")
         seen.add(annotation.id)
         expected = [(annotation.target, annotation.anchor_hash)] + [
-            (anchor.target, anchor.anchor_hash) for anchor in getattr(annotation, "anchors", ())
+            (anchor.target, anchor.anchor_hash) for anchor in annotation.anchors
         ]
         if len({target for target, _ in expected}) != len(expected):
             raise ValueError(f"Duplicate annotation anchor: {annotation.id}")
@@ -71,6 +61,7 @@ def check_annotations(
                     StaleAnnotation(
                         kind="stale_annotation",
                         id=annotation.id,
+                        target=anchor.src.symbol,
                         anchor_hash_old=digest,
                         anchor_hash_new=anchor.anchor_hash,
                     )

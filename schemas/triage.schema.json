@@ -181,6 +181,19 @@
           "description": "Source anchor changed; old annotation must not be applied.",
           "title": "Kind",
           "type": "string"
+        },
+        "target": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Qualified symbol of the changed primary or additional source anchor, if known.",
+          "title": "Target"
         }
       },
       "required": [

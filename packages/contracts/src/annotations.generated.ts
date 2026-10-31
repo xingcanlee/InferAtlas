@@ -5,6 +5,18 @@
  */
 export type AnchorHash = string;
 /**
+ * sha256 of this dependency's source declaration computed by scripts; a change invalidates the whole annotation.
+ */
+export type AnchorHash1 = string;
+/**
+ * Qualified implementation dependency symbol resolved by scripts, without source paths/line numbers.
+ */
+export type Target = string;
+/**
+ * Additional independently hashed implementation dependencies, sorted by target and distinct from each other and the primary target; every hash must match.
+ */
+export type Anchors = AnnotationAnchor[];
+/**
  * DSL predicate over declared config/runtime/profile symbols.
  */
 export type AppliesWhen = string;
@@ -35,7 +47,7 @@ export type Tag = ("OOT" | "PATCH" | "QUANT" | "FUSED")[];
 /**
  * Qualified symbol only; agent must not author source paths/line numbers.
  */
-export type Target = string;
+export type Target1 = string;
 /**
  * YAML annotation files are lists, not wrapper objects; sort entries by id.
  */
@@ -43,6 +55,7 @@ export type Annotations = Annotation[];
 
 export interface Annotation {
   anchor_hash: AnchorHash;
+  anchors?: Anchors;
   applies_when: AppliesWhen;
   id: Id;
   level: Level;
@@ -50,5 +63,9 @@ export interface Annotation {
   resolves_to: ResolvesTo;
   reviewed_by: ReviewedBy;
   tag?: Tag;
+  target: Target1;
+}
+export interface AnnotationAnchor {
+  anchor_hash: AnchorHash1;
   target: Target;
 }

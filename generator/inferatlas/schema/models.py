@@ -569,6 +569,10 @@ class StaleAnnotation(Contract):
         description="Source anchor changed; old annotation must not be applied."
     )
     id: str = Field(description="Invalidated Annotation.id.")
+    target: str | None = Field(
+        default=None,
+        description="Qualified symbol of the changed primary or additional source anchor, if known.",
+    )
     anchor_hash_old: AnchorHash = Field(description="Previously reviewed source hash.")
     anchor_hash_new: AnchorHash = Field(description="New script-computed source hash.")
 
@@ -598,6 +602,15 @@ class Triage(Contract):
     )
 
 
+class AnnotationAnchor(Contract):
+    target: str = Field(
+        description="Qualified implementation dependency symbol resolved by scripts, without source paths/line numbers."
+    )
+    anchor_hash: AnchorHash = Field(
+        description="sha256 of this dependency's source declaration computed by scripts; a change invalidates the whole annotation."
+    )
+
+
 class Annotation(Contract):
     id: str = Field(description="Stable reviewed annotation id.")
     target: str = Field(
@@ -605,6 +618,10 @@ class Annotation(Contract):
     )
     anchor_hash: AnchorHash = Field(
         description="sha256 of source anchor computed by scripts; changed hash invalidates annotation."
+    )
+    anchors: list[AnnotationAnchor] = Field(
+        default_factory=list,
+        description="Additional independently hashed implementation dependencies, sorted by target and distinct from each other and the primary target; every hash must match.",
     )
     applies_when: Expr = Field(
         description="DSL predicate over declared config/runtime/profile symbols."
