@@ -16,11 +16,12 @@ export type {
   ParallelAxis,
   ParamSpec,
   PhaseExpr,
+  PhaseShape,
   SourceRef,
   TensorSpec,
 } from "./ir.generated.js";
 export type { Check, GoldenDifference, Report, SourceLinkFailure } from "./report.generated.js";
-export type { Rule, RuleMatch } from "./rule.generated.js";
+export type { Rule, RuleEmission, RuleMatch } from "./rule.generated.js";
 export type { Rules } from "./rules.generated.js";
 export type { Snapshot } from "./snapshot.generated.js";
 export type {

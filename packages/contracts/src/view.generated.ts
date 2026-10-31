@@ -68,6 +68,28 @@ export type From = string;
  */
 export type Id = string;
 /**
+ * IR edge ids represented by this route, sorted; may span collapsed nodes.
+ *
+ * @minItems 1
+ */
+export type IrEdges = [string, ...string[]];
+/**
+ * Semantic kind shared by the represented IR edges.
+ */
+export type Kind = "data" | "kv" | "residual";
+/**
+ * Optional symbolic shape copied from a represented IR edge tensor.shape.
+ */
+export type Label = string[] | PhaseShape | null;
+/**
+ * Local-rank decode dimensions; no T substitution needed.
+ */
+export type Decode = string[];
+/**
+ * Local-rank prefill dimensions.
+ */
+export type Prefill = string[];
+/**
  * Optional precomputed edge-label center in pixels, on the 4px grid.
  */
 export type LabelPos = [unknown, unknown] | null;
@@ -86,7 +108,7 @@ export type To = string;
  */
 export type Height = number;
 /**
- * L0 overview, L1:<band>, or L2:<node>; L1 alone reserved for a single-band fixture.
+ * L0 overview, L1:<band>, or L2:<node>; bare L1 is invalid.
  */
 export type Id1 = string;
 /**
@@ -120,7 +142,7 @@ export type IrNode = string;
 /**
  * Visible label; may specialize a representative layer.
  */
-export type Label = string;
+export type Label1 = string;
 /**
  * Width in pixels on a 4px grid.
  */
@@ -156,15 +178,22 @@ export interface GraphView {
 export interface ViewEdge {
   from: From;
   id: Id;
+  ir_edges: IrEdges;
+  kind: Kind;
+  label?: Label;
   label_pos?: LabelPos;
   points: Points;
   to: To;
+}
+export interface PhaseShape {
+  decode: Decode;
+  prefill: Prefill;
 }
 export interface ViewNode {
   h: H;
   id: Id2;
   ir_node: IrNode;
-  label: Label;
+  label: Label1;
   w: W;
   x: X;
   y: Y;

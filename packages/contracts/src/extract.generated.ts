@@ -193,7 +193,7 @@ export interface SourceRef {
   symbol: Symbol;
 }
 /**
- * Whitelisted observed constructor/module attributes; facts only.
+ * Whitelisted observed attributes; partition/head attrs are per-rank facts, constructor input_size/output_size can be global. Lower normalizes GLOBAL rule context, never divides local attrs twice.
  */
 export interface Attrs {
   [k: string]: JsonValue;

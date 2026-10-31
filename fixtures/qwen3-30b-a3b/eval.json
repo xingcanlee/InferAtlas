@@ -2,8 +2,9 @@
   "cases": [
     {
       "env": {
-        "S": 1,
+        "S": 3,
         "T": 4096,
+        "batch": 2,
         "dp": 1,
         "dtype_a": "bf16",
         "dtype_kv": "bf16",
@@ -13,26 +14,114 @@
         "tp": 1
       },
       "expected": {
-        "memory.kv_per_token": 98304,
-        "memory.weights": 61064245248,
-        "nodes.attn.qkv.flops.prefill": 85899345920,
-        "nodes.attn.qkv.out.0.shape": [
+        "/memory/kv_per_token": 98304,
+        "/memory/weights": 61064245248,
+        "/nodes/attn.o.reduce/comm/bus_bytes/prefill": 0,
+        "/nodes/attn.qkv/flops/prefill": 85899345920,
+        "/nodes/attn.qkv/out/0/shape": [
           4096,
           32,
           128
         ],
-        "nodes.attn.qkv.weight_bytes": 20971520,
-        "nodes.attn.reduce.comm.bus_bytes": 0,
-        "nodes.moe.gate.weight_bytes": 524288,
-        "nodes.moe.w13.weight_bytes": 805306368,
-        "nodes.moe.w2.weight_bytes": 402653184
+        "/nodes/attn.qkv/weight_bytes": 20971520,
+        "/nodes/embed.reduce/comm/logical_bytes/decode": 12288,
+        "/nodes/embed.reduce/comm/logical_bytes/prefill": 16777216,
+        "/nodes/lm_head/flops/decode": 1866989568.0,
+        "/nodes/lm_head/flops/prefill": 1244659712.0,
+        "/nodes/logits.gather/comm/logical_bytes/decode": 911616.0,
+        "/nodes/logits.gather/comm/logical_bytes/prefill": 607744.0,
+        "/nodes/moe.gate/weight_bytes": 524288,
+        "/nodes/moe.w13/weight_bytes": 805306368,
+        "/nodes/moe.w2/weight_bytes": 402653184
       },
       "id": "tp1-bf16-T4096"
     },
     {
       "env": {
-        "S": 1,
+        "S": 3,
         "T": 4096,
+        "batch": 2,
+        "dp": 4,
+        "dtype_a": "bf16",
+        "dtype_kv": "bf16",
+        "dtype_w": "bf16",
+        "ep": 1,
+        "pp": 1,
+        "tp": 1
+      },
+      "expected": {
+        "/nodes/moe.experts.combine/comm/bus_bytes/decode": 0,
+        "/nodes/moe.experts.combine/comm/bus_bytes/prefill": 0,
+        "/nodes/moe.experts.dispatch/comm/bus_bytes/decode": 0,
+        "/nodes/moe.experts.dispatch/comm/bus_bytes/prefill": 0,
+        "/nodes/moe.experts.dispatch/comm/when": 0,
+        "/nodes/moe.experts.reduce/comm/bus_bytes/decode": 0,
+        "/nodes/moe.experts.reduce/comm/bus_bytes/prefill": 0,
+        "/nodes/moe.experts.reduce/comm/logical_bytes/decode": 12288,
+        "/nodes/moe.experts.reduce/comm/logical_bytes/prefill": 16777216,
+        "/nodes/moe.experts.reduce/comm/when": 0
+      },
+      "id": "tp1-dp4-ep1-comm-estimate"
+    },
+    {
+      "env": {
+        "S": 3,
+        "T": 4096,
+        "batch": 2,
+        "dp": 4,
+        "dtype_a": "bf16",
+        "dtype_kv": "bf16",
+        "dtype_w": "bf16",
+        "ep": 4,
+        "pp": 1,
+        "tp": 1
+      },
+      "expected": {
+        "/nodes/moe.experts.combine/comm/bus_bytes/decode": 73728.0,
+        "/nodes/moe.experts.combine/comm/bus_bytes/prefill": 100663296.0,
+        "/nodes/moe.experts.dispatch/comm/bus_bytes/decode": 73728.0,
+        "/nodes/moe.experts.dispatch/comm/bus_bytes/prefill": 100663296.0,
+        "/nodes/moe.experts.dispatch/comm/when": 1,
+        "/nodes/moe.experts.reduce/comm/bus_bytes/decode": 0.0,
+        "/nodes/moe.experts.reduce/comm/bus_bytes/prefill": 0.0,
+        "/nodes/moe.experts.reduce/comm/logical_bytes/decode": 12288,
+        "/nodes/moe.experts.reduce/comm/logical_bytes/prefill": 16777216,
+        "/nodes/moe.experts.reduce/comm/when": 1
+      },
+      "id": "tp1-dp4-ep4-comm-estimate"
+    },
+    {
+      "env": {
+        "S": 3,
+        "T": 4096,
+        "batch": 2,
+        "dp": 2,
+        "dtype_a": "bf16",
+        "dtype_kv": "bf16",
+        "dtype_w": "bf16",
+        "ep": 4,
+        "pp": 1,
+        "tp": 2
+      },
+      "expected": {
+        "/nodes/moe.experts.combine/comm/bus_bytes/decode": 73728.0,
+        "/nodes/moe.experts.combine/comm/bus_bytes/prefill": 100663296.0,
+        "/nodes/moe.experts.dispatch/comm/bus_bytes/decode": 73728.0,
+        "/nodes/moe.experts.dispatch/comm/bus_bytes/prefill": 100663296.0,
+        "/nodes/moe.experts.dispatch/comm/when": 1,
+        "/nodes/moe.experts.reduce/comm/bus_bytes/decode": 12288.0,
+        "/nodes/moe.experts.reduce/comm/bus_bytes/prefill": 16777216.0,
+        "/nodes/moe.experts.reduce/comm/logical_bytes/decode": 12288,
+        "/nodes/moe.experts.reduce/comm/logical_bytes/prefill": 16777216,
+        "/nodes/moe.experts.reduce/comm/when": 1
+      },
+      "id": "tp2-dp2-ep4-comm-estimate"
+    },
+    {
+      "env": {
+        "S": 3,
+        "T": 4096,
+        "batch": 2,
         "dp": 1,
         "dtype_a": "bf16",
         "dtype_kv": "bf16",
@@ -42,21 +131,54 @@
         "tp": 4
       },
       "expected": {
-        "memory.kv_per_token": 24576,
-        "memory.weights": 15285252096,
-        "nodes.attn.qkv.flops.prefill": 21474836480,
-        "nodes.attn.qkv.out.0.shape": [
+        "/memory/kv_per_token": 24576,
+        "/memory/weights": 15285252096,
+        "/nodes/attn.o.reduce/comm/bus_bytes/prefill": 25165824.0,
+        "/nodes/attn.qkv/flops/prefill": 21474836480,
+        "/nodes/attn.qkv/out/0/shape": [
           4096,
           8,
           128
         ],
-        "nodes.attn.qkv.weight_bytes": 5242880,
-        "nodes.attn.reduce.comm.bus_bytes": 25165824.0,
-        "nodes.moe.gate.weight_bytes": 524288,
-        "nodes.moe.w13.weight_bytes": 201326592,
-        "nodes.moe.w2.weight_bytes": 100663296
+        "/nodes/attn.qkv/weight_bytes": 5242880,
+        "/nodes/embed.reduce/comm/logical_bytes/decode": 12288,
+        "/nodes/embed.reduce/comm/logical_bytes/prefill": 16777216,
+        "/nodes/lm_head/flops/decode": 466747392.0,
+        "/nodes/lm_head/flops/prefill": 311164928.0,
+        "/nodes/logits.gather/comm/logical_bytes/decode": 227904.0,
+        "/nodes/logits.gather/comm/logical_bytes/prefill": 151936.0,
+        "/nodes/moe.gate/weight_bytes": 524288,
+        "/nodes/moe.w13/weight_bytes": 201326592,
+        "/nodes/moe.w2/weight_bytes": 100663296
       },
       "id": "tp4-bf16-T4096"
+    },
+    {
+      "env": {
+        "S": 3,
+        "T": 4096,
+        "batch": 2,
+        "dp": 1,
+        "dtype_a": "bf16",
+        "dtype_kv": "bf16",
+        "dtype_w": "bf16",
+        "ep": 4,
+        "pp": 1,
+        "tp": 4
+      },
+      "expected": {
+        "/nodes/moe.experts.combine/comm/bus_bytes/decode": 0,
+        "/nodes/moe.experts.combine/comm/bus_bytes/prefill": 0,
+        "/nodes/moe.experts.dispatch/comm/bus_bytes/decode": 0,
+        "/nodes/moe.experts.dispatch/comm/bus_bytes/prefill": 0,
+        "/nodes/moe.experts.dispatch/comm/when": 0,
+        "/nodes/moe.experts.reduce/comm/bus_bytes/decode": 18432.0,
+        "/nodes/moe.experts.reduce/comm/bus_bytes/prefill": 25165824.0,
+        "/nodes/moe.experts.reduce/comm/logical_bytes/decode": 12288,
+        "/nodes/moe.experts.reduce/comm/logical_bytes/prefill": 16777216,
+        "/nodes/moe.experts.reduce/comm/when": 1
+      },
+      "id": "tp4-dp1-ep4-comm-estimate"
     }
   ],
   "model": "Qwen/Qwen3-30B-A3B"

@@ -8,6 +8,7 @@ INFERATLAS_SRC may select an alternate directory containing the pinned upstream 
 from __future__ import annotations
 
 import ast
+import copy
 import hashlib
 import json
 import os
@@ -73,11 +74,11 @@ dense_config = {
     "architectures": ["Qwen3ForCausalLM"],
     "model_type": "qwen3",
     "hidden_size": 4096,
-    "num_hidden_layers": 32,
+    "num_hidden_layers": 36,
     "num_attention_heads": 32,
     "num_key_value_heads": 8,
     "head_dim": 128,
-    "intermediate_size": 14336,
+    "intermediate_size": 12288,
     "vocab_size": 151936,
     "max_position_embeddings": 40960,
     "rope_theta": 1000000.0,
@@ -181,7 +182,9 @@ def make_extract(tp, experiment):
         if path.endswith("o_proj"):
             attrs = {
                 "input_size": 4096,
+                "input_size_per_partition": 4096 // tp,
                 "output_size": 2048,
+                "output_size_per_partition": 2048,
                 "tp_size": tp,
                 "reduce_results": True,
             }
@@ -251,9 +254,9 @@ def param(kind, default, description, **domain):
 
 params = {
     "dtype_ids": param(
-        "enum",
+        "dtype",
         "int64",
-        "Token index dtype; token index storage is excluded from the metric ledger and bytes(dtype_ids) is not supported by the six-dtype DSL table.",
+        "Token index dtype; bytes(dtype_ids) is supported; token index storage is excluded from the metric ledger.",
         choices=["int32", "int64"],
     ),
     "tp": param(
@@ -421,8 +424,8 @@ def comm(op, group, logical, bus, when):
     return {
         "op": op,
         "group": group,
-        "logical_bytes": logical,
-        "bus_bytes": bus,
+        "logical_bytes": phase(logical, logical.replace("T*", "S*")),
+        "bus_bytes": phase(bus, bus.replace("T*", "S*")),
         "when": when,
     }
 
@@ -447,12 +450,20 @@ def node(
     notes=None,
 ):
     module = modules[path]
+    rule_id = {
+        "attn.o.reduce": "attn.o",
+        "embed.reduce": "embed",
+        "logits.gather": "logits",
+        "output": "logits",
+    }.get(id, id)
+    if id in {"moe.experts.dispatch", "moe.experts.combine", "moe.experts.reduce"}:
+        rule_id = "moe.experts"
     n = {
         "id": id,
         "kind": kind,
         "class": module["class"],
         "src": module["src"],
-        "rule": "fixture." + id,
+        "rule": "fixture.linear.row" if rule_id == "attn.o" else "fixture." + rule_id,
         "label": label,
         "parent": parent,
         "in": inputs or [tensor()],
@@ -630,7 +641,7 @@ node(
     parallel={"tp": {"dim": "in"}},
 )
 node(
-    "attn.reduce",
+    "attn.o.reduce",
     attn + ".o_proj",
     "TP all-reduce",
     parent="attn",
@@ -695,13 +706,13 @@ node(
 logical = "T*topk*H*bytes(dtype_a)"
 for name in ["dispatch", "combine"]:
     node(
-        "moe." + name,
+        "moe.experts." + name,
         experts,
         "EP " + name,
         parent="moe",
         kind="comm",
         communication=comm(
-            "all_to_all", "ep", logical, f"ep>1 ? (ep-1)/ep*({logical}) : 0", "ep>1"
+            "all_to_all", "ep", logical, f"ep>1 && dp>1 ? (ep-1)/ep*({logical}) : 0", "ep>1 && dp>1"
         ),
         notes=[
             "Uniform routing, equal token counts per attention replica, ideal deduplication across TP replicas; byte count is outgoing per rank and excludes expert IDs/scales/padding. Actual Ascend MoE transport is backend-dependent."
@@ -745,20 +756,20 @@ node(
     ],
 )
 node(
-    "moe.reduce",
+    "moe.experts.reduce",
     experts,
     "MoE TP reduce",
     parent="moe",
     kind="comm",
     communication=comm(
         "all_reduce",
-        "moe_tp",
-        "T*dp*H*bytes(dtype_a)",
-        "ep==1 && tp*dp>1 ? 2*(tp*dp-1)/(tp*dp)*T*dp*H*bytes(dtype_a) : 0",
-        "ep==1 && tp*dp>1",
+        "tp",
+        "T*H*bytes(dtype_a)",
+        "tp>1 || ep>1 ? 2*(tp-1)/tp*T*H*bytes(dtype_a) : 0",
+        "tp>1 || ep>1",
     ),
     notes=[
-        "Abstract flattened MoE TP group traffic; DP gather/scatter and fused implementation details excluded."
+        "moe_runner.py output reduction uses the attention TP group, including when EP is enabled; TP=1 has zero bus traffic. DP gather/scatter is excluded."
     ],
 )
 node(
@@ -769,39 +780,80 @@ node(
     flops=phase("5*T*H", "5*S*H"),
     moved=phase("H*bytes(dtype_w)+2*T*H*bytes(dtype_a)", "H*bytes(dtype_w)+2*S*H*bytes(dtype_a)"),
 )
+selected_shape = {"prefill": ["batch", "H"], "decode": ["S", "H"]}
+local_logits = {"prefill": ["batch", "round_up(V,64)/tp"], "decode": ["S", "round_up(V,64)/tp"]}
+full_logits = {"prefill": ["batch", "round_up(V,64)"], "decode": ["S", "round_up(V,64)"]}
 node(
     "lm_head",
     "lm_head",
     "LM head",
     weight=vw,
-    flops=phase("2*S*H*round_up(V,64)/tp", "2*S*H*round_up(V,64)/tp"),
+    flops=phase("2*batch*H*round_up(V,64)/tp", "2*S*H*round_up(V,64)/tp"),
     moved=phase(
-        f"({vw})+S*(H+round_up(V,64)/tp)*bytes(dtype_a)",
+        f"({vw})+batch*(H+round_up(V,64)/tp)*bytes(dtype_a)",
         f"({vw})+S*(H+round_up(V,64)/tp)*bytes(dtype_a)",
     ),
-    outputs=[tensor("logits", ["S", "round_up(V,64)/tp"], "fp32")],
+    inputs=[tensor("selected_hidden", selected_shape)],
+    outputs=[tensor("logits", local_logits)],
+    parallel={"tp": {"dim": "out"}},
     notes=[
-        "Last-token logits only: S sampled tokens for both phases, not all T prefill positions."
+        "Last-token logits: batch rows in prefill, S in decode. Default head_dtype is model dtype (dtype_a); fp32 sampler workspace is accounted separately."
     ],
+)
+node(
+    "logits.gather",
+    "logits_processor",
+    "TP logits gather",
+    kind="comm",
+    inputs=[tensor("local_logits", local_logits)],
+    outputs=[tensor("logits", full_logits)],
+    communication={
+        "op": "gather",
+        "group": "tp",
+        "when": "tp>1",
+        "logical_bytes": phase(
+            "batch*round_up(V,64)/tp*bytes(dtype_a)", "S*round_up(V,64)/tp*bytes(dtype_a)"
+        ),
+        "bus_bytes": phase(
+            "tp>1 ? (tp-1)/tp*batch*round_up(V,64)/tp*bytes(dtype_a) : 0",
+            "tp>1 ? (tp-1)/tp*S*round_up(V,64)/tp*bytes(dtype_a) : 0",
+        ),
+        "notes": [
+            "Gather to TP rank 0: logical bytes are one local shard; bus bytes are rank-average outgoing bytes (rank 0 sends zero, others send one shard). Platforms selecting use_all_gather lower op=all_gather and bus=(tp-1)*local logical bytes instead. Truncate padding to V after collection."
+        ],
+    },
 )
 node(
     "output",
     "logits_processor",
     "Logits / sampling",
     kind="io",
-    inputs=[tensor("logits", ["S", "V"], "fp32")],
-    outputs=[tensor("tokens", ["S"], "dtype_ids")],
+    inputs=[tensor("logits", full_logits)],
+    outputs=[tensor("tokens", {"prefill": ["batch"], "decode": ["S"]}, "dtype_ids")],
     notes=[
-        "TP logits gather and sampler internals excluded from FLOPs/communication; max_num_seqs*V*fp32 is included in memory peak."
+        "Truncate collected logits to V. Sampler internals excluded from FLOPs; max_num_seqs*V*fp32 included in memory peak."
     ],
+)
+node(
+    "embed.reduce",
+    "model.embed_tokens",
+    "Embedding TP all-reduce",
+    kind="comm",
+    communication=comm(
+        "all_reduce",
+        "tp",
+        "T*H*bytes(dtype_a)",
+        "tp>1 ? 2*(tp-1)/tp*T*H*bytes(dtype_a) : 0",
+        "tp>1",
+    ),
 )
 
 # Spell out routed tensor slots and HBM traffic (activation bytes are not TP-sharded on input).
 routed_tokens = "T*dp*topk/(ep>1 ? ep : 1)"
 moe_tp = "(ep>1 ? 1 : tp*dp)"
 node_map = {n["id"]: n for n in nodes}
-node_map["moe.dispatch"]["in"] = [tensor(), tensor("scores", ["T", "E"])]
-node_map["moe.dispatch"]["out"] = [tensor("routed", [routed_tokens, "H"])]
+node_map["moe.experts.dispatch"]["in"] = [tensor(), tensor("scores", ["T", "E"])]
+node_map["moe.experts.dispatch"]["out"] = [tensor("routed", [routed_tokens, "H"])]
 for key, in_dim, out_dim in [
     ("moe.w13", "H", f"2*I_moe/{moe_tp}"),
     ("moe.act", f"2*I_moe/{moe_tp}", f"I_moe/{moe_tp}"),
@@ -814,14 +866,12 @@ for key, in_dim, out_dim in [
         f"({n['weight_bytes']})+({routed_tokens})*(({in_dim})+({out_dim}))*bytes(dtype_a)",
         f"({n['weight_bytes']})+({routed_tokens.replace('T*', 'S*')})*(({in_dim})+({out_dim}))*bytes(dtype_a)",
     )
-node_map["moe.combine"]["in"] = [tensor("routed", [routed_tokens, "H"])]
+node_map["moe.experts.combine"]["in"] = [tensor("routed", [routed_tokens, "H"])]
 node_map["attn.rope.apply"]["in"] = node_map["attn.rope"]["in"]
 node_map["attn.rope.apply"]["out"] = node_map["attn.rope"]["out"]
 
 node_map["attn.qk_norm"]["in"] = node_map["attn.rope"]["in"]
 node_map["attn.qk_norm"]["out"] = node_map["attn.rope"]["out"]
-node_map["lm_head"]["in"] = [tensor("selected_hidden", ["S", "H"])]
-node_map["output"]["in"] = [tensor("local_logits", ["S", "round_up(V,64)/tp"], "fp32")]
 
 # Group work/traffic summarize descendants; decoder metrics represent L/pp resident layers.
 by_id = {n["id"]: n for n in nodes}
@@ -860,10 +910,12 @@ edges = [
     edge(a, b)
     for a, b in [
         ("input", "embed"),
-        ("embed", "decoder"),
+        ("embed", "embed.reduce"),
+        ("embed.reduce", "decoder"),
         ("decoder", "final_norm"),
         ("final_norm", "lm_head"),
-        ("lm_head", "output"),
+        ("lm_head", "logits.gather"),
+        ("logits.gather", "output"),
         ("norm.input", "attn"),
         ("attn", "norm.post"),
         ("norm.post", "moe"),
@@ -871,13 +923,13 @@ edges = [
         ("attn.qk_norm", "attn.rope"),
         ("attn.rope", "attn.core"),
         ("attn.core", "attn.o"),
-        ("attn.o", "attn.reduce"),
-        ("moe.gate", "moe.dispatch"),
-        ("moe.dispatch", "moe.w13"),
+        ("attn.o", "attn.o.reduce"),
+        ("moe.gate", "moe.experts.dispatch"),
+        ("moe.experts.dispatch", "moe.w13"),
         ("moe.w13", "moe.act"),
         ("moe.act", "moe.w2"),
-        ("moe.w2", "moe.combine"),
-        ("moe.combine", "moe.reduce"),
+        ("moe.w2", "moe.experts.combine"),
+        ("moe.experts.combine", "moe.experts.reduce"),
     ]
 ]
 edges += [
@@ -894,18 +946,19 @@ def replace_edge(a, b, slot):
 
 
 replace_edge("input", "embed", tensor("tokens", ["T"], "dtype_ids"))
-replace_edge("final_norm", "lm_head", tensor("selected_hidden", ["S", "H"]))
-replace_edge("lm_head", "output", node_map["lm_head"]["out"][0])
+replace_edge("final_norm", "lm_head", tensor("selected_hidden", selected_shape))
+replace_edge("lm_head", "logits.gather", node_map["lm_head"]["out"][0])
+replace_edge("logits.gather", "output", node_map["logits.gather"]["out"][0])
 for a, b, slot in [
     ("attn.qkv", "attn.qk_norm", node_map["attn.qkv"]["out"][0]),
     ("attn.qk_norm", "attn.rope", node_map["attn.qk_norm"]["out"][0]),
     ("attn.rope", "attn.core", node_map["attn.rope"]["out"][0]),
     ("attn.core", "attn.o", node_map["attn.core"]["out"][0]),
-    ("moe.gate", "moe.dispatch", node_map["moe.gate"]["out"][0]),
-    ("moe.dispatch", "moe.w13", node_map["moe.dispatch"]["out"][0]),
+    ("moe.gate", "moe.experts.dispatch", node_map["moe.gate"]["out"][0]),
+    ("moe.experts.dispatch", "moe.w13", node_map["moe.experts.dispatch"]["out"][0]),
     ("moe.w13", "moe.act", node_map["moe.w13"]["out"][0]),
     ("moe.act", "moe.w2", node_map["moe.act"]["out"][0]),
-    ("moe.w2", "moe.combine", node_map["moe.w2"]["out"][0]),
+    ("moe.w2", "moe.experts.combine", node_map["moe.w2"]["out"][0]),
 ]:
     replace_edge(a, b, slot)
 for a, b, slot in [
@@ -913,7 +966,7 @@ for a, b, slot in [
     ("attn.qkv", "attn.core", node_map["attn.qkv"]["out"][2]),
     ("attn.qk_norm", "attn.rope", node_map["attn.qk_norm"]["out"][1]),
     ("attn.rope", "attn.core", node_map["attn.rope"]["out"][1]),
-    ("moe.gate", "moe.dispatch", tensor()),
+    ("moe.gate", "moe.experts.dispatch", tensor()),
 ]:
     e = edge(a, b)
     e["id"] += ":" + slot["name"]
@@ -977,25 +1030,62 @@ for tp in [1, 4]:
         "dp": 1,
         "ep": 1,
         "T": 4096,
-        "S": 1,
+        "S": 3,
+        "batch": 2,
         "dtype_w": "bf16",
         "dtype_kv": "bf16",
         "dtype_a": "bf16",
     }
     expected = {
-        "memory.weights": base["build"]["param_bytes"]
+        "/memory/weights": base["build"]["param_bytes"]
         if tp == 1
         else base4["build"]["param_bytes"],
-        "memory.kv_per_token": 2 * 48 * max(1, 4 // tp) * 128 * 2,
-        "nodes.attn.qkv.weight_bytes": 2048 * (32 // tp + 2 * max(1, 4 // tp)) * 128 * 2,
-        "nodes.attn.qkv.flops.prefill": 2 * 4096 * 2048 * (32 // tp + 2 * max(1, 4 // tp)) * 128,
-        "nodes.attn.qkv.out.0.shape": [4096, 32 // tp, 128],
-        "nodes.moe.w13.weight_bytes": 2 * 128 * 2048 * 768 // tp * 2,
-        "nodes.moe.w2.weight_bytes": 128 * 2048 * 768 // tp * 2,
-        "nodes.moe.gate.weight_bytes": 2048 * 128 * 2,
-        "nodes.attn.reduce.comm.bus_bytes": 0 if tp == 1 else 2 * (tp - 1) / tp * 4096 * 2048 * 2,
+        "/memory/kv_per_token": 2 * 48 * max(1, 4 // tp) * 128 * 2,
+        "/nodes/attn.qkv/weight_bytes": 2048 * (32 // tp + 2 * max(1, 4 // tp)) * 128 * 2,
+        "/nodes/attn.qkv/flops/prefill": 2 * 4096 * 2048 * (32 // tp + 2 * max(1, 4 // tp)) * 128,
+        "/nodes/attn.qkv/out/0/shape": [4096, 32 // tp, 128],
+        "/nodes/moe.w13/weight_bytes": 2 * 128 * 2048 * 768 // tp * 2,
+        "/nodes/moe.w2/weight_bytes": 128 * 2048 * 768 // tp * 2,
+        "/nodes/moe.gate/weight_bytes": 2048 * 128 * 2,
+        "/nodes/attn.o.reduce/comm/bus_bytes/prefill": 0
+        if tp == 1
+        else 2 * (tp - 1) / tp * 4096 * 2048 * 2,
     }
+    expected.update(
+        {
+            "/nodes/lm_head/flops/prefill": 2 * 2 * 2048 * 151936 / tp,
+            "/nodes/lm_head/flops/decode": 2 * 3 * 2048 * 151936 / tp,
+            "/nodes/embed.reduce/comm/logical_bytes/prefill": 4096 * 2048 * 2,
+            "/nodes/embed.reduce/comm/logical_bytes/decode": 3 * 2048 * 2,
+            "/nodes/logits.gather/comm/logical_bytes/prefill": 2 * 151936 / tp * 2,
+            "/nodes/logits.gather/comm/logical_bytes/decode": 3 * 151936 / tp * 2,
+        }
+    )
     cases.append({"id": f"tp{tp}-bf16-T4096", "env": env, "expected": expected})
+# Unverified transport estimates, independent arithmetic for the EP/DP boundary cases.
+for tp, dp, ep in [(4, 1, 4), (2, 2, 4), (1, 4, 4), (1, 4, 1)]:
+    active_a2a = ep > 1 and dp > 1
+    active_reduce = tp > 1 or ep > 1
+    expected = {}
+    for phase_name, tokens in [("prefill", 4096), ("decode", 3)]:
+        for suffix in ["dispatch", "combine"]:
+            expected[f"/nodes/moe.experts.{suffix}/comm/bus_bytes/{phase_name}"] = (
+                (ep - 1) / ep * tokens * 8 * 2048 * 2 if active_a2a else 0
+            )
+        expected[f"/nodes/moe.experts.reduce/comm/logical_bytes/{phase_name}"] = tokens * 2048 * 2
+        expected[f"/nodes/moe.experts.reduce/comm/bus_bytes/{phase_name}"] = (
+            2 * (tp - 1) / tp * tokens * 2048 * 2 if active_reduce else 0
+        )
+    expected["/nodes/moe.experts.dispatch/comm/when"] = int(active_a2a)
+    expected["/nodes/moe.experts.reduce/comm/when"] = int(active_reduce)
+    cases.append(
+        {
+            "id": f"tp{tp}-dp{dp}-ep{ep}-comm-estimate",
+            "env": env | {"tp": tp, "dp": dp, "ep": ep},
+            "expected": expected,
+        }
+    )
+cases.sort(key=lambda c: c["id"])
 write(
     OUT / "qwen3-30b-a3b/eval.json",
     {"model": snapshot["model"]["hf_id"], "cases": cases},
@@ -1017,9 +1107,24 @@ def graph(id, selections, collapsed):
                 "label": by_id[key]["label"],
             }
         )
+
+    def represented(a, b):
+        via = {("embed", "decoder"): "embed.reduce", ("lm_head", "output"): "logits.gather"}.get(
+            (a, b)
+        )
+        pairs = [(a, via), (via, b)] if via else [(a, b)]
+        return sorted(
+            e["id"] for e in edges if (e["from"], e["to"]) in pairs and e["kind"] == "data"
+        )
+
     es = [
         {
             "id": f"e{i}",
+            "ir_edges": represented(a["id"], b["id"]),
+            "kind": "data",
+            "label": next(
+                e["tensor"]["shape"] for e in edges if e["id"] == represented(a["id"], b["id"])[0]
+            ),
             "from": a["id"],
             "to": b["id"],
             "points": [[a["x"] + 160, 96], [b["x"], 96]],
@@ -1043,22 +1148,22 @@ views = [
         ["input", "embed", "decoder", "final_norm", "lm_head", "output"],
         ["decoder"],
     ),
-    graph("L1", ["norm.input", "attn", "norm.post", "moe"], ["attn", "moe"]),
+    graph("L1:decoder", ["norm.input", "attn", "norm.post", "moe"], ["attn", "moe"]),
     graph(
         "L2:attn",
-        ["attn.qkv", "attn.qk_norm", "attn.rope", "attn.core", "attn.o", "attn.reduce"],
+        ["attn.qkv", "attn.qk_norm", "attn.rope", "attn.core", "attn.o", "attn.o.reduce"],
         ["attn.q_norm", "attn.k_norm", "attn.rope.apply"],
     ),
     graph(
         "L2:moe",
         [
             "moe.gate",
-            "moe.dispatch",
+            "moe.experts.dispatch",
             "moe.w13",
             "moe.act",
             "moe.w2",
-            "moe.combine",
-            "moe.reduce",
+            "moe.experts.combine",
+            "moe.experts.reduce",
         ],
         ["moe.experts", "moe.experts.weights", "moe.experts.method"],
     ),
@@ -1067,6 +1172,9 @@ views = [
 views[1]["edges"].append(
     {
         "id": "residual",
+        "ir_edges": ["norm.input->norm.post:residual"],
+        "kind": "residual",
+        "label": ["T", "H"],
         "from": "norm.input",
         "to": "norm.post",
         "points": [[128, 128], [128, 160], [544, 160], [544, 128]],
@@ -1147,22 +1255,31 @@ rule = {
         "ascend": ">=0.32,<0.33",
         "when": "true",
     },
+    "context": ["in_features", "out_features", "reduce_results"],
     "shard": {"tp": "in"},
-    "out": [tensor()],
-    "weight": ow,
-    "flops": phase("2*T*Hq*D*H/tp", "2*S*Hq*D*H/tp"),
+    "out": [tensor(shape=["T", "out_features"])],
+    "weight": "in_features/tp*out_features*bytes(dtype_w)",
+    "flops": phase("2*T*in_features/tp*out_features", "2*S*in_features/tp*out_features"),
     "bytes_moved": phase(
-        f"({ow})+T*(H+Hq*D/tp)*bytes(dtype_a)", f"({ow})+S*(H+Hq*D/tp)*bytes(dtype_a)"
+        "in_features/tp*out_features*bytes(dtype_w)+T*(in_features/tp+out_features)*bytes(dtype_a)",
+        "in_features/tp*out_features*bytes(dtype_w)+S*(in_features/tp+out_features)*bytes(dtype_a)",
     ),
-    "comm": comm(
-        "all_reduce",
-        "tp",
-        "T*H*bytes(dtype_a)",
-        "tp>1 ? 2*(tp-1)/tp*T*H*bytes(dtype_a) : 0",
-        "tp>1",
-    ),
+    "emits": [
+        {
+            "suffix": "reduce",
+            "kind": "comm",
+            "comm": comm(
+                "all_reduce",
+                "tp",
+                "T*out_features*bytes(dtype_a)",
+                "reduce_results && tp>1 ? 2*(tp-1)/tp*T*out_features*bytes(dtype_a) : 0",
+                "reduce_results && tp>1",
+            ),
+        }
+    ],
     "notes": [
-        "Example only; activation applies to pinned development commits via resolved package version, not SHA ordering."
+        "GLOBAL context; rule divides by tp once. o_proj: in_features=Hq*D=4096, out_features=H=4096; down_proj: in_features=I=12288, out_features=H=4096 (Qwen3-8B).",
+        "TP4 bf16 o_proj: local [4096,1024], weight=8388608 bytes, prefill FLOPs=8388608*T; down_proj: local [4096,3072], weight=25165824 bytes, prefill FLOPs=25165824*T. Both emit T*4096*2 logical bytes and 1.5 times that in ring traffic.",
     ],
 }
 write(OUT / "rule.json", rule)
@@ -1209,12 +1326,17 @@ for key, cls, weight in [
             ],
         }
     )
+# Endpoint communication/selection semantics are identical for Dense and MoE.
+dense_nodes = [n for n in dense_nodes if n["id"] != "lm_head"]
+for key in ["embed.reduce", "lm_head", "logits.gather", "output"]:
+    dense_nodes.append(copy.deepcopy(node_map[key]))
+next(n for n in dense_nodes if n["id"] == "embed")["in"] = [tensor("tokens", ["T"], "dtype_ids")]
 dense_params = params | {
     "pp": param(
         "integer",
         1,
         "Equal pipeline partitions only.",
-        choices=["1", "2", "4", "8", "16", "32"],
+        choices=["1", "2", "3", "4", "6", "9", "12", "18", "36"],
     ),
     "ep": param("integer", 1, "Dense model has no expert parallelism.", choices=["1"]),
 }
@@ -1226,21 +1348,24 @@ dense_ir = {
         k: str(v)
         for k, v in {
             "H": 4096,
-            "L": 32,
+            "L": dense_config["num_hidden_layers"],
             "Hq": 32,
             "Hkv": 8,
             "D": 128,
             "V": 151936,
-            "I": 14336,
+            "I": dense_config["intermediate_size"],
         }.items()
     },
     "params": dense_params,
     "nodes": sorted(dense_nodes, key=lambda n: n["id"]),
     "edges": sorted(
         [
-            edge("embed", "decoder"),
+            edge("embed", "embed.reduce"),
+            edge("embed.reduce", "decoder"),
             edge("decoder", "final_norm"),
-            edge("final_norm", "lm_head"),
+            edge("final_norm", "lm_head", shape=selected_shape),
+            edge("lm_head", "logits.gather", shape=local_logits),
+            edge("logits.gather", "output", shape=full_logits),
         ],
         key=lambda e: e["id"],
     ),

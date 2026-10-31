@@ -700,7 +700,9 @@
       },
       "attrs": {
         "input_size": 4096,
+        "input_size_per_partition": 4096,
         "output_size": 2048,
+        "output_size_per_partition": 2048,
         "reduce_results": true,
         "tp_size": 1
       },

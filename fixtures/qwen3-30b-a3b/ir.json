@@ -46,7 +46,7 @@
     },
     {
       "from": "attn.o",
-      "id": "attn.o->attn.reduce:data",
+      "id": "attn.o->attn.o.reduce:data",
       "kind": "data",
       "tensor": {
         "dtype": "dtype_a",
@@ -56,7 +56,7 @@
           "H"
         ]
       },
-      "to": "attn.reduce"
+      "to": "attn.o.reduce"
     },
     {
       "from": "attn.qk_norm",
@@ -179,7 +179,21 @@
     },
     {
       "from": "embed",
-      "id": "embed->decoder:data",
+      "id": "embed->embed.reduce:data",
+      "kind": "data",
+      "tensor": {
+        "dtype": "dtype_a",
+        "name": "hidden",
+        "shape": [
+          "T",
+          "H"
+        ]
+      },
+      "to": "embed.reduce"
+    },
+    {
+      "from": "embed.reduce",
+      "id": "embed.reduce->decoder:data",
       "kind": "data",
       "tensor": {
         "dtype": "dtype_a",
@@ -198,10 +212,16 @@
       "tensor": {
         "dtype": "dtype_a",
         "name": "selected_hidden",
-        "shape": [
-          "S",
-          "H"
-        ]
+        "shape": {
+          "decode": [
+            "S",
+            "H"
+          ],
+          "prefill": [
+            "batch",
+            "H"
+          ]
+        }
       },
       "to": "lm_head"
     },
@@ -220,15 +240,41 @@
     },
     {
       "from": "lm_head",
-      "id": "lm_head->output:data",
+      "id": "lm_head->logits.gather:data",
       "kind": "data",
       "tensor": {
-        "dtype": "fp32",
+        "dtype": "dtype_a",
         "name": "logits",
-        "shape": [
-          "S",
-          "round_up(V,64)/tp"
-        ]
+        "shape": {
+          "decode": [
+            "S",
+            "round_up(V,64)/tp"
+          ],
+          "prefill": [
+            "batch",
+            "round_up(V,64)/tp"
+          ]
+        }
+      },
+      "to": "logits.gather"
+    },
+    {
+      "from": "logits.gather",
+      "id": "logits.gather->output:data",
+      "kind": "data",
+      "tensor": {
+        "dtype": "dtype_a",
+        "name": "logits",
+        "shape": {
+          "decode": [
+            "S",
+            "round_up(V,64)"
+          ],
+          "prefill": [
+            "batch",
+            "round_up(V,64)"
+          ]
+        }
       },
       "to": "output"
     },
@@ -247,8 +293,8 @@
       "to": "moe.w2"
     },
     {
-      "from": "moe.combine",
-      "id": "moe.combine->moe.reduce:data",
+      "from": "moe.experts.combine",
+      "id": "moe.experts.combine->moe.experts.reduce:data",
       "kind": "data",
       "tensor": {
         "dtype": "dtype_a",
@@ -258,11 +304,11 @@
           "H"
         ]
       },
-      "to": "moe.reduce"
+      "to": "moe.experts.reduce"
     },
     {
-      "from": "moe.dispatch",
-      "id": "moe.dispatch->moe.w13:data",
+      "from": "moe.experts.dispatch",
+      "id": "moe.experts.dispatch->moe.w13:data",
       "kind": "data",
       "tensor": {
         "dtype": "dtype_a",
@@ -276,7 +322,7 @@
     },
     {
       "from": "moe.gate",
-      "id": "moe.gate->moe.dispatch:data",
+      "id": "moe.gate->moe.experts.dispatch:data",
       "kind": "data",
       "tensor": {
         "dtype": "dtype_a",
@@ -286,11 +332,11 @@
           "E"
         ]
       },
-      "to": "moe.dispatch"
+      "to": "moe.experts.dispatch"
     },
     {
       "from": "moe.gate",
-      "id": "moe.gate->moe.dispatch:data:hidden",
+      "id": "moe.gate->moe.experts.dispatch:data:hidden",
       "kind": "data",
       "tensor": {
         "dtype": "dtype_a",
@@ -300,7 +346,7 @@
           "H"
         ]
       },
-      "to": "moe.dispatch"
+      "to": "moe.experts.dispatch"
     },
     {
       "from": "moe.w13",
@@ -318,7 +364,7 @@
     },
     {
       "from": "moe.w2",
-      "id": "moe.w2->moe.combine:data",
+      "id": "moe.w2->moe.experts.combine:data",
       "kind": "data",
       "tensor": {
         "dtype": "dtype_a",
@@ -328,7 +374,7 @@
           "H"
         ]
       },
-      "to": "moe.combine"
+      "to": "moe.experts.combine"
     },
     {
       "from": "norm.input",
@@ -643,7 +689,7 @@
         }
       },
       "parent": "attn",
-      "rule": "fixture.attn.o",
+      "rule": "fixture.linear.row",
       "src": {
         "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
         "file": "vllm/model_executor/layers/linear.py",
@@ -652,6 +698,65 @@
         "symbol": "vllm.model_executor.layers.linear.RowParallelLinear"
       },
       "weight_bytes": "H*Hq*D/tp*bytes(dtype_w)"
+    },
+    {
+      "bytes_moved": {
+        "decode": "0",
+        "prefill": "0"
+      },
+      "class": "vllm.model_executor.layers.linear.RowParallelLinear",
+      "comm": {
+        "bus_bytes": {
+          "decode": "tp>1 ? 2*(tp-1)/tp*S*H*bytes(dtype_a) : 0",
+          "prefill": "tp>1 ? 2*(tp-1)/tp*T*H*bytes(dtype_a) : 0"
+        },
+        "group": "tp",
+        "logical_bytes": {
+          "decode": "S*H*bytes(dtype_a)",
+          "prefill": "T*H*bytes(dtype_a)"
+        },
+        "op": "all_reduce",
+        "when": "tp>1"
+      },
+      "flops": {
+        "decode": "0",
+        "prefill": "0"
+      },
+      "id": "attn.o.reduce",
+      "in": [
+        {
+          "dtype": "dtype_a",
+          "name": "hidden",
+          "shape": [
+            "T",
+            "H"
+          ]
+        }
+      ],
+      "kind": "comm",
+      "label": "TP all-reduce",
+      "notes": [],
+      "out": [
+        {
+          "dtype": "dtype_a",
+          "name": "hidden",
+          "shape": [
+            "T",
+            "H"
+          ]
+        }
+      ],
+      "parallel": {},
+      "parent": "attn",
+      "rule": "fixture.linear.row",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/layers/linear.py",
+        "line": 1639,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.layers.linear.RowParallelLinear"
+      },
+      "weight_bytes": "0"
     },
     {
       "ascend": {
@@ -872,59 +977,6 @@
         "symbol": "vllm.model_executor.layers.linear.QKVParallelLinear"
       },
       "weight_bytes": "H*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_w)"
-    },
-    {
-      "bytes_moved": {
-        "decode": "0",
-        "prefill": "0"
-      },
-      "class": "vllm.model_executor.layers.linear.RowParallelLinear",
-      "comm": {
-        "bus_bytes": "tp>1 ? 2*(tp-1)/tp*T*H*bytes(dtype_a) : 0",
-        "group": "tp",
-        "logical_bytes": "T*H*bytes(dtype_a)",
-        "op": "all_reduce",
-        "when": "tp>1"
-      },
-      "flops": {
-        "decode": "0",
-        "prefill": "0"
-      },
-      "id": "attn.reduce",
-      "in": [
-        {
-          "dtype": "dtype_a",
-          "name": "hidden",
-          "shape": [
-            "T",
-            "H"
-          ]
-        }
-      ],
-      "kind": "comm",
-      "label": "TP all-reduce",
-      "notes": [],
-      "out": [
-        {
-          "dtype": "dtype_a",
-          "name": "hidden",
-          "shape": [
-            "T",
-            "H"
-          ]
-        }
-      ],
-      "parallel": {},
-      "parent": "attn",
-      "rule": "fixture.attn.reduce",
-      "src": {
-        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
-        "file": "vllm/model_executor/layers/linear.py",
-        "line": 1639,
-        "repo": "vllm",
-        "symbol": "vllm.model_executor.layers.linear.RowParallelLinear"
-      },
-      "weight_bytes": "0"
     },
     {
       "ascend": {
@@ -1195,6 +1247,65 @@
     },
     {
       "bytes_moved": {
+        "decode": "0",
+        "prefill": "0"
+      },
+      "class": "vllm.model_executor.layers.vocab_parallel_embedding.VocabParallelEmbedding",
+      "comm": {
+        "bus_bytes": {
+          "decode": "tp>1 ? 2*(tp-1)/tp*S*H*bytes(dtype_a) : 0",
+          "prefill": "tp>1 ? 2*(tp-1)/tp*T*H*bytes(dtype_a) : 0"
+        },
+        "group": "tp",
+        "logical_bytes": {
+          "decode": "S*H*bytes(dtype_a)",
+          "prefill": "T*H*bytes(dtype_a)"
+        },
+        "op": "all_reduce",
+        "when": "tp>1"
+      },
+      "flops": {
+        "decode": "0",
+        "prefill": "0"
+      },
+      "id": "embed.reduce",
+      "in": [
+        {
+          "dtype": "dtype_a",
+          "name": "hidden",
+          "shape": [
+            "T",
+            "H"
+          ]
+        }
+      ],
+      "kind": "comm",
+      "label": "Embedding TP all-reduce",
+      "notes": [],
+      "out": [
+        {
+          "dtype": "dtype_a",
+          "name": "hidden",
+          "shape": [
+            "T",
+            "H"
+          ]
+        }
+      ],
+      "parallel": {},
+      "parent": null,
+      "rule": "fixture.embed",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/layers/vocab_parallel_embedding.py",
+        "line": 206,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.layers.vocab_parallel_embedding.VocabParallelEmbedding"
+      },
+      "weight_bytes": "0"
+    },
+    {
+      "bytes_moved": {
         "decode": "H*bytes(dtype_w)+2*S*H*bytes(dtype_a)",
         "prefill": "H*bytes(dtype_w)+2*T*H*bytes(dtype_a)"
       },
@@ -1290,41 +1401,57 @@
     {
       "bytes_moved": {
         "decode": "(round_up(V,64)/tp*H*bytes(dtype_w))+S*(H+round_up(V,64)/tp)*bytes(dtype_a)",
-        "prefill": "(round_up(V,64)/tp*H*bytes(dtype_w))+S*(H+round_up(V,64)/tp)*bytes(dtype_a)"
+        "prefill": "(round_up(V,64)/tp*H*bytes(dtype_w))+batch*(H+round_up(V,64)/tp)*bytes(dtype_a)"
       },
       "class": "vllm.model_executor.layers.vocab_parallel_embedding.ParallelLMHead",
       "comm": null,
       "flops": {
         "decode": "2*S*H*round_up(V,64)/tp",
-        "prefill": "2*S*H*round_up(V,64)/tp"
+        "prefill": "2*batch*H*round_up(V,64)/tp"
       },
       "id": "lm_head",
       "in": [
         {
           "dtype": "dtype_a",
           "name": "selected_hidden",
-          "shape": [
-            "S",
-            "H"
-          ]
+          "shape": {
+            "decode": [
+              "S",
+              "H"
+            ],
+            "prefill": [
+              "batch",
+              "H"
+            ]
+          }
         }
       ],
       "kind": "compute",
       "label": "LM head",
       "notes": [
-        "Last-token logits only: S sampled tokens for both phases, not all T prefill positions."
+        "Last-token logits: batch rows in prefill, S in decode. Default head_dtype is model dtype (dtype_a); fp32 sampler workspace is accounted separately."
       ],
       "out": [
         {
-          "dtype": "fp32",
+          "dtype": "dtype_a",
           "name": "logits",
-          "shape": [
-            "S",
-            "round_up(V,64)/tp"
-          ]
+          "shape": {
+            "decode": [
+              "S",
+              "round_up(V,64)/tp"
+            ],
+            "prefill": [
+              "batch",
+              "round_up(V,64)/tp"
+            ]
+          }
         }
       ],
-      "parallel": {},
+      "parallel": {
+        "tp": {
+          "dim": "out"
+        }
+      },
       "parent": null,
       "rule": "fixture.lm_head",
       "src": {
@@ -1335,6 +1462,80 @@
         "symbol": "vllm.model_executor.layers.vocab_parallel_embedding.ParallelLMHead"
       },
       "weight_bytes": "round_up(V,64)/tp*H*bytes(dtype_w)"
+    },
+    {
+      "bytes_moved": {
+        "decode": "0",
+        "prefill": "0"
+      },
+      "class": "vllm.model_executor.layers.logits_processor.LogitsProcessor",
+      "comm": {
+        "bus_bytes": {
+          "decode": "tp>1 ? (tp-1)/tp*S*round_up(V,64)/tp*bytes(dtype_a) : 0",
+          "prefill": "tp>1 ? (tp-1)/tp*batch*round_up(V,64)/tp*bytes(dtype_a) : 0"
+        },
+        "group": "tp",
+        "logical_bytes": {
+          "decode": "S*round_up(V,64)/tp*bytes(dtype_a)",
+          "prefill": "batch*round_up(V,64)/tp*bytes(dtype_a)"
+        },
+        "notes": [
+          "Gather to TP rank 0: logical bytes are one local shard; bus bytes are rank-average outgoing bytes (rank 0 sends zero, others send one shard). Platforms selecting use_all_gather lower op=all_gather and bus=(tp-1)*local logical bytes instead. Truncate padding to V after collection."
+        ],
+        "op": "gather",
+        "when": "tp>1"
+      },
+      "flops": {
+        "decode": "0",
+        "prefill": "0"
+      },
+      "id": "logits.gather",
+      "in": [
+        {
+          "dtype": "dtype_a",
+          "name": "local_logits",
+          "shape": {
+            "decode": [
+              "S",
+              "round_up(V,64)/tp"
+            ],
+            "prefill": [
+              "batch",
+              "round_up(V,64)/tp"
+            ]
+          }
+        }
+      ],
+      "kind": "comm",
+      "label": "TP logits gather",
+      "notes": [],
+      "out": [
+        {
+          "dtype": "dtype_a",
+          "name": "logits",
+          "shape": {
+            "decode": [
+              "S",
+              "round_up(V,64)"
+            ],
+            "prefill": [
+              "batch",
+              "round_up(V,64)"
+            ]
+          }
+        }
+      ],
+      "parallel": {},
+      "parent": null,
+      "rule": "fixture.logits",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/layers/logits_processor.py",
+        "line": 58,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.layers.logits_processor.LogitsProcessor"
+      },
+      "weight_bytes": "0"
     },
     {
       "bytes_moved": {
@@ -1433,124 +1634,6 @@
       "weight_bytes": "0"
     },
     {
-      "bytes_moved": {
-        "decode": "0",
-        "prefill": "0"
-      },
-      "class": "vllm.model_executor.layers.fused_moe.runner.moe_runner.MoERunner",
-      "comm": {
-        "bus_bytes": "ep>1 ? (ep-1)/ep*(T*topk*H*bytes(dtype_a)) : 0",
-        "group": "ep",
-        "logical_bytes": "T*topk*H*bytes(dtype_a)",
-        "op": "all_to_all",
-        "when": "ep>1"
-      },
-      "flops": {
-        "decode": "0",
-        "prefill": "0"
-      },
-      "id": "moe.combine",
-      "in": [
-        {
-          "dtype": "dtype_a",
-          "name": "routed",
-          "shape": [
-            "T*dp*topk/(ep>1 ? ep : 1)",
-            "H"
-          ]
-        }
-      ],
-      "kind": "comm",
-      "label": "EP combine",
-      "notes": [
-        "Uniform routing, equal token counts per attention replica, ideal deduplication across TP replicas; byte count is outgoing per rank and excludes expert IDs/scales/padding. Actual Ascend MoE transport is backend-dependent."
-      ],
-      "out": [
-        {
-          "dtype": "dtype_a",
-          "name": "hidden",
-          "shape": [
-            "T",
-            "H"
-          ]
-        }
-      ],
-      "parallel": {},
-      "parent": "moe",
-      "rule": "fixture.moe.combine",
-      "src": {
-        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
-        "file": "vllm/model_executor/layers/fused_moe/runner/moe_runner.py",
-        "line": 228,
-        "repo": "vllm",
-        "symbol": "vllm.model_executor.layers.fused_moe.runner.moe_runner.MoERunner"
-      },
-      "weight_bytes": "0"
-    },
-    {
-      "bytes_moved": {
-        "decode": "0",
-        "prefill": "0"
-      },
-      "class": "vllm.model_executor.layers.fused_moe.runner.moe_runner.MoERunner",
-      "comm": {
-        "bus_bytes": "ep>1 ? (ep-1)/ep*(T*topk*H*bytes(dtype_a)) : 0",
-        "group": "ep",
-        "logical_bytes": "T*topk*H*bytes(dtype_a)",
-        "op": "all_to_all",
-        "when": "ep>1"
-      },
-      "flops": {
-        "decode": "0",
-        "prefill": "0"
-      },
-      "id": "moe.dispatch",
-      "in": [
-        {
-          "dtype": "dtype_a",
-          "name": "hidden",
-          "shape": [
-            "T",
-            "H"
-          ]
-        },
-        {
-          "dtype": "dtype_a",
-          "name": "scores",
-          "shape": [
-            "T",
-            "E"
-          ]
-        }
-      ],
-      "kind": "comm",
-      "label": "EP dispatch",
-      "notes": [
-        "Uniform routing, equal token counts per attention replica, ideal deduplication across TP replicas; byte count is outgoing per rank and excludes expert IDs/scales/padding. Actual Ascend MoE transport is backend-dependent."
-      ],
-      "out": [
-        {
-          "dtype": "dtype_a",
-          "name": "routed",
-          "shape": [
-            "T*dp*topk/(ep>1 ? ep : 1)",
-            "H"
-          ]
-        }
-      ],
-      "parallel": {},
-      "parent": "moe",
-      "rule": "fixture.moe.dispatch",
-      "src": {
-        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
-        "file": "vllm/model_executor/layers/fused_moe/runner/moe_runner.py",
-        "line": 228,
-        "repo": "vllm",
-        "symbol": "vllm.model_executor.layers.fused_moe.runner.moe_runner.MoERunner"
-      },
-      "weight_bytes": "0"
-    },
-    {
       "ascend": {
         "annotation_id": "fixture.ascend.moe.experts",
         "level": "KERNEL",
@@ -1615,6 +1698,136 @@
       "weight_bytes": "3*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w)"
     },
     {
+      "bytes_moved": {
+        "decode": "0",
+        "prefill": "0"
+      },
+      "class": "vllm.model_executor.layers.fused_moe.runner.moe_runner.MoERunner",
+      "comm": {
+        "bus_bytes": {
+          "decode": "ep>1 && dp>1 ? (ep-1)/ep*(S*topk*H*bytes(dtype_a)) : 0",
+          "prefill": "ep>1 && dp>1 ? (ep-1)/ep*(T*topk*H*bytes(dtype_a)) : 0"
+        },
+        "group": "ep",
+        "logical_bytes": {
+          "decode": "S*topk*H*bytes(dtype_a)",
+          "prefill": "T*topk*H*bytes(dtype_a)"
+        },
+        "op": "all_to_all",
+        "when": "ep>1 && dp>1"
+      },
+      "flops": {
+        "decode": "0",
+        "prefill": "0"
+      },
+      "id": "moe.experts.combine",
+      "in": [
+        {
+          "dtype": "dtype_a",
+          "name": "routed",
+          "shape": [
+            "T*dp*topk/(ep>1 ? ep : 1)",
+            "H"
+          ]
+        }
+      ],
+      "kind": "comm",
+      "label": "EP combine",
+      "notes": [
+        "Uniform routing, equal token counts per attention replica, ideal deduplication across TP replicas; byte count is outgoing per rank and excludes expert IDs/scales/padding. Actual Ascend MoE transport is backend-dependent."
+      ],
+      "out": [
+        {
+          "dtype": "dtype_a",
+          "name": "hidden",
+          "shape": [
+            "T",
+            "H"
+          ]
+        }
+      ],
+      "parallel": {},
+      "parent": "moe",
+      "rule": "fixture.moe.experts",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/layers/fused_moe/runner/moe_runner.py",
+        "line": 228,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.layers.fused_moe.runner.moe_runner.MoERunner"
+      },
+      "weight_bytes": "0"
+    },
+    {
+      "bytes_moved": {
+        "decode": "0",
+        "prefill": "0"
+      },
+      "class": "vllm.model_executor.layers.fused_moe.runner.moe_runner.MoERunner",
+      "comm": {
+        "bus_bytes": {
+          "decode": "ep>1 && dp>1 ? (ep-1)/ep*(S*topk*H*bytes(dtype_a)) : 0",
+          "prefill": "ep>1 && dp>1 ? (ep-1)/ep*(T*topk*H*bytes(dtype_a)) : 0"
+        },
+        "group": "ep",
+        "logical_bytes": {
+          "decode": "S*topk*H*bytes(dtype_a)",
+          "prefill": "T*topk*H*bytes(dtype_a)"
+        },
+        "op": "all_to_all",
+        "when": "ep>1 && dp>1"
+      },
+      "flops": {
+        "decode": "0",
+        "prefill": "0"
+      },
+      "id": "moe.experts.dispatch",
+      "in": [
+        {
+          "dtype": "dtype_a",
+          "name": "hidden",
+          "shape": [
+            "T",
+            "H"
+          ]
+        },
+        {
+          "dtype": "dtype_a",
+          "name": "scores",
+          "shape": [
+            "T",
+            "E"
+          ]
+        }
+      ],
+      "kind": "comm",
+      "label": "EP dispatch",
+      "notes": [
+        "Uniform routing, equal token counts per attention replica, ideal deduplication across TP replicas; byte count is outgoing per rank and excludes expert IDs/scales/padding. Actual Ascend MoE transport is backend-dependent."
+      ],
+      "out": [
+        {
+          "dtype": "dtype_a",
+          "name": "routed",
+          "shape": [
+            "T*dp*topk/(ep>1 ? ep : 1)",
+            "H"
+          ]
+        }
+      ],
+      "parallel": {},
+      "parent": "moe",
+      "rule": "fixture.moe.experts",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/layers/fused_moe/runner/moe_runner.py",
+        "line": 228,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.layers.fused_moe.runner.moe_runner.MoERunner"
+      },
+      "weight_bytes": "0"
+    },
+    {
       "ascend": {
         "annotation_id": "fixture.ascend.moe.experts.method",
         "level": "KERNEL",
@@ -1677,6 +1890,67 @@
         "line": 47,
         "repo": "vllm",
         "symbol": "vllm.model_executor.layers.fused_moe.unquantized_fused_moe_method.UnquantizedFusedMoEMethod"
+      },
+      "weight_bytes": "0"
+    },
+    {
+      "bytes_moved": {
+        "decode": "0",
+        "prefill": "0"
+      },
+      "class": "vllm.model_executor.layers.fused_moe.runner.moe_runner.MoERunner",
+      "comm": {
+        "bus_bytes": {
+          "decode": "tp>1 || ep>1 ? 2*(tp-1)/tp*S*H*bytes(dtype_a) : 0",
+          "prefill": "tp>1 || ep>1 ? 2*(tp-1)/tp*T*H*bytes(dtype_a) : 0"
+        },
+        "group": "tp",
+        "logical_bytes": {
+          "decode": "S*H*bytes(dtype_a)",
+          "prefill": "T*H*bytes(dtype_a)"
+        },
+        "op": "all_reduce",
+        "when": "tp>1 || ep>1"
+      },
+      "flops": {
+        "decode": "0",
+        "prefill": "0"
+      },
+      "id": "moe.experts.reduce",
+      "in": [
+        {
+          "dtype": "dtype_a",
+          "name": "hidden",
+          "shape": [
+            "T",
+            "H"
+          ]
+        }
+      ],
+      "kind": "comm",
+      "label": "MoE TP reduce",
+      "notes": [
+        "moe_runner.py output reduction uses the attention TP group, including when EP is enabled; TP=1 has zero bus traffic. DP gather/scatter is excluded."
+      ],
+      "out": [
+        {
+          "dtype": "dtype_a",
+          "name": "hidden",
+          "shape": [
+            "T",
+            "H"
+          ]
+        }
+      ],
+      "parallel": {},
+      "parent": "moe",
+      "rule": "fixture.moe.experts",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/layers/fused_moe/runner/moe_runner.py",
+        "line": 228,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.layers.fused_moe.runner.moe_runner.MoERunner"
       },
       "weight_bytes": "0"
     },
@@ -1830,61 +2104,6 @@
         "symbol": "vllm.model_executor.layers.fused_moe.router.gate_linear.GateLinear"
       },
       "weight_bytes": "H*E*bytes(dtype_w)"
-    },
-    {
-      "bytes_moved": {
-        "decode": "0",
-        "prefill": "0"
-      },
-      "class": "vllm.model_executor.layers.fused_moe.runner.moe_runner.MoERunner",
-      "comm": {
-        "bus_bytes": "ep==1 && tp*dp>1 ? 2*(tp*dp-1)/(tp*dp)*T*dp*H*bytes(dtype_a) : 0",
-        "group": "moe_tp",
-        "logical_bytes": "T*dp*H*bytes(dtype_a)",
-        "op": "all_reduce",
-        "when": "ep==1 && tp*dp>1"
-      },
-      "flops": {
-        "decode": "0",
-        "prefill": "0"
-      },
-      "id": "moe.reduce",
-      "in": [
-        {
-          "dtype": "dtype_a",
-          "name": "hidden",
-          "shape": [
-            "T",
-            "H"
-          ]
-        }
-      ],
-      "kind": "comm",
-      "label": "MoE TP reduce",
-      "notes": [
-        "Abstract flattened MoE TP group traffic; DP gather/scatter and fused implementation details excluded."
-      ],
-      "out": [
-        {
-          "dtype": "dtype_a",
-          "name": "hidden",
-          "shape": [
-            "T",
-            "H"
-          ]
-        }
-      ],
-      "parallel": {},
-      "parent": "moe",
-      "rule": "fixture.moe.reduce",
-      "src": {
-        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
-        "file": "vllm/model_executor/layers/fused_moe/runner/moe_runner.py",
-        "line": 228,
-        "repo": "vllm",
-        "symbol": "vllm.model_executor.layers.fused_moe.runner.moe_runner.MoERunner"
-      },
-      "weight_bytes": "0"
     },
     {
       "bytes_moved": {
@@ -2126,31 +2345,42 @@
       "id": "output",
       "in": [
         {
-          "dtype": "fp32",
-          "name": "local_logits",
-          "shape": [
-            "S",
-            "round_up(V,64)/tp"
-          ]
+          "dtype": "dtype_a",
+          "name": "logits",
+          "shape": {
+            "decode": [
+              "S",
+              "round_up(V,64)"
+            ],
+            "prefill": [
+              "batch",
+              "round_up(V,64)"
+            ]
+          }
         }
       ],
       "kind": "io",
       "label": "Logits / sampling",
       "notes": [
-        "TP logits gather and sampler internals excluded from FLOPs/communication; max_num_seqs*V*fp32 is included in memory peak."
+        "Truncate collected logits to V. Sampler internals excluded from FLOPs; max_num_seqs*V*fp32 included in memory peak."
       ],
       "out": [
         {
           "dtype": "dtype_ids",
           "name": "tokens",
-          "shape": [
-            "S"
-          ]
+          "shape": {
+            "decode": [
+              "S"
+            ],
+            "prefill": [
+              "batch"
+            ]
+          }
         }
       ],
       "parallel": {},
       "parent": null,
-      "rule": "fixture.output",
+      "rule": "fixture.logits",
       "src": {
         "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
         "file": "vllm/model_executor/layers/logits_processor.py",
@@ -2238,8 +2468,8 @@
         "int64"
       ],
       "default": "int64",
-      "description": "Token index dtype; token index storage is excluded from the metric ledger and bytes(dtype_ids) is not supported by the six-dtype DSL table.",
-      "kind": "enum"
+      "description": "Token index dtype; bytes(dtype_ids) is supported; token index storage is excluded from the metric ledger.",
+      "kind": "dtype"
     },
     "dtype_kv": {
       "choices": [

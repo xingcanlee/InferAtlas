@@ -16,7 +16,21 @@
     },
     {
       "from": "embed",
-      "id": "embed->decoder:data",
+      "id": "embed->embed.reduce:data",
+      "kind": "data",
+      "tensor": {
+        "dtype": "dtype_a",
+        "name": "hidden",
+        "shape": [
+          "T",
+          "H"
+        ]
+      },
+      "to": "embed.reduce"
+    },
+    {
+      "from": "embed.reduce",
+      "id": "embed.reduce->decoder:data",
       "kind": "data",
       "tensor": {
         "dtype": "dtype_a",
@@ -35,12 +49,58 @@
       "tensor": {
         "dtype": "dtype_a",
         "name": "hidden",
-        "shape": [
-          "T",
-          "H"
-        ]
+        "shape": {
+          "decode": [
+            "S",
+            "H"
+          ],
+          "prefill": [
+            "batch",
+            "H"
+          ]
+        }
       },
       "to": "lm_head"
+    },
+    {
+      "from": "lm_head",
+      "id": "lm_head->logits.gather:data",
+      "kind": "data",
+      "tensor": {
+        "dtype": "dtype_a",
+        "name": "hidden",
+        "shape": {
+          "decode": [
+            "S",
+            "round_up(V,64)/tp"
+          ],
+          "prefill": [
+            "batch",
+            "round_up(V,64)/tp"
+          ]
+        }
+      },
+      "to": "logits.gather"
+    },
+    {
+      "from": "logits.gather",
+      "id": "logits.gather->output:data",
+      "kind": "data",
+      "tensor": {
+        "dtype": "dtype_a",
+        "name": "hidden",
+        "shape": {
+          "decode": [
+            "S",
+            "round_up(V,64)"
+          ],
+          "prefill": [
+            "batch",
+            "round_up(V,64)"
+          ]
+        }
+      },
+      "to": "output"
     }
   ],
   "groups": [
@@ -129,11 +189,10 @@
       "id": "embed",
       "in": [
         {
-          "dtype": "dtype_a",
-          "name": "hidden",
+          "dtype": "dtype_ids",
+          "name": "tokens",
           "shape": [
-            "T",
-            "H"
+            "T"
           ]
         }
       ],
@@ -162,6 +221,65 @@
         "symbol": "vllm.model_executor.layers.vocab_parallel_embedding.VocabParallelEmbedding"
       },
       "weight_bytes": "round_up(V,64)/tp*H*bytes(dtype_w)"
+    },
+    {
+      "bytes_moved": {
+        "decode": "0",
+        "prefill": "0"
+      },
+      "class": "vllm.model_executor.layers.vocab_parallel_embedding.VocabParallelEmbedding",
+      "comm": {
+        "bus_bytes": {
+          "decode": "tp>1 ? 2*(tp-1)/tp*S*H*bytes(dtype_a) : 0",
+          "prefill": "tp>1 ? 2*(tp-1)/tp*T*H*bytes(dtype_a) : 0"
+        },
+        "group": "tp",
+        "logical_bytes": {
+          "decode": "S*H*bytes(dtype_a)",
+          "prefill": "T*H*bytes(dtype_a)"
+        },
+        "op": "all_reduce",
+        "when": "tp>1"
+      },
+      "flops": {
+        "decode": "0",
+        "prefill": "0"
+      },
+      "id": "embed.reduce",
+      "in": [
+        {
+          "dtype": "dtype_a",
+          "name": "hidden",
+          "shape": [
+            "T",
+            "H"
+          ]
+        }
+      ],
+      "kind": "comm",
+      "label": "Embedding TP all-reduce",
+      "notes": [],
+      "out": [
+        {
+          "dtype": "dtype_a",
+          "name": "hidden",
+          "shape": [
+            "T",
+            "H"
+          ]
+        }
+      ],
+      "parallel": {},
+      "parent": null,
+      "rule": "fixture.embed",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/layers/vocab_parallel_embedding.py",
+        "line": 206,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.layers.vocab_parallel_embedding.VocabParallelEmbedding"
+      },
+      "weight_bytes": "0"
     },
     {
       "bytes_moved": {
@@ -212,42 +330,60 @@
     },
     {
       "bytes_moved": {
-        "decode": "0",
-        "prefill": "0"
+        "decode": "(round_up(V,64)/tp*H*bytes(dtype_w))+S*(H+round_up(V,64)/tp)*bytes(dtype_a)",
+        "prefill": "(round_up(V,64)/tp*H*bytes(dtype_w))+batch*(H+round_up(V,64)/tp)*bytes(dtype_a)"
       },
       "class": "vllm.model_executor.layers.vocab_parallel_embedding.ParallelLMHead",
+      "comm": null,
       "flops": {
-        "decode": "0",
-        "prefill": "0"
+        "decode": "2*S*H*round_up(V,64)/tp",
+        "prefill": "2*batch*H*round_up(V,64)/tp"
       },
       "id": "lm_head",
       "in": [
         {
           "dtype": "dtype_a",
-          "name": "hidden",
-          "shape": [
-            "T",
-            "H"
-          ]
+          "name": "selected_hidden",
+          "shape": {
+            "decode": [
+              "S",
+              "H"
+            ],
+            "prefill": [
+              "batch",
+              "H"
+            ]
+          }
         }
       ],
       "kind": "compute",
-      "label": "lm head",
+      "label": "LM head",
       "notes": [
-        "Dense minimal fixture: detailed compute/activation traffic deferred to T3; zero is a placeholder, not a measured value."
+        "Last-token logits: batch rows in prefill, S in decode. Default head_dtype is model dtype (dtype_a); fp32 sampler workspace is accounted separately."
       ],
       "out": [
         {
           "dtype": "dtype_a",
-          "name": "hidden",
-          "shape": [
-            "T",
-            "H"
-          ]
+          "name": "logits",
+          "shape": {
+            "decode": [
+              "S",
+              "round_up(V,64)/tp"
+            ],
+            "prefill": [
+              "batch",
+              "round_up(V,64)/tp"
+            ]
+          }
         }
       ],
-      "parallel": {},
-      "rule": "fixture.dense.lm_head",
+      "parallel": {
+        "tp": {
+          "dim": "out"
+        }
+      },
+      "parent": null,
+      "rule": "fixture.lm_head",
       "src": {
         "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
         "file": "vllm/model_executor/layers/vocab_parallel_embedding.py",
@@ -256,6 +392,139 @@
         "symbol": "vllm.model_executor.layers.vocab_parallel_embedding.ParallelLMHead"
       },
       "weight_bytes": "round_up(V,64)/tp*H*bytes(dtype_w)"
+    },
+    {
+      "bytes_moved": {
+        "decode": "0",
+        "prefill": "0"
+      },
+      "class": "vllm.model_executor.layers.logits_processor.LogitsProcessor",
+      "comm": {
+        "bus_bytes": {
+          "decode": "tp>1 ? (tp-1)/tp*S*round_up(V,64)/tp*bytes(dtype_a) : 0",
+          "prefill": "tp>1 ? (tp-1)/tp*batch*round_up(V,64)/tp*bytes(dtype_a) : 0"
+        },
+        "group": "tp",
+        "logical_bytes": {
+          "decode": "S*round_up(V,64)/tp*bytes(dtype_a)",
+          "prefill": "batch*round_up(V,64)/tp*bytes(dtype_a)"
+        },
+        "notes": [
+          "Gather to TP rank 0: logical bytes are one local shard; bus bytes are rank-average outgoing bytes (rank 0 sends zero, others send one shard). Platforms selecting use_all_gather lower op=all_gather and bus=(tp-1)*local logical bytes instead. Truncate padding to V after collection."
+        ],
+        "op": "gather",
+        "when": "tp>1"
+      },
+      "flops": {
+        "decode": "0",
+        "prefill": "0"
+      },
+      "id": "logits.gather",
+      "in": [
+        {
+          "dtype": "dtype_a",
+          "name": "local_logits",
+          "shape": {
+            "decode": [
+              "S",
+              "round_up(V,64)/tp"
+            ],
+            "prefill": [
+              "batch",
+              "round_up(V,64)/tp"
+            ]
+          }
+        }
+      ],
+      "kind": "comm",
+      "label": "TP logits gather",
+      "notes": [],
+      "out": [
+        {
+          "dtype": "dtype_a",
+          "name": "logits",
+          "shape": {
+            "decode": [
+              "S",
+              "round_up(V,64)"
+            ],
+            "prefill": [
+              "batch",
+              "round_up(V,64)"
+            ]
+          }
+        }
+      ],
+      "parallel": {},
+      "parent": null,
+      "rule": "fixture.logits",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/layers/logits_processor.py",
+        "line": 58,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.layers.logits_processor.LogitsProcessor"
+      },
+      "weight_bytes": "0"
+    },
+    {
+      "bytes_moved": {
+        "decode": "0",
+        "prefill": "0"
+      },
+      "class": "vllm.model_executor.layers.logits_processor.LogitsProcessor",
+      "comm": null,
+      "flops": {
+        "decode": "0",
+        "prefill": "0"
+      },
+      "id": "output",
+      "in": [
+        {
+          "dtype": "dtype_a",
+          "name": "logits",
+          "shape": {
+            "decode": [
+              "S",
+              "round_up(V,64)"
+            ],
+            "prefill": [
+              "batch",
+              "round_up(V,64)"
+            ]
+          }
+        }
+      ],
+      "kind": "io",
+      "label": "Logits / sampling",
+      "notes": [
+        "Truncate collected logits to V. Sampler internals excluded from FLOPs; max_num_seqs*V*fp32 included in memory peak."
+      ],
+      "out": [
+        {
+          "dtype": "dtype_ids",
+          "name": "tokens",
+          "shape": {
+            "decode": [
+              "S"
+            ],
+            "prefill": [
+              "batch"
+            ]
+          }
+        }
+      ],
+      "parallel": {},
+      "parent": null,
+      "rule": "fixture.logits",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/layers/logits_processor.py",
+        "line": 58,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.layers.logits_processor.LogitsProcessor"
+      },
+      "weight_bytes": "0"
     }
   ],
   "notes": [
@@ -329,8 +598,8 @@
         "int64"
       ],
       "default": "int64",
-      "description": "Token index dtype; token index storage is excluded from the metric ledger and bytes(dtype_ids) is not supported by the six-dtype DSL table.",
-      "kind": "enum"
+      "description": "Token index dtype; bytes(dtype_ids) is supported; token index storage is excluded from the metric ledger.",
+      "kind": "dtype"
     },
     "dtype_kv": {
       "choices": [
@@ -400,10 +669,13 @@
       "choices": [
         "1",
         "2",
+        "3",
         "4",
-        "8",
-        "16",
-        "32"
+        "6",
+        "9",
+        "12",
+        "18",
+        "36"
       ],
       "default": "1",
       "description": "Equal pipeline partitions only.",
@@ -435,7 +707,7 @@
     "device": "A2",
     "generator_version": "0.1.0",
     "model": {
-      "config_rev": "inline:sha256:3aa0aa254e4585f44008f5a5109536fdd39c6db81a546af4556062bda614bc71",
+      "config_rev": "inline:sha256:d4e9a115241526b8e427513a2bbbff545bb324875df0f0a158d25bf0b007fe49",
       "hf_id": "Qwen/Qwen3-8B"
     },
     "vllm": {
@@ -448,8 +720,8 @@
     "H": "4096",
     "Hkv": "8",
     "Hq": "32",
-    "I": "14336",
-    "L": "32",
+    "I": "12288",
+    "L": "36",
     "V": "151936"
   },
   "views": {

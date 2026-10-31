@@ -1,18 +1,35 @@
 {
   "bytes_moved": {
-    "decode": "(H*Hq*D/tp*bytes(dtype_w))+S*(H+Hq*D/tp)*bytes(dtype_a)",
-    "prefill": "(H*Hq*D/tp*bytes(dtype_w))+T*(H+Hq*D/tp)*bytes(dtype_a)"
+    "decode": "in_features/tp*out_features*bytes(dtype_w)+S*(in_features/tp+out_features)*bytes(dtype_a)",
+    "prefill": "in_features/tp*out_features*bytes(dtype_w)+T*(in_features/tp+out_features)*bytes(dtype_a)"
   },
-  "comm": {
-    "bus_bytes": "tp>1 ? 2*(tp-1)/tp*T*H*bytes(dtype_a) : 0",
-    "group": "tp",
-    "logical_bytes": "T*H*bytes(dtype_a)",
-    "op": "all_reduce",
-    "when": "tp>1"
-  },
+  "context": [
+    "in_features",
+    "out_features",
+    "reduce_results"
+  ],
+  "emits": [
+    {
+      "comm": {
+        "bus_bytes": {
+          "decode": "reduce_results && tp>1 ? 2*(tp-1)/tp*S*out_features*bytes(dtype_a) : 0",
+          "prefill": "reduce_results && tp>1 ? 2*(tp-1)/tp*T*out_features*bytes(dtype_a) : 0"
+        },
+        "group": "tp",
+        "logical_bytes": {
+          "decode": "S*out_features*bytes(dtype_a)",
+          "prefill": "T*out_features*bytes(dtype_a)"
+        },
+        "op": "all_reduce",
+        "when": "reduce_results && tp>1"
+      },
+      "kind": "comm",
+      "suffix": "reduce"
+    }
+  ],
   "flops": {
-    "decode": "2*S*Hq*D*H/tp",
-    "prefill": "2*T*Hq*D*H/tp"
+    "decode": "2*S*in_features/tp*out_features",
+    "prefill": "2*T*in_features/tp*out_features"
   },
   "id": "fixture.linear.row",
   "match": {
@@ -22,7 +39,8 @@
     "when": "true"
   },
   "notes": [
-    "Example only; activation applies to pinned development commits via resolved package version, not SHA ordering."
+    "GLOBAL context; rule divides by tp once. o_proj: in_features=Hq*D=4096, out_features=H=4096; down_proj: in_features=I=12288, out_features=H=4096 (Qwen3-8B).",
+    "TP4 bf16 o_proj: local [4096,1024], weight=8388608 bytes, prefill FLOPs=8388608*T; down_proj: local [4096,3072], weight=25165824 bytes, prefill FLOPs=25165824*T. Both emit T*4096*2 logical bytes and 1.5 times that in ring traffic."
   ],
   "out": [
     {
@@ -30,12 +48,12 @@
       "name": "hidden",
       "shape": [
         "T",
-        "H"
+        "out_features"
       ]
     }
   ],
   "shard": {
     "tp": "in"
   },
-  "weight": "H*Hq*D/tp*bytes(dtype_w)"
+  "weight": "in_features/tp*out_features*bytes(dtype_w)"
 }

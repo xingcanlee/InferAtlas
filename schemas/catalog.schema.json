@@ -165,7 +165,9 @@
               "fp16",
               "fp8",
               "int8",
-              "int4"
+              "int4",
+              "int32",
+              "int64"
             ]
           },
           "title": "Peak Tflops",

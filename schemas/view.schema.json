@@ -28,8 +28,8 @@
           "type": "integer"
         },
         "id": {
-          "description": "L0 overview, L1:<band>, or L2:<node>; L1 alone reserved for a single-band fixture.",
-          "pattern": "^(L0|L1(:.+)?|L2:.+)$",
+          "description": "L0 overview, L1:<band>, or L2:<node>; bare L1 is invalid.",
+          "pattern": "^(L0|L1:[^\\s:]+|L2:[^\\s:]+)$",
           "title": "Id",
           "type": "string"
         },
@@ -60,6 +60,37 @@
       "title": "GraphView",
       "type": "object"
     },
+    "PhaseShape": {
+      "additionalProperties": false,
+      "properties": {
+        "decode": {
+          "description": "Local-rank decode dimensions; no T substitution needed.",
+          "items": {
+            "description": "Expression in docs/expr-dsl.md; never a JSON number.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Decode",
+          "type": "array"
+        },
+        "prefill": {
+          "description": "Local-rank prefill dimensions.",
+          "items": {
+            "description": "Expression in docs/expr-dsl.md; never a JSON number.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Prefill",
+          "type": "array"
+        }
+      },
+      "required": [
+        "prefill",
+        "decode"
+      ],
+      "title": "PhaseShape",
+      "type": "object"
+    },
     "ViewEdge": {
       "additionalProperties": false,
       "properties": {
@@ -72,6 +103,46 @@
           "description": "View-local unique edge id.",
           "title": "Id",
           "type": "string"
+        },
+        "ir_edges": {
+          "description": "IR edge ids represented by this route, sorted; may span collapsed nodes.",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Ir Edges",
+          "type": "array"
+        },
+        "kind": {
+          "description": "Semantic kind shared by the represented IR edges.",
+          "enum": [
+            "data",
+            "kv",
+            "residual"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "items": {
+                "description": "Expression in docs/expr-dsl.md; never a JSON number.",
+                "minLength": 1,
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "$ref": "#/$defs/PhaseShape"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional symbolic shape copied from a represented IR edge tensor.shape.",
+          "title": "Label"
         },
         "label_pos": {
           "anyOf": [
@@ -130,6 +201,8 @@
         }
       },
       "required": [
+        "ir_edges",
+        "kind",
         "id",
         "from",
         "to",

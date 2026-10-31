@@ -68,7 +68,7 @@
           "additionalProperties": {
             "$ref": "#/$defs/JsonValue"
           },
-          "description": "Whitelisted observed constructor/module attributes; facts only.",
+          "description": "Whitelisted observed attributes; partition/head attrs are per-rank facts, constructor input_size/output_size can be global. Lower normalizes GLOBAL rule context, never divides local attrs twice.",
           "title": "Attrs",
           "type": "object"
         },

@@ -8,10 +8,11 @@ from pathlib import Path
 
 import pytest
 from jsonschema import Draft202012Validator
+from jsonschema.exceptions import ValidationError as SchemaValidationError
 from pydantic import ValidationError
 from ruamel.yaml import YAML
 
-from inferatlas.schema import IR, Catalog, Extract, View
+from inferatlas.schema import IR, Catalog, Eval, Extract, Rule, View
 from inferatlas.schema.export import MODELS, export, schema_text
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -115,7 +116,7 @@ def test_schema_layout_routes_and_ir_references():
     ir = IR.model_validate(read(MOE / "ir.json"))
     ids = {n.id for n in ir.nodes}
     view = View.model_validate(read(MOE / "view.json"))
-    assert {v.id for v in view.views} == {"L0", "L1", "L2:attn", "L2:moe"}
+    assert {v.id for v in view.views} == {"L0", "L1:decoder", "L2:attn", "L2:moe"}
     for graph in view.views:
         assert all(n.ir_node in ids for n in graph.nodes)
         assert set(graph.collapsed_of) <= ids
@@ -178,17 +179,22 @@ def test_schema_fixture_extraction_matches_experiment_facts():
 
 
 def test_schema_oracle_preserves_verified_totals_and_replication():
-    cases = read(MOE / "eval.json")["cases"]
-    assert [c["expected"]["memory.weights"] for c in cases] == [61064245248, 15285252096]
-    assert cases[1]["expected"]["memory.weights"] != cases[0]["expected"]["memory.weights"] / 4
+    cases = [c for c in read(MOE / "eval.json")["cases"] if "-bf16-" in c["id"]]
+    assert [c["expected"]["/memory/weights"] for c in cases] == [61064245248, 15285252096]
+    assert cases[1]["expected"]["/memory/weights"] != cases[0]["expected"]["/memory/weights"] / 4
     for case in cases:
         assert case["env"]["T"] == 4096
-        assert case["expected"]["nodes.moe.gate.weight_bytes"] == 524288
+        assert case["expected"]["/nodes/moe.gate/weight_bytes"] == 524288
     ir = IR.model_validate(read(MOE / "ir.json"))
     for node in ir.nodes:
         assert isinstance(node.weight_bytes, str)
         for slot in [*node.inputs, *node.out]:
-            assert all(isinstance(dim, str) for dim in slot.shape)
+            shapes = (
+                [slot.shape]
+                if isinstance(slot.shape, list)
+                else [slot.shape.prefill, slot.shape.decode]
+            )
+            assert all(isinstance(dim, str) for shape in shapes for dim in shape)
     assert sum(n.ascend is not None for n in ir.nodes) == 12
     assert ir.nodes == sorted(ir.nodes, key=lambda n: n.id)
     assert ir.edges == sorted(ir.edges, key=lambda e: e.id)
@@ -213,3 +219,146 @@ def test_schema_cli_stub_entry_point():
     assert result.exit_code == 0
     assert result.stdout == "0.1.0\n"
     assert CliRunner().invoke(app, ["--help"]).exit_code == 0
+
+
+def test_schema_review_dense_config_and_partition_choices():
+    catalog = Catalog.model_validate(YAML(typ="safe").load(ROOT / "catalog.yaml"))
+    model = next(m for m in catalog.models if m.id == "qwen3-8b")
+    assert {
+        k: model.config[k]
+        for k in [
+            "num_hidden_layers",
+            "intermediate_size",
+            "hidden_size",
+            "num_attention_heads",
+            "num_key_value_heads",
+            "head_dim",
+            "vocab_size",
+            "tie_word_embeddings",
+            "rms_norm_eps",
+            "rope_theta",
+        ]
+    } == dict(
+        num_hidden_layers=36,
+        intermediate_size=12288,
+        hidden_size=4096,
+        num_attention_heads=32,
+        num_key_value_heads=8,
+        head_dim=128,
+        vocab_size=151936,
+        tie_word_embeddings=False,
+        rms_norm_eps=1e-6,
+        rope_theta=1000000,
+    )
+    ir = IR.model_validate(read(FIXTURES / "qwen3-8b/ir.json"))
+    assert ir.snapshot.model.config_rev == model.config_rev
+    assert ir.symbols["L"] == "36" and ir.symbols["I"] == "12288"
+    assert all(36 % int(pp) == 0 for pp in ir.params["pp"].choices)
+    # Both replicated per-head Q/K norms must remain in the collapsed layer ledger.
+    assert "+2*D+" in next(n for n in ir.nodes if n.id == "decoder").weight_bytes
+
+
+def test_schema_review_communications_and_phase_slots():
+    for path in [MOE / "ir.json", FIXTURES / "qwen3-8b/ir.json"]:
+        ir = IR.model_validate(read(path))
+        nodes = {n.id: n for n in ir.nodes}
+        embed = nodes["embed.reduce"].comm
+        assert (embed.op, embed.group, embed.when) == ("all_reduce", "tp", "tp>1")
+        assert embed.logical_bytes.prefill == "T*H*bytes(dtype_a)"
+        assert embed.logical_bytes.decode == "S*H*bytes(dtype_a)"
+        head = nodes["lm_head"]
+        assert head.inputs[0].shape.prefill == ["batch", "H"]
+        assert head.inputs[0].shape.decode == ["S", "H"]
+        assert head.parallel["tp"].dim == "out"
+        assert "batch" in head.flops.prefill and "S" in head.flops.decode
+        assert head.out[0].dtype == nodes["logits.gather"].inputs[0].dtype == "dtype_a"
+        assert head.comm is None and nodes["embed"].comm is None
+        gather = nodes["logits.gather"].comm
+        assert (gather.op, gather.group) == ("gather", "tp")
+        assert gather.logical_bytes.prefill == "batch*round_up(V,64)/tp*bytes(dtype_a)"
+        assert gather.logical_bytes.decode == "S*round_up(V,64)/tp*bytes(dtype_a)"
+        assert any(e.from_node == "embed.reduce" and e.to == "decoder" for e in ir.edges)
+        assert any(e.from_node == "logits.gather" and e.to == "output" for e in ir.edges)
+    nodes = {n.id: n for n in IR.model_validate(read(MOE / "ir.json")).nodes}
+    for suffix in ["dispatch", "combine"]:
+        assert nodes[f"moe.experts.{suffix}"].comm.when == "ep>1 && dp>1"
+    reduce = nodes["moe.experts.reduce"].comm
+    assert (reduce.group, reduce.when) == ("tp", "tp>1 || ep>1")
+    assert "dp" not in reduce.logical_bytes.prefill
+    assert "tp-1" in reduce.bus_bytes.prefill
+    assert nodes["attn.o"].comm is None
+    assert nodes["attn.o.reduce"].rule == nodes["attn.o"].rule == "fixture.linear.row"
+
+
+def test_schema_review_rule_context_and_emissions():
+    value = read(FIXTURES / "rule.json")
+    rule = Rule.model_validate(value)
+    assert rule.context == ["in_features", "out_features", "reduce_results"]
+    assert rule.weight == "in_features/tp*out_features*bytes(dtype_w)"
+    assert rule.comm is None
+    assert rule.emits[0].suffix == "reduce"
+    assert rule.emits[0].comm.when == "reduce_results && tp>1"
+    modules = {m.path: m for m in Extract.model_validate(read(MOE / "extract-tp4.json")).modules}
+    row = modules["model.layers.0.self_attn.o_proj"]
+    assert row.attrs["input_size_per_partition"] * 4 == row.attrs["input_size"] == 4096
+    assert row.params[0].shape == [2048, 1024]
+    for mutation in ["duplicate", "double_comm"]:
+        broken = copy.deepcopy(value)
+        if mutation == "duplicate":
+            broken["emits"].append(broken["emits"][0])
+        else:
+            broken["comm"] = broken["emits"][0]["comm"]
+        with pytest.raises(ValidationError):
+            Rule.model_validate(broken)
+
+
+def test_schema_review_view_provenance_and_strict_ids():
+    ir_edges = {e["id"]: e for e in read(MOE / "ir.json")["edges"]}
+    for graph in read(MOE / "view.json")["views"]:
+        for edge in graph["edges"]:
+            assert edge["ir_edges"] == sorted(edge["ir_edges"])
+            represented = [ir_edges[key] for key in edge["ir_edges"]]
+            assert all(e["kind"] == edge["kind"] for e in represented)
+            assert any(e["tensor"]["shape"] == edge["label"] for e in represented)
+    for invalid_id in ["L1", "L1:", "L1:bad band"]:
+        broken = read(MOE / "view.json")
+        broken["views"][1]["id"] = invalid_id
+        with pytest.raises(ValidationError):
+            View.model_validate(broken)
+        with pytest.raises(SchemaValidationError):
+            Draft202012Validator(read(ROOT / "schemas/view.schema.json")).validate(broken)
+
+
+def test_schema_review_reject_legacy_comm_and_eval_paths():
+    broken = read(MOE / "ir.json")
+    comm = next(n["comm"] for n in broken["nodes"] if n.get("comm"))
+    comm["logical_bytes"] = "T*H*bytes(dtype_a)"
+    with pytest.raises(ValidationError):
+        IR.model_validate(broken)
+    broken = read(MOE / "eval.json")
+    broken["cases"][0]["expected"]["nodes.attn.qkv.weight_bytes"] = 0
+    with pytest.raises(ValidationError):
+        Eval.model_validate(broken)
+    with pytest.raises(SchemaValidationError):
+        Draft202012Validator(read(ROOT / "schemas/eval.schema.json")).validate(broken)
+    # Resolve oracle keys without ambiguity from dots in semantic ids.
+    indexed = read(MOE / "ir.json")
+    indexed["nodes"] = {n["id"]: n for n in indexed["nodes"]}
+    for case in read(MOE / "eval.json")["cases"]:
+        for pointer in case["expected"]:
+            value = indexed
+            for part in pointer[1:].split("/"):
+                key = part.replace("~1", "/").replace("~0", "~")
+                value = value[int(key)] if isinstance(value, list) else value[key]
+            assert isinstance(value, str | list)
+
+
+def test_schema_review_integer_dtypes():
+    from typing import get_args
+
+    from inferatlas.schema.models import DType
+
+    assert {"int32", "int64"} <= set(get_args(DType))
+    ir = IR.model_validate(read(MOE / "ir.json"))
+    assert ir.params["dtype_ids"].kind == "dtype"
+    assert ir.params["dtype_ids"].choices == ["int32", "int64"]

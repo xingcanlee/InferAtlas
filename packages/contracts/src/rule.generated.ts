@@ -9,17 +9,9 @@ export type Decode = string;
  */
 export type Prefill = string;
 /**
- * Local-rank estimated link traffic, includes collective algorithm factor; zero when inactive.
- */
-export type BusBytes = string;
-/**
  * Parallel group name (tp/ep/pp/dp) or a rule-declared group.
  */
 export type Group = string;
-/**
- * Local-rank logical tensor bytes per prefill invocation; use T=S for decode.
- */
-export type LogicalBytes = string;
 /**
  * Ring/dispatch/routing assumptions, especially EP uniform routing.
  */
@@ -28,11 +20,27 @@ export type Notes = string[];
  * Logical collective; fused kernels retain semantic communication metadata.
  */
 export type Op =
-  "all_reduce" | "all_gather" | "reduce_scatter" | "all_to_all" | "send_recv" | "none";
+  "all_reduce" | "gather" | "all_gather" | "reduce_scatter" | "all_to_all" | "send_recv" | "none";
 /**
  * Activation condition; inactive communication contributes zero.
  */
 export type When = string;
+/**
+ * Module identifiers required by this rule; lower binds GLOBAL unsharded sizes per docs/expr-dsl.md, never raw local attrs.
+ */
+export type Context = string[];
+/**
+ * Emitted communication sub-node; compute remains on the module node.
+ */
+export type Kind = "comm";
+/**
+ * Sub-node id is <module-node-id>.<suffix>; unique within a rule.
+ */
+export type Suffix = string;
+/**
+ * Additional semantic nodes, sorted by suffix; no duplicate collective on the compute node.
+ */
+export type Emits = RuleEmission[];
 /**
  * Stable rule key; multiple matching rules are an error, never pick by file order.
  */
@@ -66,9 +74,17 @@ export type Dtype = string;
  */
 export type Name = string;
 /**
- * Local-rank dimensions as DSL expressions, in dimension order.
+ * Local-rank dimensions: array uses T=S in decode; phase object selects explicit dimensions.
  */
-export type Shape = string[];
+export type Shape = string[] | PhaseShape;
+/**
+ * Local-rank decode dimensions; no T substitution needed.
+ */
+export type Decode1 = string[];
+/**
+ * Local-rank prefill dimensions.
+ */
+export type Prefill1 = string[];
 /**
  * Output tensor slots with expression dimensions, same representation as IR.
  */
@@ -84,7 +100,9 @@ export interface Rule {
    * Collective metadata or null; same representation as IR.
    */
   comm?: Comm | null;
-  flops: PhaseExpr1;
+  context?: Context;
+  emits?: Emits;
+  flops: PhaseExpr3;
   id: Id;
   match: RuleMatch;
   notes?: Notes1;
@@ -100,9 +118,39 @@ export interface PhaseExpr {
   prefill: Prefill;
 }
 export interface Comm {
-  bus_bytes: BusBytes;
+  bus_bytes: PhaseExpr1;
   group: Group;
-  logical_bytes: LogicalBytes;
+  logical_bytes: PhaseExpr2;
+  notes?: Notes;
+  op: Op;
+  when?: When;
+}
+/**
+ * Local-rank estimated link traffic, includes collective algorithm factor; zero when inactive.
+ */
+export interface PhaseExpr1 {
+  decode: Decode;
+  prefill: Prefill;
+}
+/**
+ * Local-rank logical tensor bytes explicitly for each phase.
+ */
+export interface PhaseExpr2 {
+  decode: Decode;
+  prefill: Prefill;
+}
+export interface RuleEmission {
+  comm: Comm1;
+  kind: Kind;
+  suffix: Suffix;
+}
+/**
+ * Collective attached only to this emitted node.
+ */
+export interface Comm1 {
+  bus_bytes: PhaseExpr1;
+  group: Group;
+  logical_bytes: PhaseExpr2;
   notes?: Notes;
   op: Op;
   when?: When;
@@ -110,7 +158,7 @@ export interface Comm {
 /**
  * Phase-specific FLOP expressions, not a scalar shorthand.
  */
-export interface PhaseExpr1 {
+export interface PhaseExpr3 {
   decode: Decode;
   prefill: Prefill;
 }
@@ -127,6 +175,10 @@ export interface TensorSpec {
   dtype?: Dtype;
   name: Name;
   shape: Shape;
+}
+export interface PhaseShape {
+  decode: Decode1;
+  prefill: Prefill1;
 }
 /**
  * Parallel axis to shard dimension/strategy, converted into IR parallel axes.

@@ -29,8 +29,12 @@ export interface Env {
   [k: string]: number | string | boolean;
 }
 /**
- * Expected values keyed by memory.<field> or nodes.<id>.<field>; shape values are arrays, e.g. nodes.attn.qkv.out.0.shape.
+ * JSON pointers into evaluated IR with nodes indexed by id (not array position), e.g. /nodes/attn.qkv/out/0/shape. Escape ~ and / as ~0 and ~1.
  */
 export interface Expected {
+  /**
+   * This interface was referenced by `Expected`'s JSON-Schema definition
+   * via the `patternProperty` "^/(?:[^~/]|~[01])*(?:/(?:[^~/]|~[01])*)*$".
+   */
   [k: string]: number | number[];
 }

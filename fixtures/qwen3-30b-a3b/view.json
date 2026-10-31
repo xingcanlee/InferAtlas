@@ -8,6 +8,13 @@
         {
           "from": "input",
           "id": "e0",
+          "ir_edges": [
+            "input->embed:data"
+          ],
+          "kind": "data",
+          "label": [
+            "T"
+          ],
           "label_pos": [
             232,
             80
@@ -27,6 +34,15 @@
         {
           "from": "embed",
           "id": "e1",
+          "ir_edges": [
+            "embed->embed.reduce:data",
+            "embed.reduce->decoder:data"
+          ],
+          "kind": "data",
+          "label": [
+            "T",
+            "H"
+          ],
           "label_pos": [
             440,
             80
@@ -46,6 +62,14 @@
         {
           "from": "decoder",
           "id": "e2",
+          "ir_edges": [
+            "decoder->final_norm:data"
+          ],
+          "kind": "data",
+          "label": [
+            "T",
+            "H"
+          ],
           "label_pos": [
             648,
             80
@@ -65,6 +89,20 @@
         {
           "from": "final_norm",
           "id": "e3",
+          "ir_edges": [
+            "final_norm->lm_head:data"
+          ],
+          "kind": "data",
+          "label": {
+            "decode": [
+              "S",
+              "H"
+            ],
+            "prefill": [
+              "batch",
+              "H"
+            ]
+          },
           "label_pos": [
             856,
             80
@@ -84,6 +122,21 @@
         {
           "from": "lm_head",
           "id": "e4",
+          "ir_edges": [
+            "lm_head->logits.gather:data",
+            "logits.gather->output:data"
+          ],
+          "kind": "data",
+          "label": {
+            "decode": [
+              "S",
+              "round_up(V,64)/tp"
+            ],
+            "prefill": [
+              "batch",
+              "round_up(V,64)/tp"
+            ]
+          },
           "label_pos": [
             1064,
             80
@@ -170,6 +223,14 @@
         {
           "from": "norm.input",
           "id": "e0",
+          "ir_edges": [
+            "norm.input->attn:data"
+          ],
+          "kind": "data",
+          "label": [
+            "T",
+            "H"
+          ],
           "label_pos": [
             232,
             80
@@ -189,6 +250,14 @@
         {
           "from": "attn",
           "id": "e1",
+          "ir_edges": [
+            "attn->norm.post:data"
+          ],
+          "kind": "data",
+          "label": [
+            "T",
+            "H"
+          ],
           "label_pos": [
             440,
             80
@@ -208,6 +277,14 @@
         {
           "from": "norm.post",
           "id": "e2",
+          "ir_edges": [
+            "norm.post->moe:data"
+          ],
+          "kind": "data",
+          "label": [
+            "T",
+            "H"
+          ],
           "label_pos": [
             648,
             80
@@ -227,6 +304,14 @@
         {
           "from": "norm.input",
           "id": "residual",
+          "ir_edges": [
+            "norm.input->norm.post:residual"
+          ],
+          "kind": "residual",
+          "label": [
+            "T",
+            "H"
+          ],
           "label_pos": [
             336,
             160
@@ -253,7 +338,7 @@
         }
       ],
       "height": 192,
-      "id": "L1",
+      "id": "L1:decoder",
       "nodes": [
         {
           "h": 64,
@@ -304,6 +389,16 @@
         {
           "from": "attn.qkv",
           "id": "e0",
+          "ir_edges": [
+            "attn.qkv->attn.qk_norm:data",
+            "attn.qkv->attn.qk_norm:data:k"
+          ],
+          "kind": "data",
+          "label": [
+            "T",
+            "Hq/tp",
+            "D"
+          ],
           "label_pos": [
             232,
             80
@@ -323,6 +418,16 @@
         {
           "from": "attn.qk_norm",
           "id": "e1",
+          "ir_edges": [
+            "attn.qk_norm->attn.rope:data",
+            "attn.qk_norm->attn.rope:data:k"
+          ],
+          "kind": "data",
+          "label": [
+            "T",
+            "Hq/tp",
+            "D"
+          ],
           "label_pos": [
             440,
             80
@@ -342,6 +447,16 @@
         {
           "from": "attn.rope",
           "id": "e2",
+          "ir_edges": [
+            "attn.rope->attn.core:data",
+            "attn.rope->attn.core:data:k"
+          ],
+          "kind": "data",
+          "label": [
+            "T",
+            "Hq/tp",
+            "D"
+          ],
           "label_pos": [
             648,
             80
@@ -361,6 +476,14 @@
         {
           "from": "attn.core",
           "id": "e3",
+          "ir_edges": [
+            "attn.core->attn.o:data"
+          ],
+          "kind": "data",
+          "label": [
+            "T",
+            "Hq/tp*D"
+          ],
           "label_pos": [
             856,
             80
@@ -380,6 +503,14 @@
         {
           "from": "attn.o",
           "id": "e4",
+          "ir_edges": [
+            "attn.o->attn.o.reduce:data"
+          ],
+          "kind": "data",
+          "label": [
+            "T",
+            "H"
+          ],
           "label_pos": [
             1064,
             80
@@ -394,7 +525,7 @@
               96
             ]
           ],
-          "to": "attn.reduce"
+          "to": "attn.o.reduce"
         }
       ],
       "height": 192,
@@ -420,6 +551,15 @@
         },
         {
           "h": 64,
+          "id": "attn.o.reduce",
+          "ir_node": "attn.o.reduce",
+          "label": "TP all-reduce",
+          "w": 160,
+          "x": 1088,
+          "y": 64
+        },
+        {
+          "h": 64,
           "id": "attn.qk_norm",
           "ir_node": "attn.qk_norm",
           "label": "Q/K head norms",
@@ -434,15 +574,6 @@
           "label": "QKV projection",
           "w": 160,
           "x": 48,
-          "y": 64
-        },
-        {
-          "h": 64,
-          "id": "attn.reduce",
-          "ir_node": "attn.reduce",
-          "label": "TP all-reduce",
-          "w": 160,
-          "x": 1088,
           "y": 64
         },
         {
@@ -467,6 +598,15 @@
         {
           "from": "moe.gate",
           "id": "e0",
+          "ir_edges": [
+            "moe.gate->moe.experts.dispatch:data",
+            "moe.gate->moe.experts.dispatch:data:hidden"
+          ],
+          "kind": "data",
+          "label": [
+            "T",
+            "E"
+          ],
           "label_pos": [
             232,
             80
@@ -481,11 +621,19 @@
               96
             ]
           ],
-          "to": "moe.dispatch"
+          "to": "moe.experts.dispatch"
         },
         {
-          "from": "moe.dispatch",
+          "from": "moe.experts.dispatch",
           "id": "e1",
+          "ir_edges": [
+            "moe.experts.dispatch->moe.w13:data"
+          ],
+          "kind": "data",
+          "label": [
+            "T*dp*topk/(ep>1 ? ep : 1)",
+            "H"
+          ],
           "label_pos": [
             440,
             80
@@ -505,6 +653,14 @@
         {
           "from": "moe.w13",
           "id": "e2",
+          "ir_edges": [
+            "moe.w13->moe.act:data"
+          ],
+          "kind": "data",
+          "label": [
+            "T*dp*topk/(ep>1 ? ep : 1)",
+            "2*I_moe/(ep>1 ? 1 : tp*dp)"
+          ],
           "label_pos": [
             648,
             80
@@ -524,6 +680,14 @@
         {
           "from": "moe.act",
           "id": "e3",
+          "ir_edges": [
+            "moe.act->moe.w2:data"
+          ],
+          "kind": "data",
+          "label": [
+            "T*dp*topk/(ep>1 ? ep : 1)",
+            "I_moe/(ep>1 ? 1 : tp*dp)"
+          ],
           "label_pos": [
             856,
             80
@@ -543,6 +707,14 @@
         {
           "from": "moe.w2",
           "id": "e4",
+          "ir_edges": [
+            "moe.w2->moe.experts.combine:data"
+          ],
+          "kind": "data",
+          "label": [
+            "T*dp*topk/(ep>1 ? ep : 1)",
+            "H"
+          ],
           "label_pos": [
             1064,
             80
@@ -557,11 +729,19 @@
               96
             ]
           ],
-          "to": "moe.combine"
+          "to": "moe.experts.combine"
         },
         {
-          "from": "moe.combine",
+          "from": "moe.experts.combine",
           "id": "e5",
+          "ir_edges": [
+            "moe.experts.combine->moe.experts.reduce:data"
+          ],
+          "kind": "data",
+          "label": [
+            "T",
+            "H"
+          ],
           "label_pos": [
             1272,
             80
@@ -576,7 +756,7 @@
               96
             ]
           ],
-          "to": "moe.reduce"
+          "to": "moe.experts.reduce"
         }
       ],
       "height": 192,
@@ -593,8 +773,8 @@
         },
         {
           "h": 64,
-          "id": "moe.combine",
-          "ir_node": "moe.combine",
+          "id": "moe.experts.combine",
+          "ir_node": "moe.experts.combine",
           "label": "EP combine",
           "w": 160,
           "x": 1088,
@@ -602,11 +782,20 @@
         },
         {
           "h": 64,
-          "id": "moe.dispatch",
-          "ir_node": "moe.dispatch",
+          "id": "moe.experts.dispatch",
+          "ir_node": "moe.experts.dispatch",
           "label": "EP dispatch",
           "w": 160,
           "x": 256,
+          "y": 64
+        },
+        {
+          "h": 64,
+          "id": "moe.experts.reduce",
+          "ir_node": "moe.experts.reduce",
+          "label": "MoE TP reduce",
+          "w": 160,
+          "x": 1296,
           "y": 64
         },
         {
@@ -616,15 +805,6 @@
           "label": "Router",
           "w": 160,
           "x": 48,
-          "y": 64
-        },
-        {
-          "h": 64,
-          "id": "moe.reduce",
-          "ir_node": "moe.reduce",
-          "label": "MoE TP reduce",
-          "w": 160,
-          "x": 1296,
           "y": 64
         },
         {

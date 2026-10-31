@@ -31,9 +31,10 @@ schemas emit the serialization representation. Pydantic also checks IR reference
 parent cycles and view routes/bounds; JSON Schema cannot express these cross-field checks.
 Consumers should validate with the model as well as the schema at Python boundaries.
 
-`IR.in`/`out` slots are arrays of `{name, shape: string[], dtype: string}`; they are not a
+`IR.in`/`out` slots are arrays of `{name, shape, dtype}`; shape is a string array or
+`{prefill: string[], decode: string[]}` for explicit phase shapes; they are not a
 single flattened shape. Rule outputs use the same representation, and Rule.flops and
-bytes_moved always have `{prefill, decode}` (no scalar shorthand). `Rule.weight` becomes
+bytes_moved and Comm.logical_bytes/bus_bytes always have `{prefill, decode}` (no scalar shorthand). `Rule.weight` becomes
 `IRNode.weight_bytes`; `shard: {tp: 'in'}` becomes `parallel: {tp: {dim: 'in'}}`.
 Qualified exact class matches take precedence over short exact matches; within that tier,
 multiple applicable rules are an error. `match.vllm/ascend` are packaging SpecifierSet ranges,
@@ -77,3 +78,9 @@ counts. `fixtures/qwen3-30b-a3b/triage.json` has two independent sample errors t
 it is not a claim that the `ok` matrix sample has passed a real pipeline. Production
 publication requires empty triage and verification with no failed checks/diffs/broken links;
 a skipped calibration is allowed, clearly marked as uncalibrated.
+
+Rule.context binds GLOBAL module sizes, while extraction preserves per-rank facts.
+Rule.emits creates `<module-node-id>.<suffix>` nodes; no duplicate compute-node comm.
+See the generic row-linear o_proj/down_proj examples and path-to-template-id mapping in
+`docs/expr-dsl.md`. View ids require `L1:<band>`; ViewEdge.ir_edges/kind/label preserve
+IR provenance. Eval expected keys use JSON pointers with nodes indexed by stable id.

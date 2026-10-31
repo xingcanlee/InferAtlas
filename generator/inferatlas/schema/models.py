@@ -12,7 +12,7 @@ Expr = Annotated[
     str, Field(min_length=1, description="Expression in docs/expr-dsl.md; never a JSON number.")
 ]
 Device = Literal["A2", "A3", "A5", "310P", "H100"]
-DType = Literal["fp32", "bf16", "fp16", "fp8", "int8", "int4"]
+DType = Literal["fp32", "bf16", "fp16", "fp8", "int8", "int4", "int32", "int64"]
 Commit = Annotated[str, Field(pattern=r"^[0-9a-f]{40}$")]
 AnchorHash = Annotated[str, Field(pattern=r"^sha256:[0-9a-f]{64}$")]
 
@@ -175,7 +175,7 @@ class ExtractModule(Contract):
     )
     attrs: dict[str, JsonValue] = Field(
         default_factory=dict,
-        description="Whitelisted observed constructor/module attributes; facts only.",
+        description="Whitelisted observed attributes; partition/head attrs are per-rank facts, constructor input_size/output_size can be global. Lower normalizes GLOBAL rule context, never divides local attrs twice.",
     )
     params: list[ExtractParam] = Field(
         default_factory=list,
@@ -245,12 +245,19 @@ class ParamSpec(Contract):
     )
 
 
+class PhaseShape(Contract):
+    prefill: list[Expr] = Field(description="Local-rank prefill dimensions.")
+    decode: list[Expr] = Field(
+        description="Local-rank decode dimensions; no T substitution needed."
+    )
+
+
 class TensorSpec(Contract):
     name: str = Field(
         description="Local input/output slot name; multiple inputs/outputs stay separate."
     )
-    shape: list[Expr] = Field(
-        description="Local-rank dimensions as DSL expressions, in dimension order."
+    shape: list[Expr] | PhaseShape = Field(
+        description="Local-rank dimensions: array uses T=S in decode; phase object selects explicit dimensions."
     )
     dtype: Expr = Field(
         default="dtype_a", description="Dtype symbol or builtin dtype name, consumed by bytes()."
@@ -263,16 +270,16 @@ class PhaseExpr(Contract):
 
 
 class Comm(Contract):
-    op: Literal["all_reduce", "all_gather", "reduce_scatter", "all_to_all", "send_recv", "none"] = (
-        Field(
-            description="Logical collective; fused kernels retain semantic communication metadata."
-        )
+    op: Literal[
+        "all_reduce", "gather", "all_gather", "reduce_scatter", "all_to_all", "send_recv", "none"
+    ] = Field(
+        description="Logical collective; fused kernels retain semantic communication metadata."
     )
     group: str = Field(description="Parallel group name (tp/ep/pp/dp) or a rule-declared group.")
-    logical_bytes: Expr = Field(
-        description="Local-rank logical tensor bytes per prefill invocation; use T=S for decode."
+    logical_bytes: PhaseExpr = Field(
+        description="Local-rank logical tensor bytes explicitly for each phase."
     )
-    bus_bytes: Expr = Field(
+    bus_bytes: PhaseExpr = Field(
         description="Local-rank estimated link traffic, includes collective algorithm factor; zero when inactive."
     )
     when: Expr = Field(
@@ -468,6 +475,17 @@ Point = tuple[GridCoordinate, GridCoordinate]
 
 
 class ViewEdge(Contract):
+    ir_edges: list[str] = Field(
+        min_length=1,
+        description="IR edge ids represented by this route, sorted; may span collapsed nodes.",
+    )
+    kind: Literal["data", "kv", "residual"] = Field(
+        description="Semantic kind shared by the represented IR edges."
+    )
+    label: list[Expr] | PhaseShape | None = Field(
+        default=None,
+        description="Optional symbolic shape copied from a represented IR edge tensor.shape.",
+    )
     id: str = Field(description="View-local unique edge id.")
     from_node: str = Field(alias="from", description="Producer ViewNode.id, not an IR node id.")
     to: str = Field(description="Consumer ViewNode.id.")
@@ -492,8 +510,8 @@ class ViewEdge(Contract):
 
 class GraphView(Contract):
     id: str = Field(
-        pattern=r"^(L0|L1(:.+)?|L2:.+)$",
-        description="L0 overview, L1:<band>, or L2:<node>; L1 alone reserved for a single-band fixture.",
+        pattern=r"^(L0|L1:[^\s:]+|L2:[^\s:]+)$",
+        description="L0 overview, L1:<band>, or L2:<node>; bare L1 is invalid.",
     )
     nodes: list[ViewNode] = Field(
         max_length=9, description="Curated visible nodes, stable id order; complexity budget <=9."
@@ -632,11 +650,30 @@ class RuleMatch(Contract):
     )
 
 
+class RuleEmission(Contract):
+    suffix: str = Field(
+        pattern=r"^[a-z][a-z0-9_]*$",
+        description="Sub-node id is <module-node-id>.<suffix>; unique within a rule.",
+    )
+    kind: Literal["comm"] = Field(
+        description="Emitted communication sub-node; compute remains on the module node."
+    )
+    comm: Comm = Field(description="Collective attached only to this emitted node.")
+
+
 class Rule(Contract):
     id: str = Field(
         description="Stable rule key; multiple matching rules are an error, never pick by file order."
     )
     match: RuleMatch = Field(description="Class, upstream version ranges and optional predicate.")
+    context: list[str] = Field(
+        default_factory=list,
+        description="Module identifiers required by this rule; lower binds GLOBAL unsharded sizes per docs/expr-dsl.md, never raw local attrs.",
+    )
+    emits: list[RuleEmission] = Field(
+        default_factory=list,
+        description="Additional semantic nodes, sorted by suffix; no duplicate collective on the compute node.",
+    )
     shard: dict[str, str] = Field(
         default_factory=dict,
         description="Parallel axis to shard dimension/strategy, converted into IR parallel axes.",
@@ -656,6 +693,14 @@ class Rule(Contract):
         default_factory=list,
         description="Assumptions and explanation of non-obvious formula terms.",
     )
+
+    @model_validator(mode="after")
+    def check_emissions(self) -> "Rule":
+        if len({e.suffix for e in self.emits}) != len(self.emits):
+            raise ValueError("duplicate rule emission suffix")
+        if self.comm is not None and self.emits:
+            raise ValueError("use either module comm or emitted comm, not both")
+        return self
 
 
 class Rules(RootModel[list[Rule]]):
@@ -704,8 +749,12 @@ class EvalCase(Contract):
     env: dict[str, float | str | bool] = Field(
         description="Overrides of IR params; bind IR symbols and defaults first. Raw values, not expressions."
     )
-    expected: dict[str, float | list[float]] = Field(
-        description="Expected values keyed by memory.<field> or nodes.<id>.<field>; shape values are arrays, e.g. nodes.attn.qkv.out.0.shape."
+    expected: dict[
+        Annotated[str, Field(pattern=r"^/(?:[^~/]|~[01])*(?:/(?:[^~/]|~[01])*)*$")],
+        float | list[float],
+    ] = Field(
+        description="JSON pointers into evaluated IR with nodes indexed by id (not array position), e.g. /nodes/attn.qkv/out/0/shape. Escape ~ and / as ~0 and ~1.",
+        json_schema_extra={"additionalProperties": False},
     )
 
 

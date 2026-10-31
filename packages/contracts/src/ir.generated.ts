@@ -21,9 +21,17 @@ export type Dtype = string;
  */
 export type Name = string;
 /**
- * Local-rank dimensions as DSL expressions, in dimension order.
+ * Local-rank dimensions: array uses T=S in decode; phase object selects explicit dimensions.
  */
-export type Shape = string[];
+export type Shape = string[] | PhaseShape;
+/**
+ * Local-rank decode dimensions; no T substitution needed.
+ */
+export type Decode = string[];
+/**
+ * Local-rank prefill dimensions.
+ */
+export type Prefill = string[];
 /**
  * Consumer IRNode.id.
  */
@@ -126,27 +134,19 @@ export type Tag = ("OOT" | "PATCH" | "QUANT" | "FUSED")[];
 /**
  * Work for one decode step of S local-attention sequences.
  */
-export type Decode = string;
+export type Decode1 = string;
 /**
  * Work per prefill chunk of T local-attention tokens.
  */
-export type Prefill = string;
+export type Prefill1 = string;
 /**
  * Qualified baseline class or semantic operation symbol.
  */
 export type Class = string;
 /**
- * Local-rank estimated link traffic, includes collective algorithm factor; zero when inactive.
- */
-export type BusBytes = string;
-/**
  * Parallel group name (tp/ep/pp/dp) or a rule-declared group.
  */
 export type Group = string;
-/**
- * Local-rank logical tensor bytes per prefill invocation; use T=S for decode.
- */
-export type LogicalBytes = string;
 /**
  * Ring/dispatch/routing assumptions, especially EP uniform routing.
  */
@@ -155,7 +155,7 @@ export type Notes = string[];
  * Logical collective; fused kernels retain semantic communication metadata.
  */
 export type Op =
-  "all_reduce" | "all_gather" | "reduce_scatter" | "all_to_all" | "send_recv" | "none";
+  "all_reduce" | "gather" | "all_gather" | "reduce_scatter" | "all_to_all" | "send_recv" | "none";
 /**
  * Activation condition; inactive communication contributes zero.
  */
@@ -291,6 +291,10 @@ export interface TensorSpec {
   name: Name;
   shape: Shape;
 }
+export interface PhaseShape {
+  decode: Decode;
+  prefill: Prefill;
+}
 export interface LayerGroup {
   id: Id1;
   layers: Layers;
@@ -320,7 +324,7 @@ export interface IRNode {
    * Collective metadata or null; traffic is separate from HBM bytes.
    */
   comm?: Comm | null;
-  flops: PhaseExpr1;
+  flops: PhaseExpr3;
   id: Id2;
   in: In;
   kind: Kind1;
@@ -351,23 +355,37 @@ export interface SourceRef {
  * Local-rank estimated HBM bytes read/written per phase, excluding communication bus bytes.
  */
 export interface PhaseExpr {
-  decode: Decode;
-  prefill: Prefill;
+  decode: Decode1;
+  prefill: Prefill1;
 }
 export interface Comm {
-  bus_bytes: BusBytes;
+  bus_bytes: PhaseExpr1;
   group: Group;
-  logical_bytes: LogicalBytes;
+  logical_bytes: PhaseExpr2;
   notes?: Notes;
   op: Op;
   when?: When;
 }
 /**
- * Local-rank floating-point work; one multiply-add is two FLOPs.
+ * Local-rank estimated link traffic, includes collective algorithm factor; zero when inactive.
  */
 export interface PhaseExpr1 {
-  decode: Decode;
-  prefill: Prefill;
+  decode: Decode1;
+  prefill: Prefill1;
+}
+/**
+ * Local-rank logical tensor bytes explicitly for each phase.
+ */
+export interface PhaseExpr2 {
+  decode: Decode1;
+  prefill: Prefill1;
+}
+/**
+ * Local-rank floating-point work; one multiply-add is two FLOPs.
+ */
+export interface PhaseExpr3 {
+  decode: Decode1;
+  prefill: Prefill1;
 }
 export interface TensorSpec1 {
   dtype?: Dtype;

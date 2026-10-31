@@ -22,20 +22,23 @@
           "type": "object"
         },
         "expected": {
-          "additionalProperties": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "items": {
+          "additionalProperties": false,
+          "description": "JSON pointers into evaluated IR with nodes indexed by id (not array position), e.g. /nodes/attn.qkv/out/0/shape. Escape ~ and / as ~0 and ~1.",
+          "patternProperties": {
+            "^/(?:[^~/]|~[01])*(?:/(?:[^~/]|~[01])*)*$": {
+              "anyOf": [
+                {
                   "type": "number"
                 },
-                "type": "array"
-              }
-            ]
+                {
+                  "items": {
+                    "type": "number"
+                  },
+                  "type": "array"
+                }
+              ]
+            }
           },
-          "description": "Expected values keyed by memory.<field> or nodes.<id>.<field>; shape values are arrays, e.g. nodes.attn.qkv.out.0.shape.",
           "title": "Expected",
           "type": "object"
         },

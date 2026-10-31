@@ -4,10 +4,8 @@
       "additionalProperties": false,
       "properties": {
         "bus_bytes": {
-          "description": "Local-rank estimated link traffic, includes collective algorithm factor; zero when inactive.",
-          "minLength": 1,
-          "title": "Bus Bytes",
-          "type": "string"
+          "$ref": "#/$defs/PhaseExpr",
+          "description": "Local-rank estimated link traffic, includes collective algorithm factor; zero when inactive."
         },
         "group": {
           "description": "Parallel group name (tp/ep/pp/dp) or a rule-declared group.",
@@ -15,10 +13,8 @@
           "type": "string"
         },
         "logical_bytes": {
-          "description": "Local-rank logical tensor bytes per prefill invocation; use T=S for decode.",
-          "minLength": 1,
-          "title": "Logical Bytes",
-          "type": "string"
+          "$ref": "#/$defs/PhaseExpr",
+          "description": "Local-rank logical tensor bytes explicitly for each phase."
         },
         "notes": {
           "description": "Ring/dispatch/routing assumptions, especially EP uniform routing.",
@@ -32,6 +28,7 @@
           "description": "Logical collective; fused kernels retain semantic communication metadata.",
           "enum": [
             "all_reduce",
+            "gather",
             "all_gather",
             "reduce_scatter",
             "all_to_all",
@@ -79,6 +76,65 @@
         "decode"
       ],
       "title": "PhaseExpr",
+      "type": "object"
+    },
+    "PhaseShape": {
+      "additionalProperties": false,
+      "properties": {
+        "decode": {
+          "description": "Local-rank decode dimensions; no T substitution needed.",
+          "items": {
+            "description": "Expression in docs/expr-dsl.md; never a JSON number.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Decode",
+          "type": "array"
+        },
+        "prefill": {
+          "description": "Local-rank prefill dimensions.",
+          "items": {
+            "description": "Expression in docs/expr-dsl.md; never a JSON number.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Prefill",
+          "type": "array"
+        }
+      },
+      "required": [
+        "prefill",
+        "decode"
+      ],
+      "title": "PhaseShape",
+      "type": "object"
+    },
+    "RuleEmission": {
+      "additionalProperties": false,
+      "properties": {
+        "comm": {
+          "$ref": "#/$defs/Comm",
+          "description": "Collective attached only to this emitted node."
+        },
+        "kind": {
+          "const": "comm",
+          "description": "Emitted communication sub-node; compute remains on the module node.",
+          "title": "Kind",
+          "type": "string"
+        },
+        "suffix": {
+          "description": "Sub-node id is <module-node-id>.<suffix>; unique within a rule.",
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "title": "Suffix",
+          "type": "string"
+        }
+      },
+      "required": [
+        "suffix",
+        "kind",
+        "comm"
+      ],
+      "title": "RuleEmission",
       "type": "object"
     },
     "RuleMatch": {
@@ -131,14 +187,21 @@
           "type": "string"
         },
         "shape": {
-          "description": "Local-rank dimensions as DSL expressions, in dimension order.",
-          "items": {
-            "description": "Expression in docs/expr-dsl.md; never a JSON number.",
-            "minLength": 1,
-            "type": "string"
-          },
-          "title": "Shape",
-          "type": "array"
+          "anyOf": [
+            {
+              "items": {
+                "description": "Expression in docs/expr-dsl.md; never a JSON number.",
+                "minLength": 1,
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "$ref": "#/$defs/PhaseShape"
+            }
+          ],
+          "description": "Local-rank dimensions: array uses T=S in decode; phase object selects explicit dimensions.",
+          "title": "Shape"
         }
       },
       "required": [
@@ -167,6 +230,22 @@
       ],
       "default": null,
       "description": "Collective metadata or null; same representation as IR."
+    },
+    "context": {
+      "description": "Module identifiers required by this rule; lower binds GLOBAL unsharded sizes per docs/expr-dsl.md, never raw local attrs.",
+      "items": {
+        "type": "string"
+      },
+      "title": "Context",
+      "type": "array"
+    },
+    "emits": {
+      "description": "Additional semantic nodes, sorted by suffix; no duplicate collective on the compute node.",
+      "items": {
+        "$ref": "#/$defs/RuleEmission"
+      },
+      "title": "Emits",
+      "type": "array"
     },
     "flops": {
       "$ref": "#/$defs/PhaseExpr",
