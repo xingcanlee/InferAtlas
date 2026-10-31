@@ -1,0 +1,4141 @@
+[
+  {
+    "env": {},
+    "expr": "0",
+    "value": 0
+  },
+  {
+    "env": {},
+    "expr": "123",
+    "value": 123
+  },
+  {
+    "env": {},
+    "expr": "0012",
+    "value": 12
+  },
+  {
+    "env": {},
+    "expr": "1.",
+    "value": 1
+  },
+  {
+    "env": {},
+    "expr": ".5",
+    "value": 0.5
+  },
+  {
+    "env": {},
+    "expr": "1e3",
+    "value": 1000
+  },
+  {
+    "env": {},
+    "expr": "2E-2",
+    "value": 0.02
+  },
+  {
+    "env": {},
+    "expr": ".5e+2",
+    "value": 50
+  },
+  {
+    "env": {},
+    "expr": "1.e2",
+    "value": 100
+  },
+  {
+    "env": {},
+    "expr": "-0",
+    "value": 0
+  },
+  {
+    "env": {},
+    "expr": "+2",
+    "value": 2
+  },
+  {
+    "env": {},
+    "expr": "--2",
+    "value": 2
+  },
+  {
+    "env": {},
+    "expr": "+-2",
+    "value": -2
+  },
+  {
+    "env": {},
+    "expr": "-+2",
+    "value": -2
+  },
+  {
+    "env": {},
+    "expr": "1+2*3",
+    "value": 7
+  },
+  {
+    "env": {},
+    "expr": "(1+2)*3",
+    "value": 9
+  },
+  {
+    "env": {},
+    "expr": "9-3-2",
+    "value": 4
+  },
+  {
+    "env": {},
+    "expr": "24/4/2",
+    "value": 3
+  },
+  {
+    "env": {},
+    "expr": "8%3*2",
+    "value": 4
+  },
+  {
+    "env": {},
+    "expr": "8/(3-1)",
+    "value": 4
+  },
+  {
+    "env": {},
+    "expr": "2**3**2",
+    "value": 512
+  },
+  {
+    "env": {},
+    "expr": "(2**3)**2",
+    "value": 64
+  },
+  {
+    "env": {},
+    "expr": "-2**2",
+    "value": -4
+  },
+  {
+    "env": {},
+    "expr": "(-2)**2",
+    "value": 4
+  },
+  {
+    "env": {},
+    "expr": "2**-2",
+    "value": 0.25
+  },
+  {
+    "env": {},
+    "expr": "-2**-2",
+    "value": -0.25
+  },
+  {
+    "env": {},
+    "expr": "2*-3**2",
+    "value": -18
+  },
+  {
+    "env": {},
+    "expr": "2**3*4",
+    "value": 32
+  },
+  {
+    "env": {},
+    "expr": "2*3**2",
+    "value": 18
+  },
+  {
+    "env": {},
+    "expr": "!2**0",
+    "value": 0
+  },
+  {
+    "env": {},
+    "expr": "2**-2**2",
+    "value": 0.0625
+  },
+  {
+    "env": {},
+    "expr": "5%2",
+    "value": 1
+  },
+  {
+    "env": {},
+    "expr": "-5%2",
+    "value": -1
+  },
+  {
+    "env": {},
+    "expr": "5%-2",
+    "value": 1
+  },
+  {
+    "env": {},
+    "expr": "-5%-2",
+    "value": -1
+  },
+  {
+    "env": {},
+    "expr": "5.5%2",
+    "value": 1.5
+  },
+  {
+    "env": {},
+    "expr": "0**0",
+    "value": 1
+  },
+  {
+    "env": {},
+    "expr": "1/4",
+    "value": 0.25
+  },
+  {
+    "env": {},
+    "expr": "9007199254740991+1",
+    "value": 9007199254740992
+  },
+  {
+    "env": {},
+    "expr": "1e-300*1e-30",
+    "value": 0
+  },
+  {
+    "env": {},
+    "expr": "true",
+    "value": 1
+  },
+  {
+    "env": {},
+    "expr": "false",
+    "value": 0
+  },
+  {
+    "env": {},
+    "expr": "!false",
+    "value": 1
+  },
+  {
+    "env": {},
+    "expr": "!!3",
+    "value": 1
+  },
+  {
+    "env": {},
+    "expr": "!0",
+    "value": 1
+  },
+  {
+    "env": {},
+    "expr": "true || false && false",
+    "value": 1
+  },
+  {
+    "env": {},
+    "expr": "(true || false) && false",
+    "value": 0
+  },
+  {
+    "env": {},
+    "expr": "1<2",
+    "value": 1
+  },
+  {
+    "env": {},
+    "expr": "2<=2",
+    "value": 1
+  },
+  {
+    "env": {},
+    "expr": "2>1",
+    "value": 1
+  },
+  {
+    "env": {},
+    "expr": "2>=2",
+    "value": 1
+  },
+  {
+    "env": {},
+    "expr": "2>2",
+    "value": 0
+  },
+  {
+    "env": {},
+    "expr": "1+2==3",
+    "value": 1
+  },
+  {
+    "env": {},
+    "expr": "1!=2",
+    "value": 1
+  },
+  {
+    "env": {},
+    "expr": "1==true",
+    "value": 0
+  },
+  {
+    "env": {},
+    "expr": "0==false",
+    "value": 0
+  },
+  {
+    "env": {},
+    "expr": "true==true",
+    "value": 1
+  },
+  {
+    "env": {},
+    "expr": "true!=1",
+    "value": 1
+  },
+  {
+    "env": {},
+    "expr": "1==1.0",
+    "value": 1
+  },
+  {
+    "env": {},
+    "expr": "1<2 == true",
+    "value": 1
+  },
+  {
+    "env": {},
+    "expr": "1==1 && 2>1",
+    "value": 1
+  },
+  {
+    "env": {},
+    "expr": "0 || 3",
+    "value": 1
+  },
+  {
+    "env": {},
+    "expr": "2 && 3",
+    "value": 1
+  },
+  {
+    "env": {},
+    "expr": "0 && missing",
+    "value": 0
+  },
+  {
+    "env": {},
+    "expr": "1 || missing",
+    "value": 1
+  },
+  {
+    "env": {},
+    "expr": "false && 1/0",
+    "value": 0
+  },
+  {
+    "env": {},
+    "expr": "true || bytes(3)",
+    "value": 1
+  },
+  {
+    "env": {},
+    "expr": "true ? 7 : missing",
+    "value": 7
+  },
+  {
+    "env": {},
+    "expr": "false ? 1/0 : 8",
+    "value": 8
+  },
+  {
+    "env": {},
+    "expr": "1 ? 2 : 3",
+    "value": 2
+  },
+  {
+    "env": {},
+    "expr": "0 ? 2 : 3",
+    "value": 3
+  },
+  {
+    "env": {},
+    "expr": "-1 ? 2 : 3",
+    "value": 2
+  },
+  {
+    "env": {},
+    "expr": "false ? 1 : true ? 2 : 3",
+    "value": 2
+  },
+  {
+    "env": {},
+    "expr": "true ? false ? 1 : 2 : 3",
+    "value": 2
+  },
+  {
+    "env": {},
+    "expr": "0 || 1 ? 4 : 5",
+    "value": 4
+  },
+  {
+    "env": {},
+    "error": "type",
+    "expr": "true ? bf16 : fp16 == fp16"
+  },
+  {
+    "env": {},
+    "expr": "max(1)",
+    "value": 1
+  },
+  {
+    "env": {},
+    "expr": "max(1,3,2,-4)",
+    "value": 3
+  },
+  {
+    "env": {},
+    "expr": "min(1)",
+    "value": 1
+  },
+  {
+    "env": {},
+    "expr": "min(1,3,2,-4)",
+    "value": -4
+  },
+  {
+    "env": {},
+    "expr": "max(min(2,3),1)",
+    "value": 2
+  },
+  {
+    "env": {},
+    "expr": "ceil(1.1)",
+    "value": 2
+  },
+  {
+    "env": {},
+    "expr": "ceil(-1.1)",
+    "value": -1
+  },
+  {
+    "env": {},
+    "expr": "floor(1.9)",
+    "value": 1
+  },
+  {
+    "env": {},
+    "expr": "floor(-1.1)",
+    "value": -2
+  },
+  {
+    "env": {},
+    "expr": "ceil(0)",
+    "value": 0
+  },
+  {
+    "env": {},
+    "expr": "floor(2)",
+    "value": 2
+  },
+  {
+    "env": {},
+    "expr": "cdiv(0,3)",
+    "value": 0
+  },
+  {
+    "env": {},
+    "expr": "cdiv(6,3)",
+    "value": 2
+  },
+  {
+    "env": {},
+    "expr": "cdiv(7,3)",
+    "value": 3
+  },
+  {
+    "env": {},
+    "expr": "cdiv(.5,.2)",
+    "value": 3
+  },
+  {
+    "env": {},
+    "expr": "round_up(0,64)",
+    "value": 0
+  },
+  {
+    "env": {},
+    "expr": "round_up(64,64)",
+    "value": 64
+  },
+  {
+    "env": {},
+    "expr": "round_up(65,64)",
+    "value": 128
+  },
+  {
+    "env": {},
+    "expr": "round_up(2.1,.5)",
+    "value": 2.5
+  },
+  {
+    "env": {},
+    "expr": "round_up(cdiv(17,2),8)",
+    "value": 16
+  },
+  {
+    "env": {},
+    "expr": "bf16==fp16",
+    "value": 0
+  },
+  {
+    "env": {},
+    "expr": "bf16!=fp32",
+    "value": 1
+  },
+  {
+    "env": {},
+    "expr": "\t1 +\r\n 2 ",
+    "value": 3
+  },
+  {
+    "env": {
+      "_x2": 4,
+      "foo": 5
+    },
+    "expr": "_x2 + foo",
+    "value": 9
+  },
+  {
+    "env": {},
+    "expr": "bytes(fp32)",
+    "value": 4
+  },
+  {
+    "env": {
+      "dtype_w": "fp32"
+    },
+    "expr": "bytes(dtype_w)",
+    "free": ["dtype_w"],
+    "value": 4
+  },
+  {
+    "env": {
+      "dtype_w": "fp32"
+    },
+    "expr": "dtype_w == fp32",
+    "value": 1
+  },
+  {
+    "env": {
+      "fp32": "fp32"
+    },
+    "error": "type",
+    "expr": "1"
+  },
+  {
+    "env": {},
+    "expr": "bytes(bf16)",
+    "value": 2
+  },
+  {
+    "env": {
+      "dtype_w": "bf16"
+    },
+    "expr": "bytes(dtype_w)",
+    "free": ["dtype_w"],
+    "value": 2
+  },
+  {
+    "env": {
+      "dtype_w": "bf16"
+    },
+    "expr": "dtype_w == bf16",
+    "value": 1
+  },
+  {
+    "env": {
+      "bf16": "bf16"
+    },
+    "error": "type",
+    "expr": "1"
+  },
+  {
+    "env": {},
+    "expr": "bytes(fp16)",
+    "value": 2
+  },
+  {
+    "env": {
+      "dtype_w": "fp16"
+    },
+    "expr": "bytes(dtype_w)",
+    "free": ["dtype_w"],
+    "value": 2
+  },
+  {
+    "env": {
+      "dtype_w": "fp16"
+    },
+    "expr": "dtype_w == fp16",
+    "value": 1
+  },
+  {
+    "env": {
+      "fp16": "fp16"
+    },
+    "error": "type",
+    "expr": "1"
+  },
+  {
+    "env": {},
+    "expr": "bytes(fp8)",
+    "value": 1
+  },
+  {
+    "env": {
+      "dtype_w": "fp8"
+    },
+    "expr": "bytes(dtype_w)",
+    "free": ["dtype_w"],
+    "value": 1
+  },
+  {
+    "env": {
+      "dtype_w": "fp8"
+    },
+    "expr": "dtype_w == fp8",
+    "value": 1
+  },
+  {
+    "env": {
+      "fp8": "fp8"
+    },
+    "error": "type",
+    "expr": "1"
+  },
+  {
+    "env": {},
+    "expr": "bytes(int8)",
+    "value": 1
+  },
+  {
+    "env": {
+      "dtype_w": "int8"
+    },
+    "expr": "bytes(dtype_w)",
+    "free": ["dtype_w"],
+    "value": 1
+  },
+  {
+    "env": {
+      "dtype_w": "int8"
+    },
+    "expr": "dtype_w == int8",
+    "value": 1
+  },
+  {
+    "env": {
+      "int8": "int8"
+    },
+    "error": "type",
+    "expr": "1"
+  },
+  {
+    "env": {},
+    "expr": "bytes(int4)",
+    "value": 0.5
+  },
+  {
+    "env": {
+      "dtype_w": "int4"
+    },
+    "expr": "bytes(dtype_w)",
+    "free": ["dtype_w"],
+    "value": 0.5
+  },
+  {
+    "env": {
+      "dtype_w": "int4"
+    },
+    "expr": "dtype_w == int4",
+    "value": 1
+  },
+  {
+    "env": {
+      "int4": "int4"
+    },
+    "error": "type",
+    "expr": "1"
+  },
+  {
+    "env": {},
+    "expr": "bytes(int32)",
+    "value": 4
+  },
+  {
+    "env": {
+      "dtype_w": "int32"
+    },
+    "expr": "bytes(dtype_w)",
+    "free": ["dtype_w"],
+    "value": 4
+  },
+  {
+    "env": {
+      "dtype_w": "int32"
+    },
+    "expr": "dtype_w == int32",
+    "value": 1
+  },
+  {
+    "env": {
+      "int32": "int32"
+    },
+    "error": "type",
+    "expr": "1"
+  },
+  {
+    "env": {},
+    "expr": "bytes(int64)",
+    "value": 8
+  },
+  {
+    "env": {
+      "dtype_w": "int64"
+    },
+    "expr": "bytes(dtype_w)",
+    "free": ["dtype_w"],
+    "value": 8
+  },
+  {
+    "env": {
+      "dtype_w": "int64"
+    },
+    "expr": "dtype_w == int64",
+    "value": 1
+  },
+  {
+    "env": {
+      "int64": "int64"
+    },
+    "error": "type",
+    "expr": "1"
+  },
+  {
+    "env": {
+      "a": 1,
+      "dtype_w": "fp16",
+      "z": 4
+    },
+    "expr": "a ? z + a : bytes(dtype_w) + z",
+    "free": ["a", "dtype_w", "z"],
+    "value": 5
+  },
+  {
+    "env": {},
+    "expr": "true ? 1 : missing",
+    "free": ["missing"],
+    "value": 1
+  },
+  {
+    "env": {
+      "false_": 3,
+      "trueish": 2
+    },
+    "expr": "trueish + false_",
+    "free": ["false_", "trueish"],
+    "value": 5
+  },
+  {
+    "env": {
+      "ceil2": 2,
+      "max_count": 1
+    },
+    "expr": "max_count + ceil2",
+    "value": 3
+  },
+  {
+    "env": {
+      "a": 2,
+      "b": 3
+    },
+    "expr": "a+b*2",
+    "symbolic": "(a + (b * 2))",
+    "value": 8
+  },
+  {
+    "env": {},
+    "expr": " 2 ** -2 ",
+    "symbolic": "(2 ** (-2))",
+    "value": 0.25
+  },
+  {
+    "env": {},
+    "expr": "true?ceil(1.1):0",
+    "symbolic": "(true ? ceil(1.1) : 0)",
+    "value": 2
+  },
+  {
+    "env": {},
+    "expr": "bytes( bf16 )",
+    "symbolic": "bytes(bf16)",
+    "value": 2
+  },
+  {
+    "env": {},
+    "expr": "1e2 + .5",
+    "symbolic": "(100 + 0.5)",
+    "value": 100.5
+  },
+  {
+    "env": {},
+    "error": "syntax",
+    "expr": ""
+  },
+  {
+    "env": {},
+    "error": "syntax",
+    "expr": " "
+  },
+  {
+    "env": {},
+    "error": "syntax",
+    "expr": "1+"
+  },
+  {
+    "env": {},
+    "error": "syntax",
+    "expr": "(1"
+  },
+  {
+    "env": {},
+    "error": "syntax",
+    "expr": "1)"
+  },
+  {
+    "env": {},
+    "error": "syntax",
+    "expr": "1 2"
+  },
+  {
+    "env": {},
+    "error": "syntax",
+    "expr": "1e"
+  },
+  {
+    "env": {},
+    "error": "syntax",
+    "expr": "1e+"
+  },
+  {
+    "env": {},
+    "error": "syntax",
+    "expr": "."
+  },
+  {
+    "env": {},
+    "error": "syntax",
+    "expr": "0x10"
+  },
+  {
+    "env": {},
+    "error": "syntax",
+    "expr": "'bf16'"
+  },
+  {
+    "env": {},
+    "error": "syntax",
+    "expr": "\"bf16\""
+  },
+  {
+    "env": {},
+    "error": "syntax",
+    "expr": "[1]"
+  },
+  {
+    "env": {},
+    "error": "syntax",
+    "expr": "{}"
+  },
+  {
+    "env": {},
+    "error": "syntax",
+    "expr": "x.y"
+  },
+  {
+    "env": {},
+    "error": "syntax",
+    "expr": "x[0]"
+  },
+  {
+    "env": {},
+    "error": "syntax",
+    "expr": "a=1"
+  },
+  {
+    "env": {},
+    "error": "syntax",
+    "expr": "2//1"
+  },
+  {
+    "env": {},
+    "error": "syntax",
+    "expr": "/*x*/1"
+  },
+  {
+    "env": {},
+    "error": "syntax",
+    "expr": "1 # hi"
+  },
+  {
+    "env": {},
+    "error": "syntax",
+    "expr": "abs(1)"
+  },
+  {
+    "env": {},
+    "error": "syntax",
+    "expr": "f(1)"
+  },
+  {
+    "env": {},
+    "error": "syntax",
+    "expr": "maxx(1)"
+  },
+  {
+    "env": {},
+    "error": "syntax",
+    "expr": "true(1)"
+  },
+  {
+    "env": {},
+    "error": "syntax",
+    "expr": "1?2"
+  },
+  {
+    "env": {},
+    "error": "syntax",
+    "expr": "1?:2"
+  },
+  {
+    "env": {},
+    "error": "syntax",
+    "expr": "1?2:"
+  },
+  {
+    "env": {},
+    "error": "syntax",
+    "expr": "1,2"
+  },
+  {
+    "env": {},
+    "error": "syntax",
+    "expr": "max(1,)"
+  },
+  {
+    "env": {},
+    "error": "syntax",
+    "expr": "max(,1)"
+  },
+  {
+    "env": {},
+    "error": "syntax",
+    "expr": "1 & 2"
+  },
+  {
+    "env": {},
+    "error": "syntax",
+    "expr": "1 | 2"
+  },
+  {
+    "env": {},
+    "error": "syntax",
+    "expr": "1 === 1"
+  },
+  {
+    "env": {},
+    "error": "syntax",
+    "expr": "NaN"
+  },
+  {
+    "env": {},
+    "error": "syntax",
+    "expr": "Infinity"
+  },
+  {
+    "env": {},
+    "error": "syntax",
+    "expr": "2***3"
+  },
+  {
+    "env": {},
+    "error": "syntax",
+    "expr": "2**"
+  },
+  {
+    "env": {},
+    "error": "syntax",
+    "expr": "é"
+  },
+  {
+    "env": {},
+    "error": "arity",
+    "expr": "max()"
+  },
+  {
+    "env": {},
+    "error": "arity",
+    "expr": "min()"
+  },
+  {
+    "env": {},
+    "error": "arity",
+    "expr": "ceil()"
+  },
+  {
+    "env": {},
+    "error": "arity",
+    "expr": "ceil(1,2)"
+  },
+  {
+    "env": {},
+    "error": "arity",
+    "expr": "floor()"
+  },
+  {
+    "env": {},
+    "error": "arity",
+    "expr": "floor(1,2)"
+  },
+  {
+    "env": {},
+    "error": "arity",
+    "expr": "cdiv(1)"
+  },
+  {
+    "env": {},
+    "error": "arity",
+    "expr": "cdiv(1,2,3)"
+  },
+  {
+    "env": {},
+    "error": "arity",
+    "expr": "round_up()"
+  },
+  {
+    "env": {},
+    "error": "arity",
+    "expr": "round_up(1,2,3)"
+  },
+  {
+    "env": {},
+    "error": "arity",
+    "expr": "bytes()"
+  },
+  {
+    "env": {},
+    "error": "arity",
+    "expr": "bytes(bf16,fp16)"
+  },
+  {
+    "env": {},
+    "error": "arity",
+    "expr": "true ? 1 : max()"
+  },
+  {
+    "env": {},
+    "error": "arity",
+    "expr": "false && ceil()"
+  },
+  {
+    "env": {},
+    "error": "domain",
+    "expr": "1/0"
+  },
+  {
+    "env": {},
+    "error": "domain",
+    "expr": "1/-0"
+  },
+  {
+    "env": {},
+    "error": "domain",
+    "expr": "1%0"
+  },
+  {
+    "env": {},
+    "error": "domain",
+    "expr": "cdiv(-1,2)"
+  },
+  {
+    "env": {},
+    "error": "domain",
+    "expr": "cdiv(1,0)"
+  },
+  {
+    "env": {},
+    "error": "domain",
+    "expr": "cdiv(1,-1)"
+  },
+  {
+    "env": {},
+    "error": "domain",
+    "expr": "round_up(-1,2)"
+  },
+  {
+    "env": {},
+    "error": "domain",
+    "expr": "round_up(1,0)"
+  },
+  {
+    "env": {},
+    "error": "domain",
+    "expr": "round_up(1,-1)"
+  },
+  {
+    "env": {},
+    "error": "type",
+    "expr": "true+1"
+  },
+  {
+    "env": {},
+    "error": "type",
+    "expr": "false*2"
+  },
+  {
+    "env": {},
+    "error": "type",
+    "expr": "-true"
+  },
+  {
+    "env": {},
+    "error": "type",
+    "expr": "true<2"
+  },
+  {
+    "env": {},
+    "error": "type",
+    "expr": "1<2<3"
+  },
+  {
+    "env": {},
+    "error": "type",
+    "expr": "bf16>fp16"
+  },
+  {
+    "env": {},
+    "error": "type",
+    "expr": "bf16 ? 1 : 0"
+  },
+  {
+    "env": {},
+    "error": "type",
+    "expr": "bf16 && true"
+  },
+  {
+    "env": {},
+    "error": "type",
+    "expr": "false || bf16"
+  },
+  {
+    "env": {},
+    "error": "type",
+    "expr": "!bf16"
+  },
+  {
+    "env": {},
+    "error": "type",
+    "expr": "bytes(2)"
+  },
+  {
+    "env": {},
+    "error": "type",
+    "expr": "bytes(true)"
+  },
+  {
+    "env": {},
+    "error": "type",
+    "expr": "max(1,true)"
+  },
+  {
+    "env": {},
+    "error": "type",
+    "expr": "min(bf16)"
+  },
+  {
+    "env": {},
+    "error": "type",
+    "expr": "ceil(false)"
+  },
+  {
+    "env": {},
+    "error": "type",
+    "expr": "floor(fp16)"
+  },
+  {
+    "env": {},
+    "error": "type",
+    "expr": "cdiv(true,2)"
+  },
+  {
+    "env": {},
+    "error": "type",
+    "expr": "round_up(1,false)"
+  },
+  {
+    "env": {},
+    "error": "type",
+    "expr": "bf16"
+  },
+  {
+    "env": {},
+    "error": "non_finite",
+    "expr": "1e309"
+  },
+  {
+    "env": {},
+    "error": "non_finite",
+    "expr": "1e308*2"
+  },
+  {
+    "env": {},
+    "error": "non_finite",
+    "expr": "0**-1"
+  },
+  {
+    "env": {},
+    "error": "non_finite",
+    "expr": "(-1)**.5"
+  },
+  {
+    "env": {},
+    "error": "non_finite",
+    "expr": "1e308**2"
+  },
+  {
+    "env": {},
+    "error": "non_finite",
+    "expr": "cdiv(1e308,1e-308)"
+  },
+  {
+    "env": {},
+    "error": "non_finite",
+    "expr": "round_up(1e308,1e-308)"
+  },
+  {
+    "env": {},
+    "error": "non_finite",
+    "expr": "false ? 1e309 : 0"
+  },
+  {
+    "env": {},
+    "error": "unknown_symbol",
+    "expr": "missing"
+  },
+  {
+    "env": {},
+    "error": "unknown_symbol",
+    "expr": "toString"
+  },
+  {
+    "env": {},
+    "error": "unknown_symbol",
+    "expr": "constructor"
+  },
+  {
+    "env": {},
+    "error": "unknown_symbol",
+    "expr": "__proto__"
+  },
+  {
+    "env": {},
+    "error": "unknown_symbol",
+    "expr": "true && unknown"
+  },
+  {
+    "env": {
+      "dtype_w": "bfloat16"
+    },
+    "error": "domain",
+    "expr": "bytes(dtype_w)"
+  },
+  {
+    "env": {
+      "x": "2"
+    },
+    "error": "type",
+    "expr": "x+1"
+  },
+  {
+    "env": {
+      "max": 1
+    },
+    "error": "type",
+    "expr": "1"
+  },
+  {
+    "env": {
+      "min": 1
+    },
+    "error": "type",
+    "expr": "1"
+  },
+  {
+    "env": {
+      "ceil": 1
+    },
+    "error": "type",
+    "expr": "1"
+  },
+  {
+    "env": {
+      "floor": 1
+    },
+    "error": "type",
+    "expr": "1"
+  },
+  {
+    "env": {
+      "cdiv": 1
+    },
+    "error": "type",
+    "expr": "1"
+  },
+  {
+    "env": {
+      "round_up": 1
+    },
+    "error": "type",
+    "expr": "1"
+  },
+  {
+    "env": {
+      "bytes": 1
+    },
+    "error": "type",
+    "expr": "1"
+  },
+  {
+    "env": {
+      "true": 1
+    },
+    "error": "type",
+    "expr": "1"
+  },
+  {
+    "env": {
+      "false": 1
+    },
+    "error": "type",
+    "expr": "1"
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 1,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 1,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 1
+    },
+    "expr": "2*(L/pp)*max(1,Hkv/tp)*D*bytes(dtype_kv)",
+    "fixture": {
+      "case": "tp1-bf16-T4096",
+      "pointer": "/memory/kv_per_token"
+    },
+    "value": 98304
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 1,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 1,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 1
+    },
+    "expr": "(((H*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_w))+(H*Hq*D/tp*bytes(dtype_w))+2*D*bytes(dtype_w))+(H*E*bytes(dtype_w)+(3*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w)))+2*H*bytes(dtype_w))*(L/pp)+(pp==1 ? 2*(round_up(V,64)/tp*H*bytes(dtype_w))+H*bytes(dtype_w) : (round_up(V,64)/tp*H*bytes(dtype_w))+H*bytes(dtype_w))",
+    "fixture": {
+      "case": "tp1-bf16-T4096",
+      "pointer": "/memory/weights"
+    },
+    "value": 61064245248
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 1,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 1,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 1
+    },
+    "expr": "tp>1 ? 2*(tp-1)/tp*T*H*bytes(dtype_a) : 0",
+    "fixture": {
+      "case": "tp1-bf16-T4096",
+      "pointer": "/nodes/attn.o.reduce/comm/bus_bytes/prefill"
+    },
+    "value": 0
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 1,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 1,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 1
+    },
+    "expr": "2*T*H*(Hq/tp+2*max(1,Hkv/tp))*D",
+    "fixture": {
+      "case": "tp1-bf16-T4096",
+      "pointer": "/nodes/attn.qkv/flops/prefill"
+    },
+    "value": 85899345920
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 1,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 1,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 1
+    },
+    "expr": "T",
+    "fixture": {
+      "case": "tp1-bf16-T4096",
+      "pointer": "/nodes/attn.qkv/out/0/shape/0"
+    },
+    "value": 4096
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 1,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 1,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 1
+    },
+    "expr": "Hq/tp",
+    "fixture": {
+      "case": "tp1-bf16-T4096",
+      "pointer": "/nodes/attn.qkv/out/0/shape/1"
+    },
+    "value": 32
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 1,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 1,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 1
+    },
+    "expr": "D",
+    "fixture": {
+      "case": "tp1-bf16-T4096",
+      "pointer": "/nodes/attn.qkv/out/0/shape/2"
+    },
+    "value": 128
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 1,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 1,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 1
+    },
+    "expr": "H*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_w)",
+    "fixture": {
+      "case": "tp1-bf16-T4096",
+      "pointer": "/nodes/attn.qkv/weight_bytes"
+    },
+    "value": 20971520
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 1,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 1,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 1
+    },
+    "expr": "S*H*bytes(dtype_a)",
+    "fixture": {
+      "case": "tp1-bf16-T4096",
+      "pointer": "/nodes/embed.reduce/comm/logical_bytes/decode"
+    },
+    "value": 12288
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 1,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 1,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 1
+    },
+    "expr": "T*H*bytes(dtype_a)",
+    "fixture": {
+      "case": "tp1-bf16-T4096",
+      "pointer": "/nodes/embed.reduce/comm/logical_bytes/prefill"
+    },
+    "value": 16777216
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 1,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 1,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 1
+    },
+    "expr": "2*S*H*round_up(V,64)/tp",
+    "fixture": {
+      "case": "tp1-bf16-T4096",
+      "pointer": "/nodes/lm_head/flops/decode"
+    },
+    "value": 1866989568.0
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 1,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 1,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 1
+    },
+    "expr": "2*batch*H*round_up(V,64)/tp",
+    "fixture": {
+      "case": "tp1-bf16-T4096",
+      "pointer": "/nodes/lm_head/flops/prefill"
+    },
+    "value": 1244659712.0
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 1,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 1,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 1
+    },
+    "expr": "S*round_up(V,64)/tp*bytes(dtype_a)",
+    "fixture": {
+      "case": "tp1-bf16-T4096",
+      "pointer": "/nodes/logits.gather/comm/logical_bytes/decode"
+    },
+    "value": 911616.0
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 1,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 1,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 1
+    },
+    "expr": "batch*round_up(V,64)/tp*bytes(dtype_a)",
+    "fixture": {
+      "case": "tp1-bf16-T4096",
+      "pointer": "/nodes/logits.gather/comm/logical_bytes/prefill"
+    },
+    "value": 607744.0
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 1,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 1,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 1
+    },
+    "expr": "H*E*bytes(dtype_w)",
+    "fixture": {
+      "case": "tp1-bf16-T4096",
+      "pointer": "/nodes/moe.gate/weight_bytes"
+    },
+    "value": 524288
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 1,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 1,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 1
+    },
+    "expr": "2*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w)",
+    "fixture": {
+      "case": "tp1-bf16-T4096",
+      "pointer": "/nodes/moe.w13/weight_bytes"
+    },
+    "value": 805306368
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 1,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 1,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 1
+    },
+    "expr": "1*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w)",
+    "fixture": {
+      "case": "tp1-bf16-T4096",
+      "pointer": "/nodes/moe.w2/weight_bytes"
+    },
+    "value": 402653184
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 4,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 1,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 1
+    },
+    "expr": "ep>1 && dp>1 ? (ep-1)/ep*(S*topk*H*bytes(dtype_a)) : 0",
+    "fixture": {
+      "case": "tp1-dp4-ep1-comm-estimate",
+      "pointer": "/nodes/moe.experts.combine/comm/bus_bytes/decode"
+    },
+    "value": 0
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 4,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 1,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 1
+    },
+    "expr": "ep>1 && dp>1 ? (ep-1)/ep*(T*topk*H*bytes(dtype_a)) : 0",
+    "fixture": {
+      "case": "tp1-dp4-ep1-comm-estimate",
+      "pointer": "/nodes/moe.experts.combine/comm/bus_bytes/prefill"
+    },
+    "value": 0
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 4,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 1,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 1
+    },
+    "expr": "ep>1 && dp>1 ? (ep-1)/ep*(S*topk*H*bytes(dtype_a)) : 0",
+    "fixture": {
+      "case": "tp1-dp4-ep1-comm-estimate",
+      "pointer": "/nodes/moe.experts.dispatch/comm/bus_bytes/decode"
+    },
+    "value": 0
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 4,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 1,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 1
+    },
+    "expr": "ep>1 && dp>1 ? (ep-1)/ep*(T*topk*H*bytes(dtype_a)) : 0",
+    "fixture": {
+      "case": "tp1-dp4-ep1-comm-estimate",
+      "pointer": "/nodes/moe.experts.dispatch/comm/bus_bytes/prefill"
+    },
+    "value": 0
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 4,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 1,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 1
+    },
+    "expr": "ep>1 && dp>1",
+    "fixture": {
+      "case": "tp1-dp4-ep1-comm-estimate",
+      "pointer": "/nodes/moe.experts.dispatch/comm/when"
+    },
+    "value": 0
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 4,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 1,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 1
+    },
+    "expr": "tp>1 || ep>1 ? 2*(tp-1)/tp*S*H*bytes(dtype_a) : 0",
+    "fixture": {
+      "case": "tp1-dp4-ep1-comm-estimate",
+      "pointer": "/nodes/moe.experts.reduce/comm/bus_bytes/decode"
+    },
+    "value": 0
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 4,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 1,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 1
+    },
+    "expr": "tp>1 || ep>1 ? 2*(tp-1)/tp*T*H*bytes(dtype_a) : 0",
+    "fixture": {
+      "case": "tp1-dp4-ep1-comm-estimate",
+      "pointer": "/nodes/moe.experts.reduce/comm/bus_bytes/prefill"
+    },
+    "value": 0
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 4,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 1,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 1
+    },
+    "expr": "S*H*bytes(dtype_a)",
+    "fixture": {
+      "case": "tp1-dp4-ep1-comm-estimate",
+      "pointer": "/nodes/moe.experts.reduce/comm/logical_bytes/decode"
+    },
+    "value": 12288
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 4,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 1,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 1
+    },
+    "expr": "T*H*bytes(dtype_a)",
+    "fixture": {
+      "case": "tp1-dp4-ep1-comm-estimate",
+      "pointer": "/nodes/moe.experts.reduce/comm/logical_bytes/prefill"
+    },
+    "value": 16777216
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 4,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 1,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 1
+    },
+    "expr": "tp>1 || ep>1",
+    "fixture": {
+      "case": "tp1-dp4-ep1-comm-estimate",
+      "pointer": "/nodes/moe.experts.reduce/comm/when"
+    },
+    "value": 0
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 4,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 4,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 1
+    },
+    "expr": "ep>1 && dp>1 ? (ep-1)/ep*(S*topk*H*bytes(dtype_a)) : 0",
+    "fixture": {
+      "case": "tp1-dp4-ep4-comm-estimate",
+      "pointer": "/nodes/moe.experts.combine/comm/bus_bytes/decode"
+    },
+    "value": 73728.0
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 4,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 4,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 1
+    },
+    "expr": "ep>1 && dp>1 ? (ep-1)/ep*(T*topk*H*bytes(dtype_a)) : 0",
+    "fixture": {
+      "case": "tp1-dp4-ep4-comm-estimate",
+      "pointer": "/nodes/moe.experts.combine/comm/bus_bytes/prefill"
+    },
+    "value": 100663296.0
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 4,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 4,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 1
+    },
+    "expr": "ep>1 && dp>1 ? (ep-1)/ep*(S*topk*H*bytes(dtype_a)) : 0",
+    "fixture": {
+      "case": "tp1-dp4-ep4-comm-estimate",
+      "pointer": "/nodes/moe.experts.dispatch/comm/bus_bytes/decode"
+    },
+    "value": 73728.0
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 4,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 4,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 1
+    },
+    "expr": "ep>1 && dp>1 ? (ep-1)/ep*(T*topk*H*bytes(dtype_a)) : 0",
+    "fixture": {
+      "case": "tp1-dp4-ep4-comm-estimate",
+      "pointer": "/nodes/moe.experts.dispatch/comm/bus_bytes/prefill"
+    },
+    "value": 100663296.0
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 4,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 4,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 1
+    },
+    "expr": "ep>1 && dp>1",
+    "fixture": {
+      "case": "tp1-dp4-ep4-comm-estimate",
+      "pointer": "/nodes/moe.experts.dispatch/comm/when"
+    },
+    "value": 1
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 4,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 4,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 1
+    },
+    "expr": "tp>1 || ep>1 ? 2*(tp-1)/tp*S*H*bytes(dtype_a) : 0",
+    "fixture": {
+      "case": "tp1-dp4-ep4-comm-estimate",
+      "pointer": "/nodes/moe.experts.reduce/comm/bus_bytes/decode"
+    },
+    "value": 0.0
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 4,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 4,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 1
+    },
+    "expr": "tp>1 || ep>1 ? 2*(tp-1)/tp*T*H*bytes(dtype_a) : 0",
+    "fixture": {
+      "case": "tp1-dp4-ep4-comm-estimate",
+      "pointer": "/nodes/moe.experts.reduce/comm/bus_bytes/prefill"
+    },
+    "value": 0.0
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 4,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 4,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 1
+    },
+    "expr": "S*H*bytes(dtype_a)",
+    "fixture": {
+      "case": "tp1-dp4-ep4-comm-estimate",
+      "pointer": "/nodes/moe.experts.reduce/comm/logical_bytes/decode"
+    },
+    "value": 12288
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 4,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 4,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 1
+    },
+    "expr": "T*H*bytes(dtype_a)",
+    "fixture": {
+      "case": "tp1-dp4-ep4-comm-estimate",
+      "pointer": "/nodes/moe.experts.reduce/comm/logical_bytes/prefill"
+    },
+    "value": 16777216
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 4,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 4,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 1
+    },
+    "expr": "tp>1 || ep>1",
+    "fixture": {
+      "case": "tp1-dp4-ep4-comm-estimate",
+      "pointer": "/nodes/moe.experts.reduce/comm/when"
+    },
+    "value": 1
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 2,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 4,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 2
+    },
+    "expr": "ep>1 && dp>1 ? (ep-1)/ep*(S*topk*H*bytes(dtype_a)) : 0",
+    "fixture": {
+      "case": "tp2-dp2-ep4-comm-estimate",
+      "pointer": "/nodes/moe.experts.combine/comm/bus_bytes/decode"
+    },
+    "value": 73728.0
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 2,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 4,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 2
+    },
+    "expr": "ep>1 && dp>1 ? (ep-1)/ep*(T*topk*H*bytes(dtype_a)) : 0",
+    "fixture": {
+      "case": "tp2-dp2-ep4-comm-estimate",
+      "pointer": "/nodes/moe.experts.combine/comm/bus_bytes/prefill"
+    },
+    "value": 100663296.0
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 2,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 4,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 2
+    },
+    "expr": "ep>1 && dp>1 ? (ep-1)/ep*(S*topk*H*bytes(dtype_a)) : 0",
+    "fixture": {
+      "case": "tp2-dp2-ep4-comm-estimate",
+      "pointer": "/nodes/moe.experts.dispatch/comm/bus_bytes/decode"
+    },
+    "value": 73728.0
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 2,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 4,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 2
+    },
+    "expr": "ep>1 && dp>1 ? (ep-1)/ep*(T*topk*H*bytes(dtype_a)) : 0",
+    "fixture": {
+      "case": "tp2-dp2-ep4-comm-estimate",
+      "pointer": "/nodes/moe.experts.dispatch/comm/bus_bytes/prefill"
+    },
+    "value": 100663296.0
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 2,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 4,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 2
+    },
+    "expr": "ep>1 && dp>1",
+    "fixture": {
+      "case": "tp2-dp2-ep4-comm-estimate",
+      "pointer": "/nodes/moe.experts.dispatch/comm/when"
+    },
+    "value": 1
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 2,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 4,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 2
+    },
+    "expr": "tp>1 || ep>1 ? 2*(tp-1)/tp*S*H*bytes(dtype_a) : 0",
+    "fixture": {
+      "case": "tp2-dp2-ep4-comm-estimate",
+      "pointer": "/nodes/moe.experts.reduce/comm/bus_bytes/decode"
+    },
+    "value": 12288.0
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 2,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 4,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 2
+    },
+    "expr": "tp>1 || ep>1 ? 2*(tp-1)/tp*T*H*bytes(dtype_a) : 0",
+    "fixture": {
+      "case": "tp2-dp2-ep4-comm-estimate",
+      "pointer": "/nodes/moe.experts.reduce/comm/bus_bytes/prefill"
+    },
+    "value": 16777216.0
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 2,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 4,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 2
+    },
+    "expr": "S*H*bytes(dtype_a)",
+    "fixture": {
+      "case": "tp2-dp2-ep4-comm-estimate",
+      "pointer": "/nodes/moe.experts.reduce/comm/logical_bytes/decode"
+    },
+    "value": 12288
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 2,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 4,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 2
+    },
+    "expr": "T*H*bytes(dtype_a)",
+    "fixture": {
+      "case": "tp2-dp2-ep4-comm-estimate",
+      "pointer": "/nodes/moe.experts.reduce/comm/logical_bytes/prefill"
+    },
+    "value": 16777216
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 2,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 4,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 2
+    },
+    "expr": "tp>1 || ep>1",
+    "fixture": {
+      "case": "tp2-dp2-ep4-comm-estimate",
+      "pointer": "/nodes/moe.experts.reduce/comm/when"
+    },
+    "value": 1
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 1,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 1,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 4
+    },
+    "expr": "2*(L/pp)*max(1,Hkv/tp)*D*bytes(dtype_kv)",
+    "fixture": {
+      "case": "tp4-bf16-T4096",
+      "pointer": "/memory/kv_per_token"
+    },
+    "value": 24576
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 1,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 1,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 4
+    },
+    "expr": "(((H*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_w))+(H*Hq*D/tp*bytes(dtype_w))+2*D*bytes(dtype_w))+(H*E*bytes(dtype_w)+(3*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w)))+2*H*bytes(dtype_w))*(L/pp)+(pp==1 ? 2*(round_up(V,64)/tp*H*bytes(dtype_w))+H*bytes(dtype_w) : (round_up(V,64)/tp*H*bytes(dtype_w))+H*bytes(dtype_w))",
+    "fixture": {
+      "case": "tp4-bf16-T4096",
+      "pointer": "/memory/weights"
+    },
+    "value": 15285252096
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 1,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 1,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 4
+    },
+    "expr": "tp>1 ? 2*(tp-1)/tp*T*H*bytes(dtype_a) : 0",
+    "fixture": {
+      "case": "tp4-bf16-T4096",
+      "pointer": "/nodes/attn.o.reduce/comm/bus_bytes/prefill"
+    },
+    "value": 25165824.0
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 1,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 1,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 4
+    },
+    "expr": "2*T*H*(Hq/tp+2*max(1,Hkv/tp))*D",
+    "fixture": {
+      "case": "tp4-bf16-T4096",
+      "pointer": "/nodes/attn.qkv/flops/prefill"
+    },
+    "value": 21474836480
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 1,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 1,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 4
+    },
+    "expr": "T",
+    "fixture": {
+      "case": "tp4-bf16-T4096",
+      "pointer": "/nodes/attn.qkv/out/0/shape/0"
+    },
+    "value": 4096
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 1,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 1,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 4
+    },
+    "expr": "Hq/tp",
+    "fixture": {
+      "case": "tp4-bf16-T4096",
+      "pointer": "/nodes/attn.qkv/out/0/shape/1"
+    },
+    "value": 8
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 1,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 1,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 4
+    },
+    "expr": "D",
+    "fixture": {
+      "case": "tp4-bf16-T4096",
+      "pointer": "/nodes/attn.qkv/out/0/shape/2"
+    },
+    "value": 128
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 1,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 1,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 4
+    },
+    "expr": "H*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_w)",
+    "fixture": {
+      "case": "tp4-bf16-T4096",
+      "pointer": "/nodes/attn.qkv/weight_bytes"
+    },
+    "value": 5242880
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 1,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 1,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 4
+    },
+    "expr": "S*H*bytes(dtype_a)",
+    "fixture": {
+      "case": "tp4-bf16-T4096",
+      "pointer": "/nodes/embed.reduce/comm/logical_bytes/decode"
+    },
+    "value": 12288
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 1,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 1,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 4
+    },
+    "expr": "T*H*bytes(dtype_a)",
+    "fixture": {
+      "case": "tp4-bf16-T4096",
+      "pointer": "/nodes/embed.reduce/comm/logical_bytes/prefill"
+    },
+    "value": 16777216
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 1,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 1,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 4
+    },
+    "expr": "2*S*H*round_up(V,64)/tp",
+    "fixture": {
+      "case": "tp4-bf16-T4096",
+      "pointer": "/nodes/lm_head/flops/decode"
+    },
+    "value": 466747392.0
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 1,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 1,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 4
+    },
+    "expr": "2*batch*H*round_up(V,64)/tp",
+    "fixture": {
+      "case": "tp4-bf16-T4096",
+      "pointer": "/nodes/lm_head/flops/prefill"
+    },
+    "value": 311164928.0
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 1,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 1,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 4
+    },
+    "expr": "S*round_up(V,64)/tp*bytes(dtype_a)",
+    "fixture": {
+      "case": "tp4-bf16-T4096",
+      "pointer": "/nodes/logits.gather/comm/logical_bytes/decode"
+    },
+    "value": 227904.0
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 1,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 1,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 4
+    },
+    "expr": "batch*round_up(V,64)/tp*bytes(dtype_a)",
+    "fixture": {
+      "case": "tp4-bf16-T4096",
+      "pointer": "/nodes/logits.gather/comm/logical_bytes/prefill"
+    },
+    "value": 151936.0
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 1,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 1,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 4
+    },
+    "expr": "H*E*bytes(dtype_w)",
+    "fixture": {
+      "case": "tp4-bf16-T4096",
+      "pointer": "/nodes/moe.gate/weight_bytes"
+    },
+    "value": 524288
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 1,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 1,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 4
+    },
+    "expr": "2*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w)",
+    "fixture": {
+      "case": "tp4-bf16-T4096",
+      "pointer": "/nodes/moe.w13/weight_bytes"
+    },
+    "value": 201326592
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 1,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 1,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 4
+    },
+    "expr": "1*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w)",
+    "fixture": {
+      "case": "tp4-bf16-T4096",
+      "pointer": "/nodes/moe.w2/weight_bytes"
+    },
+    "value": 100663296
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 1,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 4,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 4
+    },
+    "expr": "ep>1 && dp>1 ? (ep-1)/ep*(S*topk*H*bytes(dtype_a)) : 0",
+    "fixture": {
+      "case": "tp4-dp1-ep4-comm-estimate",
+      "pointer": "/nodes/moe.experts.combine/comm/bus_bytes/decode"
+    },
+    "value": 0
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 1,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 4,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 4
+    },
+    "expr": "ep>1 && dp>1 ? (ep-1)/ep*(T*topk*H*bytes(dtype_a)) : 0",
+    "fixture": {
+      "case": "tp4-dp1-ep4-comm-estimate",
+      "pointer": "/nodes/moe.experts.combine/comm/bus_bytes/prefill"
+    },
+    "value": 0
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 1,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 4,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 4
+    },
+    "expr": "ep>1 && dp>1 ? (ep-1)/ep*(S*topk*H*bytes(dtype_a)) : 0",
+    "fixture": {
+      "case": "tp4-dp1-ep4-comm-estimate",
+      "pointer": "/nodes/moe.experts.dispatch/comm/bus_bytes/decode"
+    },
+    "value": 0
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 1,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 4,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 4
+    },
+    "expr": "ep>1 && dp>1 ? (ep-1)/ep*(T*topk*H*bytes(dtype_a)) : 0",
+    "fixture": {
+      "case": "tp4-dp1-ep4-comm-estimate",
+      "pointer": "/nodes/moe.experts.dispatch/comm/bus_bytes/prefill"
+    },
+    "value": 0
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 1,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 4,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 4
+    },
+    "expr": "ep>1 && dp>1",
+    "fixture": {
+      "case": "tp4-dp1-ep4-comm-estimate",
+      "pointer": "/nodes/moe.experts.dispatch/comm/when"
+    },
+    "value": 0
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 1,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 4,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 4
+    },
+    "expr": "tp>1 || ep>1 ? 2*(tp-1)/tp*S*H*bytes(dtype_a) : 0",
+    "fixture": {
+      "case": "tp4-dp1-ep4-comm-estimate",
+      "pointer": "/nodes/moe.experts.reduce/comm/bus_bytes/decode"
+    },
+    "value": 18432.0
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 1,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 4,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 4
+    },
+    "expr": "tp>1 || ep>1 ? 2*(tp-1)/tp*T*H*bytes(dtype_a) : 0",
+    "fixture": {
+      "case": "tp4-dp1-ep4-comm-estimate",
+      "pointer": "/nodes/moe.experts.reduce/comm/bus_bytes/prefill"
+    },
+    "value": 25165824.0
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 1,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 4,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 4
+    },
+    "expr": "S*H*bytes(dtype_a)",
+    "fixture": {
+      "case": "tp4-dp1-ep4-comm-estimate",
+      "pointer": "/nodes/moe.experts.reduce/comm/logical_bytes/decode"
+    },
+    "value": 12288
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 1,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 4,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 4
+    },
+    "expr": "T*H*bytes(dtype_a)",
+    "fixture": {
+      "case": "tp4-dp1-ep4-comm-estimate",
+      "pointer": "/nodes/moe.experts.reduce/comm/logical_bytes/prefill"
+    },
+    "value": 16777216
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 3,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 1,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 4,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 4
+    },
+    "expr": "tp>1 || ep>1",
+    "fixture": {
+      "case": "tp4-dp1-ep4-comm-estimate",
+      "pointer": "/nodes/moe.experts.reduce/comm/when"
+    },
+    "value": 1
+  }
+]

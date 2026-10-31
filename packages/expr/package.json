@@ -3,11 +3,22 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "test": "tsc -p tsconfig.json"
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
   },
-  "dependencies": {
-    "@inferatlas/contracts": "workspace:*"
+  "scripts": {
+    "generate": "node scripts/generate.mjs",
+    "build": "pnpm generate && tsc -p tsconfig.json",
+    "test": "pnpm --filter @inferatlas/contracts build && pnpm build && vitest run",
+    "benchmark": "pnpm build && node scripts/benchmark.mjs"
+  },
+  "devDependencies": {
+    "@inferatlas/contracts": "workspace:*",
+    "peggy": "5.0.6",
+    "vitest": "3.2.4"
   }
 }

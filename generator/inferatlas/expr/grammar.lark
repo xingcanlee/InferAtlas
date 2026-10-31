@@ -1,0 +1,36 @@
+?start: conditional
+?conditional: logical_or "?" conditional ":" conditional -> conditional
+            | logical_or
+?logical_or: logical_or OR logical_and -> binary
+           | logical_and
+?logical_and: logical_and AND equality -> binary
+            | equality
+?equality: equality EQ comparison -> binary
+         | comparison
+?comparison: comparison CMP sum -> binary
+           | sum
+?sum: sum ADD product -> binary
+    | product
+?product: product MUL unary -> binary
+        | unary
+?unary: UNARY unary -> unary
+      | power
+?power: primary "**" unary -> power
+      | primary
+?primary: NUMBER -> number
+        | BOOL -> boolean
+        | NAME "(" [arguments] ")" -> call
+        | NAME -> identifier
+        | "(" conditional ")"
+arguments: conditional ("," conditional)*
+OR: "||"
+AND: "&&"
+EQ: "==" | "!="
+CMP: "<=" | ">=" | "<" | ">"
+ADD: "+" | "-"
+MUL: /\*(?!\*)/ | "/" | "%"
+UNARY: "+" | "-" | "!"
+BOOL.2: /(?:true|false)(?![a-zA-Z0-9_])/
+NAME: /[a-zA-Z_][a-zA-Z0-9_]*/
+NUMBER: /(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?/
+%ignore /[ \t\r\n]+/

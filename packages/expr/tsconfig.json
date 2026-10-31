@@ -1,7 +1,10 @@
 {
   "extends": "../contracts/tsconfig.base.json",
   "compilerOptions": {
-    "noEmit": true
+    "outDir": "dist",
+    "rootDir": "src",
+    "allowJs": true,
+    "checkJs": false
   },
-  "files": ["../contracts/src/expr.ts"]
+  "include": ["src/**/*"]
 }
