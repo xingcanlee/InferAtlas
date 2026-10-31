@@ -1,0 +1,44 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches-ignore: [state]
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      UV_INDEX_URL: https://pypi.org/simple/
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: actionlint@1.7.12,shellcheck
+      - name: Workflow validation
+        run: |
+          actionlint -config-file .github/actions/actionlint.yaml .github/workflows/*.yml
+          uv run --project generator ruff check --config generator/pyproject.toml .github/actions
+          uv run --project generator ruff format --check --config generator/pyproject.toml .github/actions
+          uv run --project generator pytest .github/actions/tests
+          node --test .github/actions/tests/*.test.cjs
+      - name: Lint
+        run: just --set UV_INDEX_URL https://pypi.org/simple/ lint
+      - name: Python tests (CPU extraction runs in build.yml)
+        run: uv run --project generator pytest -c generator/pyproject.toml -m 'not extract'
+      - name: Node tests
+        run: pnpm -r test
+      - name: Schema regeneration drift
+        run: |
+          just --set UV_INDEX_URL https://pypi.org/simple/ schemas
+          git diff --exit-code
+          test -z "$(git ls-files --others --exclude-standard schemas packages/contracts)"
+      - name: Golden check
+        run: uv run --project generator inferatlas golden check

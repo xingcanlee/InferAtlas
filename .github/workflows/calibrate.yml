@@ -1,0 +1,88 @@
+name: Calibrate Ascend A2
+on:
+  workflow_dispatch:
+    inputs:
+      model:
+        description: Catalog HF id (must match the locally provisioned weights)
+        default: Qwen/Qwen3-30B-A3B
+        required: true
+        type: string
+      model_path:
+        description: Absolute directory of weights already installed on the runner
+        required: true
+        type: string
+      tp:
+        description: Tensor parallel size
+        default: '8'
+        type: choice
+        options: ['1', '2', '4', '8']
+permissions:
+  contents: read
+concurrency:
+  group: inferatlas-ascend-a2
+  cancel-in-progress: false
+jobs:
+  calibrate:
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: [self-hosted, linux, ascend-a2]
+    environment: calibration
+    timeout-minutes: 30
+    env:
+      HF_HUB_OFFLINE: '1'
+      TRANSFORMERS_OFFLINE: '1'
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Run the provisioned NPU runtime and collect startup evidence
+        env:
+          MODEL_ID: ${{ inputs.model }}
+          MODEL_PATH: ${{ inputs.model_path }}
+          TP_SIZE: ${{ inputs.tp }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${MODEL_PATH:0:1}" = /
+          test -d "$MODEL_PATH"
+          mkdir -p calibration
+          vllm --version > calibration/runtime.txt
+          npu-smi info > calibration/device.txt
+          timeout --signal=TERM --kill-after=30s 1200s \
+            vllm serve "$MODEL_PATH" --served-model-name "$MODEL_ID" \
+              --tensor-parallel-size "$TP_SIZE" --host 127.0.0.1 --port 18080 \
+              --max-model-len 4096 --max-num-batched-tokens 4096 \
+              --max-num-seqs 32 --gpu-memory-utilization 0.9 \
+              > calibration/startup.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true; wait "$server_pid" 2>/dev/null || true' EXIT
+          python3 - <<'PY'
+          import json
+          import os
+          import time
+          import urllib.error
+          import urllib.request
+          from pathlib import Path
+
+          Path('calibration/request.json').write_text(json.dumps({
+              'device': 'A2', 'model': os.environ['MODEL_ID'], 'tp': int(os.environ['TP_SIZE']),
+              'gpu_memory_utilization': 0.9, 'max_model_len': 4096,
+              'max_num_batched_tokens': 4096, 'max_num_seqs': 32,
+          }, sort_keys=True, indent=2) + '\n')
+          for _ in range(240):
+              try:
+                  with urllib.request.urlopen('http://127.0.0.1:18080/health', timeout=2) as response:
+                      if response.status == 200:
+                          break
+              except (urllib.error.URLError, TimeoutError):
+                  time.sleep(3)
+          else:
+              raise SystemExit('NPU server did not become healthy; inspect startup.log')
+          PY
+      - name: Upload calibration logs (including failed starts)
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: calibration-a2-${{ github.run_id }}
+          path: calibration/
+          if-no-files-found: error
+          retention-days: 90

@@ -1,0 +1,42 @@
+name: Nightly main compatibility
+on:
+  schedule:
+    - cron: '43 2 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  resolve:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      vllm: ${{ steps.pins.outputs.vllm }}
+      ascend: ${{ steps.pins.outputs.ascend }}
+    steps:
+      - uses: actions/github-script@v8
+        id: pins
+        with:
+          script: |
+            for (const [name, repo] of [['vllm', 'vllm'], ['ascend', 'vllm-ascend']]) {
+              const { data } = await github.rest.repos.getCommit({
+                owner: 'vllm-project', repo, ref: 'main'
+              });
+              if (!/^[0-9a-f]{40}$/.test(data.sha)) throw new Error('Invalid upstream SHA');
+              core.setOutput(name, data.sha);
+            }
+  build:
+    needs: resolve
+    # A reusable workflow cannot request permissions above its caller's ceiling,
+    # even for the publish job that this nightly call skips.
+    permissions:
+      contents: write
+      actions: write
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/build.yml
+    with:
+      vllm_commit: ${{ needs.resolve.outputs.vllm }}
+      ascend_commit: ${{ needs.resolve.outputs.ascend }}
+      vllm_tag: main
+      ascend_tag: main
+      publish: false

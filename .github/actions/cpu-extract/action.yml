@@ -1,0 +1,10 @@
+name: CPU extraction environment
+description: Use upstream Python sources and CPU wheels without building vLLM or installing NPU packages.
+runs:
+  using: composite
+  steps:
+    - name: Install CPU dependencies
+      shell: bash
+      env:
+        UV_INDEX_URL: https://pypi.org/simple/
+      run: uv run --project generator python .github/actions/cpu_env.py

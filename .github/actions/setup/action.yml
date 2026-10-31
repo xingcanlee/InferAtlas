@@ -1,0 +1,29 @@
+name: InferAtlas toolchain
+description: Install the Python and Node workspaces with native package caches.
+runs:
+  using: composite
+  steps:
+    - uses: astral-sh/setup-uv@v7
+      with:
+        python-version: '3.12'
+        enable-cache: true
+        cache-dependency-glob: |
+          generator/pyproject.toml
+          generator/uv.lock
+    - uses: pnpm/action-setup@v4
+    - uses: actions/setup-node@v6
+      with:
+        node-version: '22'
+        cache: pnpm
+        cache-dependency-path: pnpm-lock.yaml
+        registry-url: https://registry.npmjs.org
+    - uses: taiki-e/install-action@v2
+      with:
+        tool: just
+    - name: Install workspaces
+      shell: bash
+      env:
+        UV_INDEX_URL: https://pypi.org/simple/
+      run: |
+        pnpm install --frozen-lockfile
+        uv sync --project generator --locked
