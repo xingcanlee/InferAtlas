@@ -1,0 +1,177 @@
+{
+  "$defs": {
+    "IndexCell": {
+      "additionalProperties": false,
+      "properties": {
+        "data_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Relative directory containing ir.json/view.json/report.json, no leading slash; null for missing.",
+          "title": "Data Path"
+        },
+        "device": {
+          "description": "Extraction device used for this matrix cell.",
+          "enum": [
+            "A2",
+            "A3",
+            "A5",
+            "310P",
+            "H100"
+          ],
+          "title": "Device",
+          "type": "string"
+        },
+        "model": {
+          "description": "IndexModel.id.",
+          "title": "Model",
+          "type": "string"
+        },
+        "status": {
+          "description": "ok is publishable; triage needs review; missing has no artifacts.",
+          "enum": [
+            "ok",
+            "triage",
+            "missing"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "triage_count": {
+          "default": 0,
+          "description": "Unresolved item count; only triage cells may have a nonzero count.",
+          "minimum": 0,
+          "title": "Triage Count",
+          "type": "integer"
+        },
+        "version": {
+          "description": "IndexVersion.id.",
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "version",
+        "model",
+        "device",
+        "status"
+      ],
+      "title": "IndexCell",
+      "type": "object"
+    },
+    "IndexModel": {
+      "additionalProperties": false,
+      "properties": {
+        "family": {
+          "description": "Architecture family.",
+          "enum": [
+            "dense",
+            "moe",
+            "mla",
+            "hybrid",
+            "vlm"
+          ],
+          "title": "Family",
+          "type": "string"
+        },
+        "hf_id": {
+          "description": "HF repository id.",
+          "title": "Hf Id",
+          "type": "string"
+        },
+        "id": {
+          "description": "Filesystem-safe CatalogModel.id.",
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "description": "Short model display label.",
+          "title": "Label",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "hf_id",
+        "label",
+        "family"
+      ],
+      "title": "IndexModel",
+      "type": "object"
+    },
+    "IndexVersion": {
+      "additionalProperties": false,
+      "properties": {
+        "ascend": {
+          "description": "vllm-ascend tag or commit label.",
+          "title": "Ascend",
+          "type": "string"
+        },
+        "id": {
+          "description": "Catalog version-pair key.",
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "description": "Display label for the paired upstream versions.",
+          "title": "Label",
+          "type": "string"
+        },
+        "vllm": {
+          "description": "vLLM tag or commit label.",
+          "title": "Vllm",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "vllm",
+        "ascend"
+      ],
+      "title": "IndexVersion",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "cells": {
+      "description": "One cell per version/model/device combination, sorted by version/model/device.",
+      "items": {
+        "$ref": "#/$defs/IndexCell"
+      },
+      "title": "Cells",
+      "type": "array"
+    },
+    "models": {
+      "description": "Version matrix columns, sorted by id.",
+      "items": {
+        "$ref": "#/$defs/IndexModel"
+      },
+      "title": "Models",
+      "type": "array"
+    },
+    "versions": {
+      "description": "Version matrix rows, sorted by id.",
+      "items": {
+        "$ref": "#/$defs/IndexVersion"
+      },
+      "title": "Versions",
+      "type": "array"
+    }
+  },
+  "required": [
+    "versions",
+    "models",
+    "cells"
+  ],
+  "title": "Index",
+  "type": "object"
+}

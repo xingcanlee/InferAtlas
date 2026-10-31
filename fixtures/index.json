@@ -1,0 +1,64 @@
+{
+  "cells": [
+    {
+      "data_path": "data/main-verified-A2/qwen3-30b-a3b",
+      "device": "A2",
+      "model": "qwen3-30b-a3b",
+      "status": "ok",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": "data/main-verified-A2/qwen3-8b",
+      "device": "A2",
+      "model": "qwen3-8b",
+      "status": "triage",
+      "triage_count": 2,
+      "version": "main-verified"
+    },
+    {
+      "data_path": null,
+      "device": "A2",
+      "model": "qwen3-30b-a3b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "A2",
+      "model": "qwen3-8b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    }
+  ],
+  "models": [
+    {
+      "family": "moe",
+      "hf_id": "Qwen/Qwen3-30B-A3B",
+      "id": "qwen3-30b-a3b",
+      "label": "Qwen3 30B A3B"
+    },
+    {
+      "family": "dense",
+      "hf_id": "Qwen/Qwen3-8B",
+      "id": "qwen3-8b",
+      "label": "Qwen3 8B"
+    }
+  ],
+  "versions": [
+    {
+      "ascend": "main",
+      "id": "main-verified",
+      "label": "main · verified 544f182",
+      "vllm": "544f182d9f0c9bfe8bd7645525951d5e3692a542"
+    },
+    {
+      "ascend": "v0.32.0",
+      "id": "v0.32.0",
+      "label": "v0.32.0 pair",
+      "vllm": "v0.32.0"
+    }
+  ]
+}

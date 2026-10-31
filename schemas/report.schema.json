@@ -1,0 +1,267 @@
+{
+  "$defs": {
+    "Check": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "description": "Stable verification check key, e.g. schema, coverage, source_links, golden.",
+          "title": "Id",
+          "type": "string"
+        },
+        "message": {
+          "description": "Human-readable result without host-specific paths/timestamps.",
+          "title": "Message",
+          "type": "string"
+        },
+        "node": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Affected IR node id, if scoped.",
+          "title": "Node"
+        },
+        "status": {
+          "description": "skip is explicit absence of evidence, not a pass.",
+          "enum": [
+            "pass",
+            "fail",
+            "skip"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "status",
+        "message"
+      ],
+      "title": "Check",
+      "type": "object"
+    },
+    "GoldenDifference": {
+      "additionalProperties": false,
+      "properties": {
+        "actual": {
+          "$ref": "#/$defs/JsonValue",
+          "description": "Observed value; null when absent."
+        },
+        "expected": {
+          "$ref": "#/$defs/JsonValue",
+          "description": "Committed value; null when absent."
+        },
+        "path": {
+          "description": "JSON pointer into canonical golden output.",
+          "title": "Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "expected",
+        "actual"
+      ],
+      "title": "GoldenDifference",
+      "type": "object"
+    },
+    "JsonValue": {},
+    "ModelRef": {
+      "additionalProperties": false,
+      "properties": {
+        "config_rev": {
+          "description": "HF commit SHA or inline:sha256:<canonical-config-hash>; no weights revision.",
+          "title": "Config Rev",
+          "type": "string"
+        },
+        "hf_id": {
+          "description": "Hugging Face repository identifier, e.g. Qwen/Qwen3-30B-A3B.",
+          "title": "Hf Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "hf_id",
+        "config_rev"
+      ],
+      "title": "ModelRef",
+      "type": "object"
+    },
+    "Revision": {
+      "additionalProperties": false,
+      "properties": {
+        "commit": {
+          "description": "Full immutable Git commit SHA, never an abbreviated hash.",
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Commit",
+          "type": "string"
+        },
+        "tag": {
+          "description": "Release tag or main; display only, identity is commit.",
+          "title": "Tag",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tag",
+        "commit"
+      ],
+      "title": "Revision",
+      "type": "object"
+    },
+    "Snapshot": {
+      "additionalProperties": false,
+      "properties": {
+        "ascend": {
+          "$ref": "#/$defs/Revision",
+          "description": "Paired vllm-ascend revision, including for the baseline graph."
+        },
+        "device": {
+          "description": "Selected hardware profile; H100 is a reference profile.",
+          "enum": [
+            "A2",
+            "A3",
+            "A5",
+            "310P",
+            "H100"
+          ],
+          "title": "Device",
+          "type": "string"
+        },
+        "generator_version": {
+          "description": "Generator package version; no generation timestamp.",
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "model": {
+          "$ref": "#/$defs/ModelRef",
+          "description": "Model identity plus immutable configuration identity."
+        },
+        "vllm": {
+          "$ref": "#/$defs/Revision",
+          "description": "Paired vLLM revision resolved before extraction."
+        }
+      },
+      "required": [
+        "vllm",
+        "ascend",
+        "model",
+        "device",
+        "generator_version"
+      ],
+      "title": "Snapshot",
+      "type": "object"
+    },
+    "SourceLinkFailure": {
+      "additionalProperties": false,
+      "properties": {
+        "reason": {
+          "description": "Missing file, invalid declaration line, symbol or commit mismatch.",
+          "title": "Reason",
+          "type": "string"
+        },
+        "src": {
+          "$ref": "#/$defs/SourceRef",
+          "description": "Failing source reference."
+        }
+      },
+      "required": [
+        "src",
+        "reason"
+      ],
+      "title": "SourceLinkFailure",
+      "type": "object"
+    },
+    "SourceRef": {
+      "additionalProperties": false,
+      "properties": {
+        "commit": {
+          "description": "Full source commit; vllm/ascend must agree with Snapshot.",
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Commit",
+          "type": "string"
+        },
+        "file": {
+          "description": "Repository-relative POSIX path, without a URL or line fragment.",
+          "title": "File",
+          "type": "string"
+        },
+        "line": {
+          "description": "One-based class/def declaration line found by AST/inspect, never agent-authored.",
+          "minimum": 1,
+          "title": "Line",
+          "type": "integer"
+        },
+        "repo": {
+          "description": "Source repository, used to construct immutable links.",
+          "enum": [
+            "vllm",
+            "vllm-ascend",
+            "pytorch"
+          ],
+          "title": "Repo",
+          "type": "string"
+        },
+        "symbol": {
+          "description": "Qualified class/function symbol resolved by the extraction script.",
+          "title": "Symbol",
+          "type": "string"
+        }
+      },
+      "required": [
+        "repo",
+        "file",
+        "line",
+        "commit",
+        "symbol"
+      ],
+      "title": "SourceRef",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "checks": {
+      "description": "Verification checks sorted by id then node.",
+      "items": {
+        "$ref": "#/$defs/Check"
+      },
+      "title": "Checks",
+      "type": "array"
+    },
+    "golden_diff": {
+      "description": "Structured differences sorted by JSON pointer; empty means no differences.",
+      "items": {
+        "$ref": "#/$defs/GoldenDifference"
+      },
+      "title": "Golden Diff",
+      "type": "array"
+    },
+    "snapshot": {
+      "$ref": "#/$defs/Snapshot",
+      "description": "Verified immutable graph identity."
+    },
+    "source_link_failures": {
+      "description": "Invalid immutable source references sorted by repo/file/line/symbol.",
+      "items": {
+        "$ref": "#/$defs/SourceLinkFailure"
+      },
+      "title": "Source Link Failures",
+      "type": "array"
+    }
+  },
+  "required": [
+    "snapshot",
+    "checks",
+    "golden_diff",
+    "source_link_failures"
+  ],
+  "title": "Report",
+  "type": "object"
+}

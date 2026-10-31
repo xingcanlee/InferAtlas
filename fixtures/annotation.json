@@ -1,0 +1,13 @@
+{
+  "anchor_hash": "sha256:7286953d310e157b1c3e93e83fa07c787e0076f3ed85b600300b3fa4dc682b3f",
+  "applies_when": "true",
+  "id": "fixture.ascend.attn.qkv",
+  "level": "KERNEL",
+  "note": "Fixture-only annotation: bf16 parameter dimensions are unchanged in the A2 CPU/mock comparison.",
+  "resolves_to": "vllm_ascend.ops.linear.AscendQKVParallelLinear",
+  "reviewed_by": "fixture (not a maintainer approval)",
+  "tag": [
+    "OOT"
+  ],
+  "target": "vllm_ascend.ops.linear.AscendQKVParallelLinear"
+}

@@ -1,0 +1,39 @@
+{
+  "items": [
+    {
+      "candidates": [
+        "vllm_ascend.attention.attention_v1.AscendAttentionBackend",
+        "vllm_ascend.attention.mla_v1.AscendMLABackend"
+      ],
+      "conditions": [
+        "use_mla",
+        "!use_mla"
+      ],
+      "kind": "conditional_override",
+      "symbol": "vllm_ascend.platform.NPUPlatform.get_attn_backend_cls"
+    },
+    {
+      "kind": "unknown_layer_class",
+      "symbol": "fixture.FutureLinear",
+      "used_by": [
+        "fixture.UnverifiedArchitecture"
+      ]
+    }
+  ],
+  "snapshot": {
+    "ascend": {
+      "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+      "tag": "main"
+    },
+    "device": "A2",
+    "generator_version": "0.1.0",
+    "model": {
+      "config_rev": "inline:sha256:ded54c732e9f874de266dfae8d98d409abbbb82cbecaeb1c0efe974cdd02262b",
+      "hf_id": "Qwen/Qwen3-30B-A3B"
+    },
+    "vllm": {
+      "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+      "tag": "main-verified"
+    }
+  }
+}

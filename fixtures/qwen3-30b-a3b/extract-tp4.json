@@ -1,0 +1,900 @@
+{
+  "ascend": {
+    "custom_ops": {
+      "ApplyRotaryEmb": "vllm_ascend.ops.rotary_embedding.AscendApplyRotaryEmb",
+      "BailingMoELinearAttention": "vllm_ascend.ops.bailing_moe_linear_attn.AscendBailingMoELinearAttention",
+      "ColumnParallelLinear": "vllm_ascend.ops.linear.AscendColumnParallelLinear",
+      "Conv3dLayer": "vllm_ascend.ops.conv.AscendConv3dLayer",
+      "CustomQwen2Decoder": "vllm_ascend.ops.qwen2_decoder.AscendCustomQwen2Decoder",
+      "DeepseekScalingRotaryEmbedding": "vllm_ascend.ops.rotary_embedding.AscendDeepseekScalingRotaryEmbedding",
+      "GateLinear": "vllm_ascend.ops.fused_moe.gate_linear.AscendGateLinear",
+      "GatedDeltaNetAttention": "vllm_ascend.ops.gdn.AscendGatedDeltaNetAttention",
+      "Gemma4RotaryEmbedding": "vllm_ascend.ops.rotary_embedding.AscendGemma4RotaryEmbedding",
+      "GemmaRMSNorm": "vllm_ascend.ops.layernorm.AscendGemmaRMSNorm",
+      "KimiK3MultiHeadLatentAttentionWrapper": "vllm_ascend.ops.kimi_mla.AscendKimiK3MultiHeadLatentAttention",
+      "LogitsProcessor": "vllm_ascend.ops.vocab_parallel_embedding.AscendLogitsProcessor",
+      "MMEncoderAttention": "vllm_ascend.ops.mm_encoder_attention.AscendMMEncoderAttention",
+      "MRotaryEmbedding": "vllm_ascend.ops.rotary_embedding.AscendMRotaryEmbedding",
+      "MergedColumnParallelLinear": "vllm_ascend.ops.linear.AscendMergedColumnParallelLinear",
+      "MoERunner": "vllm_ascend.ops.fused_moe.fused_moe.AscendMoERunner",
+      "MultiHeadLatentAttentionWrapper": "vllm_ascend.ops.mla.AscendMultiHeadLatentAttention",
+      "ParallelLMHead": "vllm_ascend.ops.vocab_parallel_embedding.AscendParallelLMHead",
+      "QKVParallelLinear": "vllm_ascend.ops.linear.AscendQKVParallelLinear",
+      "QuickGELU": "vllm_ascend.ops.activation.AscendQuickGELU",
+      "RMSNorm": "vllm_ascend.ops.layernorm.AscendRMSNorm",
+      "RMSNormGated": "vllm_ascend.ops.layernorm.AscendRMSNormGated",
+      "RelPosAttention": "vllm_ascend.ops.rel_pos_attention.AscendRelPosAttention",
+      "ReplicatedLinear": "vllm_ascend.ops.linear.AscendReplicatedLinear",
+      "RotaryEmbedding": "vllm_ascend.ops.rotary_embedding.AscendRotaryEmbedding",
+      "RoutedExperts": "vllm_ascend.ops.fused_moe.routed_experts.AscendRoutedExperts",
+      "RowParallelLinear": "vllm_ascend.ops.linear.AscendRowParallelLinear",
+      "SiluAndMul": "vllm_ascend.ops.activation.AscendSiluAndMul",
+      "SiluAndMulWithClamp": "vllm_ascend.ops.activation.AscendSiluAndMulWithClamp",
+      "VocabParallelEmbedding": "vllm_ascend.ops.vocab_parallel_embedding.AscendVocabParallelEmbedding",
+      "YaRNScalingRotaryEmbedding": "vllm_ascend.ops.rotary_embedding.AscendYaRNRotaryEmbedding"
+    },
+    "device": "A2",
+    "patched": {
+      "torch.accelerator.empty_cache": "vllm_ascend/patch/platform/patch_torch_accelerator.py",
+      "vllm.config.engram.EngramConfig.verify_model_config": "vllm_ascend/patch/platform/patch_engram_config.py",
+      "vllm.config.engram.EngramConfig.verify_parallel_config": "vllm_ascend/patch/platform/patch_engram_config.py",
+      "vllm.config.model.ModelConfig._verify_cuda_graph": "vllm_ascend/patch/platform/patch_minimax_m2_config.py",
+      "vllm.config.model.ModelConfig._verify_quantization": "vllm_ascend/patch/platform/patch_minimax_m2_config.py",
+      "vllm.config.model.ModelConfig.verify_with_parallel_config": "vllm_ascend/patch/platform/patch_speculative_config.py",
+      "vllm.config.parallel.ParallelConfig.__post_init__": "vllm_ascend/patch/platform/patch_eplb.py",
+      "vllm.config.speculative.SpeculativeConfig.__post_init__": "vllm_ascend/patch/platform/patch_speculative_config.py",
+      "vllm.config.speculative.SpeculativeConfig.hf_config_override": "vllm_ascend/patch/platform/patch_speculative_config.py",
+      "vllm.config.vllm.VllmConfig._get_v1_model_runner_unsupported_features": "vllm_ascend/patch/platform/patch_use_v2_model_runner.py",
+      "vllm.config.vllm.VllmConfig._validate_v2_model_runner": "vllm_ascend/mrv2_utils.py",
+      "vllm.config.vllm.VllmConfig.validate_mamba_cached_kernel": "vllm_ascend/patch/platform/patch_replayssm_config.py",
+      "vllm.distributed.aux_output_connector.worker.resolve_kv_cache_block_sizes": "vllm_ascend/patch/platform/patch_kv_cache_utils.py",
+      "vllm.distributed.destroy_distributed_environment": "vllm_ascend/patch/worker/patch_distributed.py",
+      "vllm.distributed.ec_transfer.ec_connector.example_connector.ECExampleConnector.start_load_caches": "vllm_ascend/patch/platform/patch_example_connector.py",
+      "vllm.distributed.eplb.async_worker.run_rebalance_experts": "vllm_ascend/patch/platform/patch_eplb.py",
+      "vllm.distributed.eplb.async_worker.transfer_layer": "vllm_ascend/patch/platform/patch_eplb.py",
+      "vllm.distributed.eplb.async_worker.transfer_run_periodically": "vllm_ascend/patch/platform/patch_eplb.py",
+      "vllm.distributed.eplb.eplb_communicator.create_eplb_communicator": "vllm_ascend/patch/platform/patch_eplb.py",
+      "vllm.distributed.eplb.eplb_state.EplbState.build_initial_global_physical_to_logical_map": "vllm_ascend/patch/platform/patch_eplb.py",
+      "vllm.distributed.eplb.eplb_state._move_to_workspace": "vllm_ascend/patch/platform/patch_eplb.py",
+      "vllm.distributed.eplb.eplb_state.create_eplb_communicator": "vllm_ascend/patch/platform/patch_eplb.py",
+      "vllm.distributed.parallel_state.GroupCoordinator": "vllm_ascend/patch/worker/patch_distributed.py",
+      "vllm.distributed.parallel_state.destroy_distributed_environment": "vllm_ascend/patch/worker/patch_distributed.py",
+      "vllm.model_executor.layers.attention.mla_attention.get_mla_prefill_backend": "vllm_ascend/patch/platform/patch_mla_prefill_backend.py",
+      "vllm.model_executor.layers.fused_moe.FusedMoEFactory": "vllm_ascend/patch/platform/patch_fused_moe.py",
+      "vllm.model_executor.layers.fused_moe.layer.FusedMoEFactory": "vllm_ascend/patch/platform/patch_fused_moe.py",
+      "vllm.model_executor.layers.fused_moe.routed_experts.RoutedExperts.get_expert_mapping": "vllm_ascend/patch/platform/patch_eplb.py",
+      "vllm.model_executor.layers.fused_moe.routed_experts.RoutedExperts.make_expert_params_mapping": "vllm_ascend/patch/platform/patch_eplb.py",
+      "vllm.model_executor.layers.fused_moe.routed_experts_capturer.RoutedExpertsCapturer.capture": "vllm_ascend/patch/worker/patch_routed_experts_capture.py",
+      "vllm.model_executor.layers.fusion.mm_input_norm.FusedMMInputNorm.__init__": "vllm_ascend/patch/worker/patch_mm_input_norm.py",
+      "vllm.model_executor.layers.mamba.gdn.qwen_gdn_linear_attn.QwenGatedDeltaNetAttention.__init__": "vllm_ascend/patch/worker/patch_qwen3_5.py",
+      "vllm.model_executor.layers.mamba.gdn.qwen_gdn_linear_attn.QwenGatedDeltaNetAttention._forward_core": "vllm_ascend/ops/gdn.py",
+      "vllm.model_executor.layers.mamba.gdn.qwen_gdn_linear_attn.QwenGatedDeltaNetAttention._split_ba_for_tp": "vllm_ascend/ops/gdn.py",
+      "vllm.model_executor.layers.mamba.gdn.qwen_gdn_linear_attn.QwenGatedDeltaNetAttention._warmup_prefill_kernels": "vllm_ascend/ops/gdn.py",
+      "vllm.model_executor.layers.mamba.gdn.qwen_gdn_linear_attn.QwenGatedDeltaNetAttention.forward": "vllm_ascend/ops/gdn.py",
+      "vllm.model_executor.layers.mamba.gdn.qwen_gdn_linear_attn.QwenGatedDeltaNetAttention.get_attn_backend": "vllm_ascend/ops/gdn.py",
+      "vllm.model_executor.layers.mamba.gdn.qwen_gdn_linear_attn.QwenGatedDeltaNetAttention.get_state_shape": "vllm_ascend/ops/gdn.py",
+      "vllm.model_executor.models.bailing_moe.FusedMoEFactory": "vllm_ascend/patch/platform/patch_fused_moe.py",
+      "vllm.model_executor.models.bailing_moe_linear.FusedMoEFactory": "vllm_ascend/patch/platform/patch_fused_moe.py",
+      "vllm.model_executor.models.config.HybridAttentionMambaModelConfig.verify_and_update_config": "vllm_ascend/patch/platform/patch_mamba_config.py",
+      "vllm.model_executor.models.deepseek_eagle3.Eagle3DeepseekV2ForCausalLM.__init__": "vllm_ascend/patch/worker/patch_eagle3_init.py",
+      "vllm.model_executor.models.deepseek_eagle3.Eagle3DeepseekV3ForCausalLM.__init__": "vllm_ascend/patch/worker/patch_eagle3_init.py",
+      "vllm.model_executor.models.deepseek_v2.DeepseekV2ForCausalLM.set_aux_hidden_state_layers": "vllm_ascend/patch/worker/patch_deepseek_v2.py",
+      "vllm.model_executor.models.deepseek_v2.DeepseekV2MLAAttention.__init__": "vllm_ascend/patch/worker/patch_deepseek_v2.py",
+      "vllm.model_executor.models.deepseek_v2.DeepseekV2Model.__init__": "vllm_ascend/patch/worker/patch_deepseek_v2.py",
+      "vllm.model_executor.models.deepseek_v2.DeepseekV2Model.forward": "vllm_ascend/patch/worker/patch_deepseek_v2.py",
+      "vllm.model_executor.models.deepseek_v2.DeepseekV32IndexerCache.get_attn_backend": "vllm_ascend/patch/worker/patch_attn_utils.py",
+      "vllm.model_executor.models.deepseek_v2.FusedMoEFactory": "vllm_ascend/patch/platform/patch_fused_moe.py",
+      "vllm.model_executor.models.kimi_k25_vit.Learnable2DInterpPosEmbDivided_fixed.forward": "vllm_ascend/patch/worker/patch_kimi_k25.py",
+      "vllm.model_executor.models.llama_eagle3.Eagle3LlamaForCausalLM.__init__": "vllm_ascend/patch/worker/patch_eagle3_init.py",
+      "vllm.model_executor.models.minimax_m2.FusedMoEFactory": "vllm_ascend/patch/platform/patch_fused_moe.py",
+      "vllm.model_executor.models.minimax_m2.MiniMaxM2Attention.forward": "vllm_ascend/patch/worker/patch_minimax_m2.py",
+      "vllm.model_executor.models.qwen2_moe.FusedMoEFactory": "vllm_ascend/patch/platform/patch_fused_moe.py",
+      "vllm.model_executor.models.qwen3.Qwen3Attention.forward": "vllm_ascend/patch/worker/patch_qwen3vl.py",
+      "vllm.model_executor.models.qwen3_5_mtp.Qwen3_5MultiTokenPredictor.forward": "vllm_ascend/patch/worker/patch_qwen3_5.py",
+      "vllm.model_executor.models.qwen3_dflash.DFlashQwen3ForCausalLM._read_mask_embedding": "vllm_ascend/patch/worker/patch_qwen3_dflash.py",
+      "vllm.model_executor.models.qwen3_dflash.DFlashQwen3Model.precompute_and_store_context_kv": "vllm_ascend/patch/worker/patch_qwen3_dflash.py",
+      "vllm.model_executor.models.qwen3_moe.FusedMoEFactory": "vllm_ascend/patch/platform/patch_fused_moe.py",
+      "vllm.model_executor.models.qwen3_moe.Qwen3MoeAttention.forward": "vllm_ascend/patch/worker/patch_qwen3vl.py",
+      "vllm.model_executor.models.qwen3_next.FusedMoEFactory": "vllm_ascend/patch/platform/patch_fused_moe.py",
+      "vllm.model_executor.models.qwen3_next.Qwen3NextAttention.forward": "vllm_ascend/patch/worker/patch_qwen3_5.py",
+      "vllm.model_executor.models.qwen3_vl.Qwen3VLForConditionalGeneration._get_deepstack_input_embeds": "vllm_ascend/patch/worker/patch_qwen3vl.py",
+      "vllm.model_executor.models.qwen3_vl.Qwen3_VisionTransformer.fast_pos_embed_interpolate": "vllm_ascend/patch/worker/patch_qwen3vl.py",
+      "vllm.model_executor.models.step3p5.FusedMoEBlock.__init__": "vllm_ascend/patch/worker/patch_step3p5.py",
+      "vllm.model_executor.models.step3p5.FusedMoEFactory": "vllm_ascend/patch/platform/patch_fused_moe.py",
+      "vllm.model_executor.models.step3p5.Step3p5Attention.forward": "vllm_ascend/patch/worker/patch_step3p5.py",
+      "vllm.model_executor.models.step3p5.Step3p5DecoderLayer.__init__": "vllm_ascend/patch/worker/patch_step3p5.py",
+      "vllm.model_executor.models.step3p5.Step3p5DecoderLayer.forward": "vllm_ascend/patch/worker/patch_step3p5.py",
+      "vllm.model_executor.models.step3p5.Step3p5Model.forward": "vllm_ascend/patch/worker/patch_step3p5.py",
+      "vllm.models.deepseek_v4.nvidia.model.FusedMoEFactory": "vllm_ascend/patch/platform/patch_fused_moe.py",
+      "vllm.models.kimi_k3.nvidia.model.FusedMoEFactory": "vllm_ascend/patch/platform/patch_fused_moe.py",
+      "vllm.sampling_params.SamplingParams._validate_structured_outputs": "vllm_ascend/patch/platform/patch_structured_output.py",
+      "vllm.v1.core.kv_cache_coordinator.get_kv_cache_coordinator": "vllm_ascend/patch/platform/patch_kv_cache_coordinator.py",
+      "vllm.v1.core.kv_cache_manager.get_kv_cache_coordinator": "vllm_ascend/patch/platform/patch_kv_cache_coordinator.py",
+      "vllm.v1.core.kv_cache_planning.DefaultKVCacheConfigBuilder._get_pool_bytes_per_block": "vllm_ascend/patch/platform/patch_kv_cache_utils.py",
+      "vllm.v1.core.kv_cache_planning._get_kv_cache_groups_uniform_page_size": "vllm_ascend/patch/platform/patch_kv_cache_utils.py",
+      "vllm.v1.core.kv_cache_planning._get_packed_kv_cache_groups": "vllm_ascend/patch/platform/patch_kv_cache_utils.py",
+      "vllm.v1.core.kv_cache_planning._max_memory_usage_bytes_from_groups": "vllm_ascend/patch/platform/patch_kv_cache_utils.py",
+      "vllm.v1.core.kv_cache_planning._pool_bytes_per_block": "vllm_ascend/patch/platform/patch_kv_cache_utils.py",
+      "vllm.v1.core.kv_cache_planning.get_kv_cache_config_from_groups": "vllm_ascend/patch/platform/patch_kv_cache_utils.py",
+      "vllm.v1.core.kv_cache_planning.get_kv_cache_groups": "vllm_ascend/patch/platform/patch_kv_cache_utils.py",
+      "vllm.v1.core.kv_cache_utils.resolve_kv_cache_block_sizes": "vllm_ascend/patch/platform/patch_kv_cache_utils.py",
+      "vllm.v1.core.sched.async_scheduler.Scheduler": "vllm_ascend/patch/platform/patch_balance_schedule.py",
+      "vllm.v1.core.sched.scheduler.Scheduler": "vllm_ascend/patch/platform/patch_balance_schedule.py",
+      "vllm.v1.core.single_type_kv_cache_manager.MambaManager": "vllm_ascend/patch/platform/patch_mamba_manager.py",
+      "vllm.v1.cudagraph_dispatcher.CudagraphDispatcher._create_padded_batch_descriptor": "vllm_ascend/patch/worker/patch_v1/patch_cudagraph.py",
+      "vllm.v1.engine.core.EngineCore.__init__": "vllm_ascend/patch/platform/patch_profiling_chunk.py",
+      "vllm.v1.engine.core.EngineCore.post_step": "vllm_ascend/patch/platform/patch_pp_mtp.py",
+      "vllm.v1.engine.core.EngineCoreProc.run_engine_core": "vllm_ascend/patch/platform/patch_engine_core.py",
+      "vllm.v1.engine.core.resolve_kv_cache_block_sizes": "vllm_ascend/patch/platform/patch_kv_cache_utils.py",
+      "vllm.v1.outputs.ModelRunnerOutput.__init__": "vllm_ascend/patch/platform/patch_pp_mtp.py",
+      "vllm.v1.structured_output.StructuredOutputManager.grammar_init": "vllm_ascend/patch/platform/patch_structured_output.py",
+      "vllm.v1.structured_output.backend_outlines.OutlinesGrammar.accept_tokens": "vllm_ascend/patch/platform/patch_structured_output.py",
+      "vllm.v1.worker.gpu.attn_utils._allocate_kv_cache": "vllm_ascend/worker/v2/attn_utils.py",
+      "vllm.v1.worker.gpu.attn_utils._reshape_kv_cache": "vllm_ascend/worker/v2/attn_utils.py",
+      "vllm.v1.worker.gpu.attn_utils.allocate_kv_cache": "vllm_ascend/worker/v2/attn_utils.py",
+      "vllm.v1.worker.gpu.attn_utils.bind_kv_cache": "vllm_ascend/patch/worker/patch_bind_kv_cache.py",
+      "vllm.v1.worker.gpu.attn_utils.bind_kv_cache_to_layers": "vllm_ascend/patch/worker/patch_bind_kv_cache.py",
+      "vllm.v1.worker.gpu.attn_utils.prepare_kernel_block_sizes": "vllm_ascend/worker/utils.py",
+      "vllm.v1.worker.gpu.buffer_utils.UvaBuffer": "vllm_ascend/patch/worker/patch_uva.py",
+      "vllm.v1.worker.gpu.cudagraph_utils.InputBatch": "vllm_ascend/worker/v2/input_batch.py",
+      "vllm.v1.worker.gpu.model_runner.BlockTables": "vllm_ascend/worker/v2/block_table.py",
+      "vllm.v1.worker.gpu.model_runner.GPUModelRunner.initialize_kv_cache": "vllm_ascend/patch/worker/patch_model_runner.py",
+      "vllm.v1.worker.gpu.model_runner.InputBatch": "vllm_ascend/worker/v2/input_batch.py",
+      "vllm.v1.worker.gpu.model_runner.copy_kv_cache_blocks_inplace": "vllm_ascend/worker/utils.py",
+      "vllm.v1.worker.gpu.model_runner.dispatch_cg_and_sync_dp": "vllm_ascend/patch/worker/patch_model_runner.py",
+      "vllm.v1.worker.gpu.model_runner.get_kv_cache_spec": "vllm_ascend/worker/v2/attn_utils.py",
+      "vllm.v1.worker.gpu.model_runner.init_model_state": "vllm_ascend/worker/v2/model_states/__init__.py",
+      "vllm.v1.worker.gpu.model_states.interface.EncoderCudaGraphManager": "vllm_ascend/worker/encoder_acl_graph.py",
+      "vllm.v1.worker.gpu.spec_decode.adaptive_verification._assign_draft_token_budget_compiled": "vllm_ascend/patch/worker/patch_adaptive_verification.py",
+      "vllm.v1.worker.gpu.spec_decode.dflash.cudagraph.build_attn_metadata": "vllm_ascend/worker/v2/attn_utils.py",
+      "vllm.v1.worker.gpu.spec_decode.dflash.speculator.DFlashCudaGraphManager": "vllm_ascend/worker/v2/spec_decode/dflash/aclgraph.py",
+      "vllm.v1.worker.gpu.spec_decode.dflash2.speculator._selector_walk_kernel": "vllm_ascend/worker/v2/spec_decode/dflash2/speculator.py",
+      "vllm.v1.worker.gpu.spec_decode.dspark.speculator.load_dspark_model": "vllm_ascend/patch/worker/patch_dspark.py",
+      "vllm.v1.worker.gpu.spec_decode.dspark.utils.load_dspark_model": "vllm_ascend/patch/worker/patch_dspark.py",
+      "vllm.v1.worker.gpu.spec_decode.target_dependent_ar.speculator.SpeculatorCudaGraphManager": "vllm_ascend/worker/v2/spec_decode/target_dependent_ar/aclgraph.py",
+      "vllm.v1.worker.mamba_utils.MambaCopyBuffers.create": "vllm_ascend/patch/worker/patch_v1/patch_mamba_utils.py",
+      "vllm.v1.worker.mamba_utils.batch_memcpy": "vllm_ascend/patch/worker/patch_v1/patch_mamba_utils.py",
+      "vllm.v1.worker.mamba_utils.batch_memcpy_kernel": "vllm_ascend/ops/triton/batch_memcpy.py",
+      "vllm.v1.worker.mamba_utils.collect_mamba_copy_meta": "vllm_ascend/patch/worker/patch_v1/patch_mamba_utils.py",
+      "vllm.v1.worker.mamba_utils.do_mamba_copy_block": "vllm_ascend/patch/worker/patch_v1/patch_mamba_utils.py",
+      "vllm.v1.worker.mamba_utils.do_mamba_copy_block_for_layer": "vllm_ascend/patch/worker/patch_v1/patch_mamba_utils.py",
+      "vllm.v1.worker.mamba_utils.finish_mamba_copy_by_layer": "vllm_ascend/patch/worker/patch_v1/patch_mamba_utils.py",
+      "vllm.v1.worker.mamba_utils.postprocess_mamba_fused_kernel": "vllm_ascend/ops/triton/mamba/postprocess.py",
+      "vllm.v1.worker.mamba_utils.prepare_mamba_copy_by_layer": "vllm_ascend/patch/worker/patch_v1/patch_mamba_utils.py",
+      "vllm.v1.worker.mamba_utils.preprocess_mamba": "vllm_ascend/patch/worker/patch_v1/patch_mamba_utils.py",
+      "vllm.v1.worker.utils.bind_kv_cache": "vllm_ascend/patch/worker/patch_bind_kv_cache.py",
+      "vllm.v1.worker.utils.bind_kv_cache_to_layers": "vllm_ascend/patch/worker/patch_bind_kv_cache.py",
+      "xgrammar.compiler.GrammarCompiler.compile_json_schema": "vllm_ascend/patch/platform/patch_structured_output.py"
+    },
+    "profile": {
+      "attention_backend_family": "AttentionBackendFamily.STANDARD",
+      "capabilities": [
+        "ATB_EXTENSIONS",
+        "ATB_WARMUP",
+        "AUTO_ENABLE_CUSTOM_OPS",
+        "BGMV_SGMV_META_REGISTRATION",
+        "FLA_GDN_PREFILL",
+        "FUSED_ROTARY_MUL_INTERLEAVE",
+        "FUSED_SWIGLU_TUNING_ARGS",
+        "GRAPH_MM_REDUCE_SCATTER_FUSION",
+        "GRAPH_MULS_ADD_FUSION",
+        "GRAPH_NORM_QUANT_FUSION",
+        "GRAPH_QKV_NORM_ROPE_FUSION",
+        "INPLACE_PARTIAL_ROTARY_MUL_NEGATE_SIN",
+        "IRQ_CPU_RESERVATION",
+        "LORA_CUSTOM_OPS",
+        "MC2_HIERARCHY_COMM",
+        "MOE_GATING_TOP_K_HASH_VISION",
+        "NPUGRAPH_EX",
+        "PAGED_ATTENTION",
+        "RMS_NORM_CAST",
+        "RUNTIME_CUSTOM_OPS",
+        "SCATTER_ND_CACHE_STORE",
+        "SCATTER_ND_STRIDED_CACHE_STORE",
+        "STANDARD_MAMBA_PATCH",
+        "STANDARD_WORKER_PATCHES",
+        "TRITON_BATCH_MEMCPY",
+        "TURBOQUANT_4BIT_NC_CACHE"
+      ],
+      "device_type": "AscendDeviceType.A2",
+      "moe_comm_policy": "MoECommPolicy.CAPACITY_AND_EXPERT_DENSITY",
+      "quantization_backend_family": "QuantizationBackendFamily.STANDARD",
+      "weight_layout_policy": "WeightLayoutPolicy.CONFIGURABLE"
+    }
+  },
+  "config": {
+    "architectures": [
+      "Qwen3MoeForCausalLM"
+    ],
+    "attention_bias": false,
+    "attention_dropout": 0.0,
+    "bos_token_id": 151643,
+    "decoder_sparse_step": 1,
+    "eos_token_id": 151645,
+    "head_dim": 128,
+    "hidden_act": "silu",
+    "hidden_size": 2048,
+    "initializer_range": 0.02,
+    "intermediate_size": 6144,
+    "max_position_embeddings": 40960,
+    "max_window_layers": 48,
+    "mlp_only_layers": [],
+    "model_type": "qwen3_moe",
+    "moe_intermediate_size": 768,
+    "norm_topk_prob": true,
+    "num_attention_heads": 32,
+    "num_experts": 128,
+    "num_experts_per_tok": 8,
+    "num_hidden_layers": 48,
+    "num_key_value_heads": 4,
+    "output_router_logits": false,
+    "rms_norm_eps": 1e-06,
+    "rope_theta": 1000000.0,
+    "router_aux_loss_coef": 0.001,
+    "sliding_window": null,
+    "tie_word_embeddings": false,
+    "torch_dtype": "bfloat16",
+    "use_cache": true,
+    "use_sliding_window": false,
+    "vocab_size": 151936
+  },
+  "env": {
+    "python": "3.12",
+    "torch": "2.10.0+cpu"
+  },
+  "fixture": true,
+  "layer_types": [
+    "full_attention",
+    "full_attention",
+    "full_attention",
+    "full_attention",
+    "full_attention",
+    "full_attention",
+    "full_attention",
+    "full_attention",
+    "full_attention",
+    "full_attention",
+    "full_attention",
+    "full_attention",
+    "full_attention",
+    "full_attention",
+    "full_attention",
+    "full_attention",
+    "full_attention",
+    "full_attention",
+    "full_attention",
+    "full_attention",
+    "full_attention",
+    "full_attention",
+    "full_attention",
+    "full_attention",
+    "full_attention",
+    "full_attention",
+    "full_attention",
+    "full_attention",
+    "full_attention",
+    "full_attention",
+    "full_attention",
+    "full_attention",
+    "full_attention",
+    "full_attention",
+    "full_attention",
+    "full_attention",
+    "full_attention",
+    "full_attention",
+    "full_attention",
+    "full_attention",
+    "full_attention",
+    "full_attention",
+    "full_attention",
+    "full_attention",
+    "full_attention",
+    "full_attention",
+    "full_attention",
+    "full_attention"
+  ],
+  "modules": [
+    {
+      "attrs": {},
+      "class": "vllm.model_executor.models.qwen3_moe.Qwen3MoeForCausalLM",
+      "params": [],
+      "path": "",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/models/qwen3_moe.py",
+        "line": 543,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.models.qwen3_moe.Qwen3MoeForCausalLM"
+      }
+    },
+    {
+      "ascend": {
+        "class": "vllm_ascend.ops.vocab_parallel_embedding.AscendParallelLMHead",
+        "src": {
+          "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+          "file": "vllm_ascend/ops/vocab_parallel_embedding.py",
+          "line": 420,
+          "repo": "vllm-ascend",
+          "symbol": "vllm_ascend.ops.vocab_parallel_embedding.AscendParallelLMHead"
+        }
+      },
+      "attrs": {},
+      "class": "vllm.model_executor.layers.vocab_parallel_embedding.ParallelLMHead",
+      "params": [
+        {
+          "dtype": "bfloat16",
+          "name": "weight",
+          "shape": [
+            37984,
+            2048
+          ]
+        }
+      ],
+      "path": "lm_head",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/layers/vocab_parallel_embedding.py",
+        "line": 578,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.layers.vocab_parallel_embedding.ParallelLMHead"
+      }
+    },
+    {
+      "ascend": {
+        "class": "vllm_ascend.ops.vocab_parallel_embedding.AscendLogitsProcessor",
+        "src": {
+          "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+          "file": "vllm_ascend/ops/vocab_parallel_embedding.py",
+          "line": 503,
+          "repo": "vllm-ascend",
+          "symbol": "vllm_ascend.ops.vocab_parallel_embedding.AscendLogitsProcessor"
+        }
+      },
+      "attrs": {},
+      "class": "vllm.model_executor.layers.logits_processor.LogitsProcessor",
+      "params": [],
+      "path": "logits_processor",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/layers/logits_processor.py",
+        "line": 58,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.layers.logits_processor.LogitsProcessor"
+      }
+    },
+    {
+      "attrs": {},
+      "class": "vllm.model_executor.models.qwen3_moe.Qwen3MoeModel",
+      "params": [],
+      "path": "model",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/models/qwen3_moe.py",
+        "line": 435,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.models.qwen3_moe.Qwen3MoeModel"
+      }
+    },
+    {
+      "ascend": {
+        "class": "vllm_ascend.ops.vocab_parallel_embedding.AscendVocabParallelEmbedding",
+        "src": {
+          "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+          "file": "vllm_ascend/ops/vocab_parallel_embedding.py",
+          "line": 162,
+          "repo": "vllm-ascend",
+          "symbol": "vllm_ascend.ops.vocab_parallel_embedding.AscendVocabParallelEmbedding"
+        }
+      },
+      "attrs": {},
+      "class": "vllm.model_executor.layers.vocab_parallel_embedding.VocabParallelEmbedding",
+      "params": [
+        {
+          "dtype": "bfloat16",
+          "name": "weight",
+          "shape": [
+            37984,
+            2048
+          ]
+        }
+      ],
+      "path": "model.embed_tokens",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/layers/vocab_parallel_embedding.py",
+        "line": 206,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.layers.vocab_parallel_embedding.VocabParallelEmbedding"
+      }
+    },
+    {
+      "attrs": {},
+      "class": "torch.nn.modules.container.ModuleList",
+      "params": [],
+      "path": "model.layers",
+      "src": null
+    },
+    {
+      "attrs": {},
+      "class": "vllm.model_executor.models.qwen3_moe.Qwen3MoeDecoderLayer",
+      "params": [],
+      "path": "model.layers.0",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/models/qwen3_moe.py",
+        "line": 350,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.models.qwen3_moe.Qwen3MoeDecoderLayer"
+      }
+    },
+    {
+      "ascend": {
+        "class": "vllm_ascend.ops.layernorm.AscendRMSNorm",
+        "src": {
+          "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+          "file": "vllm_ascend/ops/layernorm.py",
+          "line": 47,
+          "repo": "vllm-ascend",
+          "symbol": "vllm_ascend.ops.layernorm.AscendRMSNorm"
+        }
+      },
+      "attrs": {},
+      "class": "vllm.model_executor.layers.layernorm.RMSNorm",
+      "params": [
+        {
+          "dtype": "bfloat16",
+          "name": "weight",
+          "shape": [
+            2048
+          ]
+        }
+      ],
+      "path": "model.layers.0.input_layernorm",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/layers/layernorm.py",
+        "line": 39,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.layers.layernorm.RMSNorm"
+      }
+    },
+    {
+      "attrs": {},
+      "class": "vllm.model_executor.models.qwen3_moe.Qwen3MoeSparseMoeBlock",
+      "params": [],
+      "path": "model.layers.0.mlp",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/models/qwen3_moe.py",
+        "line": 133,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.models.qwen3_moe.Qwen3MoeSparseMoeBlock"
+      }
+    },
+    {
+      "ascend": {
+        "class": "vllm_ascend.ops.fused_moe.fused_moe.AscendMoERunner",
+        "src": {
+          "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+          "file": "vllm_ascend/ops/fused_moe/fused_moe.py",
+          "line": 85,
+          "repo": "vllm-ascend",
+          "symbol": "vllm_ascend.ops.fused_moe.fused_moe.AscendMoERunner"
+        }
+      },
+      "attrs": {},
+      "class": "vllm.model_executor.layers.fused_moe.runner.moe_runner.MoERunner",
+      "params": [],
+      "path": "model.layers.0.mlp.experts",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/layers/fused_moe/runner/moe_runner.py",
+        "line": 228,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.layers.fused_moe.runner.moe_runner.MoERunner"
+      }
+    },
+    {
+      "ascend": {
+        "class": "vllm_ascend.ops.fused_moe.routed_experts.AscendRoutedExperts",
+        "src": {
+          "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+          "file": "vllm_ascend/ops/fused_moe/routed_experts.py",
+          "line": 390,
+          "repo": "vllm-ascend",
+          "symbol": "vllm_ascend.ops.fused_moe.routed_experts.AscendRoutedExperts"
+        }
+      },
+      "attrs": {
+        "intermediate_size_per_partition": 192,
+        "num_experts": 128,
+        "top_k": 8
+      },
+      "class": "vllm.model_executor.layers.fused_moe.routed_experts.RoutedExperts",
+      "params": [
+        {
+          "dtype": "bfloat16",
+          "name": "w13_weight",
+          "shape": [
+            128,
+            384,
+            2048
+          ]
+        },
+        {
+          "dtype": "bfloat16",
+          "name": "w2_weight",
+          "shape": [
+            128,
+            2048,
+            192
+          ]
+        }
+      ],
+      "path": "model.layers.0.mlp.experts.routed_experts",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/layers/fused_moe/routed_experts.py",
+        "line": 73,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.layers.fused_moe.routed_experts.RoutedExperts"
+      }
+    },
+    {
+      "ascend": {
+        "class": "vllm_ascend.ops.fused_moe.routed_experts.AscendUnquantizedFusedMoEMethod",
+        "src": {
+          "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+          "file": "vllm_ascend/ops/fused_moe/routed_experts.py",
+          "line": 55,
+          "repo": "vllm-ascend",
+          "symbol": "vllm_ascend.ops.fused_moe.routed_experts.AscendUnquantizedFusedMoEMethod"
+        }
+      },
+      "attrs": {},
+      "class": "vllm.model_executor.layers.fused_moe.unquantized_fused_moe_method.UnquantizedFusedMoEMethod",
+      "params": [],
+      "path": "model.layers.0.mlp.experts.routed_experts.quant_method",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/layers/fused_moe/unquantized_fused_moe_method.py",
+        "line": 47,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.layers.fused_moe.unquantized_fused_moe_method.UnquantizedFusedMoEMethod"
+      }
+    },
+    {
+      "ascend": {
+        "class": "vllm_ascend.ops.fused_moe.gate_linear.AscendGateLinear",
+        "src": {
+          "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+          "file": "vllm_ascend/ops/fused_moe/gate_linear.py",
+          "line": 28,
+          "repo": "vllm-ascend",
+          "symbol": "vllm_ascend.ops.fused_moe.gate_linear.AscendGateLinear"
+        }
+      },
+      "attrs": {},
+      "class": "vllm.model_executor.layers.fused_moe.router.gate_linear.GateLinear",
+      "params": [
+        {
+          "dtype": "bfloat16",
+          "name": "weight",
+          "shape": [
+            128,
+            2048
+          ]
+        }
+      ],
+      "path": "model.layers.0.mlp.gate",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/layers/fused_moe/router/gate_linear.py",
+        "line": 22,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.layers.fused_moe.router.gate_linear.GateLinear"
+      }
+    },
+    {
+      "ascend": {
+        "class": "vllm_ascend.ops.layernorm.AscendRMSNorm",
+        "src": {
+          "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+          "file": "vllm_ascend/ops/layernorm.py",
+          "line": 47,
+          "repo": "vllm-ascend",
+          "symbol": "vllm_ascend.ops.layernorm.AscendRMSNorm"
+        }
+      },
+      "attrs": {},
+      "class": "vllm.model_executor.layers.layernorm.RMSNorm",
+      "params": [
+        {
+          "dtype": "bfloat16",
+          "name": "weight",
+          "shape": [
+            2048
+          ]
+        }
+      ],
+      "path": "model.layers.0.post_attention_layernorm",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/layers/layernorm.py",
+        "line": 39,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.layers.layernorm.RMSNorm"
+      }
+    },
+    {
+      "attrs": {
+        "head_dim": 128,
+        "num_heads": 8,
+        "num_kv_heads": 1
+      },
+      "class": "vllm.model_executor.models.qwen3_moe.Qwen3MoeAttention",
+      "params": [],
+      "path": "model.layers.0.self_attn",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/models/qwen3_moe.py",
+        "line": 244,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.models.qwen3_moe.Qwen3MoeAttention"
+      }
+    },
+    {
+      "attrs": {},
+      "class": "vllm.model_executor.layers.attention.attention.Attention",
+      "params": [],
+      "path": "model.layers.0.self_attn.attn",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/layers/attention/attention.py",
+        "line": 229,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.layers.attention.attention.Attention"
+      }
+    },
+    {
+      "ascend": {
+        "class": "vllm_ascend.ops.layernorm.AscendRMSNorm",
+        "src": {
+          "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+          "file": "vllm_ascend/ops/layernorm.py",
+          "line": 47,
+          "repo": "vllm-ascend",
+          "symbol": "vllm_ascend.ops.layernorm.AscendRMSNorm"
+        }
+      },
+      "attrs": {},
+      "class": "vllm.model_executor.layers.layernorm.RMSNorm",
+      "params": [
+        {
+          "dtype": "bfloat16",
+          "name": "weight",
+          "shape": [
+            128
+          ]
+        }
+      ],
+      "path": "model.layers.0.self_attn.k_norm",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/layers/layernorm.py",
+        "line": 39,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.layers.layernorm.RMSNorm"
+      }
+    },
+    {
+      "ascend": {
+        "class": "vllm_ascend.ops.linear.AscendRowParallelLinear",
+        "src": {
+          "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+          "file": "vllm_ascend/ops/linear.py",
+          "line": 309,
+          "repo": "vllm-ascend",
+          "symbol": "vllm_ascend.ops.linear.AscendRowParallelLinear"
+        }
+      },
+      "attrs": {
+        "input_size": 4096,
+        "output_size": 2048,
+        "reduce_results": true,
+        "tp_size": 4
+      },
+      "class": "vllm.model_executor.layers.linear.RowParallelLinear",
+      "params": [
+        {
+          "dtype": "bfloat16",
+          "name": "weight",
+          "shape": [
+            2048,
+            1024
+          ]
+        }
+      ],
+      "path": "model.layers.0.self_attn.o_proj",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/layers/linear.py",
+        "line": 1639,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.layers.linear.RowParallelLinear"
+      }
+    },
+    {
+      "ascend": {
+        "class": "vllm_ascend.ops.layernorm.AscendRMSNorm",
+        "src": {
+          "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+          "file": "vllm_ascend/ops/layernorm.py",
+          "line": 47,
+          "repo": "vllm-ascend",
+          "symbol": "vllm_ascend.ops.layernorm.AscendRMSNorm"
+        }
+      },
+      "attrs": {},
+      "class": "vllm.model_executor.layers.layernorm.RMSNorm",
+      "params": [
+        {
+          "dtype": "bfloat16",
+          "name": "weight",
+          "shape": [
+            128
+          ]
+        }
+      ],
+      "path": "model.layers.0.self_attn.q_norm",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/layers/layernorm.py",
+        "line": 39,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.layers.layernorm.RMSNorm"
+      }
+    },
+    {
+      "ascend": {
+        "class": "vllm_ascend.ops.linear.AscendQKVParallelLinear",
+        "src": {
+          "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+          "file": "vllm_ascend/ops/linear.py",
+          "line": 179,
+          "repo": "vllm-ascend",
+          "symbol": "vllm_ascend.ops.linear.AscendQKVParallelLinear"
+        }
+      },
+      "attrs": {
+        "input_size": 2048,
+        "output_size": 5120,
+        "tp_size": 4
+      },
+      "class": "vllm.model_executor.layers.linear.QKVParallelLinear",
+      "params": [
+        {
+          "dtype": "bfloat16",
+          "name": "weight",
+          "shape": [
+            1280,
+            2048
+          ]
+        }
+      ],
+      "path": "model.layers.0.self_attn.qkv_proj",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/layers/linear.py",
+        "line": 1011,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.layers.linear.QKVParallelLinear"
+      }
+    },
+    {
+      "ascend": {
+        "class": "vllm_ascend.ops.rotary_embedding.AscendRotaryEmbedding",
+        "src": {
+          "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+          "file": "vllm_ascend/ops/rotary_embedding.py",
+          "line": 299,
+          "repo": "vllm-ascend",
+          "symbol": "vllm_ascend.ops.rotary_embedding.AscendRotaryEmbedding"
+        }
+      },
+      "attrs": {},
+      "class": "vllm.model_executor.layers.rotary_embedding.base.RotaryEmbedding",
+      "params": [],
+      "path": "model.layers.0.self_attn.rotary_emb",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/layers/rotary_embedding/base.py",
+        "line": 139,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.layers.rotary_embedding.base.RotaryEmbedding"
+      }
+    },
+    {
+      "ascend": {
+        "class": "vllm_ascend.ops.rotary_embedding.AscendApplyRotaryEmb",
+        "src": {
+          "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+          "file": "vllm_ascend/ops/rotary_embedding.py",
+          "line": 729,
+          "repo": "vllm-ascend",
+          "symbol": "vllm_ascend.ops.rotary_embedding.AscendApplyRotaryEmb"
+        }
+      },
+      "attrs": {},
+      "class": "vllm.model_executor.layers.rotary_embedding.common.ApplyRotaryEmb",
+      "params": [],
+      "path": "model.layers.0.self_attn.rotary_emb.apply_rotary_emb",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/layers/rotary_embedding/common.py",
+        "line": 113,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.layers.rotary_embedding.common.ApplyRotaryEmb"
+      }
+    },
+    {
+      "ascend": {
+        "class": "vllm_ascend.ops.layernorm.AscendRMSNorm",
+        "src": {
+          "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+          "file": "vllm_ascend/ops/layernorm.py",
+          "line": 47,
+          "repo": "vllm-ascend",
+          "symbol": "vllm_ascend.ops.layernorm.AscendRMSNorm"
+        }
+      },
+      "attrs": {},
+      "class": "vllm.model_executor.layers.layernorm.RMSNorm",
+      "params": [
+        {
+          "dtype": "bfloat16",
+          "name": "weight",
+          "shape": [
+            2048
+          ]
+        }
+      ],
+      "path": "model.norm",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/layers/layernorm.py",
+        "line": 39,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.layers.layernorm.RMSNorm"
+      }
+    }
+  ],
+  "notes": [
+    "Curated partial module tree: root, embedding, complete layer 0, final norm, lm_head, logits processor. Other decoder layers repeat layer 0.",
+    "Shapes copied from exp1 tp1/tp4; Ascend classes/profile/patches from exp2/exp3 A2. Ascend shape equivalence was measured only at tp=1; tp4 overlay is illustrative.",
+    "Declaration lines are resolved by AST against the pinned upstream clones, not copied from experiment environment version strings."
+  ],
+  "parallel": {
+    "dp": 1,
+    "ep": false,
+    "pp": 1,
+    "rank": 0,
+    "tp": 4
+  },
+  "snapshot": {
+    "ascend": {
+      "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+      "tag": "main"
+    },
+    "device": "A2",
+    "generator_version": "0.1.0",
+    "model": {
+      "config_rev": "inline:sha256:ded54c732e9f874de266dfae8d98d409abbbb82cbecaeb1c0efe974cdd02262b",
+      "hf_id": "Qwen/Qwen3-30B-A3B"
+    },
+    "vllm": {
+      "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+      "tag": "main-verified"
+    }
+  }
+}

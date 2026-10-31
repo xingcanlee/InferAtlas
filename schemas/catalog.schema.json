@@ -1,0 +1,279 @@
+{
+  "$defs": {
+    "CatalogDevice": {
+      "additionalProperties": false,
+      "properties": {
+        "hardware_preset": {
+          "description": "Default hardware_presets[].id for this device.",
+          "title": "Hardware Preset",
+          "type": "string"
+        },
+        "id": {
+          "description": "Supported extraction device family.",
+          "enum": [
+            "A2",
+            "A3",
+            "A5",
+            "310P",
+            "H100"
+          ],
+          "title": "Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "hardware_preset"
+      ],
+      "title": "CatalogDevice",
+      "type": "object"
+    },
+    "CatalogModel": {
+      "additionalProperties": false,
+      "properties": {
+        "config": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "description": "Pinned HF config contents; tests never fetch HF or weights.",
+          "title": "Config",
+          "type": "object"
+        },
+        "config_rev": {
+          "description": "HF commit SHA or inline:sha256:<canonical-config-hash>; no weights revision.",
+          "title": "Config Rev",
+          "type": "string"
+        },
+        "family": {
+          "description": "Layout/template family.",
+          "enum": [
+            "dense",
+            "moe",
+            "mla",
+            "hybrid",
+            "vlm"
+          ],
+          "title": "Family",
+          "type": "string"
+        },
+        "hf_id": {
+          "description": "Hugging Face repository identifier, e.g. Qwen/Qwen3-30B-A3B.",
+          "title": "Hf Id",
+          "type": "string"
+        },
+        "id": {
+          "description": "Stable filesystem-safe slug, e.g. qwen3-30b-a3b.",
+          "title": "Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "hf_id",
+        "config_rev",
+        "id",
+        "family",
+        "config"
+      ],
+      "title": "CatalogModel",
+      "type": "object"
+    },
+    "HardwarePreset": {
+      "additionalProperties": false,
+      "properties": {
+        "bandwidth_gbps": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Memory bandwidth in decimal GB/s; null if uncertain.",
+          "title": "Bandwidth Gbps"
+        },
+        "device": {
+          "description": "Device family or H100 reference.",
+          "enum": [
+            "A2",
+            "A3",
+            "A5",
+            "310P",
+            "H100"
+          ],
+          "title": "Device",
+          "type": "string"
+        },
+        "hbm_gb": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Device memory in decimal GB (10^9 bytes), including non-HBM memory on 310P; null if uncertain.",
+          "title": "Hbm Gb"
+        },
+        "id": {
+          "description": "Stable preset key; each preset is per accelerator, not per server.",
+          "title": "Id",
+          "type": "string"
+        },
+        "interconnect_gbps": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aggregate interconnect bandwidth in decimal GB/s; record duplex convention in notes.",
+          "title": "Interconnect Gbps"
+        },
+        "label": {
+          "description": "Specific board/form factor; do not conflate variants.",
+          "title": "Label",
+          "type": "string"
+        },
+        "notes": {
+          "description": "Variant, sparsity/duplex conventions and TODOs for uncertain specifications.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "peak_tflops": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": "Dense peak per dtype in 10^12 operations/s; null means unknown/unsupported, never zero.",
+          "propertyNames": {
+            "enum": [
+              "fp32",
+              "bf16",
+              "fp16",
+              "fp8",
+              "int8",
+              "int4"
+            ]
+          },
+          "title": "Peak Tflops",
+          "type": "object"
+        },
+        "source": {
+          "const": "vendor spec",
+          "description": "Provenance class; these are specs, not measured throughput.",
+          "title": "Source",
+          "type": "string"
+        },
+        "source_url": {
+          "description": "Vendor specification/documentation URL.",
+          "title": "Source Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "device",
+        "label",
+        "peak_tflops",
+        "hbm_gb",
+        "bandwidth_gbps",
+        "interconnect_gbps",
+        "source",
+        "source_url"
+      ],
+      "title": "HardwarePreset",
+      "type": "object"
+    },
+    "JsonValue": {},
+    "VersionPair": {
+      "additionalProperties": false,
+      "properties": {
+        "ascend": {
+          "description": "vllm-ascend tag or main. Resolve main to SHA in Snapshot.",
+          "title": "Ascend",
+          "type": "string"
+        },
+        "id": {
+          "description": "Stable matrix key; versions are paired, never a Cartesian product.",
+          "title": "Id",
+          "type": "string"
+        },
+        "pairing_file": {
+          "description": "Upstream .github/vllm-main-verified.commit or vllm-release-tag.commit.",
+          "title": "Pairing File",
+          "type": "string"
+        },
+        "vllm": {
+          "description": "vLLM tag or full commit. Resolve tags to SHA in Snapshot.",
+          "title": "Vllm",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "vllm",
+        "ascend",
+        "pairing_file"
+      ],
+      "title": "VersionPair",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "devices": {
+      "description": "Extractable Ascend families; H100 can be reference-only.",
+      "items": {
+        "$ref": "#/$defs/CatalogDevice"
+      },
+      "title": "Devices",
+      "type": "array"
+    },
+    "hardware_presets": {
+      "description": "Roofline/memory presets including H100 reference, sorted by id.",
+      "items": {
+        "$ref": "#/$defs/HardwarePreset"
+      },
+      "title": "Hardware Presets",
+      "type": "array"
+    },
+    "models": {
+      "description": "Curated model configurations, sorted by id.",
+      "items": {
+        "$ref": "#/$defs/CatalogModel"
+      },
+      "title": "Models",
+      "type": "array"
+    },
+    "version_pairs": {
+      "description": "Explicit compatible upstream pairs, sorted by id.",
+      "items": {
+        "$ref": "#/$defs/VersionPair"
+      },
+      "title": "Version Pairs",
+      "type": "array"
+    }
+  },
+  "required": [
+    "models",
+    "version_pairs",
+    "devices",
+    "hardware_presets"
+  ],
+  "title": "Catalog",
+  "type": "object"
+}

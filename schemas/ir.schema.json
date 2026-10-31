@@ -1,0 +1,805 @@
+{
+  "$defs": {
+    "AscendTag": {
+      "additionalProperties": false,
+      "properties": {
+        "annotation_id": {
+          "description": "Reviewed annotation identifier, not an inferred note.",
+          "title": "Annotation Id",
+          "type": "string"
+        },
+        "level": {
+          "description": "KERNEL preserves semantics; LAYOUT changes storage; SEMANTIC changes graph/communication.",
+          "enum": [
+            "KERNEL",
+            "LAYOUT",
+            "SEMANTIC"
+          ],
+          "title": "Level",
+          "type": "string"
+        },
+        "note": {
+          "description": "Reviewed explanation; KERNEL badges hidden by default.",
+          "title": "Note",
+          "type": "string"
+        },
+        "src": {
+          "description": "Script-resolved replacement/patch declarations, can include multiple relevant sources.",
+          "items": {
+            "$ref": "#/$defs/SourceRef"
+          },
+          "title": "Src",
+          "type": "array"
+        },
+        "tag": {
+          "description": "Sorted overlay badges; independent of significance level.",
+          "items": {
+            "enum": [
+              "OOT",
+              "PATCH",
+              "QUANT",
+              "FUSED"
+            ],
+            "type": "string"
+          },
+          "title": "Tag",
+          "type": "array"
+        }
+      },
+      "required": [
+        "tag",
+        "level",
+        "note",
+        "src",
+        "annotation_id"
+      ],
+      "title": "AscendTag",
+      "type": "object"
+    },
+    "Comm": {
+      "additionalProperties": false,
+      "properties": {
+        "bus_bytes": {
+          "description": "Local-rank estimated link traffic, includes collective algorithm factor; zero when inactive.",
+          "minLength": 1,
+          "title": "Bus Bytes",
+          "type": "string"
+        },
+        "group": {
+          "description": "Parallel group name (tp/ep/pp/dp) or a rule-declared group.",
+          "title": "Group",
+          "type": "string"
+        },
+        "logical_bytes": {
+          "description": "Local-rank logical tensor bytes per prefill invocation; use T=S for decode.",
+          "minLength": 1,
+          "title": "Logical Bytes",
+          "type": "string"
+        },
+        "notes": {
+          "description": "Ring/dispatch/routing assumptions, especially EP uniform routing.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "op": {
+          "description": "Logical collective; fused kernels retain semantic communication metadata.",
+          "enum": [
+            "all_reduce",
+            "all_gather",
+            "reduce_scatter",
+            "all_to_all",
+            "send_recv",
+            "none"
+          ],
+          "title": "Op",
+          "type": "string"
+        },
+        "when": {
+          "default": "true",
+          "description": "Activation condition; inactive communication contributes zero.",
+          "minLength": 1,
+          "title": "When",
+          "type": "string"
+        }
+      },
+      "required": [
+        "op",
+        "group",
+        "logical_bytes",
+        "bus_bytes"
+      ],
+      "title": "Comm",
+      "type": "object"
+    },
+    "IREdge": {
+      "additionalProperties": false,
+      "properties": {
+        "from": {
+          "description": "Producer IRNode.id.",
+          "title": "From",
+          "type": "string"
+        },
+        "id": {
+          "description": "Stable unique semantic edge key.",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "description": "Semantic edge style.",
+          "enum": [
+            "data",
+            "kv",
+            "residual"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "tensor": {
+          "$ref": "#/$defs/TensorSpec",
+          "description": "Transported tensor and symbolic shape."
+        },
+        "to": {
+          "description": "Consumer IRNode.id.",
+          "title": "To",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "from",
+        "to",
+        "tensor",
+        "kind"
+      ],
+      "title": "IREdge",
+      "type": "object"
+    },
+    "IRNode": {
+      "additionalProperties": false,
+      "properties": {
+        "ascend": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AscendTag"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Reviewed overlay; absence means no claim of Ascend differences."
+        },
+        "bytes_moved": {
+          "$ref": "#/$defs/PhaseExpr",
+          "description": "Local-rank estimated HBM bytes read/written per phase, excluding communication bus bytes."
+        },
+        "class": {
+          "description": "Qualified baseline class or semantic operation symbol.",
+          "title": "Class",
+          "type": "string"
+        },
+        "comm": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Comm"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Collective metadata or null; traffic is separate from HBM bytes."
+        },
+        "flops": {
+          "$ref": "#/$defs/PhaseExpr",
+          "description": "Local-rank floating-point work; one multiply-add is two FLOPs."
+        },
+        "id": {
+          "description": "Stable semantic node key; does not encode layout coordinates or mutable labels.",
+          "title": "Id",
+          "type": "string"
+        },
+        "in": {
+          "description": "Named input tensor slots, each with symbolic local shape.",
+          "items": {
+            "$ref": "#/$defs/TensorSpec"
+          },
+          "title": "In",
+          "type": "array"
+        },
+        "kind": {
+          "description": "Semantic node category; group metrics summarize descendants.",
+          "enum": [
+            "compute",
+            "comm",
+            "io",
+            "group"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "label": {
+          "description": "Human-readable node label, independent of identity.",
+          "title": "Label",
+          "type": "string"
+        },
+        "notes": {
+          "description": "Formula assumptions/limitations, shown in details.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "out": {
+          "description": "Named output tensor slots, each with symbolic local shape.",
+          "items": {
+            "$ref": "#/$defs/TensorSpec"
+          },
+          "title": "Out",
+          "type": "array"
+        },
+        "parallel": {
+          "additionalProperties": {
+            "$ref": "#/$defs/ParallelAxis"
+          },
+          "description": "Extensible ParallelSpec axes, including tp/pp/dp/ep/sp/dcp/pcp where supported.",
+          "title": "Parallel",
+          "type": "object"
+        },
+        "parent": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Containing group node id; null for top-level nodes. Acyclic hierarchy.",
+          "title": "Parent"
+        },
+        "rule": {
+          "description": "Matched Rule.id; coverage gate fails if no rule matches.",
+          "title": "Rule",
+          "type": "string"
+        },
+        "src": {
+          "$ref": "#/$defs/SourceRef",
+          "description": "Baseline class/function declaration resolved by script."
+        },
+        "weight_bytes": {
+          "description": "Resident weight bytes on this rank; group totals include descendants, never sum groups and children together.",
+          "minLength": 1,
+          "title": "Weight Bytes",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "class",
+        "src",
+        "rule",
+        "label",
+        "in",
+        "out",
+        "weight_bytes",
+        "flops",
+        "bytes_moved"
+      ],
+      "title": "IRNode",
+      "type": "object"
+    },
+    "LayerGroup": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "description": "Stable layer-band key, used by L1:<band>.",
+          "title": "Id",
+          "type": "string"
+        },
+        "layers": {
+          "description": "Inclusive start/end layer indices as expression strings.",
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "description": "Expression in docs/expr-dsl.md; never a JSON number.",
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "description": "Expression in docs/expr-dsl.md; never a JSON number.",
+              "minLength": 1,
+              "type": "string"
+            }
+          ],
+          "title": "Layers",
+          "type": "array"
+        },
+        "representative_layer": {
+          "description": "Representative zero-based layer index as an expression string.",
+          "minLength": 1,
+          "title": "Representative Layer",
+          "type": "string"
+        },
+        "template": {
+          "description": "Decoder/group IR node id instantiated for this layer band.",
+          "title": "Template",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "layers",
+        "template",
+        "representative_layer"
+      ],
+      "title": "LayerGroup",
+      "type": "object"
+    },
+    "Memory": {
+      "additionalProperties": false,
+      "properties": {
+        "activation_peak": {
+          "description": "Peak live HBM bytes during max_num_batched_tokens profiling; include sampler/logits peak.",
+          "minLength": 1,
+          "title": "Activation Peak",
+          "type": "string"
+        },
+        "kv_per_token": {
+          "description": "Local-rank KV bytes for one cached token across resident layers, including KV head replication.",
+          "minLength": 1,
+          "title": "Kv Per Token",
+          "type": "string"
+        },
+        "kv_tokens": {
+          "description": "Local-rank cache token capacity, floored to whole block_size blocks after all budget deductions.",
+          "minLength": 1,
+          "title": "Kv Tokens",
+          "type": "string"
+        },
+        "non_torch": {
+          "description": "Explicit configured non-torch bytes; zero is an excluded estimate, not proof of no overhead.",
+          "minLength": 1,
+          "title": "Non Torch",
+          "type": "string"
+        },
+        "reserved": {
+          "description": "Explicit additional reserved bytes deducted from KV budget; no double counting.",
+          "minLength": 1,
+          "title": "Reserved",
+          "type": "string"
+        },
+        "unmodelled": {
+          "description": "Named exclusions/uncertainties (graph capture, allocator fragmentation, HCCL workspace); prose, not numeric expressions.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Unmodelled",
+          "type": "array"
+        },
+        "weights": {
+          "description": "Resident bytes on the heaviest PP rank, accounting for tied weights, padding, and replicated parameters.",
+          "minLength": 1,
+          "title": "Weights",
+          "type": "string"
+        }
+      },
+      "required": [
+        "weights",
+        "kv_per_token",
+        "kv_tokens",
+        "activation_peak",
+        "non_torch",
+        "reserved",
+        "unmodelled"
+      ],
+      "title": "Memory",
+      "type": "object"
+    },
+    "ModelRef": {
+      "additionalProperties": false,
+      "properties": {
+        "config_rev": {
+          "description": "HF commit SHA or inline:sha256:<canonical-config-hash>; no weights revision.",
+          "title": "Config Rev",
+          "type": "string"
+        },
+        "hf_id": {
+          "description": "Hugging Face repository identifier, e.g. Qwen/Qwen3-30B-A3B.",
+          "title": "Hf Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "hf_id",
+        "config_rev"
+      ],
+      "title": "ModelRef",
+      "type": "object"
+    },
+    "ParallelAxis": {
+      "additionalProperties": false,
+      "properties": {
+        "dim": {
+          "description": "Shard dimension/strategy: in, out, intermediate, experts, layers, replicated, tokens, or a dimension expression.",
+          "title": "Dim",
+          "type": "string"
+        }
+      },
+      "required": [
+        "dim"
+      ],
+      "title": "ParallelAxis",
+      "type": "object"
+    },
+    "ParamSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "choices": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Allowed literals for dtype/enum or discrete numeric parameters.",
+          "title": "Choices"
+        },
+        "default": {
+          "description": "Numeric/boolean expression literal, or raw dtype/enum string. Bind into env before evaluating expressions.",
+          "title": "Default",
+          "type": "string"
+        },
+        "description": {
+          "description": "Meaning and units; integer ep is a degree, not enable_expert_parallel.",
+          "title": "Description",
+          "type": "string"
+        },
+        "kind": {
+          "description": "UI/control and environment value type.",
+          "enum": [
+            "integer",
+            "number",
+            "boolean",
+            "dtype",
+            "enum"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "max": {
+          "anyOf": [
+            {
+              "description": "Expression in docs/expr-dsl.md; never a JSON number.",
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Inclusive numeric upper bound expression.",
+          "title": "Max"
+        },
+        "min": {
+          "anyOf": [
+            {
+              "description": "Expression in docs/expr-dsl.md; never a JSON number.",
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Inclusive numeric lower bound expression.",
+          "title": "Min"
+        },
+        "step": {
+          "anyOf": [
+            {
+              "description": "Expression in docs/expr-dsl.md; never a JSON number.",
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Numeric control increment expression.",
+          "title": "Step"
+        }
+      },
+      "required": [
+        "kind",
+        "default",
+        "description"
+      ],
+      "title": "ParamSpec",
+      "type": "object"
+    },
+    "PhaseExpr": {
+      "additionalProperties": false,
+      "properties": {
+        "decode": {
+          "description": "Work for one decode step of S local-attention sequences.",
+          "minLength": 1,
+          "title": "Decode",
+          "type": "string"
+        },
+        "prefill": {
+          "description": "Work per prefill chunk of T local-attention tokens.",
+          "minLength": 1,
+          "title": "Prefill",
+          "type": "string"
+        }
+      },
+      "required": [
+        "prefill",
+        "decode"
+      ],
+      "title": "PhaseExpr",
+      "type": "object"
+    },
+    "Revision": {
+      "additionalProperties": false,
+      "properties": {
+        "commit": {
+          "description": "Full immutable Git commit SHA, never an abbreviated hash.",
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Commit",
+          "type": "string"
+        },
+        "tag": {
+          "description": "Release tag or main; display only, identity is commit.",
+          "title": "Tag",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tag",
+        "commit"
+      ],
+      "title": "Revision",
+      "type": "object"
+    },
+    "Snapshot": {
+      "additionalProperties": false,
+      "properties": {
+        "ascend": {
+          "$ref": "#/$defs/Revision",
+          "description": "Paired vllm-ascend revision, including for the baseline graph."
+        },
+        "device": {
+          "description": "Selected hardware profile; H100 is a reference profile.",
+          "enum": [
+            "A2",
+            "A3",
+            "A5",
+            "310P",
+            "H100"
+          ],
+          "title": "Device",
+          "type": "string"
+        },
+        "generator_version": {
+          "description": "Generator package version; no generation timestamp.",
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "model": {
+          "$ref": "#/$defs/ModelRef",
+          "description": "Model identity plus immutable configuration identity."
+        },
+        "vllm": {
+          "$ref": "#/$defs/Revision",
+          "description": "Paired vLLM revision resolved before extraction."
+        }
+      },
+      "required": [
+        "vllm",
+        "ascend",
+        "model",
+        "device",
+        "generator_version"
+      ],
+      "title": "Snapshot",
+      "type": "object"
+    },
+    "SourceRef": {
+      "additionalProperties": false,
+      "properties": {
+        "commit": {
+          "description": "Full source commit; vllm/ascend must agree with Snapshot.",
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Commit",
+          "type": "string"
+        },
+        "file": {
+          "description": "Repository-relative POSIX path, without a URL or line fragment.",
+          "title": "File",
+          "type": "string"
+        },
+        "line": {
+          "description": "One-based class/def declaration line found by AST/inspect, never agent-authored.",
+          "minimum": 1,
+          "title": "Line",
+          "type": "integer"
+        },
+        "repo": {
+          "description": "Source repository, used to construct immutable links.",
+          "enum": [
+            "vllm",
+            "vllm-ascend",
+            "pytorch"
+          ],
+          "title": "Repo",
+          "type": "string"
+        },
+        "symbol": {
+          "description": "Qualified class/function symbol resolved by the extraction script.",
+          "title": "Symbol",
+          "type": "string"
+        }
+      },
+      "required": [
+        "repo",
+        "file",
+        "line",
+        "commit",
+        "symbol"
+      ],
+      "title": "SourceRef",
+      "type": "object"
+    },
+    "TensorSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "dtype": {
+          "default": "dtype_a",
+          "description": "Dtype symbol or builtin dtype name, consumed by bytes().",
+          "minLength": 1,
+          "title": "Dtype",
+          "type": "string"
+        },
+        "name": {
+          "description": "Local input/output slot name; multiple inputs/outputs stay separate.",
+          "title": "Name",
+          "type": "string"
+        },
+        "shape": {
+          "description": "Local-rank dimensions as DSL expressions, in dimension order.",
+          "items": {
+            "description": "Expression in docs/expr-dsl.md; never a JSON number.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Shape",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "shape"
+      ],
+      "title": "TensorSpec",
+      "type": "object"
+    },
+    "ViewFamily": {
+      "additionalProperties": false,
+      "properties": {
+        "family": {
+          "description": "Curated layout family; no raw module tree rendering.",
+          "enum": [
+            "dense",
+            "moe",
+            "mla",
+            "hybrid",
+            "vlm"
+          ],
+          "title": "Family",
+          "type": "string"
+        }
+      },
+      "required": [
+        "family"
+      ],
+      "title": "ViewFamily",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "edges": {
+      "description": "Semantic edges in stable id order; endpoints refer to nodes.",
+      "items": {
+        "$ref": "#/$defs/IREdge"
+      },
+      "title": "Edges",
+      "type": "array"
+    },
+    "groups": {
+      "description": "Decoder layer bands in stable id order; representative template is not all layers expanded.",
+      "items": {
+        "$ref": "#/$defs/LayerGroup"
+      },
+      "title": "Groups",
+      "type": "array"
+    },
+    "memory": {
+      "$ref": "#/$defs/Memory",
+      "description": "Authoritative rank-local memory ledger; independent of diagram summaries."
+    },
+    "nodes": {
+      "description": "Semantic nodes in stable id order; use parent for hierarchy and avoid double-counting summaries.",
+      "items": {
+        "$ref": "#/$defs/IRNode"
+      },
+      "title": "Nodes",
+      "type": "array"
+    },
+    "notes": {
+      "description": "Accounting conventions and known approximation boundaries.",
+      "items": {
+        "type": "string"
+      },
+      "title": "Notes",
+      "type": "array"
+    },
+    "params": {
+      "additionalProperties": {
+        "$ref": "#/$defs/ParamSpec"
+      },
+      "description": "Runtime controls keyed by DSL identifier, sorted by key; source of defaults and domains.",
+      "title": "Params",
+      "type": "object"
+    },
+    "snapshot": {
+      "$ref": "#/$defs/Snapshot",
+      "description": "Immutable graph identity."
+    },
+    "symbols": {
+      "additionalProperties": {
+        "description": "Expression in docs/expr-dsl.md; never a JSON number.",
+        "minLength": 1,
+        "type": "string"
+      },
+      "description": "Config constants as expression literals, e.g. H='2048'; bind evaluated constants into env.",
+      "title": "Symbols",
+      "type": "object"
+    },
+    "views": {
+      "$ref": "#/$defs/ViewFamily",
+      "description": "Layout family selector."
+    }
+  },
+  "required": [
+    "snapshot",
+    "symbols",
+    "params",
+    "nodes",
+    "edges",
+    "groups",
+    "memory",
+    "views"
+  ],
+  "title": "IR",
+  "type": "object"
+}

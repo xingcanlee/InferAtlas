@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "anchor_hash": {
+      "description": "sha256 of source anchor computed by scripts; changed hash invalidates annotation.",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Anchor Hash",
+      "type": "string"
+    },
+    "applies_when": {
+      "description": "DSL predicate over declared config/runtime/profile symbols.",
+      "minLength": 1,
+      "title": "Applies When",
+      "type": "string"
+    },
+    "id": {
+      "description": "Stable reviewed annotation id.",
+      "title": "Id",
+      "type": "string"
+    },
+    "level": {
+      "description": "Reviewed significance, independent of badge tag.",
+      "enum": [
+        "KERNEL",
+        "LAYOUT",
+        "SEMANTIC"
+      ],
+      "title": "Level",
+      "type": "string"
+    },
+    "note": {
+      "description": "Reviewed explanation; no authored measurements or source line numbers.",
+      "title": "Note",
+      "type": "string"
+    },
+    "resolves_to": {
+      "description": "Qualified replacement/patch target symbol resolved by scripts.",
+      "title": "Resolves To",
+      "type": "string"
+    },
+    "reviewed_by": {
+      "description": "Maintainer review identity; fixtures must explicitly say fixture.",
+      "minLength": 1,
+      "title": "Reviewed By",
+      "type": "string"
+    },
+    "tag": {
+      "description": "Sorted badge tags; scripts may derive OOT/PATCH from facts.",
+      "items": {
+        "enum": [
+          "OOT",
+          "PATCH",
+          "QUANT",
+          "FUSED"
+        ],
+        "type": "string"
+      },
+      "title": "Tag",
+      "type": "array"
+    },
+    "target": {
+      "description": "Qualified symbol only; agent must not author source paths/line numbers.",
+      "title": "Target",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "target",
+    "anchor_hash",
+    "applies_when",
+    "resolves_to",
+    "level",
+    "note",
+    "reviewed_by"
+  ],
+  "title": "Annotation",
+  "type": "object"
+}

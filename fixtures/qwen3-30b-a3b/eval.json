@@ -1,0 +1,63 @@
+{
+  "cases": [
+    {
+      "env": {
+        "S": 1,
+        "T": 4096,
+        "dp": 1,
+        "dtype_a": "bf16",
+        "dtype_kv": "bf16",
+        "dtype_w": "bf16",
+        "ep": 1,
+        "pp": 1,
+        "tp": 1
+      },
+      "expected": {
+        "memory.kv_per_token": 98304,
+        "memory.weights": 61064245248,
+        "nodes.attn.qkv.flops.prefill": 85899345920,
+        "nodes.attn.qkv.out.0.shape": [
+          4096,
+          32,
+          128
+        ],
+        "nodes.attn.qkv.weight_bytes": 20971520,
+        "nodes.attn.reduce.comm.bus_bytes": 0,
+        "nodes.moe.gate.weight_bytes": 524288,
+        "nodes.moe.w13.weight_bytes": 805306368,
+        "nodes.moe.w2.weight_bytes": 402653184
+      },
+      "id": "tp1-bf16-T4096"
+    },
+    {
+      "env": {
+        "S": 1,
+        "T": 4096,
+        "dp": 1,
+        "dtype_a": "bf16",
+        "dtype_kv": "bf16",
+        "dtype_w": "bf16",
+        "ep": 1,
+        "pp": 1,
+        "tp": 4
+      },
+      "expected": {
+        "memory.kv_per_token": 24576,
+        "memory.weights": 15285252096,
+        "nodes.attn.qkv.flops.prefill": 21474836480,
+        "nodes.attn.qkv.out.0.shape": [
+          4096,
+          8,
+          128
+        ],
+        "nodes.attn.qkv.weight_bytes": 5242880,
+        "nodes.attn.reduce.comm.bus_bytes": 25165824.0,
+        "nodes.moe.gate.weight_bytes": 524288,
+        "nodes.moe.w13.weight_bytes": 201326592,
+        "nodes.moe.w2.weight_bytes": 100663296
+      },
+      "id": "tp4-bf16-T4096"
+    }
+  ],
+  "model": "Qwen/Qwen3-30B-A3B"
+}

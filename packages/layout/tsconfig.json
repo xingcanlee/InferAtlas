@@ -1,0 +1,7 @@
+{
+  "extends": "../contracts/tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "files": ["../contracts/src/expr.ts"]
+}

@@ -1,0 +1,225 @@
+{
+  "$defs": {
+    "Comm": {
+      "additionalProperties": false,
+      "properties": {
+        "bus_bytes": {
+          "description": "Local-rank estimated link traffic, includes collective algorithm factor; zero when inactive.",
+          "minLength": 1,
+          "title": "Bus Bytes",
+          "type": "string"
+        },
+        "group": {
+          "description": "Parallel group name (tp/ep/pp/dp) or a rule-declared group.",
+          "title": "Group",
+          "type": "string"
+        },
+        "logical_bytes": {
+          "description": "Local-rank logical tensor bytes per prefill invocation; use T=S for decode.",
+          "minLength": 1,
+          "title": "Logical Bytes",
+          "type": "string"
+        },
+        "notes": {
+          "description": "Ring/dispatch/routing assumptions, especially EP uniform routing.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "op": {
+          "description": "Logical collective; fused kernels retain semantic communication metadata.",
+          "enum": [
+            "all_reduce",
+            "all_gather",
+            "reduce_scatter",
+            "all_to_all",
+            "send_recv",
+            "none"
+          ],
+          "title": "Op",
+          "type": "string"
+        },
+        "when": {
+          "default": "true",
+          "description": "Activation condition; inactive communication contributes zero.",
+          "minLength": 1,
+          "title": "When",
+          "type": "string"
+        }
+      },
+      "required": [
+        "op",
+        "group",
+        "logical_bytes",
+        "bus_bytes"
+      ],
+      "title": "Comm",
+      "type": "object"
+    },
+    "PhaseExpr": {
+      "additionalProperties": false,
+      "properties": {
+        "decode": {
+          "description": "Work for one decode step of S local-attention sequences.",
+          "minLength": 1,
+          "title": "Decode",
+          "type": "string"
+        },
+        "prefill": {
+          "description": "Work per prefill chunk of T local-attention tokens.",
+          "minLength": 1,
+          "title": "Prefill",
+          "type": "string"
+        }
+      },
+      "required": [
+        "prefill",
+        "decode"
+      ],
+      "title": "PhaseExpr",
+      "type": "object"
+    },
+    "RuleMatch": {
+      "additionalProperties": false,
+      "properties": {
+        "ascend": {
+          "default": "",
+          "description": "PEP 440 SpecifierSet for vllm-ascend; empty means any.",
+          "title": "Ascend",
+          "type": "string"
+        },
+        "class": {
+          "description": "Exact qualified class or exact short class name; qualified match wins, no glob/regex matching.",
+          "title": "Class",
+          "type": "string"
+        },
+        "vllm": {
+          "default": "",
+          "description": "PEP 440 SpecifierSet; empty means any. For development commits use base package version plus snapshot identity.",
+          "title": "Vllm",
+          "type": "string"
+        },
+        "when": {
+          "default": "true",
+          "description": "Additional DSL applicability predicate over declared symbols/attrs/params.",
+          "minLength": 1,
+          "title": "When",
+          "type": "string"
+        }
+      },
+      "required": [
+        "class"
+      ],
+      "title": "RuleMatch",
+      "type": "object"
+    },
+    "TensorSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "dtype": {
+          "default": "dtype_a",
+          "description": "Dtype symbol or builtin dtype name, consumed by bytes().",
+          "minLength": 1,
+          "title": "Dtype",
+          "type": "string"
+        },
+        "name": {
+          "description": "Local input/output slot name; multiple inputs/outputs stay separate.",
+          "title": "Name",
+          "type": "string"
+        },
+        "shape": {
+          "description": "Local-rank dimensions as DSL expressions, in dimension order.",
+          "items": {
+            "description": "Expression in docs/expr-dsl.md; never a JSON number.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Shape",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "shape"
+      ],
+      "title": "TensorSpec",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "bytes_moved": {
+      "$ref": "#/$defs/PhaseExpr",
+      "description": "Phase-specific estimated HBM byte expressions."
+    },
+    "comm": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Comm"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Collective metadata or null; same representation as IR."
+    },
+    "flops": {
+      "$ref": "#/$defs/PhaseExpr",
+      "description": "Phase-specific FLOP expressions, not a scalar shorthand."
+    },
+    "id": {
+      "description": "Stable rule key; multiple matching rules are an error, never pick by file order.",
+      "title": "Id",
+      "type": "string"
+    },
+    "match": {
+      "$ref": "#/$defs/RuleMatch",
+      "description": "Class, upstream version ranges and optional predicate."
+    },
+    "notes": {
+      "description": "Assumptions and explanation of non-obvious formula terms.",
+      "items": {
+        "type": "string"
+      },
+      "title": "Notes",
+      "type": "array"
+    },
+    "out": {
+      "description": "Output tensor slots with expression dimensions, same representation as IR.",
+      "items": {
+        "$ref": "#/$defs/TensorSpec"
+      },
+      "title": "Out",
+      "type": "array"
+    },
+    "shard": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Parallel axis to shard dimension/strategy, converted into IR parallel axes.",
+      "title": "Shard",
+      "type": "object"
+    },
+    "weight": {
+      "description": "Resident local-rank weight bytes expression, including scale/padding overhead when modelled.",
+      "minLength": 1,
+      "title": "Weight",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "match",
+    "out",
+    "weight",
+    "flops",
+    "bytes_moved"
+  ],
+  "title": "Rule",
+  "type": "object"
+}

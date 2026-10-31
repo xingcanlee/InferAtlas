@@ -1,0 +1,43 @@
+[
+  {
+    "bytes_moved": {
+      "decode": "(H*Hq*D/tp*bytes(dtype_w))+S*(H+Hq*D/tp)*bytes(dtype_a)",
+      "prefill": "(H*Hq*D/tp*bytes(dtype_w))+T*(H+Hq*D/tp)*bytes(dtype_a)"
+    },
+    "comm": {
+      "bus_bytes": "tp>1 ? 2*(tp-1)/tp*T*H*bytes(dtype_a) : 0",
+      "group": "tp",
+      "logical_bytes": "T*H*bytes(dtype_a)",
+      "op": "all_reduce",
+      "when": "tp>1"
+    },
+    "flops": {
+      "decode": "2*S*Hq*D*H/tp",
+      "prefill": "2*T*Hq*D*H/tp"
+    },
+    "id": "fixture.linear.row",
+    "match": {
+      "ascend": ">=0.32,<0.33",
+      "class": "vllm.model_executor.layers.linear.RowParallelLinear",
+      "vllm": ">=0.32,<0.33",
+      "when": "true"
+    },
+    "notes": [
+      "Example only; activation applies to pinned development commits via resolved package version, not SHA ordering."
+    ],
+    "out": [
+      {
+        "dtype": "dtype_a",
+        "name": "hidden",
+        "shape": [
+          "T",
+          "H"
+        ]
+      }
+    ],
+    "shard": {
+      "tp": "in"
+    },
+    "weight": "H*Hq*D/tp*bytes(dtype_w)"
+  }
+]

@@ -1,0 +1,32 @@
+{
+  "checks": [
+    {
+      "id": "calibration",
+      "message": "Fixture has no NPU calibration.",
+      "status": "skip"
+    },
+    {
+      "id": "schema",
+      "message": "T0 contract examples validate.",
+      "status": "pass"
+    }
+  ],
+  "golden_diff": [],
+  "snapshot": {
+    "ascend": {
+      "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+      "tag": "main"
+    },
+    "device": "A2",
+    "generator_version": "0.1.0",
+    "model": {
+      "config_rev": "inline:sha256:ded54c732e9f874de266dfae8d98d409abbbb82cbecaeb1c0efe974cdd02262b",
+      "hf_id": "Qwen/Qwen3-30B-A3B"
+    },
+    "vllm": {
+      "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+      "tag": "main-verified"
+    }
+  },
+  "source_link_failures": []
+}

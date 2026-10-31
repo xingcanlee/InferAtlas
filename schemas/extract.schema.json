@@ -1,0 +1,419 @@
+{
+  "$defs": {
+    "AscendExtract": {
+      "additionalProperties": false,
+      "properties": {
+        "custom_ops": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Baseline short class name to qualified replacement class; all registered ops, even unused.",
+          "title": "Custom Ops",
+          "type": "object"
+        },
+        "device": {
+          "description": "Profile selected before upstream mocks are imported.",
+          "enum": [
+            "A2",
+            "A3",
+            "A5",
+            "310P",
+            "H100"
+          ],
+          "title": "Device",
+          "type": "string"
+        },
+        "patched": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Qualified patched symbol to repo-relative origin file; runtime identity diff is authoritative.",
+          "title": "Patched",
+          "type": "object"
+        },
+        "profile": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "description": "Declarative hardware profile and sorted capability names.",
+          "title": "Profile",
+          "type": "object"
+        }
+      },
+      "required": [
+        "device",
+        "profile",
+        "custom_ops",
+        "patched"
+      ],
+      "title": "AscendExtract",
+      "type": "object"
+    },
+    "ExtractModule": {
+      "additionalProperties": false,
+      "properties": {
+        "ascend": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ExtractOverride"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Observed replacement, absent/null if class identity did not change."
+        },
+        "attrs": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "description": "Whitelisted observed constructor/module attributes; facts only.",
+          "title": "Attrs",
+          "type": "object"
+        },
+        "class": {
+          "description": "Baseline fully qualified class; keep even when Ascend replacement is present.",
+          "title": "Class",
+          "type": "string"
+        },
+        "params": {
+          "description": "Direct parameters only, sorted by local name; do not recursively double count.",
+          "items": {
+            "$ref": "#/$defs/ExtractParam"
+          },
+          "title": "Params",
+          "type": "array"
+        },
+        "path": {
+          "description": "named_modules path, empty string for root; modules sorted lexically by path.",
+          "title": "Path",
+          "type": "string"
+        },
+        "src": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SourceRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Baseline declaration; null only for external containers such as torch ModuleList."
+        }
+      },
+      "required": [
+        "path",
+        "class"
+      ],
+      "title": "ExtractModule",
+      "type": "object"
+    },
+    "ExtractOverride": {
+      "additionalProperties": false,
+      "properties": {
+        "class": {
+          "description": "Actual Ascend class after CustomOp registration.",
+          "title": "Class",
+          "type": "string"
+        },
+        "src": {
+          "$ref": "#/$defs/SourceRef",
+          "description": "Actual replacement declaration from immutable source."
+        }
+      },
+      "required": [
+        "class",
+        "src"
+      ],
+      "title": "ExtractOverride",
+      "type": "object"
+    },
+    "ExtractParallel": {
+      "additionalProperties": false,
+      "properties": {
+        "dp": {
+          "default": 1,
+          "description": "Meta construction DP world size.",
+          "minimum": 1,
+          "title": "Dp",
+          "type": "integer"
+        },
+        "ep": {
+          "default": false,
+          "description": "vLLM enable_expert_parallel flag. IR ep is an integer degree; see DSL spec.",
+          "title": "Ep",
+          "type": "boolean"
+        },
+        "pp": {
+          "default": 1,
+          "description": "Meta construction PP world size.",
+          "minimum": 1,
+          "title": "Pp",
+          "type": "integer"
+        },
+        "rank": {
+          "default": 0,
+          "description": "Global construction rank; fixtures use rank zero.",
+          "minimum": 0,
+          "title": "Rank",
+          "type": "integer"
+        },
+        "tp": {
+          "default": 1,
+          "description": "Meta construction TP world size, not a runtime expression.",
+          "minimum": 1,
+          "title": "Tp",
+          "type": "integer"
+        }
+      },
+      "title": "ExtractParallel",
+      "type": "object"
+    },
+    "ExtractParam": {
+      "additionalProperties": false,
+      "properties": {
+        "dtype": {
+          "description": "Observed torch dtype normalized without torch. prefix, e.g. bfloat16.",
+          "title": "Dtype",
+          "type": "string"
+        },
+        "name": {
+          "description": "Local parameter name, e.g. weight or w13_weight, not a full module path.",
+          "title": "Name",
+          "type": "string"
+        },
+        "shape": {
+          "description": "Observed local-rank meta parameter dimensions, ordinary nonnegative integers.",
+          "items": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "title": "Shape",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "shape",
+        "dtype"
+      ],
+      "title": "ExtractParam",
+      "type": "object"
+    },
+    "JsonValue": {},
+    "ModelRef": {
+      "additionalProperties": false,
+      "properties": {
+        "config_rev": {
+          "description": "HF commit SHA or inline:sha256:<canonical-config-hash>; no weights revision.",
+          "title": "Config Rev",
+          "type": "string"
+        },
+        "hf_id": {
+          "description": "Hugging Face repository identifier, e.g. Qwen/Qwen3-30B-A3B.",
+          "title": "Hf Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "hf_id",
+        "config_rev"
+      ],
+      "title": "ModelRef",
+      "type": "object"
+    },
+    "Revision": {
+      "additionalProperties": false,
+      "properties": {
+        "commit": {
+          "description": "Full immutable Git commit SHA, never an abbreviated hash.",
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Commit",
+          "type": "string"
+        },
+        "tag": {
+          "description": "Release tag or main; display only, identity is commit.",
+          "title": "Tag",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tag",
+        "commit"
+      ],
+      "title": "Revision",
+      "type": "object"
+    },
+    "Snapshot": {
+      "additionalProperties": false,
+      "properties": {
+        "ascend": {
+          "$ref": "#/$defs/Revision",
+          "description": "Paired vllm-ascend revision, including for the baseline graph."
+        },
+        "device": {
+          "description": "Selected hardware profile; H100 is a reference profile.",
+          "enum": [
+            "A2",
+            "A3",
+            "A5",
+            "310P",
+            "H100"
+          ],
+          "title": "Device",
+          "type": "string"
+        },
+        "generator_version": {
+          "description": "Generator package version; no generation timestamp.",
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "model": {
+          "$ref": "#/$defs/ModelRef",
+          "description": "Model identity plus immutable configuration identity."
+        },
+        "vllm": {
+          "$ref": "#/$defs/Revision",
+          "description": "Paired vLLM revision resolved before extraction."
+        }
+      },
+      "required": [
+        "vllm",
+        "ascend",
+        "model",
+        "device",
+        "generator_version"
+      ],
+      "title": "Snapshot",
+      "type": "object"
+    },
+    "SourceRef": {
+      "additionalProperties": false,
+      "properties": {
+        "commit": {
+          "description": "Full source commit; vllm/ascend must agree with Snapshot.",
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Commit",
+          "type": "string"
+        },
+        "file": {
+          "description": "Repository-relative POSIX path, without a URL or line fragment.",
+          "title": "File",
+          "type": "string"
+        },
+        "line": {
+          "description": "One-based class/def declaration line found by AST/inspect, never agent-authored.",
+          "minimum": 1,
+          "title": "Line",
+          "type": "integer"
+        },
+        "repo": {
+          "description": "Source repository, used to construct immutable links.",
+          "enum": [
+            "vllm",
+            "vllm-ascend",
+            "pytorch"
+          ],
+          "title": "Repo",
+          "type": "string"
+        },
+        "symbol": {
+          "description": "Qualified class/function symbol resolved by the extraction script.",
+          "title": "Symbol",
+          "type": "string"
+        }
+      },
+      "required": [
+        "repo",
+        "file",
+        "line",
+        "commit",
+        "symbol"
+      ],
+      "title": "SourceRef",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "ascend": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AscendExtract"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "CPU/mock-derived overlay facts, not measured NPU behavior."
+    },
+    "config": {
+      "additionalProperties": {
+        "$ref": "#/$defs/JsonValue"
+      },
+      "description": "Full pinned HF config contents, no model weights.",
+      "title": "Config",
+      "type": "object"
+    },
+    "env": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Version strings only, e.g. python/torch; no host paths or timestamps.",
+      "title": "Env",
+      "type": "object"
+    },
+    "fixture": {
+      "default": false,
+      "description": "True for curated partial examples; false for production extraction.",
+      "title": "Fixture",
+      "type": "boolean"
+    },
+    "layer_types": {
+      "description": "One layer type per decoder layer in original execution order.",
+      "items": {
+        "type": "string"
+      },
+      "title": "Layer Types",
+      "type": "array"
+    },
+    "modules": {
+      "description": "Flat module tree in lexical path order; fixtures may include only layer zero.",
+      "items": {
+        "$ref": "#/$defs/ExtractModule"
+      },
+      "title": "Modules",
+      "type": "array"
+    },
+    "notes": {
+      "description": "Extraction limitations and provenance.",
+      "items": {
+        "type": "string"
+      },
+      "title": "Notes",
+      "type": "array"
+    },
+    "parallel": {
+      "$ref": "#/$defs/ExtractParallel",
+      "description": "Observed meta construction settings."
+    },
+    "snapshot": {
+      "$ref": "#/$defs/Snapshot",
+      "description": "Immutable extraction identity."
+    }
+  },
+  "required": [
+    "snapshot",
+    "config",
+    "parallel",
+    "modules",
+    "layer_types",
+    "env"
+  ],
+  "title": "Extract",
+  "type": "object"
+}

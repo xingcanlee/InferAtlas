@@ -1,0 +1,218 @@
+{
+  "$defs": {
+    "GraphView": {
+      "additionalProperties": false,
+      "properties": {
+        "collapsed_of": {
+          "description": "IR node ids represented by this collapsed view, sorted.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Collapsed Of",
+          "type": "array"
+        },
+        "edges": {
+          "description": "Orthogonal edges, stable id order; complexity budget <=12.",
+          "items": {
+            "$ref": "#/$defs/ViewEdge"
+          },
+          "maxItems": 12,
+          "title": "Edges",
+          "type": "array"
+        },
+        "height": {
+          "description": "View canvas height in pixels.",
+          "exclusiveMinimum": 0,
+          "multipleOf": 4,
+          "title": "Height",
+          "type": "integer"
+        },
+        "id": {
+          "description": "L0 overview, L1:<band>, or L2:<node>; L1 alone reserved for a single-band fixture.",
+          "pattern": "^(L0|L1(:.+)?|L2:.+)$",
+          "title": "Id",
+          "type": "string"
+        },
+        "nodes": {
+          "description": "Curated visible nodes, stable id order; complexity budget <=9.",
+          "items": {
+            "$ref": "#/$defs/ViewNode"
+          },
+          "maxItems": 9,
+          "title": "Nodes",
+          "type": "array"
+        },
+        "width": {
+          "description": "View canvas width in pixels.",
+          "exclusiveMinimum": 0,
+          "multipleOf": 4,
+          "title": "Width",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "nodes",
+        "edges",
+        "width",
+        "height"
+      ],
+      "title": "GraphView",
+      "type": "object"
+    },
+    "ViewEdge": {
+      "additionalProperties": false,
+      "properties": {
+        "from": {
+          "description": "Producer ViewNode.id, not an IR node id.",
+          "title": "From",
+          "type": "string"
+        },
+        "id": {
+          "description": "View-local unique edge id.",
+          "title": "Id",
+          "type": "string"
+        },
+        "label_pos": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "minimum": 0,
+                  "multipleOf": 4,
+                  "type": "integer"
+                },
+                {
+                  "minimum": 0,
+                  "multipleOf": 4,
+                  "type": "integer"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional precomputed edge-label center in pixels, on the 4px grid.",
+          "title": "Label Pos"
+        },
+        "points": {
+          "description": "Ordered source-to-target orthogonal polyline, including endpoints; all coordinates on 4px grid.",
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "minimum": 0,
+                "multipleOf": 4,
+                "type": "integer"
+              },
+              {
+                "minimum": 0,
+                "multipleOf": 4,
+                "type": "integer"
+              }
+            ],
+            "type": "array"
+          },
+          "minItems": 2,
+          "title": "Points",
+          "type": "array"
+        },
+        "to": {
+          "description": "Consumer ViewNode.id.",
+          "title": "To",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "from",
+        "to",
+        "points"
+      ],
+      "title": "ViewEdge",
+      "type": "object"
+    },
+    "ViewNode": {
+      "additionalProperties": false,
+      "properties": {
+        "h": {
+          "description": "Height in pixels on a 4px grid.",
+          "exclusiveMinimum": 0,
+          "multipleOf": 4,
+          "title": "H",
+          "type": "integer"
+        },
+        "id": {
+          "description": "View-local unique node id.",
+          "title": "Id",
+          "type": "string"
+        },
+        "ir_node": {
+          "description": "Referenced IRNode.id; multiple view instances may reference one template.",
+          "title": "Ir Node",
+          "type": "string"
+        },
+        "label": {
+          "description": "Visible label; may specialize a representative layer.",
+          "title": "Label",
+          "type": "string"
+        },
+        "w": {
+          "description": "Width in pixels on a 4px grid.",
+          "exclusiveMinimum": 0,
+          "multipleOf": 4,
+          "title": "W",
+          "type": "integer"
+        },
+        "x": {
+          "description": "Left coordinate in pixels on a 4px grid.",
+          "minimum": 0,
+          "multipleOf": 4,
+          "title": "X",
+          "type": "integer"
+        },
+        "y": {
+          "description": "Top coordinate in pixels on a 4px grid.",
+          "minimum": 0,
+          "multipleOf": 4,
+          "title": "Y",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "ir_node",
+        "x",
+        "y",
+        "w",
+        "h",
+        "label"
+      ],
+      "title": "ViewNode",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "views": {
+      "description": "Precomputed drill-down views in stable id order; no browser-time layout.",
+      "items": {
+        "$ref": "#/$defs/GraphView"
+      },
+      "title": "Views",
+      "type": "array"
+    }
+  },
+  "required": [
+    "views"
+  ],
+  "title": "View",
+  "type": "object"
+}

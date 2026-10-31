@@ -1,0 +1,80 @@
+{
+  "$defs": {
+    "EvalCase": {
+      "additionalProperties": false,
+      "properties": {
+        "env": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "boolean"
+              }
+            ]
+          },
+          "description": "Overrides of IR params; bind IR symbols and defaults first. Raw values, not expressions.",
+          "title": "Env",
+          "type": "object"
+        },
+        "expected": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "items": {
+                  "type": "number"
+                },
+                "type": "array"
+              }
+            ]
+          },
+          "description": "Expected values keyed by memory.<field> or nodes.<id>.<field>; shape values are arrays, e.g. nodes.attn.qkv.out.0.shape.",
+          "title": "Expected",
+          "type": "object"
+        },
+        "id": {
+          "description": "Stable named evaluation case.",
+          "title": "Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "env",
+        "expected"
+      ],
+      "title": "EvalCase",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "cases": {
+      "description": "Golden numeric examples in stable case id order; no evaluator implementation in Python.",
+      "items": {
+        "$ref": "#/$defs/EvalCase"
+      },
+      "title": "Cases",
+      "type": "array"
+    },
+    "model": {
+      "description": "Fixture IR snapshot.model.hf_id.",
+      "title": "Model",
+      "type": "string"
+    }
+  },
+  "required": [
+    "model",
+    "cases"
+  ],
+  "title": "Eval",
+  "type": "object"
+}

@@ -1,0 +1,652 @@
+{
+  "views": [
+    {
+      "collapsed_of": [
+        "decoder"
+      ],
+      "edges": [
+        {
+          "from": "input",
+          "id": "e0",
+          "label_pos": [
+            232,
+            80
+          ],
+          "points": [
+            [
+              208,
+              96
+            ],
+            [
+              256,
+              96
+            ]
+          ],
+          "to": "embed"
+        },
+        {
+          "from": "embed",
+          "id": "e1",
+          "label_pos": [
+            440,
+            80
+          ],
+          "points": [
+            [
+              416,
+              96
+            ],
+            [
+              464,
+              96
+            ]
+          ],
+          "to": "decoder"
+        },
+        {
+          "from": "decoder",
+          "id": "e2",
+          "label_pos": [
+            648,
+            80
+          ],
+          "points": [
+            [
+              624,
+              96
+            ],
+            [
+              672,
+              96
+            ]
+          ],
+          "to": "final_norm"
+        },
+        {
+          "from": "final_norm",
+          "id": "e3",
+          "label_pos": [
+            856,
+            80
+          ],
+          "points": [
+            [
+              832,
+              96
+            ],
+            [
+              880,
+              96
+            ]
+          ],
+          "to": "lm_head"
+        },
+        {
+          "from": "lm_head",
+          "id": "e4",
+          "label_pos": [
+            1064,
+            80
+          ],
+          "points": [
+            [
+              1040,
+              96
+            ],
+            [
+              1088,
+              96
+            ]
+          ],
+          "to": "output"
+        }
+      ],
+      "height": 192,
+      "id": "L0",
+      "nodes": [
+        {
+          "h": 64,
+          "id": "decoder",
+          "ir_node": "decoder",
+          "label": "MoE decoder × L",
+          "w": 160,
+          "x": 464,
+          "y": 64
+        },
+        {
+          "h": 64,
+          "id": "embed",
+          "ir_node": "embed",
+          "label": "Embedding",
+          "w": 160,
+          "x": 256,
+          "y": 64
+        },
+        {
+          "h": 64,
+          "id": "final_norm",
+          "ir_node": "final_norm",
+          "label": "Final RMSNorm",
+          "w": 160,
+          "x": 672,
+          "y": 64
+        },
+        {
+          "h": 64,
+          "id": "input",
+          "ir_node": "input",
+          "label": "Token IDs",
+          "w": 160,
+          "x": 48,
+          "y": 64
+        },
+        {
+          "h": 64,
+          "id": "lm_head",
+          "ir_node": "lm_head",
+          "label": "LM head",
+          "w": 160,
+          "x": 880,
+          "y": 64
+        },
+        {
+          "h": 64,
+          "id": "output",
+          "ir_node": "output",
+          "label": "Logits / sampling",
+          "w": 160,
+          "x": 1088,
+          "y": 64
+        }
+      ],
+      "width": 1296
+    },
+    {
+      "collapsed_of": [
+        "attn",
+        "moe"
+      ],
+      "edges": [
+        {
+          "from": "norm.input",
+          "id": "e0",
+          "label_pos": [
+            232,
+            80
+          ],
+          "points": [
+            [
+              208,
+              96
+            ],
+            [
+              256,
+              96
+            ]
+          ],
+          "to": "attn"
+        },
+        {
+          "from": "attn",
+          "id": "e1",
+          "label_pos": [
+            440,
+            80
+          ],
+          "points": [
+            [
+              416,
+              96
+            ],
+            [
+              464,
+              96
+            ]
+          ],
+          "to": "norm.post"
+        },
+        {
+          "from": "norm.post",
+          "id": "e2",
+          "label_pos": [
+            648,
+            80
+          ],
+          "points": [
+            [
+              624,
+              96
+            ],
+            [
+              672,
+              96
+            ]
+          ],
+          "to": "moe"
+        },
+        {
+          "from": "norm.input",
+          "id": "residual",
+          "label_pos": [
+            336,
+            160
+          ],
+          "points": [
+            [
+              128,
+              128
+            ],
+            [
+              128,
+              160
+            ],
+            [
+              544,
+              160
+            ],
+            [
+              544,
+              128
+            ]
+          ],
+          "to": "norm.post"
+        }
+      ],
+      "height": 192,
+      "id": "L1",
+      "nodes": [
+        {
+          "h": 64,
+          "id": "attn",
+          "ir_node": "attn",
+          "label": "GQA attention",
+          "w": 160,
+          "x": 256,
+          "y": 64
+        },
+        {
+          "h": 64,
+          "id": "moe",
+          "ir_node": "moe",
+          "label": "Sparse MoE · topk / E",
+          "w": 160,
+          "x": 672,
+          "y": 64
+        },
+        {
+          "h": 64,
+          "id": "norm.input",
+          "ir_node": "norm.input",
+          "label": "Input RMSNorm",
+          "w": 160,
+          "x": 48,
+          "y": 64
+        },
+        {
+          "h": 64,
+          "id": "norm.post",
+          "ir_node": "norm.post",
+          "label": "Residual + RMSNorm",
+          "w": 160,
+          "x": 464,
+          "y": 64
+        }
+      ],
+      "width": 880
+    },
+    {
+      "collapsed_of": [
+        "attn.k_norm",
+        "attn.q_norm",
+        "attn.rope.apply"
+      ],
+      "edges": [
+        {
+          "from": "attn.qkv",
+          "id": "e0",
+          "label_pos": [
+            232,
+            80
+          ],
+          "points": [
+            [
+              208,
+              96
+            ],
+            [
+              256,
+              96
+            ]
+          ],
+          "to": "attn.qk_norm"
+        },
+        {
+          "from": "attn.qk_norm",
+          "id": "e1",
+          "label_pos": [
+            440,
+            80
+          ],
+          "points": [
+            [
+              416,
+              96
+            ],
+            [
+              464,
+              96
+            ]
+          ],
+          "to": "attn.rope"
+        },
+        {
+          "from": "attn.rope",
+          "id": "e2",
+          "label_pos": [
+            648,
+            80
+          ],
+          "points": [
+            [
+              624,
+              96
+            ],
+            [
+              672,
+              96
+            ]
+          ],
+          "to": "attn.core"
+        },
+        {
+          "from": "attn.core",
+          "id": "e3",
+          "label_pos": [
+            856,
+            80
+          ],
+          "points": [
+            [
+              832,
+              96
+            ],
+            [
+              880,
+              96
+            ]
+          ],
+          "to": "attn.o"
+        },
+        {
+          "from": "attn.o",
+          "id": "e4",
+          "label_pos": [
+            1064,
+            80
+          ],
+          "points": [
+            [
+              1040,
+              96
+            ],
+            [
+              1088,
+              96
+            ]
+          ],
+          "to": "attn.reduce"
+        }
+      ],
+      "height": 192,
+      "id": "L2:attn",
+      "nodes": [
+        {
+          "h": 64,
+          "id": "attn.core",
+          "ir_node": "attn.core",
+          "label": "Causal attention + KV",
+          "w": 160,
+          "x": 672,
+          "y": 64
+        },
+        {
+          "h": 64,
+          "id": "attn.o",
+          "ir_node": "attn.o",
+          "label": "Output projection",
+          "w": 160,
+          "x": 880,
+          "y": 64
+        },
+        {
+          "h": 64,
+          "id": "attn.qk_norm",
+          "ir_node": "attn.qk_norm",
+          "label": "Q/K head norms",
+          "w": 160,
+          "x": 256,
+          "y": 64
+        },
+        {
+          "h": 64,
+          "id": "attn.qkv",
+          "ir_node": "attn.qkv",
+          "label": "QKV projection",
+          "w": 160,
+          "x": 48,
+          "y": 64
+        },
+        {
+          "h": 64,
+          "id": "attn.reduce",
+          "ir_node": "attn.reduce",
+          "label": "TP all-reduce",
+          "w": 160,
+          "x": 1088,
+          "y": 64
+        },
+        {
+          "h": 64,
+          "id": "attn.rope",
+          "ir_node": "attn.rope",
+          "label": "RoPE",
+          "w": 160,
+          "x": 464,
+          "y": 64
+        }
+      ],
+      "width": 1296
+    },
+    {
+      "collapsed_of": [
+        "moe.experts",
+        "moe.experts.method",
+        "moe.experts.weights"
+      ],
+      "edges": [
+        {
+          "from": "moe.gate",
+          "id": "e0",
+          "label_pos": [
+            232,
+            80
+          ],
+          "points": [
+            [
+              208,
+              96
+            ],
+            [
+              256,
+              96
+            ]
+          ],
+          "to": "moe.dispatch"
+        },
+        {
+          "from": "moe.dispatch",
+          "id": "e1",
+          "label_pos": [
+            440,
+            80
+          ],
+          "points": [
+            [
+              416,
+              96
+            ],
+            [
+              464,
+              96
+            ]
+          ],
+          "to": "moe.w13"
+        },
+        {
+          "from": "moe.w13",
+          "id": "e2",
+          "label_pos": [
+            648,
+            80
+          ],
+          "points": [
+            [
+              624,
+              96
+            ],
+            [
+              672,
+              96
+            ]
+          ],
+          "to": "moe.act"
+        },
+        {
+          "from": "moe.act",
+          "id": "e3",
+          "label_pos": [
+            856,
+            80
+          ],
+          "points": [
+            [
+              832,
+              96
+            ],
+            [
+              880,
+              96
+            ]
+          ],
+          "to": "moe.w2"
+        },
+        {
+          "from": "moe.w2",
+          "id": "e4",
+          "label_pos": [
+            1064,
+            80
+          ],
+          "points": [
+            [
+              1040,
+              96
+            ],
+            [
+              1088,
+              96
+            ]
+          ],
+          "to": "moe.combine"
+        },
+        {
+          "from": "moe.combine",
+          "id": "e5",
+          "label_pos": [
+            1272,
+            80
+          ],
+          "points": [
+            [
+              1248,
+              96
+            ],
+            [
+              1296,
+              96
+            ]
+          ],
+          "to": "moe.reduce"
+        }
+      ],
+      "height": 192,
+      "id": "L2:moe",
+      "nodes": [
+        {
+          "h": 64,
+          "id": "moe.act",
+          "ir_node": "moe.act",
+          "label": "SiLU × up",
+          "w": 160,
+          "x": 672,
+          "y": 64
+        },
+        {
+          "h": 64,
+          "id": "moe.combine",
+          "ir_node": "moe.combine",
+          "label": "EP combine",
+          "w": 160,
+          "x": 1088,
+          "y": 64
+        },
+        {
+          "h": 64,
+          "id": "moe.dispatch",
+          "ir_node": "moe.dispatch",
+          "label": "EP dispatch",
+          "w": 160,
+          "x": 256,
+          "y": 64
+        },
+        {
+          "h": 64,
+          "id": "moe.gate",
+          "ir_node": "moe.gate",
+          "label": "Router",
+          "w": 160,
+          "x": 48,
+          "y": 64
+        },
+        {
+          "h": 64,
+          "id": "moe.reduce",
+          "ir_node": "moe.reduce",
+          "label": "MoE TP reduce",
+          "w": 160,
+          "x": 1296,
+          "y": 64
+        },
+        {
+          "h": 64,
+          "id": "moe.w13",
+          "ir_node": "moe.w13",
+          "label": "Gate/up GEMM",
+          "w": 160,
+          "x": 464,
+          "y": 64
+        },
+        {
+          "h": 64,
+          "id": "moe.w2",
+          "ir_node": "moe.w2",
+          "label": "Down GEMM",
+          "w": 160,
+          "x": 880,
+          "y": 64
+        }
+      ],
+      "width": 1504
+    }
+  ]
+}

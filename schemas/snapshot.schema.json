@@ -1,0 +1,89 @@
+{
+  "$defs": {
+    "ModelRef": {
+      "additionalProperties": false,
+      "properties": {
+        "config_rev": {
+          "description": "HF commit SHA or inline:sha256:<canonical-config-hash>; no weights revision.",
+          "title": "Config Rev",
+          "type": "string"
+        },
+        "hf_id": {
+          "description": "Hugging Face repository identifier, e.g. Qwen/Qwen3-30B-A3B.",
+          "title": "Hf Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "hf_id",
+        "config_rev"
+      ],
+      "title": "ModelRef",
+      "type": "object"
+    },
+    "Revision": {
+      "additionalProperties": false,
+      "properties": {
+        "commit": {
+          "description": "Full immutable Git commit SHA, never an abbreviated hash.",
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Commit",
+          "type": "string"
+        },
+        "tag": {
+          "description": "Release tag or main; display only, identity is commit.",
+          "title": "Tag",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tag",
+        "commit"
+      ],
+      "title": "Revision",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "ascend": {
+      "$ref": "#/$defs/Revision",
+      "description": "Paired vllm-ascend revision, including for the baseline graph."
+    },
+    "device": {
+      "description": "Selected hardware profile; H100 is a reference profile.",
+      "enum": [
+        "A2",
+        "A3",
+        "A5",
+        "310P",
+        "H100"
+      ],
+      "title": "Device",
+      "type": "string"
+    },
+    "generator_version": {
+      "description": "Generator package version; no generation timestamp.",
+      "title": "Generator Version",
+      "type": "string"
+    },
+    "model": {
+      "$ref": "#/$defs/ModelRef",
+      "description": "Model identity plus immutable configuration identity."
+    },
+    "vllm": {
+      "$ref": "#/$defs/Revision",
+      "description": "Paired vLLM revision resolved before extraction."
+    }
+  },
+  "required": [
+    "vllm",
+    "ascend",
+    "model",
+    "device",
+    "generator_version"
+  ],
+  "title": "Snapshot",
+  "type": "object"
+}

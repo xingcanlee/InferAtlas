@@ -1,0 +1,458 @@
+{
+  "edges": [
+    {
+      "from": "decoder",
+      "id": "decoder->final_norm:data",
+      "kind": "data",
+      "tensor": {
+        "dtype": "dtype_a",
+        "name": "hidden",
+        "shape": [
+          "T",
+          "H"
+        ]
+      },
+      "to": "final_norm"
+    },
+    {
+      "from": "embed",
+      "id": "embed->decoder:data",
+      "kind": "data",
+      "tensor": {
+        "dtype": "dtype_a",
+        "name": "hidden",
+        "shape": [
+          "T",
+          "H"
+        ]
+      },
+      "to": "decoder"
+    },
+    {
+      "from": "final_norm",
+      "id": "final_norm->lm_head:data",
+      "kind": "data",
+      "tensor": {
+        "dtype": "dtype_a",
+        "name": "hidden",
+        "shape": [
+          "T",
+          "H"
+        ]
+      },
+      "to": "lm_head"
+    }
+  ],
+  "groups": [
+    {
+      "id": "decoder",
+      "layers": [
+        "0",
+        "L-1"
+      ],
+      "representative_layer": "0",
+      "template": "decoder"
+    }
+  ],
+  "memory": {
+    "activation_peak": "max(max_num_batched_tokens*(4*H+2*I/tp)*bytes(dtype_a),max_num_seqs*V*bytes(fp32))",
+    "kv_per_token": "2*(L/pp)*max(1,Hkv/tp)*D*bytes(dtype_kv)",
+    "kv_tokens": "floor(max(0,hbm_bytes*gpu_memory_utilization-(((H*(Hq/tp+2*max(1,Hkv/tp))*D+H*Hq*D/tp+2*D+3*H*I/tp+2*H)*bytes(dtype_w))*(L/pp)+(pp==1 ? 2*(round_up(V,64)/tp*H*bytes(dtype_w))+H*bytes(dtype_w) : (round_up(V,64)/tp*H*bytes(dtype_w))+H*bytes(dtype_w)))-(max(max_num_batched_tokens*(4*H+2*I/tp)*bytes(dtype_a),max_num_seqs*V*bytes(fp32)))-non_torch_bytes-reserved_bytes)/((2*(L/pp)*max(1,Hkv/tp)*D*bytes(dtype_kv))*block_size))*block_size",
+    "non_torch": "non_torch_bytes",
+    "reserved": "reserved_bytes",
+    "unmodelled": [
+      "graph capture",
+      "allocator fragmentation",
+      "communication workspace",
+      "detailed dense FLOP/traffic fixture"
+    ],
+    "weights": "((H*(Hq/tp+2*max(1,Hkv/tp))*D+H*Hq*D/tp+2*D+3*H*I/tp+2*H)*bytes(dtype_w))*(L/pp)+(pp==1 ? 2*(round_up(V,64)/tp*H*bytes(dtype_w))+H*bytes(dtype_w) : (round_up(V,64)/tp*H*bytes(dtype_w))+H*bytes(dtype_w))"
+  },
+  "nodes": [
+    {
+      "bytes_moved": {
+        "decode": "0",
+        "prefill": "0"
+      },
+      "class": "vllm.model_executor.models.qwen3.Qwen3DecoderLayer",
+      "flops": {
+        "decode": "0",
+        "prefill": "0"
+      },
+      "id": "decoder",
+      "in": [
+        {
+          "dtype": "dtype_a",
+          "name": "hidden",
+          "shape": [
+            "T",
+            "H"
+          ]
+        }
+      ],
+      "kind": "group",
+      "label": "decoder",
+      "notes": [
+        "Dense minimal fixture: detailed compute/activation traffic deferred to T3; zero is a placeholder, not a measured value."
+      ],
+      "out": [
+        {
+          "dtype": "dtype_a",
+          "name": "hidden",
+          "shape": [
+            "T",
+            "H"
+          ]
+        }
+      ],
+      "parallel": {},
+      "rule": "fixture.dense.decoder",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/models/qwen3.py",
+        "line": 176,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.models.qwen3.Qwen3DecoderLayer"
+      },
+      "weight_bytes": "((H*(Hq/tp+2*max(1,Hkv/tp))*D+H*Hq*D/tp+2*D+3*H*I/tp+2*H)*bytes(dtype_w))*(L/pp)"
+    },
+    {
+      "bytes_moved": {
+        "decode": "0",
+        "prefill": "0"
+      },
+      "class": "vllm.model_executor.layers.vocab_parallel_embedding.VocabParallelEmbedding",
+      "flops": {
+        "decode": "0",
+        "prefill": "0"
+      },
+      "id": "embed",
+      "in": [
+        {
+          "dtype": "dtype_a",
+          "name": "hidden",
+          "shape": [
+            "T",
+            "H"
+          ]
+        }
+      ],
+      "kind": "compute",
+      "label": "embed",
+      "notes": [
+        "Dense minimal fixture: detailed compute/activation traffic deferred to T3; zero is a placeholder, not a measured value."
+      ],
+      "out": [
+        {
+          "dtype": "dtype_a",
+          "name": "hidden",
+          "shape": [
+            "T",
+            "H"
+          ]
+        }
+      ],
+      "parallel": {},
+      "rule": "fixture.dense.embed",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/layers/vocab_parallel_embedding.py",
+        "line": 206,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.layers.vocab_parallel_embedding.VocabParallelEmbedding"
+      },
+      "weight_bytes": "round_up(V,64)/tp*H*bytes(dtype_w)"
+    },
+    {
+      "bytes_moved": {
+        "decode": "0",
+        "prefill": "0"
+      },
+      "class": "vllm.model_executor.layers.layernorm.RMSNorm",
+      "flops": {
+        "decode": "0",
+        "prefill": "0"
+      },
+      "id": "final_norm",
+      "in": [
+        {
+          "dtype": "dtype_a",
+          "name": "hidden",
+          "shape": [
+            "T",
+            "H"
+          ]
+        }
+      ],
+      "kind": "compute",
+      "label": "final norm",
+      "notes": [
+        "Dense minimal fixture: detailed compute/activation traffic deferred to T3; zero is a placeholder, not a measured value."
+      ],
+      "out": [
+        {
+          "dtype": "dtype_a",
+          "name": "hidden",
+          "shape": [
+            "T",
+            "H"
+          ]
+        }
+      ],
+      "parallel": {},
+      "rule": "fixture.dense.final_norm",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/layers/layernorm.py",
+        "line": 39,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.layers.layernorm.RMSNorm"
+      },
+      "weight_bytes": "H*bytes(dtype_w)"
+    },
+    {
+      "bytes_moved": {
+        "decode": "0",
+        "prefill": "0"
+      },
+      "class": "vllm.model_executor.layers.vocab_parallel_embedding.ParallelLMHead",
+      "flops": {
+        "decode": "0",
+        "prefill": "0"
+      },
+      "id": "lm_head",
+      "in": [
+        {
+          "dtype": "dtype_a",
+          "name": "hidden",
+          "shape": [
+            "T",
+            "H"
+          ]
+        }
+      ],
+      "kind": "compute",
+      "label": "lm head",
+      "notes": [
+        "Dense minimal fixture: detailed compute/activation traffic deferred to T3; zero is a placeholder, not a measured value."
+      ],
+      "out": [
+        {
+          "dtype": "dtype_a",
+          "name": "hidden",
+          "shape": [
+            "T",
+            "H"
+          ]
+        }
+      ],
+      "parallel": {},
+      "rule": "fixture.dense.lm_head",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/layers/vocab_parallel_embedding.py",
+        "line": 578,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.layers.vocab_parallel_embedding.ParallelLMHead"
+      },
+      "weight_bytes": "round_up(V,64)/tp*H*bytes(dtype_w)"
+    }
+  ],
+  "notes": [
+    "Minimal dense contract fixture, not a calibrated performance model. Symbolic weight ledger includes Q/K norms and replicated decoder norms."
+  ],
+  "params": {
+    "S": {
+      "default": "1",
+      "description": "Local decode sequences; one generated token per sequence per step.",
+      "kind": "integer",
+      "max": "256",
+      "min": "1",
+      "step": "1"
+    },
+    "T": {
+      "default": "4096",
+      "description": "Local attention tokens in one prefill chunk, independent of cache length.",
+      "kind": "integer",
+      "max": "40960",
+      "min": "1",
+      "step": "1"
+    },
+    "batch": {
+      "default": "1",
+      "description": "Equal-length sequences within a prefill chunk. T must be divisible by batch.",
+      "kind": "integer",
+      "max": "256",
+      "min": "1",
+      "step": "1"
+    },
+    "block_size": {
+      "choices": [
+        "16",
+        "32",
+        "64",
+        "128"
+      ],
+      "default": "128",
+      "description": "KV tokens per cache block; device/backend restrictions apply.",
+      "kind": "integer"
+    },
+    "context": {
+      "default": "4096",
+      "description": "Existing cache length per decode sequence in tokens; uniform length approximation.",
+      "kind": "integer",
+      "max": "40960",
+      "min": "0",
+      "step": "1"
+    },
+    "dp": {
+      "default": "1",
+      "description": "Independent attention data parallel replicas; T and S are local to one replica.",
+      "kind": "integer",
+      "max": "8",
+      "min": "1",
+      "step": "1"
+    },
+    "dtype_a": {
+      "choices": [
+        "bf16",
+        "fp16",
+        "fp32"
+      ],
+      "default": "bf16",
+      "description": "Activation dtype; router/logits may internally accumulate in fp32.",
+      "kind": "dtype"
+    },
+    "dtype_ids": {
+      "choices": [
+        "int32",
+        "int64"
+      ],
+      "default": "int64",
+      "description": "Token index dtype; token index storage is excluded from the metric ledger and bytes(dtype_ids) is not supported by the six-dtype DSL table.",
+      "kind": "enum"
+    },
+    "dtype_kv": {
+      "choices": [
+        "bf16",
+        "fp16",
+        "fp32"
+      ],
+      "default": "bf16",
+      "description": "Stored KV dtype; quantized KV scales are not modelled.",
+      "kind": "dtype"
+    },
+    "dtype_w": {
+      "choices": [
+        "bf16",
+        "fp16",
+        "fp32"
+      ],
+      "default": "bf16",
+      "description": "Stored weight dtype; fixture excludes quantization scales and packing overhead.",
+      "kind": "dtype"
+    },
+    "ep": {
+      "choices": [
+        "1"
+      ],
+      "default": "1",
+      "description": "Dense model has no expert parallelism.",
+      "kind": "integer"
+    },
+    "gpu_memory_utilization": {
+      "default": "0.9",
+      "description": "Fraction of device memory available to vLLM.",
+      "kind": "number",
+      "max": "1",
+      "min": "0.01",
+      "step": "0.01"
+    },
+    "hbm_bytes": {
+      "default": "64000000000",
+      "description": "Device memory budget in bytes (decimal 64 GB default, user configurable).",
+      "kind": "number",
+      "min": "1"
+    },
+    "max_num_batched_tokens": {
+      "default": "4096",
+      "description": "Token count used for chunked-prefill memory profiling.",
+      "kind": "integer",
+      "max": "40960",
+      "min": "1",
+      "step": "1"
+    },
+    "max_num_seqs": {
+      "default": "256",
+      "description": "Sampler warmup concurrent sequence bound.",
+      "kind": "integer",
+      "max": "256",
+      "min": "1",
+      "step": "1"
+    },
+    "non_torch_bytes": {
+      "default": "0",
+      "description": "Configured non-torch byte deduction; default excludes unknown HCCL workspace.",
+      "kind": "number",
+      "min": "0"
+    },
+    "pp": {
+      "choices": [
+        "1",
+        "2",
+        "4",
+        "8",
+        "16",
+        "32"
+      ],
+      "default": "1",
+      "description": "Equal pipeline partitions only.",
+      "kind": "integer"
+    },
+    "reserved_bytes": {
+      "default": "0",
+      "description": "Additional reserved byte deduction; default excludes graph capture and fragmentation.",
+      "kind": "number",
+      "min": "0"
+    },
+    "tp": {
+      "choices": [
+        "1",
+        "2",
+        "4",
+        "8"
+      ],
+      "default": "1",
+      "description": "Attention tensor parallel degree. Must divide Hq and be compatible with Hkv.",
+      "kind": "integer"
+    }
+  },
+  "snapshot": {
+    "ascend": {
+      "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+      "tag": "main"
+    },
+    "device": "A2",
+    "generator_version": "0.1.0",
+    "model": {
+      "config_rev": "inline:sha256:3aa0aa254e4585f44008f5a5109536fdd39c6db81a546af4556062bda614bc71",
+      "hf_id": "Qwen/Qwen3-8B"
+    },
+    "vllm": {
+      "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+      "tag": "main-verified"
+    }
+  },
+  "symbols": {
+    "D": "128",
+    "H": "4096",
+    "Hkv": "8",
+    "Hq": "32",
+    "I": "14336",
+    "L": "32",
+    "V": "151936"
+  },
+  "views": {
+    "family": "dense"
+  }
+}

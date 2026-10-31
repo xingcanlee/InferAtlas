@@ -1,0 +1,16 @@
+{
+  "name": "web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "tsc -p tsconfig.json",
+    "build:single": "node -e \"console.error('Single-file UI build is implemented by F1; this package is a skeleton.'); process.exit(1)\""
+  },
+  "dependencies": {
+    "@inferatlas/contracts": "workspace:*",
+    "@inferatlas/expr": "workspace:*",
+    "@inferatlas/layout": "workspace:*"
+  }
+}

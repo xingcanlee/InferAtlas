@@ -1,0 +1,271 @@
+{
+  "$defs": {
+    "ConditionalOverride": {
+      "additionalProperties": false,
+      "properties": {
+        "candidates": {
+          "description": "Candidate target symbols, sorted.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Candidates",
+          "type": "array"
+        },
+        "conditions": {
+          "description": "Candidate predicate expressions; undeclared symbols go to triage.",
+          "items": {
+            "description": "Expression in docs/expr-dsl.md; never a JSON number.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Conditions",
+          "type": "array"
+        },
+        "kind": {
+          "const": "conditional_override",
+          "description": "Runtime branch needs a reviewed applies_when annotation.",
+          "title": "Kind",
+          "type": "string"
+        },
+        "symbol": {
+          "description": "Qualified conditional implementation symbol.",
+          "title": "Symbol",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "symbol",
+        "candidates",
+        "conditions"
+      ],
+      "title": "ConditionalOverride",
+      "type": "object"
+    },
+    "GoldenDiffItem": {
+      "additionalProperties": false,
+      "properties": {
+        "diff": {
+          "description": "Stable human-readable diff, no timestamps or absolute local paths.",
+          "title": "Diff",
+          "type": "string"
+        },
+        "kind": {
+          "const": "golden_diff",
+          "description": "Deterministic golden comparison needs review.",
+          "title": "Kind",
+          "type": "string"
+        },
+        "model": {
+          "description": "Affected HF model id.",
+          "title": "Model",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "model",
+        "diff"
+      ],
+      "title": "GoldenDiffItem",
+      "type": "object"
+    },
+    "ModelRef": {
+      "additionalProperties": false,
+      "properties": {
+        "config_rev": {
+          "description": "HF commit SHA or inline:sha256:<canonical-config-hash>; no weights revision.",
+          "title": "Config Rev",
+          "type": "string"
+        },
+        "hf_id": {
+          "description": "Hugging Face repository identifier, e.g. Qwen/Qwen3-30B-A3B.",
+          "title": "Hf Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "hf_id",
+        "config_rev"
+      ],
+      "title": "ModelRef",
+      "type": "object"
+    },
+    "Revision": {
+      "additionalProperties": false,
+      "properties": {
+        "commit": {
+          "description": "Full immutable Git commit SHA, never an abbreviated hash.",
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Commit",
+          "type": "string"
+        },
+        "tag": {
+          "description": "Release tag or main; display only, identity is commit.",
+          "title": "Tag",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tag",
+        "commit"
+      ],
+      "title": "Revision",
+      "type": "object"
+    },
+    "Snapshot": {
+      "additionalProperties": false,
+      "properties": {
+        "ascend": {
+          "$ref": "#/$defs/Revision",
+          "description": "Paired vllm-ascend revision, including for the baseline graph."
+        },
+        "device": {
+          "description": "Selected hardware profile; H100 is a reference profile.",
+          "enum": [
+            "A2",
+            "A3",
+            "A5",
+            "310P",
+            "H100"
+          ],
+          "title": "Device",
+          "type": "string"
+        },
+        "generator_version": {
+          "description": "Generator package version; no generation timestamp.",
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "model": {
+          "$ref": "#/$defs/ModelRef",
+          "description": "Model identity plus immutable configuration identity."
+        },
+        "vllm": {
+          "$ref": "#/$defs/Revision",
+          "description": "Paired vLLM revision resolved before extraction."
+        }
+      },
+      "required": [
+        "vllm",
+        "ascend",
+        "model",
+        "device",
+        "generator_version"
+      ],
+      "title": "Snapshot",
+      "type": "object"
+    },
+    "StaleAnnotation": {
+      "additionalProperties": false,
+      "properties": {
+        "anchor_hash_new": {
+          "description": "New script-computed source hash.",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Anchor Hash New",
+          "type": "string"
+        },
+        "anchor_hash_old": {
+          "description": "Previously reviewed source hash.",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Anchor Hash Old",
+          "type": "string"
+        },
+        "id": {
+          "description": "Invalidated Annotation.id.",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "const": "stale_annotation",
+          "description": "Source anchor changed; old annotation must not be applied.",
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "anchor_hash_old",
+        "anchor_hash_new"
+      ],
+      "title": "StaleAnnotation",
+      "type": "object"
+    },
+    "UnknownLayerClass": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "unknown_layer_class",
+          "description": "No rule matched a reachable class; blocks this model's publication.",
+          "title": "Kind",
+          "type": "string"
+        },
+        "symbol": {
+          "description": "Unmatched qualified class symbol.",
+          "title": "Symbol",
+          "type": "string"
+        },
+        "used_by": {
+          "description": "Affected architectures/models, sorted.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Used By",
+          "type": "array"
+        }
+      },
+      "required": [
+        "kind",
+        "symbol",
+        "used_by"
+      ],
+      "title": "UnknownLayerClass",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "items": {
+      "description": "Unresolved items sorted by kind then symbol/id/model. Empty list permits publication subject to verify.",
+      "items": {
+        "discriminator": {
+          "mapping": {
+            "conditional_override": "#/$defs/ConditionalOverride",
+            "golden_diff": "#/$defs/GoldenDiffItem",
+            "stale_annotation": "#/$defs/StaleAnnotation",
+            "unknown_layer_class": "#/$defs/UnknownLayerClass"
+          },
+          "propertyName": "kind"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/$defs/UnknownLayerClass"
+          },
+          {
+            "$ref": "#/$defs/ConditionalOverride"
+          },
+          {
+            "$ref": "#/$defs/StaleAnnotation"
+          },
+          {
+            "$ref": "#/$defs/GoldenDiffItem"
+          }
+        ]
+      },
+      "title": "Items",
+      "type": "array"
+    },
+    "snapshot": {
+      "$ref": "#/$defs/Snapshot",
+      "description": "Same structured identity as extract/IR; not a concatenated display string."
+    }
+  },
+  "required": [
+    "snapshot",
+    "items"
+  ],
+  "title": "Triage",
+  "type": "object"
+}
