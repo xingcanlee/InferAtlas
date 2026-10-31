@@ -1,22 +1,17 @@
 """Golden IR and numeric grids. Evaluation belongs to T2, never to this module."""
 
-import importlib
 import json
 import logging
 import math
-import re
 import shutil
 import subprocess
 from pathlib import Path
 
+from inferatlas.expr import RESERVED, validate
 from inferatlas.schema import IR, Eval
 from inferatlas.schema.models import EvalCase, GoldenDifference
 
 from .io import ROOT, read_json, wire, write_json
-
-BUILTINS = set("max min ceil floor round_up cdiv bytes true false".split()) | set(
-    "fp32 bf16 fp16 fp8 int8 int4 int32 int64".split()
-)
 
 
 def escape(value: str) -> str:
@@ -25,7 +20,9 @@ def escape(value: str) -> str:
 
 def projection(ir: IR) -> dict:
     document = wire(ir)
-    document["nodes"] = {node["id"]: node for node in document["nodes"]}
+    ids = [node["id"] for node in document["nodes"]]
+    if len(ids) == len(set(ids)):
+        document["nodes"] = {node["id"]: node for node in document["nodes"]}
     return document
 
 
@@ -51,6 +48,18 @@ def differences(expected, actual, path="") -> list[GoldenDifference]:
         return result
     if isinstance(expected, list) and isinstance(actual, list):
         if all(isinstance(v, dict) and "id" in v for v in expected + actual):
+            duplicate_ids = []
+            for values in (expected, actual):
+                ids = [v["id"] for v in values]
+                duplicate_ids.append(sorted({key for key in ids if ids.count(key) > 1}))
+            if any(duplicate_ids):
+                return [
+                    GoldenDifference(
+                        path=f"{path}/duplicate_ids",
+                        expected=duplicate_ids[0],
+                        actual=duplicate_ids[1],
+                    )
+                ]
             return differences({v["id"]: v for v in expected}, {v["id"]: v for v in actual}, path)
         result = []
         for index in range(max(len(expected), len(actual))):
@@ -85,26 +94,22 @@ class Evaluator:
     def __init__(self, root: Path = ROOT, warn=None):
         self.root = root
         self.warn = warn or logging.getLogger(__name__).warning
-        self.cli = root / "packages/expr/dist/cli.js"
-        self.reference = None
-        if self.cli.is_file() and shutil.which("node"):
-            self.backend = "node"
-            return
-        self.warn("Expression CLI unavailable; falling back to Python reference evaluator.")
-        module = importlib.import_module("inferatlas.expr")
-        self.reference = getattr(module, "evaluate", None)
-        self.backend = "python" if callable(self.reference) else "fixture"
+        self.cli = Path(__file__).with_name("eval.mjs")
+        self.backend = (
+            "node"
+            if (root / "packages/expr/dist/index.js").is_file() and shutil.which("node")
+            else "fixture"
+        )
         if self.backend == "fixture":
-            # shortcut: only fixture points are evaluable, remove when T2's runtime CLI is available.
             self.warn(
-                "Python reference evaluator unavailable; using fixture oracle only for matching "
-                "expressions and parameter points. No new values can be evaluated."
+                "SKIPPED numeric evaluation: node or @inferatlas/expr dist unavailable; "
+                "run pnpm --filter @inferatlas/expr build."
             )
 
     def many(self, expressions: list[str], env: dict) -> list[float]:
         if self.backend == "node":
             result = subprocess.run(
-                ["node", str(self.cli)],
+                ["node", str(self.cli), str(self.root / "packages/expr/dist/index.js")],
                 cwd=self.root,
                 input=json.dumps({"expressions": expressions, "env": env}, allow_nan=False),
                 capture_output=True,
@@ -116,8 +121,6 @@ class Evaluator:
                 raise ValueError(f"expression CLI failed: {result.stderr.strip()}")
             payload = json.loads(result.stdout)
             values = payload.get("values") if isinstance(payload, dict) else payload
-        elif self.backend == "python":
-            values = [self.reference(expression, env) for expression in expressions]
         else:
             raise ValueError("no evaluator for new expressions; build @inferatlas/expr first")
         if not isinstance(values, list) or len(values) != len(expressions):
@@ -141,7 +144,7 @@ class Evaluator:
     def bind(self, ir: IR, overrides: dict) -> dict:
         if set(overrides) - ir.params.keys():
             raise ValueError("grid may override declared runtime parameters only")
-        if (ir.symbols.keys() | ir.params.keys()) & BUILTINS:
+        if (ir.symbols.keys() | ir.params.keys()) & RESERVED:
             raise ValueError("reserved DSL identifier cannot be bound")
         if ir.symbols.keys() & ir.params.keys():
             raise ValueError("runtime parameter shadows immutable symbol")
@@ -153,7 +156,7 @@ class Evaluator:
                 ready = [
                     name
                     for name, expr in sorted(pending.items())
-                    if set(re.findall(r"\b[A-Za-z_]\w*\b", expr)) - BUILTINS <= env.keys()
+                    if set(validate(expr)) <= env.keys()
                 ]
                 if not ready:
                     raise ValueError("cyclic or unknown environment symbol")
@@ -212,42 +215,26 @@ def evaluate_grid(ir: IR, grid: Eval, evaluator: Evaluator) -> Eval:
     if any(not case.expected for case in grid.cases):
         raise ValueError("each grid case needs at least one expression pointer")
     document = projection(ir)
-    oracle_ir = oracle = None
-    if evaluator.backend == "fixture":
-        fixture = evaluator.root / "fixtures" / model_slug(ir)
-        oracle_ir = IR.model_validate(read_json(fixture / "ir.json"))
-        oracle = Eval.model_validate(read_json(fixture / "eval.json"))
-        if ir.symbols != oracle_ir.symbols or ir.params != oracle_ir.params:
-            raise ValueError("fixture oracle cannot evaluate changed symbols/parameters")
+    if evaluator.backend != "node":
+        raise ValueError("SKIPPED numeric evaluation: node or @inferatlas/expr dist unavailable")
     cases = []
     for case in sorted(grid.cases, key=lambda case: case.id):
         expected = {}
-        if evaluator.backend == "fixture":
-            match = next((item for item in oracle.cases if item.env == case.env), None)
-            if match is None:
-                raise ValueError(f"fixture oracle has no parameter point: {case.id}")
-            for path in sorted(case.expected):
-                if pointer(document, path) != pointer(projection(oracle_ir), path):
-                    raise ValueError(f"fixture oracle cannot evaluate changed expression: {path}")
-                if path not in match.expected:
-                    raise ValueError(f"fixture oracle has no numeric value: {path}")
-                expected[path] = match.expected[path]
-        else:
-            env = evaluator.bind(ir, case.env)
-            expressions = []
-            fields = []
-            for path in sorted(case.expected):
-                expr = pointer(document, path)
-                values = expr if isinstance(expr, list) else [expr]
-                if not values or not all(isinstance(value, str) for value in values):
-                    raise ValueError(f"grid pointer must select expression(s): {path}")
-                fields.append((path, len(values), isinstance(expr, list)))
-                expressions.extend(values)
-            values = evaluator.many(expressions, env)
-            start = 0
-            for path, size, array in fields:
-                expected[path] = values[start : start + size] if array else values[start]
-                start += size
+        env = evaluator.bind(ir, case.env)
+        expressions = []
+        fields = []
+        for path in sorted(case.expected):
+            expr = pointer(document, path)
+            values = expr if isinstance(expr, list) else [expr]
+            if not values or not all(isinstance(value, str) for value in values):
+                raise ValueError(f"grid pointer must select expression(s): {path}")
+            fields.append((path, len(values), isinstance(expr, list)))
+            expressions.extend(values)
+        values = evaluator.many(expressions, env)
+        start = 0
+        for path, size, array in fields:
+            expected[path] = values[start : start + size] if array else values[start]
+            start += size
         cases.append(EvalCase(id=case.id, env=case.env, expected=expected))
     return Eval(model=grid.model, cases=cases)
 
@@ -257,6 +244,8 @@ def model_slug(ir: IR) -> str:
 
 
 def update_golden(directory: Path, ir: IR, grid: Eval, evaluator: Evaluator) -> Eval:
+    if evaluator.backend != "node":
+        raise ValueError("golden update refuses fixture backend; build @inferatlas/expr first")
     values = evaluate_grid(ir, grid, evaluator)
     write_json(directory / "ir.json", ir)
     write_json(directory / "eval.json", values)
@@ -267,12 +256,19 @@ def check_golden(directory: Path, ir: IR, evaluator: Evaluator) -> list[GoldenDi
     baseline = IR.model_validate(read_json(directory / "ir.json"))
     grid = Eval.model_validate(read_json(directory / "eval.json"))
     result = differences(projection(baseline), projection(ir), "/ir")
-    # Structural changes still get a useful per-field diff when no evaluator is installed.
-    try:
+    # Duplicate identifiers must survive ID projection and cannot be evaluated by pointer.
+    for expected, actual, path in (
+        (wire(baseline)["nodes"], wire(ir)["nodes"], "/ir/nodes"),
+        (wire(grid)["cases"], wire(grid)["cases"], "/eval/cases"),
+    ):
+        duplicate_diffs = [
+            item
+            for item in differences(expected, actual, path)
+            if item.path.endswith("/duplicate_ids")
+        ]
+        if duplicate_diffs:
+            return sorted(duplicate_diffs, key=lambda item: item.path)
+    if evaluator.backend == "node":
         evaluated = evaluate_grid(ir, grid, evaluator)
-    except ValueError:
-        if result and evaluator.backend == "fixture":
-            return sorted(result, key=lambda item: item.path)
-        raise
-    result.extend(differences(wire(grid), wire(evaluated), "/eval"))
+        result.extend(differences(wire(grid), wire(evaluated), "/eval"))
     return sorted(result, key=lambda item: item.path)

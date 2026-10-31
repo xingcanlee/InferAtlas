@@ -21,6 +21,9 @@ def verify_ir(
     golden_dir: Path | None = None,
     calibration: dict[str, float] | None = None,
     evaluator: Evaluator | None = None,
+    calibration_env: dict | None = None,
+    fixture_stages: set[str] | None = None,
+    allow_fixtures: bool = False,
 ) -> Report:
     checks = [Check(id="schema", status="pass", message="Input contracts validate.")]
     extracts = extracts or []
@@ -58,15 +61,14 @@ def verify_ir(
                 message=f"{len(diffs)} golden differences.",
             )
         )
+        unavailable = evaluator.backend != "node"
         checks.append(
             Check(
                 id="evaluation",
-                status="skip" if evaluator.backend == "fixture" else "pass",
-                message=(
-                    "Fixture numeric oracle; runtime evaluator unavailable."
-                    if evaluator.backend == "fixture"
-                    else f"Evaluated using {evaluator.backend}."
-                ),
+                status=("skip" if allow_fixtures else "fail") if unavailable else "pass",
+                message="SKIPPED numeric evaluation; node/dist unavailable."
+                if unavailable
+                else "Evaluated using node.",
             )
         )
     except (OSError, ValueError, KeyError, RuntimeError, subprocess.SubprocessError) as error:
@@ -76,13 +78,43 @@ def verify_ir(
         checks.append(Check(id="calibration", status="skip", message="No calibration supplied."))
     else:
         try:
-            env = evaluator.bind(ir, {})
-            weights, tokens = evaluator.many([ir.memory.weights, ir.memory.kv_tokens], env)
-            checks.extend(
-                compare_calibration({"weight_bytes": weights, "kv_tokens": tokens}, calibration)
+            overrides = dict(calibration_env or {})
+            max_len = overrides.pop("max_model_len", None)
+            if max_len is not None and (type(max_len) is not int or max_len <= 0):
+                raise ValueError("max_model_len must be a positive integer")
+            env = evaluator.bind(ir, overrides)
+            available = (
+                f"hbm_bytes*gpu_memory_utilization-({ir.memory.weights})"
+                f"-({ir.memory.activation_peak})-({ir.memory.non_torch})"
+                f"-({ir.memory.reserved})"
             )
+            weights, tokens, available_bytes = evaluator.many(
+                [ir.memory.weights, ir.memory.kv_tokens, available], env
+            )
+            predicted = {
+                "weight_bytes": weights,
+                "kv_tokens": tokens,
+                "available_kv_bytes": available_bytes,
+            }
+            if max_len is not None:
+                predicted["maximum_concurrency"] = tokens / max_len
+            checks.extend(compare_calibration(predicted, calibration))
         except (ValueError, OSError, RuntimeError, subprocess.SubprocessError) as error:
             checks.append(Check(id="calibration", status="fail", message=str(error)))
+    fixtures = set(fixture_stages or ())
+    if any(extract.fixture for extract in extracts):
+        fixtures.add("extract")
+    if evaluator.backend != "node" and allow_fixtures:
+        fixtures.add("evaluation")
+    checks.append(
+        Check(
+            id="provenance",
+            status="fail" if fixtures else "pass",
+            message="Fixture stages: " + ", ".join(sorted(fixtures))
+            if fixtures
+            else "All stages used production backends.",
+        )
+    )
     return Report(
         snapshot=ir.snapshot,
         checks=sorted(checks, key=lambda check: (check.id, check.node or "")),

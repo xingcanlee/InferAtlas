@@ -1,3 +1,4 @@
+# ruff: noqa: UP031  # Preserve upstream logger format strings verbatim.
 """Verification boundaries: immutable Git evidence, numeric adapters, golden drift."""
 
 import json
@@ -6,7 +7,6 @@ import subprocess
 
 import pytest
 
-import inferatlas.expr
 from inferatlas.schema import IR, Eval, Report, Snapshot, Triage
 from inferatlas.schema.models import Check
 from inferatlas.verify import exit_code, verify_ir
@@ -33,11 +33,10 @@ def ir():
 
 
 @pytest.fixture
-def oracle(monkeypatch):
-    monkeypatch.delattr(inferatlas.expr, "evaluate", raising=False)
-    result = Evaluator(ROOT, lambda message: None)
-    result.backend = "fixture"
-    return result
+def runtime():
+    evaluator = Evaluator(ROOT)
+    assert evaluator.backend == "node", "build @inferatlas/contracts and @inferatlas/expr first"
+    return evaluator
 
 
 def git(path, *args):
@@ -86,47 +85,45 @@ def test_sources_read_commit_not_working_tree(tmp_path, ir):
     assert "repository unavailable" in check_sources([ref], snapshot, {})[0].reason
 
 
-def test_fixture_golden_and_changed_field(tmp_path, ir, oracle):
+def test_fixture_golden_and_changed_field(tmp_path, ir, runtime):
     grid = Eval.model_validate(read_json(FIXTURE / "eval.json"))
-    update_golden(tmp_path, ir, grid, oracle)
+    update_golden(tmp_path, ir, grid, runtime)
     first = {p.name: p.read_bytes() for p in tmp_path.iterdir()}
-    update_golden(tmp_path, ir, grid, oracle)
+    update_golden(tmp_path, ir, grid, runtime)
     assert first == {p.name: p.read_bytes() for p in tmp_path.iterdir()}
-    assert check_golden(tmp_path, ir, oracle) == []
+    assert check_golden(tmp_path, ir, runtime) == []
     changed = ir.model_copy(deep=True)
     changed.nodes[0].label = "Changed label"
-    diffs = check_golden(tmp_path, changed, oracle)
+    diffs = check_golden(tmp_path, changed, runtime)
     assert [d.path for d in diffs] == [f"/ir/nodes/{ir.nodes[0].id}/label"]
     assert "Changed label" in format_diff(diffs)
     changed.memory.weights = "0"
-    assert "/ir/memory/weights" in format_diff(check_golden(tmp_path, changed, oracle))
-    with pytest.raises(ValueError, match="changed expression"):
-        update_golden(tmp_path, changed, grid, oracle)
-    assert first == {p.name: p.read_bytes() for p in tmp_path.iterdir()}
+    assert "/ir/memory/weights" in format_diff(check_golden(tmp_path, changed, runtime))
+    update_golden(tmp_path, changed, grid, runtime)
+    assert first != {p.name: p.read_bytes() for p in tmp_path.iterdir()}
 
 
-def test_numeric_drift_uses_independent_fixture_oracle(tmp_path, ir, oracle):
+def test_numeric_drift_uses_independent_node_runtime(tmp_path, ir, runtime):
     grid = Eval.model_validate(read_json(FIXTURE / "eval.json"))
-    update_golden(tmp_path, ir, grid, oracle)
+    update_golden(tmp_path, ir, grid, runtime)
     data = read_json(tmp_path / "eval.json")
     case = next(c for c in data["cases"] if "/memory/weights" in c["expected"])
     case["expected"]["/memory/weights"] = 123
     write_json(tmp_path / "eval.json", data)
-    diffs = check_golden(tmp_path, ir, oracle)
+    diffs = check_golden(tmp_path, ir, runtime)
     assert len(diffs) == 1
     assert diffs[0].path.endswith("/expected/~1memory~1weights")
     assert diffs[0].expected == 123
     assert diffs[0].actual == 61064245248
 
 
-def test_oracle_rejects_new_inputs(ir, oracle):
+def test_node_evaluates_new_points(ir, runtime):
     grid = Eval.model_validate(read_json(FIXTURE / "eval.json"))
     grid.cases[0].env["tp"] = 8
-    with pytest.raises(ValueError, match="no parameter point"):
-        evaluate_grid(ir, grid, oracle)
+    assert evaluate_grid(ir, grid, runtime).cases
     grid.model = "other/model"
     with pytest.raises(ValueError, match="model disagrees"):
-        evaluate_grid(ir, grid, oracle)
+        evaluate_grid(ir, grid, runtime)
 
 
 def test_json_pointer_escapes_and_node_ids(ir):
@@ -137,31 +134,25 @@ def test_json_pointer_escapes_and_node_ids(ir):
     assert diff[0].path == "/a~1b/x~0y"
 
 
-@pytest.mark.skipif(not shutil.which("node"), reason="Node is required for the CLI adapter")
+@pytest.mark.skipif(not shutil.which("node"), reason="Node is required")
 def test_node_evaluator_protocol_and_failures(tmp_path):
-    cli = tmp_path / "packages/expr/dist/cli.js"
-    cli.parent.mkdir(parents=True)
-    cli.write_text(
-        "let s=''; process.stdin.on('data', x=>s+=x); process.stdin.on('end',()=>{"
-        "const q=JSON.parse(s); process.stdout.write(JSON.stringify({values:"
-        "q.expressions.map((_,i)=>q.env.x+i)}));});"
-    )
+    module = tmp_path / "packages/expr/dist/index.js"
+    module.parent.mkdir(parents=True)
+    module.with_name("package.json").write_text('{"type":"module"}')
+    module.write_text("export function evaluate(expr, env) {return expr === 'x' ? env.x : env.x+1}")
     evaluator = Evaluator(tmp_path)
     assert evaluator.backend == "node"
     assert evaluator.many(["x", "x+1"], {"x": 7}) == [7, 8]
-    cli.write_text("process.stderr.write('broken evaluator'); process.exit(1)")
+    module.write_text("throw new Error('broken evaluator')")
     with pytest.raises(ValueError, match="broken evaluator"):
         evaluator.many(["x"], {})
-    cli.write_text("process.stdout.write('{\"values\":[null]}')")
+    module.write_text("export function evaluate() {return NaN}")
     with pytest.raises(ValueError, match="non-finite/non-numeric"):
         evaluator.many(["x"], {})
 
 
-def test_python_reference_fallback_and_parameter_binding(tmp_path, ir, monkeypatch):
-    messages = []
-    monkeypatch.setattr(inferatlas.expr, "evaluate", lambda expr, env: env["H"] * 2, raising=False)
-    evaluator = Evaluator(tmp_path, messages.append)
-    assert evaluator.backend == "python" and messages
+def test_node_parameter_binding(ir, runtime):
+    evaluator = runtime
     env = evaluator.bind(ir, {"tp": 4})
     assert env["tp"] == 4 and env["H"] == 2048 and env["dtype_w"] == "bf16"
     assert evaluator.many(["H * 2"], env) == [4096]
@@ -184,14 +175,8 @@ def test_python_reference_fallback_and_parameter_binding(tmp_path, ir, monkeypat
         evaluator.bind(graph, {"tp": 4})
 
 
-def test_grid_batches_shapes_and_phase_expressions(tmp_path, ir, monkeypatch):
-    def reference(expression, env):
-        if expression == "tp > 1":
-            return int(env["tp"] > 1)
-        return env[expression]
-
-    monkeypatch.setattr(inferatlas.expr, "evaluate", reference, raising=False)
-    evaluator = Evaluator(tmp_path, lambda message: None)
+def test_grid_batches_shapes_and_phase_expressions(ir, runtime):
+    evaluator = runtime
     node = next(node for node in ir.nodes if node.id == "attn.qkv")
     node.out[0].shape = ["T", "H"]
     comm = next(node for node in ir.nodes if node.id == "attn.o.reduce").comm
@@ -222,40 +207,57 @@ def test_grid_batches_shapes_and_phase_expressions(tmp_path, ir, monkeypatch):
     assert values["/nodes/attn.o.reduce/comm/logical_bytes/decode"] == 3
 
 
-def test_calibration_parser_and_tolerance():
-    metrics = parse_vllm_logs("""
-    INFO Model loading took 2.5 GiB and 0.1 seconds
-    INFO # GPU blocks: 1,024, # CPU blocks: 0
-    INFO GPU KV cache size: 131,072 tokens
-    INFO Available KV cache memory: 8.25 GiB
-    INFO Model loading took 3 GiB
-    """)
+# Format strings copied verbatim from the pinned upstream sources:
+# vllm/v1/worker/gpu_model_runner.py, vllm/v1/core/kv_cache_utils.py,
+# vllm/v1/worker/gpu_worker.py, vllm_ascend/worker/v1/model_runner.py.
+@pytest.mark.parametrize("device", ["GPU", "NPU", "GPU + host"])
+def test_calibration_upstream_formats(device):
+    metrics = parse_vllm_logs(
+        "\n".join(
+            [
+                "Model loading took %s GiB memory and %.6f seconds" % (2.5, 0.1),
+                "Loading model weights took %.4f GB" % 3.25,
+                "%s KV cache size: %s tokens, "
+                "Maximum concurrency for %s tokens per request: %.2fx"
+                % (device, "131,072", "4,096", 32),
+                "Available KV cache memory: %s GiB" % -0.25,
+                "Available KV cache memory: %.2f GiB" % -0.5,
+                "# GPU blocks: 1,024, # CPU blocks: 0",
+            ]
+        )
+    )
     assert metrics == {
-        "weight_bytes": 3 * 2**30,
-        "gpu_blocks": 1024,
+        "weight_bytes": 3.25 * 2**30,
         "kv_tokens": 131072,
-        "available_kv_bytes": 8.25 * 2**30,
+        "available_kv_bytes": -0.5 * 2**30,
+        "maximum_concurrency": 32,
     }
-    assert parse_vllm_logs("KV cache size: 10 tokens")["kv_tokens"] == 10
+    assert parse_vllm_logs("KV cache size: 10 tokens") == {}
+
+
+def test_calibration_tolerance():
     for estimate, status in [(90, "pass"), (110, "pass"), (110.01, "fail")]:
         assert compare_calibration({"kv_tokens": estimate}, {"kv_tokens": 100})[0].status == status
     assert compare_calibration({"kv_tokens": 0}, {"kv_tokens": 0})[0].status == "pass"
     assert compare_calibration({"kv_tokens": 1}, {"kv_tokens": 0})[0].status == "fail"
-    assert compare_calibration({}, {"gpu_blocks": 10})[0].status == "skip"
+    assert (
+        compare_calibration({"available_kv_bytes": -99}, {"available_kv_bytes": -100})[0].status
+        == "pass"
+    )
     assert compare_calibration({}, {})[0].status == "skip"
     with pytest.raises(ValueError, match="invalid calibration"):
         compare_calibration({}, {"kv_tokens": float("nan")})
 
 
-def test_report_contract_and_exit_precedence(ir, oracle, monkeypatch):
+def test_report_contract_and_exit_precedence(ir, runtime, monkeypatch):
     import inferatlas.verify as verify
 
     monkeypatch.setattr(verify, "check_sources", lambda *args: [])
     triage = Triage.model_validate(read_json(FIXTURE / "triage.json"))
-    report = verify_ir(ir, triage=triage, repos={}, evaluator=oracle)
+    report = verify_ir(ir, triage=triage, repos={}, evaluator=runtime)
     assert Report.model_validate_json(report.model_dump_json()) == report
     assert exit_code(report, triage) == 2
-    assert next(c for c in report.checks if c.id == "evaluation").status == "skip"
+    assert next(c for c in report.checks if c.id == "evaluation").status == "pass"
     report.checks.append(Check(id="golden", status="fail", message="drift"))
     assert exit_code(report, triage) == 3
     assert (
@@ -270,4 +272,69 @@ def test_report_contract_and_exit_precedence(ir, oracle, monkeypatch):
         }
     )
     with pytest.raises(ValueError, match="triage snapshot"):
-        verify_ir(ir, triage=wrong, repos={}, evaluator=oracle)
+        verify_ir(ir, triage=wrong, repos={}, evaluator=runtime)
+
+
+def test_duplicate_ids_are_a_difference(ir, runtime, tmp_path):
+    grid = Eval.model_validate(read_json(FIXTURE / "eval.json"))
+    update_golden(tmp_path, ir, grid, runtime)
+    changed = ir.model_copy(deep=True)
+    changed.nodes.append(changed.nodes[0].model_copy(deep=True))
+    assert check_golden(tmp_path, changed, runtime)
+    duplicate = [{"id": "same"}, {"id": "same"}]
+    assert differences(duplicate, duplicate)[0].path == "/duplicate_ids"
+    assert differences(duplicate, [{"id": "same"}])
+    data = read_json(tmp_path / "eval.json")
+    data["cases"].append(data["cases"][0])
+    write_json(tmp_path / "eval.json", data)
+    assert check_golden(tmp_path, ir, runtime)[0].path == "/eval/cases/duplicate_ids"
+
+
+def test_missing_runtime_report_and_fixture_provenance(ir, tmp_path, monkeypatch):
+    import inferatlas.verify as verify
+
+    monkeypatch.setattr(verify, "check_sources", lambda *args: [])
+    missing = Evaluator(tmp_path, lambda message: None)
+    report = verify_ir(ir, repos={}, evaluator=missing)
+    assert exit_code(report) == 3
+    assert next(c for c in report.checks if c.id == "evaluation").status == "fail"
+    report = verify_ir(ir, repos={}, evaluator=missing, allow_fixtures=True)
+    assert next(c for c in report.checks if c.id == "evaluation").status == "skip"
+    assert next(c for c in report.checks if c.id == "provenance").status == "fail"
+    assert exit_code(report) == 3
+
+
+def test_calibration_binds_environment_and_available_memory(ir, runtime, monkeypatch):
+    import inferatlas.verify as verify
+
+    monkeypatch.setattr(verify, "check_sources", lambda *args: [])
+    overrides = {"tp": 4, "gpu_memory_utilization": 0.8}
+    env = runtime.bind(ir, overrides)
+    weights, tokens, activation, non_torch, reserved = runtime.many(
+        [
+            ir.memory.weights,
+            ir.memory.kv_tokens,
+            ir.memory.activation_peak,
+            ir.memory.non_torch,
+            ir.memory.reserved,
+        ],
+        env,
+    )
+    available = env["hbm_bytes"] * 0.8 - weights - activation - non_torch - reserved
+    observed = {
+        "weight_bytes": weights,
+        "kv_tokens": tokens,
+        "available_kv_bytes": available,
+        "maximum_concurrency": tokens / 4096,
+    }
+    report = verify_ir(
+        ir,
+        repos={},
+        evaluator=runtime,
+        calibration=observed,
+        calibration_env={**overrides, "max_model_len": 4096},
+    )
+    checks = [c for c in report.checks if c.id.startswith("calibration.")]
+    assert len(checks) == 4 and all(c.status == "pass" for c in checks)
+    report = verify_ir(ir, repos={}, evaluator=runtime, calibration=observed)
+    assert any(c.status == "fail" for c in report.checks if c.id.startswith("calibration."))

@@ -1,4 +1,8 @@
-"""Validate immutable source links without importing upstream libraries."""
+"""Validate immutable source links without importing upstream libraries.
+
+Snapshot pins vLLM and Ascend only: PyTorch commit identity is not checked against
+Snapshot. PyTorch links, if supplied, still require a declaration at their own commit.
+"""
 
 import re
 import subprocess

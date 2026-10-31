@@ -1,6 +1,8 @@
 """Stable wire-format IO shared by the CLI and verification stages."""
 
+import ctypes
 import json
+import os
 import subprocess
 from pathlib import Path
 
@@ -39,3 +41,26 @@ def source_root(root: Path = ROOT) -> Path:
         check=True,
     )
     return Path(result.stdout.strip()).parent / "experiments/a2_qwen3moe/src"
+
+
+def publish_directory(pending: Path, destination: Path) -> None:
+    """Publish a complete generation atomically on Linux, even over a nonempty directory."""
+    if not destination.exists():
+        pending.replace(destination)
+        return
+    # renameat2(RENAME_EXCHANGE) leaves the old generation in the temporary directory.
+    libc = ctypes.CDLL(None, use_errno=True)
+    exchange = getattr(libc, "renameat2", None)
+    if exchange is None:
+        raise RuntimeError("atomic build replacement requires Linux renameat2")
+    exchange.argtypes = [
+        ctypes.c_int,
+        ctypes.c_char_p,
+        ctypes.c_int,
+        ctypes.c_char_p,
+        ctypes.c_uint,
+    ]
+    exchange.restype = ctypes.c_int
+    if exchange(-100, os.fsencode(pending), -100, os.fsencode(destination), 2):
+        error = ctypes.get_errno()
+        raise OSError(error, os.strerror(error), str(destination))

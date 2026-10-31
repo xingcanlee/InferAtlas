@@ -1,4 +1,4 @@
-"""Optional startup-log calibration; no hardware is accessed here."""
+"""Parse pinned vLLM/Ascend startup logs; no hardware is accessed here."""
 
 import math
 import re
@@ -7,20 +7,31 @@ from inferatlas.schema.models import Check
 
 _NUMBER = r"([0-9][0-9,]*(?:\.[0-9]+)?)"
 _PATTERNS = {
-    "weight_bytes": (rf"Model loading took\s+{_NUMBER}\s+GiB", 2**30),
-    "gpu_blocks": (rf"# GPU blocks:\s*{_NUMBER}", 1),
-    "kv_tokens": (rf"(?:GPU\s+)?KV cache size:\s*{_NUMBER}\s+tokens", 1),
-    "available_kv_bytes": (rf"Available KV cache memory:\s*{_NUMBER}\s+GiB", 2**30),
+    # Ascend prints GB but divides consumed_memory by 2**30.
+    "weight_bytes": (
+        rf"(?:Model loading took\s+{_NUMBER}\s+GiB|Loading model weights took\s+{_NUMBER}\s+GB)",
+        2**30,
+    ),
+    "kv_tokens": (rf"(?:GPU|NPU)(?: \+ host)? KV cache size:\s*{_NUMBER}\s+tokens", 1),
+    "available_kv_bytes": (
+        r"Available KV cache memory:\s*(-?[0-9][0-9,]*(?:\.[0-9]+)?)\s+GiB",
+        2**30,
+    ),
+    "maximum_concurrency": (
+        rf"Maximum concurrency for [0-9,]+ tokens per request:\s*{_NUMBER}x",
+        1,
+    ),
 }
 
 
 def parse_vllm_logs(text: str) -> dict[str, float]:
-    """Use the last occurrence of each metric, converting GiB to bytes."""
+    """Use the last occurrence of each metric, converting binary GiB to bytes."""
     metrics = {}
     for key, (pattern, scale) in sorted(_PATTERNS.items()):
-        matches = re.findall(pattern, text, flags=re.IGNORECASE)
+        matches = list(re.finditer(pattern, text))
         if matches:
-            metrics[key] = float(matches[-1].replace(",", "")) * scale
+            value = next(group for group in matches[-1].groups() if group is not None)
+            metrics[key] = float(value.replace(",", "")) * scale
     return metrics
 
 
@@ -34,16 +45,17 @@ def compare_calibration(
         actual = observed[key]
         if isinstance(actual, bool) or not isinstance(actual, (int, float)):
             raise ValueError(f"invalid calibration metric: {key}")
-        if not math.isfinite(actual) or actual < 0:
+        if not math.isfinite(actual) or (actual < 0 and key != "available_kv_bytes"):
             raise ValueError(f"invalid calibration metric: {key}")
         if key not in predicted:
             checks.append(Check(id=f"calibration.{key}", status="skip", message="No estimate."))
             continue
         estimate = predicted[key]
-        if not math.isfinite(estimate) or estimate < 0:
+        if not math.isfinite(estimate) or (estimate < 0 and key != "available_kv_bytes"):
             raise ValueError(f"invalid estimate: {key}")
         delta = abs(estimate - actual)
-        passed = delta <= tolerance * actual or math.isclose(delta, tolerance * actual)
+        limit = tolerance * abs(actual)
+        passed = delta <= limit or math.isclose(delta, limit)
         checks.append(
             Check(
                 id=f"calibration.{key}",

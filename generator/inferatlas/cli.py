@@ -6,6 +6,7 @@ import os
 import shutil
 import subprocess
 import tempfile
+from contextvars import ContextVar
 from functools import wraps
 from pathlib import Path
 from typing import Annotated
@@ -14,11 +15,12 @@ import typer
 from ruamel.yaml import YAML
 
 from inferatlas import __version__
+from inferatlas.expr import validate
 from inferatlas.schema import IR, Catalog, Eval, Extract, Index, Report, Snapshot, Triage, View
-from inferatlas.schema.models import Check
+from inferatlas.schema.models import Check, ConditionalOverride
 from inferatlas.verify import Evaluator, exit_code, parse_vllm_logs, verify_ir
 from inferatlas.verify.golden import check_golden, format_diff, model_slug, update_golden
-from inferatlas.verify.io import ROOT, read_json, source_root, write_json
+from inferatlas.verify.io import ROOT, publish_directory, read_json, source_root, write_json
 
 app = typer.Typer(
     no_args_is_help=True, help="Generate source-linked inference architecture atlases."
@@ -30,6 +32,45 @@ app.add_typer(golden_app, name="golden")
 DEFAULT_MODEL = "Qwen/Qwen3-30B-A3B"
 ModelOption = Annotated[str, typer.Option(help="Catalog model slug or HF repository id.")]
 DeviceOption = Annotated[str, typer.Option(help="Hardware profile, e.g. A2.")]
+AllowFixtures = Annotated[
+    bool,
+    typer.Option(
+        "--allow-fixtures",
+        envvar="INFERATLAS_ALLOW_FIXTURES",
+        help="Allow fixture artifacts for development; reports remain unpublishable.",
+    ),
+]
+_used_fixtures: ContextVar[set[str] | None] = ContextVar("used_fixtures", default=None)
+_allow_fixtures: ContextVar[bool] = ContextVar("allow_fixtures", default=False)
+
+
+def fixture_use(stage: str) -> None:
+    if not (_allow_fixtures.get() or os.environ.get("INFERATLAS_ALLOW_FIXTURES") == "1"):
+        raise RuntimeError(f"{stage} unavailable; use --allow-fixtures only for development")
+    used = _used_fixtures.get()
+    if used is not None:
+        used.add(stage)
+    warning(f"{stage} unavailable; falling back to fixtures/ (unpublishable).")
+
+
+def inherit_provenance(*paths: Path) -> None:
+    used = _used_fixtures.get()
+    if used is not None:
+        for path in paths:
+            if path.resolve().is_relative_to(ROOT / "fixtures"):
+                used.add("input")
+            for sidecar in (path.with_suffix(".provenance.json"), path.parent / "provenance.json"):
+                if sidecar.is_file():
+                    used.update(read_json(sidecar)["fixtures"])
+
+
+def save_artifact(path: Path, value) -> None:
+    write_json(path, value)
+    write_json(
+        path.with_suffix(".provenance.json"), {"fixtures": sorted(_used_fixtures.get() or [])}
+    )
+
+
 PairOption = Annotated[str, typer.Option(help="Explicit catalog version-pair id.")]
 
 
@@ -40,6 +81,8 @@ def warning(message: str) -> None:
 def guarded(function):
     @wraps(function)
     def run(*args, **kwargs):
+        used_token = _used_fixtures.set(set())
+        allow_token = _allow_fixtures.set(kwargs.get("allow_fixtures", False))
         try:
             return function(*args, **kwargs)
         except typer.Exit:
@@ -55,6 +98,9 @@ def guarded(function):
         ) as e:
             typer.echo(f"ERROR: {e}", err=True)
             raise typer.Exit(3) from e
+        finally:
+            _used_fixtures.reset(used_token)
+            _allow_fixtures.reset(allow_token)
 
     return run
 
@@ -69,7 +115,7 @@ def optional(stage: str, name: str):
         module = None
     function = getattr(module, name, None)
     if not callable(function):
-        warning(f"{module_name}.{name} unavailable; falling back to fixtures/.")
+        fixture_use(stage)
         return None
     return function
 
@@ -97,13 +143,12 @@ def resolve_stage(model: str, device: str, pair: str) -> Snapshot:
     pairs = {p.id: p for p in catalog().version_pairs}
     if pair not in pairs:
         raise ValueError(f"unknown version pair: {pair}")
-    if function := optional("resolve", "resolve_snapshot"):
+    if function := optional("resolve", "resolve"):
         result = function(
             model=selected.hf_id,
             device=device,
-            pair=pair,
+            version=pair,
             catalog_path=ROOT / "catalog.yaml",
-            source_root=source_root(ROOT),
         )
         snapshot = Snapshot.model_validate(result)
         version = pairs[pair]
@@ -128,19 +173,22 @@ def resolve_stage(model: str, device: str, pair: str) -> Snapshot:
     return snapshot
 
 
-def extract_stage(snapshot: Snapshot, tp: int) -> Extract:
+def extract_stage(snapshot: Snapshot, tp: int, ep: bool = False) -> Extract:
     if tp < 1:
         raise ValueError("tp must be positive")
-    if function := optional("extract", "extract_snapshot"):
-        python = os.environ.get("INFERATLAS_PY")
+    if function := optional("extract", "extract"):
         value = function(
-            snapshot, tp=tp, source_root=source_root(ROOT), python=Path(python) if python else None
+            snapshot,
+            snapshot.model.hf_id,
+            tp=tp,
+            ep=ep,
+            device=None if snapshot.device == "H100" else snapshot.device,
         )
         result = Extract.model_validate(value)
     else:
         name = "extract.json" if tp == 1 else f"extract-tp{tp}.json"
         result = Extract.model_validate(read_json(fixture(snapshot.model.hf_id, name)))
-    if result.snapshot != snapshot or result.parallel.tp != tp:
+    if result.snapshot != snapshot or result.parallel.tp != tp or result.parallel.ep != ep:
         raise ValueError("extract identity/TP disagrees with requested snapshot")
     return result
 
@@ -148,8 +196,25 @@ def extract_stage(snapshot: Snapshot, tp: int) -> Extract:
 def lower_stage(extracts: list[Extract]) -> tuple[IR, Triage]:
     if not extracts or any(item.snapshot != extracts[0].snapshot for item in extracts):
         raise ValueError("lower requires extracts from one snapshot")
-    if function := optional("lower", "lower_extracts"):
-        ir, triage = function(extracts, rules_dir=ROOT / "rules")
+    if function := optional("lower", "lower"):
+        ordered = sorted(extracts, key=lambda item: item.parallel.tp)
+        if ordered[0].parallel.tp != 1:
+            raise ValueError("lower needs the tp=1 extract as primary")
+        results = [
+            function(item, rules=ROOT / "rules", vllm_version=None, ascend_version=None, mro=None)
+            for item in ordered
+        ]
+        if any(
+            result.ir.snapshot != ordered[0].snapshot
+            or result.triage.snapshot != ordered[0].snapshot
+            for result in results
+        ):
+            raise ValueError("lower outputs disagree with input snapshot")
+        ir, triage = results[0].ir, results[0].triage
+        merged = {
+            item.model_dump_json(): item for result in results for item in result.triage.items
+        }
+        triage = Triage(snapshot=ir.snapshot, items=[merged[key] for key in sorted(merged)])
     else:
         if not all(item.fixture for item in extracts):
             raise ValueError("fixture lowering requires fixture extracts")
@@ -169,6 +234,8 @@ def lower_stage(extracts: list[Extract]) -> tuple[IR, Triage]:
                 raise ValueError("fixture lowering cannot consume changed extraction facts")
         ir = read_json(fixture(model, "ir.json"))
         triage = read_json(fixture(model, "triage.json"))
+    if any(item.fixture for item in extracts) and _used_fixtures.get() is not None:
+        _used_fixtures.get().add("extract")
     result, issues = IR.model_validate(ir), Triage.model_validate(triage)
     if result.snapshot != extracts[0].snapshot or issues.snapshot != result.snapshot:
         raise ValueError("lower outputs disagree with input snapshot")
@@ -176,26 +243,77 @@ def lower_stage(extracts: list[Extract]) -> tuple[IR, Triage]:
 
 
 def annotate_stage(ir: IR, extracts: list[Extract], triage: Triage) -> tuple[IR, Triage]:
-    if function := optional("annotations", "annotate_ir"):
-        value, new_triage = function(
-            ir,
-            extracts=extracts,
-            annotations_dir=ROOT / "annotations",
-            source_root=source_root(ROOT),
-        )
-        result = IR.model_validate(value)
-        additional = Triage.model_validate(new_triage)
-        if result.snapshot != ir.snapshot or additional.snapshot != ir.snapshot:
-            raise ValueError("annotation outputs disagree with IR snapshot")
-        merged = {item.model_dump_json(): item for item in [*triage.items, *additional.items]}
-        issues = sorted(
-            merged.values(),
-            key=lambda item: (
-                item.kind,
-                getattr(item, "symbol", getattr(item, "id", getattr(item, "model", ""))),
+    if load := optional("annotations", "load_annotations"):
+        module = importlib.import_module("inferatlas.annotations")
+        src = source_root(ROOT)
+        sources = {
+            "vllm": module.SourceTree(src / "vllm", "vllm", ir.snapshot.vllm.commit),
+            "vllm_ascend": module.SourceTree(
+                src / "vllm-ascend", "vllm-ascend", ir.snapshot.ascend.commit
             ),
+        }
+        resolved, stale = module.check_annotations(load(ROOT / "annotations"), sources)
+        evaluator = Evaluator(ROOT, warning)
+        primary = min(extracts, key=lambda item: item.parallel.tp) if extracts else None
+        env = evaluator.bind(ir, {})
+        env["is_a2"] = ir.snapshot.device == "A2"
+        if primary:
+            env["is_qwen3_moe"] = primary.config.get("model_type") == "qwen3_moe"
+        active = set()
+        pending = list(stale)
+        for item in resolved:
+            ann = item.annotation
+            if set(validate(ann.applies_when)) - env.keys():
+                pending.append(
+                    ConditionalOverride(
+                        kind="conditional_override",
+                        symbol=ann.target,
+                        candidates=[ann.resolves_to],
+                        conditions=[ann.applies_when],
+                    )
+                )
+            elif evaluator.many([ann.applies_when], env)[0]:
+                active.add(ann.id)
+        bindings = {}
+        for node in ir.nodes:
+            observed = set()
+            for extract in extracts:
+                for module_fact in extract.modules:
+                    if module_fact.class_name == node.class_name and module_fact.ascend:
+                        observed.add(module_fact.ascend.class_name)
+                if extract.ascend:
+                    for symbol, file in extract.ascend.patched.items():
+                        if symbol == node.class_name or symbol.startswith(node.class_name + "."):
+                            observed.update(
+                                ref.symbol
+                                for item in resolved
+                                for ref in item.src
+                                if ref.repo == "vllm-ascend" and ref.file == file
+                            )
+            candidates = [
+                item.annotation
+                for item in resolved
+                if item.annotation.id in active and item.annotation.resolves_to in observed
+            ]
+            if len(candidates) == 1:
+                bindings[node.id] = candidates[0].id
+            elif len(candidates) > 1:
+                pending.append(
+                    ConditionalOverride(
+                        kind="conditional_override",
+                        symbol=node.class_name,
+                        candidates=sorted(ann.resolves_to for ann in candidates),
+                        conditions=sorted(ann.applies_when for ann in candidates),
+                    )
+                )
+        result = IR.model_validate(
+            module.apply_annotations(ir, resolved, bindings=bindings, active_ids=active)
         )
-        return result, Triage(snapshot=ir.snapshot, items=issues)
+        if result.snapshot != ir.snapshot:
+            raise ValueError("annotation output disagrees with IR snapshot")
+        # Preserve newer stale.target when available; legacy contracts have no such field.
+        merged = {item.model_dump_json(): item for item in [*triage.items, *pending]}
+        return result, Triage(snapshot=ir.snapshot, items=[merged[key] for key in sorted(merged)])
     original = IR.model_validate(read_json(fixture(ir.snapshot.model.hf_id, "ir.json")))
     if ir != original:
         raise ValueError("fixture annotation fallback requires the unchanged, already annotated IR")
@@ -205,26 +323,20 @@ def annotate_stage(ir: IR, extracts: list[Extract], triage: Triage) -> tuple[IR,
 def layout_stage(ir_path: Path, output: Path) -> View:
     ir = IR.model_validate(read_json(ir_path))
     executable = ROOT / "packages/layout/dist/cli.js"
+    if not executable.is_file() and (ROOT / "packages/layout/src").is_dir():
+        subprocess.run(
+            ["pnpm", "--filter", "@inferatlas/layout", "build"], cwd=ROOT, check=True, timeout=120
+        )
     if executable.is_file():
         subprocess.run(
-            [
-                "pnpm",
-                "--filter",
-                "@inferatlas/layout",
-                "exec",
-                "inferatlas-layout",
-                "--input",
-                str(ir_path.resolve()),
-                "--output",
-                str(output.resolve()),
-            ],
+            ["node", str(executable), str(ir_path.resolve()), "-o", str(output.resolve())],
             cwd=ROOT,
             check=True,
             timeout=120,
         )
         result = View.model_validate(read_json(output))
     else:
-        warning("Layout CLI unavailable; falling back to fixtures/.")
+        fixture_use("layout")
         original = IR.model_validate(read_json(fixture(ir.snapshot.model.hf_id, "ir.json")))
         if ir != original:
             raise ValueError("fixture layout cannot represent changed IR")
@@ -262,6 +374,7 @@ def report_stage(
     triage: Triage | None,
     golden_dir: Path | None = None,
     calibration: Path | None = None,
+    calibration_env: Path | None = None,
 ) -> Report:
     src = source_root(ROOT)
     return verify_ir(
@@ -272,6 +385,9 @@ def report_stage(
         golden_dir=golden_dir or ROOT / "golden" / model_slug(ir),
         calibration=read_json(calibration) if calibration else None,
         evaluator=Evaluator(ROOT, warning),
+        calibration_env=read_json(calibration_env) if calibration_env else None,
+        fixture_stages=_used_fixtures.get() or set(),
+        allow_fixtures=_allow_fixtures.get() or os.environ.get("INFERATLAS_ALLOW_FIXTURES") == "1",
     )
 
 
@@ -284,7 +400,7 @@ def snapshot_key(snapshot: Snapshot, pair: str) -> str:
 
 
 def build_pipeline(
-    model: str, device: str, pair: str, output: Path | None, tp: list[int]
+    model: str, device: str, pair: str, output: Path | None, tp: list[int], ep: bool = False
 ) -> tuple[Path, int]:
     if not tp:
         raise ValueError("build needs at least one TP point")
@@ -292,28 +408,42 @@ def build_pipeline(
     directory = (
         output or ROOT / ".cache/build" / snapshot_key(snapshot, pair) / catalog_model(model).id
     )
-    write_json(directory / "snapshot.json", snapshot)
-    extracts = [extract_stage(snapshot, degree) for degree in sorted(set(tp))]
-    for extract in extracts:
-        name = (
-            "extract.json" if extract.parallel.tp == 1 else f"extract-tp{extract.parallel.tp}.json"
-        )
-        write_json(directory / name, extract)
-    ir, triage = lower_stage(extracts)
-    ir, triage = annotate_stage(ir, extracts, triage)
-    write_json(directory / "ir.json", ir)
-    write_json(directory / "triage.json", triage)
-    report = report_stage(ir, extracts, triage)
-    try:
-        layout_stage(directory / "ir.json", directory / "view.json")
-        report.checks.append(
-            Check(id="layout", status="pass", message="View validates against IR.")
-        )
-    except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
-        warning(f"Layout failed: {error}")
-        report.checks.append(Check(id="layout", status="fail", message="Layout generation failed."))
-    report.checks.sort(key=lambda check: (check.id, check.node or ""))
-    write_json(directory / "report.json", report)
+    directory.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix=".inferatlas-build-", dir=directory.parent) as scratch:
+        pending = Path(scratch) / "artifacts"
+        write_json(pending / "snapshot.json", snapshot)
+        extracts = [extract_stage(snapshot, degree, ep) for degree in sorted(set(tp))]
+        for extract in extracts:
+            name = (
+                "extract.json"
+                if extract.parallel.tp == 1
+                else f"extract-tp{extract.parallel.tp}.json"
+            )
+            write_json(pending / name, extract)
+        ir, triage = lower_stage(extracts)
+        ir, triage = annotate_stage(ir, extracts, triage)
+        write_json(pending / "ir.json", ir)
+        write_json(pending / "triage.json", triage)
+        report = report_stage(ir, extracts, triage)
+        try:
+            layout_stage(pending / "ir.json", pending / "view.json")
+            report.checks.append(
+                Check(id="layout", status="pass", message="View validates against IR.")
+            )
+        except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
+            (pending / "view.json").unlink(missing_ok=True)
+            warning(f"Layout failed: {error}")
+            report.checks.append(
+                Check(id="layout", status="fail", message="Layout generation failed.")
+            )
+        if _used_fixtures.get():
+            provenance = next(check for check in report.checks if check.id == "provenance")
+            provenance.status = "fail"
+            provenance.message = "Fixture stages: " + ", ".join(sorted(_used_fixtures.get()))
+        report.checks.sort(key=lambda check: (check.id, check.node or ""))
+        write_json(pending / "report.json", report)
+        write_json(pending / "provenance.json", {"fixtures": sorted(_used_fixtures.get() or [])})
+        publish_directory(pending, directory)
     typer.echo(str(directory))
     return directory, exit_code(report, triage)
 
@@ -331,18 +461,24 @@ def resolve(
     device: DeviceOption = "A2",
     pair: PairOption = "main-verified",
     output: Path = Path("snapshot.json"),
+    allow_fixtures: AllowFixtures = False,
 ) -> None:
     """Resolve a pinned model/device/version identity."""
-    write_json(output, resolve_stage(model, device, pair))
+    save_artifact(output, resolve_stage(model, device, pair))
 
 
 @app.command()
 @guarded
 def extract(
-    snapshot: Path = Path("snapshot.json"), tp: int = 1, output: Path = Path("extract.json")
+    snapshot: Path = Path("snapshot.json"),
+    tp: int = 1,
+    ep: bool = False,
+    output: Path = Path("extract.json"),
+    allow_fixtures: AllowFixtures = False,
 ) -> None:
     """Extract CPU/meta facts for one TP degree."""
-    write_json(output, extract_stage(Snapshot.model_validate(read_json(snapshot)), tp))
+    inherit_provenance(snapshot)
+    save_artifact(output, extract_stage(Snapshot.model_validate(read_json(snapshot)), tp, ep))
 
 
 @app.command()
@@ -351,13 +487,15 @@ def lower(
     extract: Annotated[list[Path] | None, typer.Option()] = None,
     output: Path = Path("ir.json"),
     triage_output: Path = Path("triage.json"),
+    allow_fixtures: AllowFixtures = False,
 ) -> None:
     """Lower one or more extracts into symbolic IR and blocking triage."""
+    inherit_provenance(*(extract or [Path("extract.json")]))
     ir, triage = lower_stage(
         [Extract.model_validate(read_json(path)) for path in extract or [Path("extract.json")]]
     )
-    write_json(output, ir)
-    write_json(triage_output, triage)
+    save_artifact(output, ir)
+    save_artifact(triage_output, triage)
     raise typer.Exit(2 if triage.items else 0)
 
 
@@ -369,8 +507,10 @@ def annotate(
     extract: Annotated[list[Path] | None, typer.Option()] = None,
     output: Path = Path("ir.json"),
     triage_output: Path = Path("triage.json"),
+    allow_fixtures: AllowFixtures = False,
 ) -> None:
     """Apply reviewed Ascend annotations and merge unresolved triage."""
+    inherit_provenance(ir, triage, *(extract or []))
     graph = IR.model_validate(read_json(ir))
     issues = Triage.model_validate(read_json(triage))
     if issues.snapshot != graph.snapshot:
@@ -378,8 +518,8 @@ def annotate(
     graph, issues = annotate_stage(
         graph, [Extract.model_validate(read_json(path)) for path in extract or []], issues
     )
-    write_json(output, graph)
-    write_json(triage_output, issues)
+    save_artifact(output, graph)
+    save_artifact(triage_output, issues)
     raise typer.Exit(2 if issues.items else 0)
 
 
@@ -391,9 +531,12 @@ def verify(
     extract: Annotated[list[Path] | None, typer.Option()] = None,
     golden_dir: Path | None = None,
     calibration: Path | None = None,
+    calibration_env: Path | None = None,
     output: Path = Path("report.json"),
+    allow_fixtures: AllowFixtures = False,
 ) -> None:
     """Write a schema-valid report; exit 2 for triage or 3 for failed verification."""
+    inherit_provenance(ir, *(extract or []))
     issues = Triage.model_validate(read_json(triage)) if triage else None
     report = report_stage(
         IR.model_validate(read_json(ir)),
@@ -401,6 +544,7 @@ def verify(
         issues,
         golden_dir,
         calibration,
+        calibration_env,
     )
     write_json(output, report)
     if report.golden_diff:
@@ -411,7 +555,10 @@ def verify(
 @golden_app.command("update")
 @guarded
 def golden_update(
-    ir: Path = Path("ir.json"), directory: Path | None = None, grid: Path | None = None
+    ir: Path = Path("ir.json"),
+    directory: Path | None = None,
+    grid: Path | None = None,
+    allow_fixtures: AllowFixtures = False,
 ) -> None:
     """Re-evaluate a grid before replacing committed golden files."""
     graph = IR.model_validate(read_json(ir))
@@ -427,21 +574,36 @@ def golden_update(
 
 @golden_app.command("check")
 @guarded
-def golden_check(ir: Path = Path("ir.json"), directory: Path | None = None) -> None:
+def golden_check(
+    ir: Path = Path("ir.json"), directory: Path | None = None, allow_fixtures: AllowFixtures = False
+) -> None:
     """Compare IR and fresh evaluations, printing differences per node/field."""
     graph = IR.model_validate(read_json(ir))
-    diffs = check_golden(
-        directory or ROOT / "golden" / model_slug(graph), graph, Evaluator(ROOT, warning)
+    evaluator = Evaluator(ROOT, warning)
+    diffs = check_golden(directory or ROOT / "golden" / model_slug(graph), graph, evaluator)
+    if evaluator.backend != "node":
+        typer.echo("SKIPPED numeric golden evaluation.")
+        if not allow_fixtures and os.environ.get("INFERATLAS_ALLOW_FIXTURES") != "1":
+            raise typer.Exit(3)
+    typer.echo(
+        format_diff(diffs)
+        if diffs
+        else ("Golden matches." if evaluator.backend == "node" else "Structural golden matches.")
     )
-    typer.echo(format_diff(diffs) if diffs else "Golden matches.")
     raise typer.Exit(3 if diffs else 0)
 
 
 @app.command()
 @guarded
-def layout(ir: Path = Path("ir.json"), output: Path = Path("view.json")) -> None:
-    """Run the pnpm layout CLI, with a fixture fallback during integration."""
+def layout(
+    ir: Path = Path("ir.json"),
+    output: Path = Path("view.json"),
+    allow_fixtures: AllowFixtures = False,
+) -> None:
+    """Run the Node layout CLI; fixture mode requires explicit opt-in."""
+    inherit_provenance(ir)
     layout_stage(ir, output)
+    save_artifact(output, View.model_validate(read_json(output)))
 
 
 @app.command()
@@ -452,9 +614,11 @@ def build(
     pair: PairOption = "main-verified",
     output: Path | None = None,
     tp: Annotated[list[int] | None, typer.Option()] = None,
+    ep: bool = False,
+    allow_fixtures: AllowFixtures = False,
 ) -> None:
     """Run resolve, extract, lower, annotate, verify and layout."""
-    _, code = build_pipeline(model, device, pair, output, tp or [1, 4])
+    _, code = build_pipeline(model, device, pair, output, tp or [1, 4], ep)
     raise typer.Exit(code)
 
 
@@ -467,12 +631,15 @@ def parse_logs(log: Path, output: Path = Path("calibration.json")) -> None:
 
 @app.command()
 @guarded
-def site(build_root: Path | None = None, data_dir: Path | None = None) -> None:
+def site(
+    build_root: Path | None = None, data_dir: Path | None = None, include_blocked: bool = False
+) -> None:
     """Copy build outputs, generate the version/model index and build the web app."""
     build_root = build_root or ROOT / ".cache/build"
     data_dir = data_dir or ROOT / "web/public/data"
     data = catalog()
     cells = {}
+    artifacts = []
     code = 0
     for path in sorted(build_root.glob("*/*/ir.json")):
         directory = path.parent
@@ -499,10 +666,13 @@ def site(build_root: Path | None = None, data_dir: Path | None = None) -> None:
         if key in cells:
             raise ValueError("multiple builds occupy the same version/model/device cell")
         status = exit_code(report, triage)
+        provenance = [check for check in report.checks if check.id == "provenance"]
+        if status == 3 or not provenance or any(c.status != "pass" for c in provenance):
+            raise ValueError("site refuses failed or fixture/unverified provenance")
         code = max(code, status)
         relative = Path(directory.parent.name) / model.id
         for name, value in (("ir", ir), ("view", view), ("report", report)):
-            write_json(data_dir / relative / f"{name}.json", value)
+            artifacts.append((data_dir / relative / f"{name}.json", value))
         cells[key] = dict(
             version=pair.id,
             model=model.id,
@@ -513,6 +683,8 @@ def site(build_root: Path | None = None, data_dir: Path | None = None) -> None:
         )
     if not cells:
         raise ValueError("no build outputs found; run inferatlas build first")
+    if code == 2 and not include_blocked:
+        raise typer.Exit(2)
     devices = sorted({device.id for device in data.devices} | {c["device"] for c in cells.values()})
     for pair in data.version_pairs:
         for model in data.models:
@@ -539,6 +711,8 @@ def site(build_root: Path | None = None, data_dir: Path | None = None) -> None:
         ],
         cells=[cells[k] for k in sorted(cells)],
     )
+    for path, value in artifacts:
+        write_json(path, value)
     write_json(data_dir / "index.json", index)
     subprocess.run(["pnpm", "--filter", "web", "build"], cwd=ROOT, check=True, timeout=300)
     raise typer.Exit(code)
@@ -551,10 +725,13 @@ def single(
     device: DeviceOption = "A2",
     pair: PairOption = "main-verified",
     output: Path | None = None,
+    include_blocked: bool = False,
+    ep: bool = False,
+    allow_fixtures: AllowFixtures = False,
 ) -> None:
     """Build a model and ask the web single-file plugin to inline its artifacts."""
-    directory, code = build_pipeline(model, device, pair, None, [1, 4])
-    if code == 3:
+    directory, code = build_pipeline(model, device, pair, None, [1, 4], ep)
+    if code == 3 or (code == 2 and not include_blocked):
         raise typer.Exit(code)
     output = output or ROOT / "dist" / f"inferatlas-{catalog_model(model).id}.html"
     output.parent.mkdir(parents=True, exist_ok=True)
