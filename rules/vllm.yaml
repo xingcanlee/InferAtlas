@@ -1,0 +1,955 @@
+  - id: activation.silu
+    match:
+      class: SiluAndMul
+      vllm: '>=0.32,<0.33'
+    context:
+      - intermediate_size
+    out:
+      - name: output
+        shape:
+          - T
+          - intermediate_size/tp
+        dtype: dtype_a
+    weight: '0'
+    flops:
+      prefill: 4*T*intermediate_size/tp
+      decode: 4*S*intermediate_size/tp
+    bytes_moved:
+      prefill: (0)+2*T*H*bytes(dtype_a)
+      decode: (0)+2*S*H*bytes(dtype_a)
+    shard: {}
+    emits: []
+    notes: []
+  - id: ascend.AscendApplyRotaryEmb
+    match:
+      class: AscendApplyRotaryEmb
+      vllm: '>=0.32,<0.33'
+    inherits: rotary.apply
+    tags:
+      - ascend
+  - id: ascend.AscendColumnParallelLinear
+    match:
+      class: AscendColumnParallelLinear
+      vllm: '>=0.32,<0.33'
+    inherits: linear.column
+    tags:
+      - ascend
+  - id: ascend.AscendGateLinear
+    match:
+      class: AscendGateLinear
+      vllm: '>=0.32,<0.33'
+    inherits: moe.gate
+    tags:
+      - ascend
+  - id: ascend.AscendLogitsProcessor
+    match:
+      class: AscendLogitsProcessor
+      vllm: '>=0.32,<0.33'
+    inherits: logits
+    tags:
+      - ascend
+  - id: ascend.AscendMergedColumnParallelLinear
+    match:
+      class: AscendMergedColumnParallelLinear
+      vllm: '>=0.32,<0.33'
+    inherits: linear.merged
+    tags:
+      - ascend
+  - id: ascend.AscendMoERunner
+    match:
+      class: AscendMoERunner
+      vllm: '>=0.32,<0.33'
+    inherits: moe.runner
+    tags:
+      - ascend
+  - id: ascend.AscendParallelLMHead
+    match:
+      class: AscendParallelLMHead
+      vllm: '>=0.32,<0.33'
+    inherits: lm_head
+    tags:
+      - ascend
+  - id: ascend.AscendQKVParallelLinear
+    match:
+      class: AscendQKVParallelLinear
+      vllm: '>=0.32,<0.33'
+    inherits: linear.qkv
+    tags:
+      - ascend
+  - id: ascend.AscendRMSNorm
+    match:
+      class: AscendRMSNorm
+      vllm: '>=0.32,<0.33'
+    inherits: norm.rms
+    tags:
+      - ascend
+  - id: ascend.AscendReplicatedLinear
+    match:
+      class: AscendReplicatedLinear
+      vllm: '>=0.32,<0.33'
+    inherits: linear.replicated
+    tags:
+      - ascend
+  - id: ascend.AscendRotaryEmbedding
+    match:
+      class: AscendRotaryEmbedding
+      vllm: '>=0.32,<0.33'
+    inherits: rotary
+    tags:
+      - ascend
+  - id: ascend.AscendRoutedExperts
+    match:
+      class: AscendRoutedExperts
+      vllm: '>=0.32,<0.33'
+    inherits: moe.weights
+    tags:
+      - ascend
+  - id: ascend.AscendRowParallelLinear
+    match:
+      class: AscendRowParallelLinear
+      vllm: '>=0.32,<0.33'
+    inherits: linear.row
+    tags:
+      - ascend
+  - id: ascend.AscendSiluAndMul
+    match:
+      class: AscendSiluAndMul
+      vllm: '>=0.32,<0.33'
+    inherits: activation.silu
+    tags:
+      - ascend
+  - id: ascend.AscendUnquantizedFusedMoEMethod
+    match:
+      class: AscendUnquantizedFusedMoEMethod
+      vllm: '>=0.32,<0.33'
+    inherits: moe.method
+    tags:
+      - ascend
+  - id: ascend.AscendVocabParallelEmbedding
+    match:
+      class: AscendVocabParallelEmbedding
+      vllm: '>=0.32,<0.33'
+    inherits: embedding
+    tags:
+      - ascend
+  - id: attention
+    match:
+      class: Attention
+      vllm: '>=0.32,<0.33'
+    context: []
+    out:
+      - name: output
+        shape:
+          - T
+          - Hq/tp*D
+        dtype: dtype_a
+    weight: '0'
+    flops:
+      prefill: 2*T*(T/batch+1)*Hq/tp*D
+      decode: 4*S*(context+1)*Hq/tp*D
+    bytes_moved:
+      prefill: 2*T*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_a)
+      decode: 2*S*Hq/tp*D*bytes(dtype_a)+2*S*(context+1)*max(1,Hkv/tp)*D*bytes(dtype_kv)
+    shard:
+      tp: heads
+    emits: []
+    notes:
+      - Prefill uses equal-length causal sequences; T/batch tokens per sequence. Decode reads context+1
+        tokens. Softmax work and backend scratch are excluded.
+    kv_per_token: 2*max(1,Hkv/tp)*D*bytes(dtype_kv)
+  - id: container.ModuleList
+    match:
+      class: ModuleList
+      vllm: '>=0.32,<0.33'
+    context: []
+    out:
+      - name: output
+        shape:
+          - T
+          - H
+        dtype: dtype_a
+    weight: '0'
+    flops:
+      prefill: '0'
+      decode: '0'
+    bytes_moved:
+      prefill: '0'
+      decode: '0'
+    shard: {}
+    emits: []
+    notes:
+      - Structural container; metrics summarize descendants.
+  - id: container.Qwen2MLP
+    match:
+      class: Qwen2MLP
+      vllm: '>=0.32,<0.33'
+    context: []
+    out:
+      - name: output
+        shape:
+          - T
+          - H
+        dtype: dtype_a
+    weight: '0'
+    flops:
+      prefill: '0'
+      decode: '0'
+    bytes_moved:
+      prefill: '0'
+      decode: '0'
+    shard: {}
+    emits: []
+    notes:
+      - Qwen3 imports Qwen2MLP as Qwen3MLP; the observed class identity remains Qwen2MLP.
+  - id: container.Qwen3Attention
+    match:
+      class: Qwen3Attention
+      vllm: '>=0.32,<0.33'
+    context: []
+    out:
+      - name: output
+        shape:
+          - T
+          - H
+        dtype: dtype_a
+    weight: '0'
+    flops:
+      prefill: '0'
+      decode: '0'
+    bytes_moved:
+      prefill: '0'
+      decode: '0'
+    shard: {}
+    emits: []
+    notes:
+      - Structural container; metrics summarize descendants.
+  - id: container.Qwen3DecoderLayer
+    match:
+      class: Qwen3DecoderLayer
+      vllm: '>=0.32,<0.33'
+    context: []
+    out:
+      - name: output
+        shape:
+          - T
+          - H
+        dtype: dtype_a
+    weight: '0'
+    flops:
+      prefill: '0'
+      decode: '0'
+    bytes_moved:
+      prefill: '0'
+      decode: '0'
+    shard: {}
+    emits: []
+    notes:
+      - Structural container; metrics summarize descendants.
+  - id: container.Qwen3ForCausalLM
+    match:
+      class: Qwen3ForCausalLM
+      vllm: '>=0.32,<0.33'
+    context: []
+    out:
+      - name: output
+        shape:
+          - T
+          - H
+        dtype: dtype_a
+    weight: '0'
+    flops:
+      prefill: '0'
+      decode: '0'
+    bytes_moved:
+      prefill: '0'
+      decode: '0'
+    shard: {}
+    emits: []
+    notes:
+      - Structural container; metrics summarize descendants.
+  - id: container.Qwen3MLP
+    match:
+      class: Qwen3MLP
+      vllm: '>=0.32,<0.33'
+    context: []
+    out:
+      - name: output
+        shape:
+          - T
+          - H
+        dtype: dtype_a
+    weight: '0'
+    flops:
+      prefill: '0'
+      decode: '0'
+    bytes_moved:
+      prefill: '0'
+      decode: '0'
+    shard: {}
+    emits: []
+    notes:
+      - Structural container; metrics summarize descendants.
+  - id: container.Qwen3Model
+    match:
+      class: Qwen3Model
+      vllm: '>=0.32,<0.33'
+    context: []
+    out:
+      - name: output
+        shape:
+          - T
+          - H
+        dtype: dtype_a
+    weight: '0'
+    flops:
+      prefill: '0'
+      decode: '0'
+    bytes_moved:
+      prefill: '0'
+      decode: '0'
+    shard: {}
+    emits: []
+    notes:
+      - Structural container; metrics summarize descendants.
+  - id: container.Qwen3MoeAttention
+    match:
+      class: Qwen3MoeAttention
+      vllm: '>=0.32,<0.33'
+    context: []
+    out:
+      - name: output
+        shape:
+          - T
+          - H
+        dtype: dtype_a
+    weight: '0'
+    flops:
+      prefill: '0'
+      decode: '0'
+    bytes_moved:
+      prefill: '0'
+      decode: '0'
+    shard: {}
+    emits: []
+    notes:
+      - Structural container; metrics summarize descendants.
+  - id: container.Qwen3MoeDecoderLayer
+    match:
+      class: Qwen3MoeDecoderLayer
+      vllm: '>=0.32,<0.33'
+    context: []
+    out:
+      - name: output
+        shape:
+          - T
+          - H
+        dtype: dtype_a
+    weight: '0'
+    flops:
+      prefill: '0'
+      decode: '0'
+    bytes_moved:
+      prefill: '0'
+      decode: '0'
+    shard: {}
+    emits: []
+    notes:
+      - Structural container; metrics summarize descendants.
+  - id: container.Qwen3MoeForCausalLM
+    match:
+      class: Qwen3MoeForCausalLM
+      vllm: '>=0.32,<0.33'
+    context: []
+    out:
+      - name: output
+        shape:
+          - T
+          - H
+        dtype: dtype_a
+    weight: '0'
+    flops:
+      prefill: '0'
+      decode: '0'
+    bytes_moved:
+      prefill: '0'
+      decode: '0'
+    shard: {}
+    emits: []
+    notes:
+      - Structural container; metrics summarize descendants.
+  - id: container.Qwen3MoeModel
+    match:
+      class: Qwen3MoeModel
+      vllm: '>=0.32,<0.33'
+    context: []
+    out:
+      - name: output
+        shape:
+          - T
+          - H
+        dtype: dtype_a
+    weight: '0'
+    flops:
+      prefill: '0'
+      decode: '0'
+    bytes_moved:
+      prefill: '0'
+      decode: '0'
+    shard: {}
+    emits: []
+    notes:
+      - Structural container; metrics summarize descendants.
+  - id: container.Qwen3MoeSparseMoeBlock
+    match:
+      class: Qwen3MoeSparseMoeBlock
+      vllm: '>=0.32,<0.33'
+    context: []
+    out:
+      - name: output
+        shape:
+          - T
+          - H
+        dtype: dtype_a
+    weight: '0'
+    flops:
+      prefill: '0'
+      decode: '0'
+    bytes_moved:
+      prefill: '0'
+      decode: '0'
+    shard: {}
+    emits: []
+    notes:
+      - Structural container; metrics summarize descendants.
+  - id: embedding
+    match:
+      class: VocabParallelEmbedding
+      vllm: '>=0.32,<0.33'
+    context: []
+    out:
+      - name: output
+        shape:
+          - T
+          - H
+        dtype: dtype_a
+    weight: round_up(V,64)/tp*H*bytes(dtype_w)
+    flops:
+      prefill: '0'
+      decode: '0'
+    bytes_moved:
+      prefill: T*H*(bytes(dtype_w)+bytes(dtype_a))
+      decode: S*H*(bytes(dtype_w)+bytes(dtype_a))
+    shard:
+      tp: vocab
+    emits:
+      - suffix: reduce
+        kind: comm
+        comm:
+          op: all_reduce
+          group: tp
+          logical_bytes:
+            prefill: T*H*bytes(dtype_a)
+            decode: S*H*bytes(dtype_a)
+          bus_bytes:
+            prefill: 'tp>1 ? (2*(tp-1)/tp)*(T*H*bytes(dtype_a)) : 0'
+            decode: 'tp>1 ? (2*(tp-1)/tp)*(S*H*bytes(dtype_a)) : 0'
+          when: tp>1
+          notes:
+            - Ring estimate; logical bytes describe the tensor even when inactive.
+    notes:
+      - Pad vocabulary to a multiple of 64 before TP sharding.
+    parameter_shapes:
+      weight:
+        - round_up(V,64)/tp
+        - H
+  - id: linear.column
+    match:
+      class: ColumnParallelLinear
+      vllm: '>=0.32,<0.33'
+    context:
+      - in_features
+      - out_features
+      - gather_output
+      - has_bias
+    out:
+      - name: output
+        shape:
+          - T
+          - 'gather_output ? out_features : out_features/tp'
+        dtype: dtype_a
+    weight: '(in_features*out_features/tp*bytes(dtype_w))+(has_bias ? (out_features/tp)*bytes(dtype_w) : 0)'
+    flops:
+      prefill: 2*T*in_features*out_features/tp
+      decode: 2*S*in_features*out_features/tp
+    bytes_moved:
+      prefill: '((in_features*out_features/tp*bytes(dtype_w))+(has_bias ? (out_features/tp)*bytes(dtype_w) : 0))+T*((in_features)+(out_features/tp))*bytes(dtype_a)'
+      decode: '((in_features*out_features/tp*bytes(dtype_w))+(has_bias ? (out_features/tp)*bytes(dtype_w) : 0))+S*((in_features)+(out_features/tp))*bytes(dtype_a)'
+    shard:
+      tp: out
+    emits:
+      - suffix: gather
+        kind: comm
+        comm:
+          op: all_gather
+          group: tp
+          logical_bytes:
+            prefill: T*out_features*bytes(dtype_a)
+            decode: S*out_features*bytes(dtype_a)
+          bus_bytes:
+            prefill: 'gather_output && tp>1 ? ((tp-1)/tp)*(T*out_features*bytes(dtype_a)) : 0'
+            decode: 'gather_output && tp>1 ? ((tp-1)/tp)*(S*out_features*bytes(dtype_a)) : 0'
+          when: gather_output && tp>1
+          notes:
+            - Ring estimate; logical bytes describe the tensor even when inactive.
+    notes: []
+    parameter_shapes:
+      weight:
+        - out_features/tp
+        - in_features
+      bias:
+        - out_features/tp
+  - id: linear.merged
+    match:
+      class: MergedColumnParallelLinear
+      vllm: '>=0.32,<0.33'
+    inherits: linear.column
+  - id: linear.qkv
+    match:
+      class: QKVParallelLinear
+      vllm: '>=0.32,<0.33'
+    context:
+      - in_features
+      - num_heads
+      - num_kv_heads
+      - head_size
+      - has_bias
+    out:
+      - name: output
+        shape:
+          - T
+          - (num_heads/tp+2*max(1,num_kv_heads/tp))*head_size
+        dtype: dtype_a
+    weight: '(in_features*(num_heads/tp+2*max(1,num_kv_heads/tp))*head_size*bytes(dtype_w))+(has_bias ? ((num_heads/tp+2*max(1,num_kv_heads/tp))*head_size)*bytes(dtype_w)
+      : 0)'
+    flops:
+      prefill: 2*T*in_features*(num_heads/tp+2*max(1,num_kv_heads/tp))*head_size
+      decode: 2*S*in_features*(num_heads/tp+2*max(1,num_kv_heads/tp))*head_size
+    bytes_moved:
+      prefill: '((in_features*(num_heads/tp+2*max(1,num_kv_heads/tp))*head_size*bytes(dtype_w))+(has_bias ? ((num_heads/tp+2*max(1,num_kv_heads/tp))*head_size)*bytes(dtype_w)
+        : 0))+T*((in_features)+((num_heads/tp+2*max(1,num_kv_heads/tp))*head_size))*bytes(dtype_a)'
+      decode: '((in_features*(num_heads/tp+2*max(1,num_kv_heads/tp))*head_size*bytes(dtype_w))+(has_bias ? ((num_heads/tp+2*max(1,num_kv_heads/tp))*head_size)*bytes(dtype_w)
+        : 0))+S*((in_features)+((num_heads/tp+2*max(1,num_kv_heads/tp))*head_size))*bytes(dtype_a)'
+    shard:
+      tp: out
+    emits: []
+    notes:
+      - KV heads are replicated when TP exceeds the global KV-head count.
+    parameter_shapes:
+      weight:
+        - (num_heads/tp+2*max(1,num_kv_heads/tp))*head_size
+        - in_features
+      bias:
+        - (num_heads/tp+2*max(1,num_kv_heads/tp))*head_size
+  - id: linear.replicated
+    match:
+      class: ReplicatedLinear
+      vllm: '>=0.32,<0.33'
+    context:
+      - in_features
+      - out_features
+      - has_bias
+    out:
+      - name: output
+        shape:
+          - T
+          - out_features
+        dtype: dtype_a
+    weight: '(in_features*out_features*bytes(dtype_w))+(has_bias ? (out_features)*bytes(dtype_w) : 0)'
+    flops:
+      prefill: 2*T*in_features*out_features
+      decode: 2*S*in_features*out_features
+    bytes_moved:
+      prefill: '((in_features*out_features*bytes(dtype_w))+(has_bias ? (out_features)*bytes(dtype_w) : 0))+T*((in_features)+(out_features))*bytes(dtype_a)'
+      decode: '((in_features*out_features*bytes(dtype_w))+(has_bias ? (out_features)*bytes(dtype_w) : 0))+S*((in_features)+(out_features))*bytes(dtype_a)'
+    shard:
+      tp: replicated
+    emits: []
+    notes: []
+    parameter_shapes:
+      weight:
+        - out_features
+        - in_features
+      bias:
+        - out_features
+  - id: linear.row
+    match:
+      class: RowParallelLinear
+      vllm: '>=0.32,<0.33'
+    context:
+      - in_features
+      - out_features
+      - reduce_results
+      - has_bias
+    out:
+      - name: output
+        shape:
+          - T
+          - out_features
+        dtype: dtype_a
+    weight: '(in_features/tp*out_features*bytes(dtype_w))+(has_bias ? (out_features)*bytes(dtype_w) : 0)'
+    flops:
+      prefill: 2*T*in_features/tp*out_features
+      decode: 2*S*in_features/tp*out_features
+    bytes_moved:
+      prefill: '((in_features/tp*out_features*bytes(dtype_w))+(has_bias ? (out_features)*bytes(dtype_w) : 0))+T*((in_features/tp)+(out_features))*bytes(dtype_a)'
+      decode: '((in_features/tp*out_features*bytes(dtype_w))+(has_bias ? (out_features)*bytes(dtype_w) : 0))+S*((in_features/tp)+(out_features))*bytes(dtype_a)'
+    shard:
+      tp: in
+    emits:
+      - suffix: reduce
+        kind: comm
+        comm:
+          op: all_reduce
+          group: tp
+          logical_bytes:
+            prefill: T*out_features*bytes(dtype_a)
+            decode: S*out_features*bytes(dtype_a)
+          bus_bytes:
+            prefill: 'reduce_results && tp>1 ? (2*(tp-1)/tp)*(T*out_features*bytes(dtype_a)) : 0'
+            decode: 'reduce_results && tp>1 ? (2*(tp-1)/tp)*(S*out_features*bytes(dtype_a)) : 0'
+          when: reduce_results && tp>1
+          notes:
+            - Ring estimate; logical bytes describe the tensor even when inactive.
+    notes: []
+    parameter_shapes:
+      weight:
+        - out_features
+        - in_features/tp
+      bias:
+        - out_features
+  - id: lm_head
+    match:
+      class: ParallelLMHead
+      vllm: '>=0.32,<0.33'
+    context:
+      - tied
+    out:
+      - name: output
+        shape:
+          prefill:
+            - batch
+            - round_up(V,64)/tp
+          decode:
+            - S
+            - round_up(V,64)/tp
+        dtype: dtype_a
+    weight: 'tied ? 0 : round_up(V,64)/tp*H*bytes(dtype_w)'
+    flops:
+      prefill: 2*batch*H*round_up(V,64)/tp
+      decode: 2*S*H*round_up(V,64)/tp
+    bytes_moved:
+      prefill: round_up(V,64)/tp*H*bytes(dtype_w)+batch*(H+round_up(V,64)/tp)*bytes(dtype_a)
+      decode: round_up(V,64)/tp*H*bytes(dtype_w)+S*(H+round_up(V,64)/tp)*bytes(dtype_a)
+    shard:
+      tp: out
+    emits: []
+    notes:
+      - A tied head shares embedding storage; its compute still runs.
+    parameter_shapes:
+      weight:
+        - round_up(V,64)/tp
+        - H
+  - id: logits
+    match:
+      class: LogitsProcessor
+      vllm: '>=0.32,<0.33'
+    context: []
+    out:
+      - name: output
+        shape:
+          prefill:
+            - batch
+            - V
+          decode:
+            - S
+            - V
+        dtype: dtype_a
+    weight: '0'
+    flops:
+      prefill: '0'
+      decode: '0'
+    bytes_moved:
+      prefill: 2*batch*V*bytes(dtype_a)
+      decode: 2*S*V*bytes(dtype_a)
+    shard: {}
+    emits:
+      - suffix: gather
+        kind: comm
+        comm:
+          op: gather
+          group: tp
+          logical_bytes:
+            prefill: batch*round_up(V,64)/tp*bytes(dtype_a)
+            decode: S*round_up(V,64)/tp*bytes(dtype_a)
+          bus_bytes:
+            prefill: 'tp>1 ? ((tp-1)/tp)*(batch*round_up(V,64)/tp*bytes(dtype_a)) : 0'
+            decode: 'tp>1 ? ((tp-1)/tp)*(S*round_up(V,64)/tp*bytes(dtype_a)) : 0'
+          when: tp>1
+          notes:
+            - Ring estimate; logical bytes describe the tensor even when inactive.
+    notes:
+      - 'Default gather to TP rank zero: bus bytes are rank-average outgoing local-shard bytes. Full-result all_gather
+        uses a different convention.'
+  - id: moe.fused
+    match:
+      class: FusedMoE
+      vllm: '>=0.32,<0.33'
+    inherits: moe.weights
+    emits:
+      - &id001
+        suffix: dispatch
+        kind: comm
+        comm:
+          op: all_to_all
+          group: ep
+          logical_bytes:
+            prefill: T*topk*H*bytes(dtype_a)
+            decode: S*topk*H*bytes(dtype_a)
+          bus_bytes:
+            prefill: 'ep>1 && dp>1 ? ((ep-1)/ep)*(T*topk*H*bytes(dtype_a)) : 0'
+            decode: 'ep>1 && dp>1 ? ((ep-1)/ep)*(S*topk*H*bytes(dtype_a)) : 0'
+          when: ep>1 && dp>1
+          notes:
+            - Uniform routing; outgoing payload counted once per rank. Routing metadata, padding and DP
+              gather/scatter excluded.
+      - &id002
+        suffix: combine
+        kind: comm
+        comm:
+          op: all_to_all
+          group: ep
+          logical_bytes:
+            prefill: T*topk*H*bytes(dtype_a)
+            decode: S*topk*H*bytes(dtype_a)
+          bus_bytes:
+            prefill: 'ep>1 && dp>1 ? ((ep-1)/ep)*(T*topk*H*bytes(dtype_a)) : 0'
+            decode: 'ep>1 && dp>1 ? ((ep-1)/ep)*(S*topk*H*bytes(dtype_a)) : 0'
+          when: ep>1 && dp>1
+          notes:
+            - Uniform routing; outgoing payload counted once per rank. Routing metadata, padding and DP
+              gather/scatter excluded.
+      - &id003
+        suffix: reduce
+        kind: comm
+        comm:
+          op: all_reduce
+          group: tp
+          logical_bytes:
+            prefill: T*H*bytes(dtype_a)
+            decode: S*H*bytes(dtype_a)
+          bus_bytes:
+            prefill: 'tp>1 || ep>1 ? (2*(tp-1)/tp)*(T*H*bytes(dtype_a)) : 0'
+            decode: 'tp>1 || ep>1 ? (2*(tp-1)/tp)*(S*H*bytes(dtype_a)) : 0'
+          when: tp>1 || ep>1
+          notes:
+            - Ring estimate; logical bytes describe the tensor even when inactive.
+  - id: moe.gate
+    match:
+      class: GateLinear
+      vllm: '>=0.32,<0.33'
+    inherits: linear.replicated
+  - id: moe.method
+    match:
+      class: UnquantizedFusedMoEMethod
+      vllm: '>=0.32,<0.33'
+    context: []
+    out:
+      - name: output
+        shape:
+          - T
+          - H
+        dtype: dtype_a
+    weight: '0'
+    flops:
+      prefill: '0'
+      decode: '0'
+    bytes_moved:
+      prefill: '0'
+      decode: '0'
+    shard: {}
+    emits: []
+    notes: []
+  - id: moe.runner
+    match:
+      class: MoERunner
+      vllm: '>=0.32,<0.33'
+    context: []
+    out:
+      - name: output
+        shape:
+          - T
+          - H
+        dtype: dtype_a
+    weight: '0'
+    flops:
+      prefill: '0'
+      decode: '0'
+    bytes_moved:
+      prefill: '0'
+      decode: '0'
+    shard: {}
+    emits:
+      - *id001
+      - *id002
+      - *id003
+    notes:
+      - Default unfused final reduction, skip_final_all_reduce=false, PCP=SP=1.
+  - id: moe.weights
+    match:
+      class: RoutedExperts
+      vllm: '>=0.32,<0.33'
+    context:
+      - num_experts
+      - intermediate_size
+      - top_k
+    out:
+      - name: output
+        shape:
+          - T
+          - H
+        dtype: dtype_a
+    weight: '3*(ep>1 ? num_experts/ep : num_experts)*H*intermediate_size/(ep>1 ? 1 : tp*dp)*bytes(dtype_w)'
+    flops:
+      prefill: '6*T*dp*top_k*H*intermediate_size/(ep>1 ? ep : tp*dp)+4*T*dp*top_k*intermediate_size/(ep>1 ? ep :
+        tp*dp)'
+      decode: '6*S*dp*top_k*H*intermediate_size/(ep>1 ? ep : tp*dp)+4*S*dp*top_k*intermediate_size/(ep>1 ? ep :
+        tp*dp)'
+    bytes_moved:
+      prefill: '3*min(num_experts/(ep>1 ? ep : 1),T*dp*top_k/(ep>1 ? ep : 1))*H*intermediate_size/(ep>1 ? 1 : tp*dp)*bytes(dtype_w)+2*T*dp*top_k*H/(ep>1
+        ? ep : tp*dp)*bytes(dtype_a)'
+      decode: '3*min(num_experts/(ep>1 ? ep : 1),S*dp*top_k/(ep>1 ? ep : 1))*H*intermediate_size/(ep>1 ? 1 : tp*dp)*bytes(dtype_w)+2*S*dp*top_k*H/(ep>1
+        ? ep : tp*dp)*bytes(dtype_a)'
+    shard:
+      tp: intermediate
+      ep: experts
+    emits: []
+    notes:
+      - Without EP intermediate TP is flattened over tp*dp. With EP whole experts shard over ep. FLOPs assume
+        uniform routed-token ownership.
+    parameter_shapes:
+      w13_weight:
+        - '(ep>1 ? num_experts/ep : num_experts)'
+        - '2*intermediate_size/(ep>1 ? 1 : tp*dp)'
+        - H
+      w2_weight:
+        - '(ep>1 ? num_experts/ep : num_experts)'
+        - H
+        - 'intermediate_size/(ep>1 ? 1 : tp*dp)'
+  - id: norm.rms
+    match:
+      class: RMSNorm
+      vllm: '>=0.32,<0.33'
+    context:
+      - norm_size
+      - norm_copies
+    out:
+      - name: output
+        shape:
+          - T
+          - norm_size*norm_copies
+        dtype: dtype_a
+    weight: norm_size*bytes(dtype_w)
+    flops:
+      prefill: 5*T*norm_size*norm_copies
+      decode: 5*S*norm_size*norm_copies
+    bytes_moved:
+      prefill: norm_size*bytes(dtype_w)+2*T*norm_size*norm_copies*bytes(dtype_a)
+      decode: norm_size*bytes(dtype_w)+2*S*norm_size*norm_copies*bytes(dtype_a)
+    shard:
+      tp: replicated
+    emits: []
+    notes: []
+    parameter_shapes:
+      weight:
+        - norm_size
+  - id: rotary
+    match:
+      class: RotaryEmbedding
+      vllm: '>=0.32,<0.33'
+    context: []
+    out:
+      - name: q
+        shape:
+          - T
+          - Hq/tp
+          - D
+        dtype: dtype_a
+      - name: k
+        shape:
+          - T
+          - max(1,Hkv/tp)
+          - D
+        dtype: dtype_a
+    weight: '0'
+    flops:
+      prefill: '0'
+      decode: '0'
+    bytes_moved:
+      prefill: '0'
+      decode: '0'
+    shard: {}
+    emits: []
+    notes:
+      - RoPE buffers are excluded from parameter weights. Arithmetic is on ApplyRotaryEmb.
+  - id: rotary.apply
+    match:
+      class: ApplyRotaryEmb
+      vllm: '>=0.32,<0.33'
+    context: []
+    out:
+      - name: q
+        shape:
+          - T
+          - Hq/tp
+          - D
+        dtype: dtype_a
+      - name: k
+        shape:
+          - T
+          - max(1,Hkv/tp)
+          - D
+        dtype: dtype_a
+    weight: '0'
+    flops:
+      prefill: 3*T*(Hq/tp+max(1,Hkv/tp))*D
+      decode: 3*S*(Hq/tp+max(1,Hkv/tp))*D
+    bytes_moved:
+      prefill: (0)+2*T*H*bytes(dtype_a)
+      decode: (0)+2*S*H*bytes(dtype_a)
+    shard: {}
+    emits: []
+    notes: []
+  - id: sampler
+    match:
+      class: Sampler
+      vllm: '>=0.32,<0.33'
+    context: []
+    out:
+      - name: output
+        shape:
+          prefill:
+            - batch
+          decode:
+            - S
+        dtype: dtype_ids
+    weight: '0'
+    flops:
+      prefill: batch*V
+      decode: S*V
+    bytes_moved:
+      prefill: 2*batch*V*bytes(fp32)
+      decode: 2*S*V*bytes(fp32)
+    shard: {}
+    emits: []
+    notes:
+      - Sampling workspace is fp32; top-p/sort-specific work is not modelled.
