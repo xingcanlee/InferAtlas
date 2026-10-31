@@ -1,0 +1,35 @@
+Triton is installed, but `triton.backends` could not be imported. Disabling Triton.
+Failed to register custom ops, all custom ops will be disabled. error=No module named 'vllm_ascend.vllm_ascend_C'. The custom ops library might not be installed or the environment is not configured correctly. Please check the custom ops installation and environment variables.
+Failed to import from vllm._C_AVX2: ModuleNotFoundError("No module named 'vllm._C_AVX2'")
+(MainProcess pid=1205376) INFO 10-31 23:53:20 [model.py:744] Resolved architecture: Qwen3MoeForCausalLM
+(MainProcess pid=1205376) INFO 10-31 23:53:20 [model.py:2170] Using max model len 4096
+(MainProcess pid=1205376) INFO 10-31 23:53:20 [scheduler.py:310] Chunked prefill is enabled with max_num_batched_tokens=2048.
+(MainProcess pid=1205376) INFO 10-31 23:53:20 [mrv2_utils.py:142] VLLM_USE_V2_MODEL_RUNNER is unset; using Model Runner V2 by default.
+(MainProcess pid=1205376) WARNING 10-31 23:53:20 [vllm.py:1758] Enforce eager set, disabling torch.compile, CUDAGraphs, and JIT kernel warmup. This is equivalent to setting -cc.mode=none -cc.cudagraph_mode=none and --kernel_config.enable_jit_warmup=False
+(MainProcess pid=1205376) WARNING 10-31 23:53:20 [vllm.py:1782] Inductor compilation was disabled by user settings, optimizations settings that are only active during inductor compilation will be ignored.
+(MainProcess pid=1205376) INFO 10-31 23:53:20 [kernel.py:477] Final IR op priority after setting platform defaults: IrOpPriorityConfig(rms_norm=['native'], fused_add_rms_norm=['native'], gelu_and_mul_sparse=['native'])
+(MainProcess pid=1205376) WARNING 10-31 23:53:20 [cpu.py:237] Triton is not installed. triton-cpu is expected on x86 CPUs.
+(MainProcess pid=1205376) INFO 10-31 23:53:20 [compilation.py:317] Enabled custom fusions: norm_quant, act_quant
+INFO 10-31 23:53:20 [logger.py:158] [vllm-ascend] - [ascend_log] applied level=INFO debug=[] modules={}
+(MainProcess pid=1205376) INFO 10-31 23:53:20 [ascend_config.py:336] Dynamic EPLB is False
+(MainProcess pid=1205376) INFO 10-31 23:53:20 [ascend_config.py:337] The number of redundant experts is 0
+(MainProcess pid=1205376) INFO 10-31 23:53:20 [ascend_config.py:761] FlashComm1 is disabled. Using flashinfer_all2allv as the all2all backend.
+(MainProcess pid=1205376) INFO 10-31 23:53:20 [parallel_state.py:1928] world_size=1 rank=0 local_rank=0 distributed_init_method=tcp://127.0.0.1:29572 backend=gloo
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+(MainProcess pid=1205376) INFO 10-31 23:53:20 [parallel_state.py:2372] rank 0 in world size 1 is assigned as DP rank 0, PP rank 0, PCP rank 0, TP rank 0, ETP rank 0, EP rank 0, EPLB rank N/A
+(MainProcess pid=1205376) INFO 10-31 23:53:20 [unquantized.py:365] Using CPU Unquantized MoE backend out of potential backends: ['CPU'].
+[written] /home/cyberspace/projects/InferAtlas/experiments/a2_qwen3moe/out/exp3_ascend_meta_A2.json

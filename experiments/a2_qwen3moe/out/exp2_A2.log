@@ -1,0 +1,12 @@
+Triton is installed, but `triton.backends` could not be imported. Disabling Triton.
+Failed to register custom ops, all custom ops will be disabled. error=No module named 'vllm_ascend.vllm_ascend_C'. The custom ops library might not be installed or the environment is not configured correctly. Please check the custom ops installation and environment variables.
+/home/cyberspace/projects/InferAtlas/experiments/a2_qwen3moe/exp2_ascend_overlay.py:39: FutureWarning: `torch.distributed.reduce_op` is deprecated, please use `torch.distributed.ReduceOp` instead
+  code = getattr(obj, "__code__", None)
+/home/cyberspace/.local/share/uv/python/cpython-3.12.13-linux-x86_64-gnu/lib/python3.12/inspect.py:304: FutureWarning: `torch.distributed.reduce_op` is deprecated, please use `torch.distributed.ReduceOp` instead
+  return isinstance(object, type)
+Failed to import from vllm._C: ModuleNotFoundError("No module named 'vllm._C'")
+/home/cyberspace/projects/InferAtlas/experiments/a2_qwen3moe/exp2_ascend_overlay.py:39: FutureWarning: `torch.distributed.reduce_op` is deprecated, please use `torch.distributed.ReduceOp` instead
+  code = getattr(obj, "__code__", None)
+/home/cyberspace/.local/share/uv/python/cpython-3.12.13-linux-x86_64-gnu/lib/python3.12/inspect.py:304: FutureWarning: `torch.distributed.reduce_op` is deprecated, please use `torch.distributed.ReduceOp` instead
+  return isinstance(object, type)
+[written] /home/cyberspace/projects/InferAtlas/experiments/a2_qwen3moe/out/exp2_ascend_overlay_A2.json

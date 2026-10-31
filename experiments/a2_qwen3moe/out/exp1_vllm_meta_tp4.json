@@ -1,0 +1,133 @@
+{
+  "tp": 4,
+  "expected": {
+    "per_layer": 623120640,
+    "total": 30532122624
+  },
+  "env": {
+    "ok": true,
+    "torch": "2.10.0+cpu",
+    "vllm": "0.1.dev1+ge5196e295",
+    "platform": "CpuPlatform",
+    "device_type": "cpu"
+  },
+  "config": {
+    "ok": true,
+    "model_dir": "/home/cyberspace/projects/InferAtlas/experiments/a2_qwen3moe/.tmp/qwen3moe_cfg_svw_i1j0",
+    "tp": 4,
+    "world_size": 4
+  },
+  "dist": {
+    "ok": true,
+    "tp_world_size": 4,
+    "tp_rank": 0
+  },
+  "build": {
+    "ok": true,
+    "num_params": 7642626048,
+    "param_bytes": 15285252096,
+    "bad_params": [],
+    "top_level_classes": {
+      "": "vllm.model_executor.models.qwen3_moe.Qwen3MoeForCausalLM",
+      "model": "vllm.model_executor.models.qwen3_moe.Qwen3MoeModel",
+      "model.embed_tokens": "vllm.model_executor.layers.vocab_parallel_embedding.VocabParallelEmbedding",
+      "model.layers": "torch.nn.modules.container.ModuleList",
+      "model.norm": "vllm.model_executor.layers.layernorm.RMSNorm",
+      "lm_head": "vllm.model_executor.layers.vocab_parallel_embedding.ParallelLMHead",
+      "logits_processor": "vllm.model_executor.layers.logits_processor.LogitsProcessor"
+    },
+    "layer0_classes": {
+      "model.layers.0": "vllm.model_executor.models.qwen3_moe.Qwen3MoeDecoderLayer",
+      "model.layers.0.self_attn": "vllm.model_executor.models.qwen3_moe.Qwen3MoeAttention",
+      "model.layers.0.self_attn.qkv_proj": "vllm.model_executor.layers.linear.QKVParallelLinear",
+      "model.layers.0.self_attn.o_proj": "vllm.model_executor.layers.linear.RowParallelLinear",
+      "model.layers.0.self_attn.rotary_emb": "vllm.model_executor.layers.rotary_embedding.base.RotaryEmbedding",
+      "model.layers.0.self_attn.rotary_emb.apply_rotary_emb": "vllm.model_executor.layers.rotary_embedding.common.ApplyRotaryEmb",
+      "model.layers.0.self_attn.attn": "vllm.model_executor.layers.attention.attention.Attention",
+      "model.layers.0.self_attn.q_norm": "vllm.model_executor.layers.layernorm.RMSNorm",
+      "model.layers.0.self_attn.k_norm": "vllm.model_executor.layers.layernorm.RMSNorm",
+      "model.layers.0.mlp": "vllm.model_executor.models.qwen3_moe.Qwen3MoeSparseMoeBlock",
+      "model.layers.0.mlp.gate": "vllm.model_executor.layers.fused_moe.router.gate_linear.GateLinear",
+      "model.layers.0.mlp.experts": "vllm.model_executor.layers.fused_moe.runner.moe_runner.MoERunner",
+      "model.layers.0.mlp.experts.routed_experts": "vllm.model_executor.layers.fused_moe.routed_experts.RoutedExperts",
+      "model.layers.0.mlp.experts.routed_experts.quant_method": "vllm.model_executor.layers.fused_moe.unquantized_fused_moe_method.UnquantizedFusedMoEMethod",
+      "model.layers.0.input_layernorm": "vllm.model_executor.layers.layernorm.RMSNorm",
+      "model.layers.0.post_attention_layernorm": "vllm.model_executor.layers.layernorm.RMSNorm"
+    },
+    "layer0_params": {
+      "model.layers.0.self_attn.qkv_proj.weight": {
+        "shape": [
+          1280,
+          2048
+        ],
+        "dtype": "torch.bfloat16",
+        "device": "meta"
+      },
+      "model.layers.0.self_attn.o_proj.weight": {
+        "shape": [
+          2048,
+          1024
+        ],
+        "dtype": "torch.bfloat16",
+        "device": "meta"
+      },
+      "model.layers.0.self_attn.q_norm.weight": {
+        "shape": [
+          128
+        ],
+        "dtype": "torch.bfloat16",
+        "device": "meta"
+      },
+      "model.layers.0.self_attn.k_norm.weight": {
+        "shape": [
+          128
+        ],
+        "dtype": "torch.bfloat16",
+        "device": "meta"
+      },
+      "model.layers.0.mlp.gate.weight": {
+        "shape": [
+          128,
+          2048
+        ],
+        "dtype": "torch.bfloat16",
+        "device": "meta"
+      },
+      "model.layers.0.mlp.experts.routed_experts.w13_weight": {
+        "shape": [
+          128,
+          384,
+          2048
+        ],
+        "dtype": "torch.bfloat16",
+        "device": "meta"
+      },
+      "model.layers.0.mlp.experts.routed_experts.w2_weight": {
+        "shape": [
+          128,
+          2048,
+          192
+        ],
+        "dtype": "torch.bfloat16",
+        "device": "meta"
+      },
+      "model.layers.0.input_layernorm.weight": {
+        "shape": [
+          2048
+        ],
+        "dtype": "torch.bfloat16",
+        "device": "meta"
+      },
+      "model.layers.0.post_attention_layernorm.weight": {
+        "shape": [
+          2048
+        ],
+        "dtype": "torch.bfloat16",
+        "device": "meta"
+      }
+    },
+    "devices": [
+      "meta"
+    ]
+  }
+}

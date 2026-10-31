@@ -1,0 +1,22 @@
+(MainProcess pid=1204794) INFO 10-31 23:52:45 [model.py:744] Resolved architecture: Qwen3MoeForCausalLM
+(MainProcess pid=1204794) INFO 10-31 23:52:45 [model.py:2170] Using max model len 4096
+(MainProcess pid=1204794) INFO 10-31 23:52:46 [scheduler.py:310] Chunked prefill is enabled with max_num_batched_tokens=2048.
+(MainProcess pid=1204794) WARNING 10-31 23:52:46 [vllm.py:736] Model Runner V2 requires Triton; using the V1 model runner instead.
+(MainProcess pid=1204794) WARNING 10-31 23:52:46 [vllm.py:1758] Enforce eager set, disabling torch.compile, CUDAGraphs, and JIT kernel warmup. This is equivalent to setting -cc.mode=none -cc.cudagraph_mode=none and --kernel_config.enable_jit_warmup=False
+(MainProcess pid=1204794) WARNING 10-31 23:52:46 [vllm.py:1782] Inductor compilation was disabled by user settings, optimizations settings that are only active during inductor compilation will be ignored.
+(MainProcess pid=1204794) INFO 10-31 23:52:46 [kernel.py:477] Final IR op priority after setting platform defaults: IrOpPriorityConfig(rms_norm=['native'], fused_add_rms_norm=['native'], gelu_and_mul_sparse=['native'])
+(MainProcess pid=1204794) WARNING 10-31 23:52:46 [cpu.py:681] Failed to import from vllm._C_AVX2: ModuleNotFoundError("No module named 'vllm._C_AVX2'")
+(MainProcess pid=1204794) WARNING 10-31 23:52:46 [cpu.py:237] Triton is not installed. triton-cpu is expected on x86 CPUs.
+(MainProcess pid=1204794) INFO 10-31 23:52:46 [compilation.py:317] Enabled custom fusions: norm_quant, act_quant
+(MainProcess pid=1204794) INFO 10-31 23:52:46 [parallel_state.py:1928] world_size=1 rank=0 local_rank=0 distributed_init_method=tcp://127.0.0.1:29571 backend=gloo
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+(MainProcess pid=1204794) INFO 10-31 23:52:46 [parallel_state.py:2372] rank 0 in world size 1 is assigned as DP rank 0, PP rank 0, PCP rank 0, TP rank 0, ETP rank 0, EP rank 0, EPLB rank N/A
+(MainProcess pid=1204794) INFO 10-31 23:52:46 [unquantized.py:365] Using CPU Unquantized MoE backend out of potential backends: ['CPU'].
+[written] /home/cyberspace/projects/InferAtlas/experiments/a2_qwen3moe/out/exp1_vllm_meta_tp1.json

@@ -1,0 +1,461 @@
+{
+  "device": "A2",
+  "mock": {
+    "ok": true,
+    "foreign_symbols_before_patch": 0
+  },
+  "profile": {
+    "ok": true,
+    "device_type": "AscendDeviceType.A2",
+    "attention_backend_family": "AttentionBackendFamily.STANDARD",
+    "weight_layout_policy": "WeightLayoutPolicy.CONFIGURABLE",
+    "moe_comm_policy": "MoECommPolicy.CAPACITY_AND_EXPERT_DENSITY",
+    "quantization_backend_family": "QuantizationBackendFamily.STANDARD",
+    "capabilities": [
+      "ATB_EXTENSIONS",
+      "ATB_WARMUP",
+      "AUTO_ENABLE_CUSTOM_OPS",
+      "BGMV_SGMV_META_REGISTRATION",
+      "FLA_GDN_PREFILL",
+      "FUSED_ROTARY_MUL_INTERLEAVE",
+      "FUSED_SWIGLU_TUNING_ARGS",
+      "GRAPH_MM_REDUCE_SCATTER_FUSION",
+      "GRAPH_MULS_ADD_FUSION",
+      "GRAPH_NORM_QUANT_FUSION",
+      "GRAPH_QKV_NORM_ROPE_FUSION",
+      "INPLACE_PARTIAL_ROTARY_MUL_NEGATE_SIN",
+      "IRQ_CPU_RESERVATION",
+      "LORA_CUSTOM_OPS",
+      "MC2_HIERARCHY_COMM",
+      "MOE_GATING_TOP_K_HASH_VISION",
+      "NPUGRAPH_EX",
+      "PAGED_ATTENTION",
+      "RMS_NORM_CAST",
+      "RUNTIME_CUSTOM_OPS",
+      "SCATTER_ND_CACHE_STORE",
+      "SCATTER_ND_STRIDED_CACHE_STORE",
+      "STANDARD_MAMBA_PATCH",
+      "STANDARD_WORKER_PATCHES",
+      "TRITON_BATCH_MEMCPY",
+      "TURBOQUANT_4BIT_NC_CACHE"
+    ]
+  },
+  "patch_platform": {
+    "ok": true
+  },
+  "patch_worker": {
+    "ok": true
+  },
+  "customop": {
+    "ok": true,
+    "registered": {
+      "QuickGELU": "vllm_ascend.ops.activation.AscendQuickGELU",
+      "SiluAndMul": "vllm_ascend.ops.activation.AscendSiluAndMul",
+      "SiluAndMulWithClamp": "vllm_ascend.ops.activation.AscendSiluAndMulWithClamp",
+      "RotaryEmbedding": "vllm_ascend.ops.rotary_embedding.AscendRotaryEmbedding",
+      "Gemma4RotaryEmbedding": "vllm_ascend.ops.rotary_embedding.AscendGemma4RotaryEmbedding",
+      "MRotaryEmbedding": "vllm_ascend.ops.rotary_embedding.AscendMRotaryEmbedding",
+      "ColumnParallelLinear": "vllm_ascend.ops.linear.AscendColumnParallelLinear",
+      "RowParallelLinear": "vllm_ascend.ops.linear.AscendRowParallelLinear",
+      "YaRNScalingRotaryEmbedding": "vllm_ascend.ops.rotary_embedding.AscendYaRNRotaryEmbedding",
+      "MergedColumnParallelLinear": "vllm_ascend.ops.linear.AscendMergedColumnParallelLinear",
+      "QKVParallelLinear": "vllm_ascend.ops.linear.AscendQKVParallelLinear",
+      "ReplicatedLinear": "vllm_ascend.ops.linear.AscendReplicatedLinear",
+      "DeepseekScalingRotaryEmbedding": "vllm_ascend.ops.rotary_embedding.AscendDeepseekScalingRotaryEmbedding",
+      "VocabParallelEmbedding": "vllm_ascend.ops.vocab_parallel_embedding.AscendVocabParallelEmbedding",
+      "ParallelLMHead": "vllm_ascend.ops.vocab_parallel_embedding.AscendParallelLMHead",
+      "LogitsProcessor": "vllm_ascend.ops.vocab_parallel_embedding.AscendLogitsProcessor",
+      "RMSNorm": "vllm_ascend.ops.layernorm.AscendRMSNorm",
+      "GemmaRMSNorm": "vllm_ascend.ops.layernorm.AscendGemmaRMSNorm",
+      "MultiHeadLatentAttentionWrapper": "vllm_ascend.ops.mla.AscendMultiHeadLatentAttention",
+      "MMEncoderAttention": "vllm_ascend.ops.mm_encoder_attention.AscendMMEncoderAttention",
+      "ApplyRotaryEmb": "vllm_ascend.ops.rotary_embedding.AscendApplyRotaryEmb",
+      "RMSNormGated": "vllm_ascend.ops.layernorm.AscendRMSNormGated",
+      "Conv3dLayer": "vllm_ascend.ops.conv.AscendConv3dLayer",
+      "RelPosAttention": "vllm_ascend.ops.rel_pos_attention.AscendRelPosAttention",
+      "CustomQwen2Decoder": "vllm_ascend.ops.qwen2_decoder.AscendCustomQwen2Decoder",
+      "BailingMoELinearAttention": "vllm_ascend.ops.bailing_moe_linear_attn.AscendBailingMoELinearAttention",
+      "MoERunner": "vllm_ascend.ops.fused_moe.fused_moe.AscendMoERunner",
+      "RoutedExperts": "vllm_ascend.ops.fused_moe.routed_experts.AscendRoutedExperts",
+      "GateLinear": "vllm_ascend.ops.fused_moe.gate_linear.AscendGateLinear",
+      "KimiK3MultiHeadLatentAttentionWrapper": "vllm_ascend.ops.kimi_mla.AscendKimiK3MultiHeadLatentAttention",
+      "GatedDeltaNetAttention": "vllm_ascend.ops.gdn.AscendGatedDeltaNetAttention"
+    },
+    "count": 31,
+    "oot_registry_keys": null
+  },
+  "diff": {
+    "ok": true,
+    "patched_count": 130,
+    "by_origin": {
+      "patch/platform/patch_torch_accelerator.py": [
+        "torch.accelerator.empty_cache"
+      ],
+      "patch/platform/patch_engram_config.py": [
+        "vllm.config.engram.EngramConfig.verify_model_config",
+        "vllm.config.engram.EngramConfig.verify_parallel_config"
+      ],
+      "patch/platform/patch_minimax_m2_config.py": [
+        "vllm.config.model.ModelConfig._verify_cuda_graph",
+        "vllm.config.model.ModelConfig._verify_quantization"
+      ],
+      "patch/platform/patch_speculative_config.py": [
+        "vllm.config.model.ModelConfig.verify_with_parallel_config",
+        "vllm.config.speculative.SpeculativeConfig.__post_init__",
+        "vllm.config.speculative.SpeculativeConfig.hf_config_override"
+      ],
+      "patch/platform/patch_eplb.py": [
+        "vllm.config.parallel.ParallelConfig.__post_init__",
+        "vllm.distributed.eplb.async_worker.run_rebalance_experts",
+        "vllm.distributed.eplb.async_worker.transfer_layer",
+        "vllm.distributed.eplb.async_worker.transfer_run_periodically",
+        "vllm.distributed.eplb.eplb_communicator.create_eplb_communicator",
+        "vllm.distributed.eplb.eplb_state.EplbState.build_initial_global_physical_to_logical_map",
+        "vllm.distributed.eplb.eplb_state._move_to_workspace",
+        "vllm.distributed.eplb.eplb_state.create_eplb_communicator",
+        "vllm.model_executor.layers.fused_moe.routed_experts.RoutedExperts.get_expert_mapping",
+        "vllm.model_executor.layers.fused_moe.routed_experts.RoutedExperts.make_expert_params_mapping"
+      ],
+      "patch/platform/patch_use_v2_model_runner.py": [
+        "vllm.config.vllm.VllmConfig._get_v1_model_runner_unsupported_features"
+      ],
+      "mrv2_utils.py": [
+        "vllm.config.vllm.VllmConfig._validate_v2_model_runner"
+      ],
+      "patch/platform/patch_replayssm_config.py": [
+        "vllm.config.vllm.VllmConfig.validate_mamba_cached_kernel"
+      ],
+      "patch/platform/patch_kv_cache_utils.py": [
+        "vllm.distributed.aux_output_connector.worker.resolve_kv_cache_block_sizes",
+        "vllm.v1.core.kv_cache_planning.DefaultKVCacheConfigBuilder._get_pool_bytes_per_block",
+        "vllm.v1.core.kv_cache_planning._get_kv_cache_groups_uniform_page_size",
+        "vllm.v1.core.kv_cache_planning._get_packed_kv_cache_groups",
+        "vllm.v1.core.kv_cache_planning._max_memory_usage_bytes_from_groups",
+        "vllm.v1.core.kv_cache_planning._pool_bytes_per_block",
+        "vllm.v1.core.kv_cache_planning.get_kv_cache_config_from_groups",
+        "vllm.v1.core.kv_cache_planning.get_kv_cache_groups",
+        "vllm.v1.core.kv_cache_utils.resolve_kv_cache_block_sizes",
+        "vllm.v1.engine.core.resolve_kv_cache_block_sizes"
+      ],
+      "patch/worker/patch_distributed.py": [
+        "vllm.distributed.destroy_distributed_environment",
+        "vllm.distributed.parallel_state.destroy_distributed_environment"
+      ],
+      "patch/platform/patch_example_connector.py": [
+        "vllm.distributed.ec_transfer.ec_connector.example_connector.ECExampleConnector.start_load_caches"
+      ],
+      "vllm_ascend.patch.worker.patch_distributed": [
+        "vllm.distributed.parallel_state.GroupCoordinator"
+      ],
+      "patch/platform/patch_mla_prefill_backend.py": [
+        "vllm.model_executor.layers.attention.mla_attention.get_mla_prefill_backend"
+      ],
+      "patch/platform/patch_fused_moe.py": [
+        "vllm.model_executor.layers.fused_moe.FusedMoEFactory",
+        "vllm.model_executor.layers.fused_moe.layer.FusedMoEFactory",
+        "vllm.model_executor.models.bailing_moe.FusedMoEFactory",
+        "vllm.model_executor.models.bailing_moe_linear.FusedMoEFactory",
+        "vllm.model_executor.models.deepseek_v2.FusedMoEFactory",
+        "vllm.model_executor.models.minimax_m2.FusedMoEFactory",
+        "vllm.model_executor.models.qwen2_moe.FusedMoEFactory",
+        "vllm.model_executor.models.qwen3_moe.FusedMoEFactory",
+        "vllm.model_executor.models.qwen3_next.FusedMoEFactory",
+        "vllm.model_executor.models.step3p5.FusedMoEFactory",
+        "vllm.models.deepseek_v4.nvidia.model.FusedMoEFactory",
+        "vllm.models.kimi_k3.nvidia.model.FusedMoEFactory"
+      ],
+      "patch/worker/patch_routed_experts_capture.py": [
+        "vllm.model_executor.layers.fused_moe.routed_experts_capturer.RoutedExpertsCapturer.capture"
+      ],
+      "patch/worker/patch_mm_input_norm.py": [
+        "vllm.model_executor.layers.fusion.mm_input_norm.FusedMMInputNorm.__init__"
+      ],
+      "patch/worker/patch_qwen3_5.py": [
+        "vllm.model_executor.layers.mamba.gdn.qwen_gdn_linear_attn.QwenGatedDeltaNetAttention.__init__",
+        "vllm.model_executor.models.qwen3_5_mtp.Qwen3_5MultiTokenPredictor.forward",
+        "vllm.model_executor.models.qwen3_next.Qwen3NextAttention.forward"
+      ],
+      "ops/gdn.py": [
+        "vllm.model_executor.layers.mamba.gdn.qwen_gdn_linear_attn.QwenGatedDeltaNetAttention._forward_core",
+        "vllm.model_executor.layers.mamba.gdn.qwen_gdn_linear_attn.QwenGatedDeltaNetAttention._split_ba_for_tp",
+        "vllm.model_executor.layers.mamba.gdn.qwen_gdn_linear_attn.QwenGatedDeltaNetAttention._warmup_prefill_kernels",
+        "vllm.model_executor.layers.mamba.gdn.qwen_gdn_linear_attn.QwenGatedDeltaNetAttention.forward",
+        "vllm.model_executor.layers.mamba.gdn.qwen_gdn_linear_attn.QwenGatedDeltaNetAttention.get_attn_backend",
+        "vllm.model_executor.layers.mamba.gdn.qwen_gdn_linear_attn.QwenGatedDeltaNetAttention.get_state_shape"
+      ],
+      "patch/platform/patch_mamba_config.py": [
+        "vllm.model_executor.models.config.HybridAttentionMambaModelConfig.verify_and_update_config"
+      ],
+      "patch/worker/patch_eagle3_init.py": [
+        "vllm.model_executor.models.deepseek_eagle3.Eagle3DeepseekV2ForCausalLM.__init__",
+        "vllm.model_executor.models.deepseek_eagle3.Eagle3DeepseekV3ForCausalLM.__init__",
+        "vllm.model_executor.models.llama_eagle3.Eagle3LlamaForCausalLM.__init__"
+      ],
+      "patch/worker/patch_deepseek_v2.py": [
+        "vllm.model_executor.models.deepseek_v2.DeepseekV2ForCausalLM.set_aux_hidden_state_layers",
+        "vllm.model_executor.models.deepseek_v2.DeepseekV2MLAAttention.__init__",
+        "vllm.model_executor.models.deepseek_v2.DeepseekV2Model.__init__",
+        "vllm.model_executor.models.deepseek_v2.DeepseekV2Model.forward"
+      ],
+      "patch/worker/patch_attn_utils.py": [
+        "vllm.model_executor.models.deepseek_v2.DeepseekV32IndexerCache.get_attn_backend"
+      ],
+      "patch/worker/patch_kimi_k25.py": [
+        "vllm.model_executor.models.kimi_k25_vit.Learnable2DInterpPosEmbDivided_fixed.forward"
+      ],
+      "patch/worker/patch_minimax_m2.py": [
+        "vllm.model_executor.models.minimax_m2.MiniMaxM2Attention.forward"
+      ],
+      "patch/worker/patch_qwen3vl.py": [
+        "vllm.model_executor.models.qwen3.Qwen3Attention.forward",
+        "vllm.model_executor.models.qwen3_moe.Qwen3MoeAttention.forward",
+        "vllm.model_executor.models.qwen3_vl.Qwen3VLForConditionalGeneration._get_deepstack_input_embeds",
+        "vllm.model_executor.models.qwen3_vl.Qwen3_VisionTransformer.fast_pos_embed_interpolate"
+      ],
+      "patch/worker/patch_qwen3_dflash.py": [
+        "vllm.model_executor.models.qwen3_dflash.DFlashQwen3ForCausalLM._read_mask_embedding",
+        "vllm.model_executor.models.qwen3_dflash.DFlashQwen3Model.precompute_and_store_context_kv"
+      ],
+      "patch/worker/patch_step3p5.py": [
+        "vllm.model_executor.models.step3p5.FusedMoEBlock.__init__",
+        "vllm.model_executor.models.step3p5.Step3p5Attention.forward",
+        "vllm.model_executor.models.step3p5.Step3p5DecoderLayer.__init__",
+        "vllm.model_executor.models.step3p5.Step3p5DecoderLayer.forward",
+        "vllm.model_executor.models.step3p5.Step3p5Model.forward"
+      ],
+      "patch/platform/patch_structured_output.py": [
+        "vllm.sampling_params.SamplingParams._validate_structured_outputs",
+        "vllm.v1.structured_output.StructuredOutputManager.grammar_init",
+        "vllm.v1.structured_output.backend_outlines.OutlinesGrammar.accept_tokens",
+        "xgrammar.compiler.GrammarCompiler.compile_json_schema"
+      ],
+      "patch/platform/patch_kv_cache_coordinator.py": [
+        "vllm.v1.core.kv_cache_coordinator.get_kv_cache_coordinator",
+        "vllm.v1.core.kv_cache_manager.get_kv_cache_coordinator"
+      ],
+      "vllm_ascend.patch.platform.patch_balance_schedule": [
+        "vllm.v1.core.sched.async_scheduler.Scheduler",
+        "vllm.v1.core.sched.scheduler.Scheduler"
+      ],
+      "vllm_ascend.patch.platform.patch_mamba_manager": [
+        "vllm.v1.core.single_type_kv_cache_manager.MambaManager"
+      ],
+      "patch/worker/patch_v1/patch_cudagraph.py": [
+        "vllm.v1.cudagraph_dispatcher.CudagraphDispatcher._create_padded_batch_descriptor"
+      ],
+      "patch/platform/patch_profiling_chunk.py": [
+        "vllm.v1.engine.core.EngineCore.__init__"
+      ],
+      "patch/platform/patch_pp_mtp.py": [
+        "vllm.v1.engine.core.EngineCore.post_step",
+        "vllm.v1.outputs.ModelRunnerOutput.__init__"
+      ],
+      "patch/platform/patch_engine_core.py": [
+        "vllm.v1.engine.core.EngineCoreProc.run_engine_core"
+      ],
+      "worker/v2/attn_utils.py": [
+        "vllm.v1.worker.gpu.attn_utils._allocate_kv_cache",
+        "vllm.v1.worker.gpu.attn_utils._reshape_kv_cache",
+        "vllm.v1.worker.gpu.attn_utils.allocate_kv_cache",
+        "vllm.v1.worker.gpu.model_runner.get_kv_cache_spec",
+        "vllm.v1.worker.gpu.spec_decode.dflash.cudagraph.build_attn_metadata"
+      ],
+      "patch/worker/patch_bind_kv_cache.py": [
+        "vllm.v1.worker.gpu.attn_utils.bind_kv_cache",
+        "vllm.v1.worker.gpu.attn_utils.bind_kv_cache_to_layers",
+        "vllm.v1.worker.utils.bind_kv_cache",
+        "vllm.v1.worker.utils.bind_kv_cache_to_layers"
+      ],
+      "worker/utils.py": [
+        "vllm.v1.worker.gpu.attn_utils.prepare_kernel_block_sizes",
+        "vllm.v1.worker.gpu.model_runner.copy_kv_cache_blocks_inplace"
+      ],
+      "vllm_ascend.patch.worker.patch_uva": [
+        "vllm.v1.worker.gpu.buffer_utils.UvaBuffer"
+      ],
+      "vllm_ascend.worker.v2.input_batch": [
+        "vllm.v1.worker.gpu.cudagraph_utils.InputBatch",
+        "vllm.v1.worker.gpu.model_runner.InputBatch"
+      ],
+      "vllm_ascend.worker.v2.block_table": [
+        "vllm.v1.worker.gpu.model_runner.BlockTables"
+      ],
+      "patch/worker/patch_model_runner.py": [
+        "vllm.v1.worker.gpu.model_runner.GPUModelRunner.initialize_kv_cache",
+        "vllm.v1.worker.gpu.model_runner.dispatch_cg_and_sync_dp"
+      ],
+      "worker/v2/model_states/__init__.py": [
+        "vllm.v1.worker.gpu.model_runner.init_model_state"
+      ],
+      "vllm_ascend.worker.encoder_acl_graph": [
+        "vllm.v1.worker.gpu.model_states.interface.EncoderCudaGraphManager"
+      ],
+      "patch/worker/patch_adaptive_verification.py": [
+        "vllm.v1.worker.gpu.spec_decode.adaptive_verification._assign_draft_token_budget_compiled"
+      ],
+      "vllm_ascend.worker.v2.spec_decode.dflash.aclgraph": [
+        "vllm.v1.worker.gpu.spec_decode.dflash.speculator.DFlashCudaGraphManager"
+      ],
+      "worker/v2/spec_decode/dflash2/speculator.py": [
+        "vllm.v1.worker.gpu.spec_decode.dflash2.speculator._selector_walk_kernel"
+      ],
+      "patch/worker/patch_dspark.py": [
+        "vllm.v1.worker.gpu.spec_decode.dspark.speculator.load_dspark_model",
+        "vllm.v1.worker.gpu.spec_decode.dspark.utils.load_dspark_model"
+      ],
+      "vllm_ascend.worker.v2.spec_decode.target_dependent_ar.aclgraph": [
+        "vllm.v1.worker.gpu.spec_decode.target_dependent_ar.speculator.SpeculatorCudaGraphManager"
+      ],
+      "patch/worker/patch_v1/patch_mamba_utils.py": [
+        "vllm.v1.worker.mamba_utils.MambaCopyBuffers.create",
+        "vllm.v1.worker.mamba_utils.batch_memcpy",
+        "vllm.v1.worker.mamba_utils.collect_mamba_copy_meta",
+        "vllm.v1.worker.mamba_utils.do_mamba_copy_block",
+        "vllm.v1.worker.mamba_utils.do_mamba_copy_block_for_layer",
+        "vllm.v1.worker.mamba_utils.finish_mamba_copy_by_layer",
+        "vllm.v1.worker.mamba_utils.prepare_mamba_copy_by_layer",
+        "vllm.v1.worker.mamba_utils.preprocess_mamba"
+      ],
+      "ops/triton/batch_memcpy.py": [
+        "vllm.v1.worker.mamba_utils.batch_memcpy_kernel"
+      ],
+      "ops/triton/mamba/postprocess.py": [
+        "vllm.v1.worker.mamba_utils.postprocess_mamba_fused_kernel"
+      ]
+    }
+  },
+  "doc_coverage": {
+    "ok": true,
+    "documented": 131,
+    "documented_and_detected": 64,
+    "documented_not_detected": [
+      "torch.accelerator.get_memory_info",
+      "torch.accelerator.memory_reserved",
+      "torch.accelerator.memory_stats",
+      "torch.accelerator.reset_peak_memory_stats",
+      "torch.compile",
+      "torch.distributed.all_reduce",
+      "torch.distributed.broadcast",
+      "torch.float8_e4m3fn",
+      "torch.int8",
+      "torch.npu",
+      "torch.ops.vllm.split_qkv_tp_rmsnorm_rope",
+      "torch.uint8",
+      "vllm.config.attention.AttentionConfig.indexer_kv_dtype",
+      "vllm.config.attention.IndexerKVDType",
+      "vllm.config.cache",
+      "vllm.config.parallel.ParallelConfig._validate_parallel_config",
+      "vllm.config.parallel.ParallelConfig.use_sequence_parallel_moe",
+      "vllm.config.parallel.current_platform",
+      "vllm.config.speculative.SpeculativeConfig._verify_args",
+      "vllm.config.vllm.VllmConfig.use_v2_model_runner",
+      "vllm.entrypoints.openai.chat_completion.protocol.ChatCompletionResponse",
+      "vllm.entrypoints.openai.chat_completion.protocol.ChatCompletionStreamResponse",
+      "vllm.model_executor.layers.fla.ops",
+      "vllm.model_executor.layers.fla.ops.index.prepare_chunk_indices",
+      "vllm.model_executor.layers.fla.ops.index.prepare_chunk_offsets",
+      "vllm.model_executor.layers.mamba.ops",
+      "vllm.model_executor.layers.mamba.ops.causal_conv1d.causal_conv1d_fn",
+      "vllm.model_executor.layers.mamba.ops.causal_conv1d.causal_conv1d_update",
+      "vllm.model_executor.models.deepseek_v2.Eagle3DeepseekV2ForCausalLM",
+      "vllm.model_executor.models.qwen3_5.Qwen3_5GatedDeltaNet._forward_core",
+      "vllm.model_executor.models.qwen3_vl.Qwen3_VisionTransformer.rot_pos_emb",
+      "vllm.model_executor.models.qwen3_vl_moe.Qwen3MoeLLMForCausalLM.end_layer",
+      "vllm.model_executor.models.qwen3_vl_moe.Qwen3MoeLLMForCausalLM.start_layer",
+      "vllm.model_executor.models.registry",
+      "vllm.model_executor.models.vision.FusedInputNorm.forward",
+      "vllm.models.common.ops.fused_q_kv_rmsnorm",
+      "vllm.parser.glm47_moe.Glm47MoeParser.__init__",
+      "vllm.third_party.flash_linear_attention.ops.kda",
+      "vllm.utils.math_utils.next_power_of_2",
+      "vllm.v1.attention.backends.mla.common.get_mla_prefill_backend",
+      "vllm.v1.core.kv_cache_coordinator.HybridKVCacheCoordinator.find_longest_cache_hit_per_group",
+      "vllm.v1.core.sched.output.CachedRequestData",
+      "vllm.v1.core.sched.scheduler.Scheduler._make_cached_request_data",
+      "vllm.v1.core.sched.scheduler.Scheduler._mamba_block_aligned_split",
+      "vllm.v1.core.sched.scheduler.Scheduler._update_after_schedule",
+      "vllm.v1.core.sched.scheduler.Scheduler.update_from_output",
+      "vllm.v1.engine.core.DPEngineCoreProc",
+      "vllm.v1.executor.multiproc_executor.MultiprocExecutor",
+      "vllm.v1.worker.gpu.attn_utils.get_kv_cache_spec",
+      "vllm.v1.worker.gpu.block_table.BlockTables",
+      "vllm.v1.worker.gpu.input_batch.InputBatch",
+      "vllm.v1.worker.gpu.metrics.logits.libdevice",
+      "vllm.v1.worker.gpu.model_runner.init_kv_cache.__globals__",
+      "vllm.v1.worker.gpu.model_states.default.init_model_state",
+      "vllm.v1.worker.gpu.sample.gumbel.gumbel_sample",
+      "vllm.v1.worker.gpu.sample.logprob",
+      "vllm.v1.worker.gpu.sample.output.SamplingMaskTensors.from_logits",
+      "vllm.v1.worker.gpu.sample.penalties.apply_penalties",
+      "vllm.v1.worker.gpu.sample.thinking_budget._load_effective_token",
+      "vllm.v1.worker.gpu.sample.thinking_budget._update_committed_marker_cache_kernel",
+      "vllm.v1.worker.gpu.sample.trace_replay.apply_trace_tokens",
+      "vllm.v1.worker.gpu.spec_decode.autoregressive.speculator",
+      "vllm.v1.worker.gpu.spec_decode.autoregressive.speculator.prepare_decode_inputs",
+      "vllm.v1.worker.gpu.spec_decode.autoregressive.speculator.prepare_prefill_inputs",
+      "vllm.v1.worker.gpu.spec_decode.autoregressive.speculator.update_draft_inputs",
+      "vllm.v1.worker.gpu_model_runner",
+      "xgrammar.GrammarCompiler.compile_json_schema"
+    ],
+    "detected_not_documented": [
+      "vllm.config.engram.EngramConfig.verify_parallel_config",
+      "vllm.config.parallel.ParallelConfig.__post_init__",
+      "vllm.config.vllm.VllmConfig._validate_v2_model_runner",
+      "vllm.config.vllm.VllmConfig.validate_mamba_cached_kernel",
+      "vllm.distributed.aux_output_connector.worker.resolve_kv_cache_block_sizes",
+      "vllm.distributed.ec_transfer.ec_connector.example_connector.ECExampleConnector.start_load_caches",
+      "vllm.distributed.eplb.async_worker.run_rebalance_experts",
+      "vllm.distributed.eplb.async_worker.transfer_layer",
+      "vllm.distributed.eplb.async_worker.transfer_run_periodically",
+      "vllm.distributed.eplb.eplb_communicator.create_eplb_communicator",
+      "vllm.distributed.eplb.eplb_state.EplbState.build_initial_global_physical_to_logical_map",
+      "vllm.distributed.eplb.eplb_state.create_eplb_communicator",
+      "vllm.model_executor.layers.attention.mla_attention.get_mla_prefill_backend",
+      "vllm.model_executor.layers.fused_moe.layer.FusedMoEFactory",
+      "vllm.model_executor.layers.fused_moe.routed_experts.RoutedExperts.get_expert_mapping",
+      "vllm.model_executor.layers.fused_moe.routed_experts.RoutedExperts.make_expert_params_mapping",
+      "vllm.model_executor.models.bailing_moe.FusedMoEFactory",
+      "vllm.model_executor.models.bailing_moe_linear.FusedMoEFactory",
+      "vllm.model_executor.models.deepseek_eagle3.Eagle3DeepseekV2ForCausalLM.__init__",
+      "vllm.model_executor.models.deepseek_eagle3.Eagle3DeepseekV3ForCausalLM.__init__",
+      "vllm.model_executor.models.deepseek_v2.DeepseekV2ForCausalLM.set_aux_hidden_state_layers",
+      "vllm.model_executor.models.deepseek_v2.DeepseekV2Model.__init__",
+      "vllm.model_executor.models.deepseek_v2.DeepseekV2Model.forward",
+      "vllm.model_executor.models.deepseek_v2.DeepseekV32IndexerCache.get_attn_backend",
+      "vllm.model_executor.models.deepseek_v2.FusedMoEFactory",
+      "vllm.model_executor.models.minimax_m2.FusedMoEFactory",
+      "vllm.model_executor.models.qwen2_moe.FusedMoEFactory",
+      "vllm.model_executor.models.qwen3_5_mtp.Qwen3_5MultiTokenPredictor.forward",
+      "vllm.model_executor.models.qwen3_dflash.DFlashQwen3ForCausalLM._read_mask_embedding",
+      "vllm.model_executor.models.qwen3_moe.FusedMoEFactory",
+      "vllm.model_executor.models.qwen3_next.FusedMoEFactory",
+      "vllm.model_executor.models.qwen3_next.Qwen3NextAttention.forward",
+      "vllm.model_executor.models.qwen3_vl.Qwen3_VisionTransformer.fast_pos_embed_interpolate",
+      "vllm.model_executor.models.step3p5.FusedMoEFactory",
+      "vllm.models.deepseek_v4.nvidia.model.FusedMoEFactory",
+      "vllm.models.kimi_k3.nvidia.model.FusedMoEFactory",
+      "vllm.v1.core.kv_cache_coordinator.get_kv_cache_coordinator",
+      "vllm.v1.core.kv_cache_manager.get_kv_cache_coordinator",
+      "vllm.v1.core.sched.async_scheduler.Scheduler",
+      "vllm.v1.worker.gpu.cudagraph_utils.InputBatch",
+      "vllm.v1.worker.gpu.model_runner.BlockTables",
+      "vllm.v1.worker.gpu.model_runner.InputBatch",
+      "vllm.v1.worker.gpu.model_runner.get_kv_cache_spec",
+      "vllm.v1.worker.gpu.model_runner.init_model_state",
+      "vllm.v1.worker.gpu.model_states.interface.EncoderCudaGraphManager",
+      "vllm.v1.worker.gpu.spec_decode.dflash.cudagraph.build_attn_metadata",
+      "vllm.v1.worker.gpu.spec_decode.dflash2.speculator._selector_walk_kernel",
+      "vllm.v1.worker.mamba_utils.MambaCopyBuffers.create",
+      "vllm.v1.worker.mamba_utils.batch_memcpy",
+      "vllm.v1.worker.mamba_utils.batch_memcpy_kernel",
+      "vllm.v1.worker.mamba_utils.collect_mamba_copy_meta",
+      "vllm.v1.worker.mamba_utils.do_mamba_copy_block",
+      "vllm.v1.worker.mamba_utils.do_mamba_copy_block_for_layer",
+      "vllm.v1.worker.mamba_utils.finish_mamba_copy_by_layer",
+      "vllm.v1.worker.mamba_utils.postprocess_mamba_fused_kernel",
+      "vllm.v1.worker.mamba_utils.prepare_mamba_copy_by_layer",
+      "vllm.v1.worker.mamba_utils.preprocess_mamba",
+      "xgrammar.compiler.GrammarCompiler.compile_json_schema"
+    ]
+  }
+}

@@ -1,0 +1,185 @@
+{
+  "device": "A2",
+  "expected": {
+    "per_layer": 623120640,
+    "total": 30532122624
+  },
+  "mock": {
+    "ok": true,
+    "platform": "CpuPlatform"
+  },
+  "config": {
+    "ok": true,
+    "ascend_config": "initialized"
+  },
+  "dist": {
+    "ok": true
+  },
+  "build": {
+    "ok": true,
+    "num_params": 30532122624,
+    "param_bytes": 61064245248,
+    "bad_params": [],
+    "top_level_classes": {
+      "": "vllm.model_executor.models.qwen3_moe.Qwen3MoeForCausalLM",
+      "model": "vllm.model_executor.models.qwen3_moe.Qwen3MoeModel",
+      "model.embed_tokens": "vllm_ascend.ops.vocab_parallel_embedding.AscendVocabParallelEmbedding",
+      "model.layers": "torch.nn.modules.container.ModuleList",
+      "model.norm": "vllm_ascend.ops.layernorm.AscendRMSNorm",
+      "lm_head": "vllm_ascend.ops.vocab_parallel_embedding.AscendParallelLMHead",
+      "logits_processor": "vllm_ascend.ops.vocab_parallel_embedding.AscendLogitsProcessor"
+    },
+    "layer0_classes": {
+      "model.layers.0": "vllm.model_executor.models.qwen3_moe.Qwen3MoeDecoderLayer",
+      "model.layers.0.self_attn": "vllm.model_executor.models.qwen3_moe.Qwen3MoeAttention",
+      "model.layers.0.self_attn.qkv_proj": "vllm_ascend.ops.linear.AscendQKVParallelLinear",
+      "model.layers.0.self_attn.o_proj": "vllm_ascend.ops.linear.AscendRowParallelLinear",
+      "model.layers.0.self_attn.rotary_emb": "vllm_ascend.ops.rotary_embedding.AscendRotaryEmbedding",
+      "model.layers.0.self_attn.rotary_emb.apply_rotary_emb": "vllm_ascend.ops.rotary_embedding.AscendApplyRotaryEmb",
+      "model.layers.0.self_attn.attn": "vllm.model_executor.layers.attention.attention.Attention",
+      "model.layers.0.self_attn.q_norm": "vllm_ascend.ops.layernorm.AscendRMSNorm",
+      "model.layers.0.self_attn.k_norm": "vllm_ascend.ops.layernorm.AscendRMSNorm",
+      "model.layers.0.mlp": "vllm.model_executor.models.qwen3_moe.Qwen3MoeSparseMoeBlock",
+      "model.layers.0.mlp.gate": "vllm_ascend.ops.fused_moe.gate_linear.AscendGateLinear",
+      "model.layers.0.mlp.experts": "vllm_ascend.ops.fused_moe.fused_moe.AscendMoERunner",
+      "model.layers.0.mlp.experts.routed_experts": "vllm_ascend.ops.fused_moe.routed_experts.AscendRoutedExperts",
+      "model.layers.0.mlp.experts.routed_experts.quant_method": "vllm_ascend.ops.fused_moe.routed_experts.AscendUnquantizedFusedMoEMethod",
+      "model.layers.0.input_layernorm": "vllm_ascend.ops.layernorm.AscendRMSNorm",
+      "model.layers.0.post_attention_layernorm": "vllm_ascend.ops.layernorm.AscendRMSNorm"
+    },
+    "layer0_params": {
+      "model.layers.0.self_attn.qkv_proj.weight": {
+        "shape": [
+          5120,
+          2048
+        ],
+        "dtype": "torch.bfloat16",
+        "device": "meta"
+      },
+      "model.layers.0.self_attn.o_proj.weight": {
+        "shape": [
+          2048,
+          4096
+        ],
+        "dtype": "torch.bfloat16",
+        "device": "meta"
+      },
+      "model.layers.0.self_attn.q_norm.weight": {
+        "shape": [
+          128
+        ],
+        "dtype": "torch.bfloat16",
+        "device": "meta"
+      },
+      "model.layers.0.self_attn.k_norm.weight": {
+        "shape": [
+          128
+        ],
+        "dtype": "torch.bfloat16",
+        "device": "meta"
+      },
+      "model.layers.0.mlp.gate.weight": {
+        "shape": [
+          128,
+          2048
+        ],
+        "dtype": "torch.bfloat16",
+        "device": "meta"
+      },
+      "model.layers.0.mlp.experts.routed_experts.w13_weight": {
+        "shape": [
+          128,
+          1536,
+          2048
+        ],
+        "dtype": "torch.bfloat16",
+        "device": "meta"
+      },
+      "model.layers.0.mlp.experts.routed_experts.w2_weight": {
+        "shape": [
+          128,
+          2048,
+          768
+        ],
+        "dtype": "torch.bfloat16",
+        "device": "meta"
+      },
+      "model.layers.0.input_layernorm.weight": {
+        "shape": [
+          2048
+        ],
+        "dtype": "torch.bfloat16",
+        "device": "meta"
+      },
+      "model.layers.0.post_attention_layernorm.weight": {
+        "shape": [
+          2048
+        ],
+        "dtype": "torch.bfloat16",
+        "device": "meta"
+      }
+    },
+    "devices": [
+      "meta"
+    ]
+  },
+  "compare": {
+    "ok": true,
+    "num_params": {
+      "vllm": 30532122624,
+      "ascend": 30532122624
+    },
+    "layer0_shape_diff": {},
+    "layer0_class_swaps": {
+      "model.layers.0.input_layernorm": {
+        "vllm": "vllm.model_executor.layers.layernorm.RMSNorm",
+        "ascend": "vllm_ascend.ops.layernorm.AscendRMSNorm"
+      },
+      "model.layers.0.mlp.experts": {
+        "vllm": "vllm.model_executor.layers.fused_moe.runner.moe_runner.MoERunner",
+        "ascend": "vllm_ascend.ops.fused_moe.fused_moe.AscendMoERunner"
+      },
+      "model.layers.0.mlp.experts.routed_experts": {
+        "vllm": "vllm.model_executor.layers.fused_moe.routed_experts.RoutedExperts",
+        "ascend": "vllm_ascend.ops.fused_moe.routed_experts.AscendRoutedExperts"
+      },
+      "model.layers.0.mlp.experts.routed_experts.quant_method": {
+        "vllm": "vllm.model_executor.layers.fused_moe.unquantized_fused_moe_method.UnquantizedFusedMoEMethod",
+        "ascend": "vllm_ascend.ops.fused_moe.routed_experts.AscendUnquantizedFusedMoEMethod"
+      },
+      "model.layers.0.mlp.gate": {
+        "vllm": "vllm.model_executor.layers.fused_moe.router.gate_linear.GateLinear",
+        "ascend": "vllm_ascend.ops.fused_moe.gate_linear.AscendGateLinear"
+      },
+      "model.layers.0.post_attention_layernorm": {
+        "vllm": "vllm.model_executor.layers.layernorm.RMSNorm",
+        "ascend": "vllm_ascend.ops.layernorm.AscendRMSNorm"
+      },
+      "model.layers.0.self_attn.k_norm": {
+        "vllm": "vllm.model_executor.layers.layernorm.RMSNorm",
+        "ascend": "vllm_ascend.ops.layernorm.AscendRMSNorm"
+      },
+      "model.layers.0.self_attn.o_proj": {
+        "vllm": "vllm.model_executor.layers.linear.RowParallelLinear",
+        "ascend": "vllm_ascend.ops.linear.AscendRowParallelLinear"
+      },
+      "model.layers.0.self_attn.q_norm": {
+        "vllm": "vllm.model_executor.layers.layernorm.RMSNorm",
+        "ascend": "vllm_ascend.ops.layernorm.AscendRMSNorm"
+      },
+      "model.layers.0.self_attn.qkv_proj": {
+        "vllm": "vllm.model_executor.layers.linear.QKVParallelLinear",
+        "ascend": "vllm_ascend.ops.linear.AscendQKVParallelLinear"
+      },
+      "model.layers.0.self_attn.rotary_emb": {
+        "vllm": "vllm.model_executor.layers.rotary_embedding.base.RotaryEmbedding",
+        "ascend": "vllm_ascend.ops.rotary_embedding.AscendRotaryEmbedding"
+      },
+      "model.layers.0.self_attn.rotary_emb.apply_rotary_emb": {
+        "vllm": "vllm.model_executor.layers.rotary_embedding.common.ApplyRotaryEmb",
+        "ascend": "vllm_ascend.ops.rotary_embedding.AscendApplyRotaryEmb"
+      }
+    },
+    "bad_params": []
+  }
+}

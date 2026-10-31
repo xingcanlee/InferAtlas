@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+# Node
+node_modules/
+dist/
+.vite/
+*.tsbuildinfo
+playwright-report/
+test-results/
+# Experiments: cloned upstream sources and scratch
+experiments/a2_qwen3moe/src/
+experiments/a2_qwen3moe/.tmp/
+experiments/a2_qwen3moe/runtime/
+# Local build cache / agent logs
+.cache/
+.agents/
+.worktrees/

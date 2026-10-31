@@ -1,0 +1,125 @@
+vllm e5196e2959a42908313510f55fa21f213a48802e
+vllm-ascend 24a76e84394ae3427195e3715fc08e90769d398c
+torch: 2.10.0+cpu  index: https://mirrors.aliyun.com/pypi/simple
+Checked 1 package in 2ms
+Resolved 145 packages in 305ms
+Uninstalled 3 packages in 36ms
+Installed 100 packages in 106ms
+ + agent-detector==2.0.0
+ + aiohappyeyeballs==2.7.1
+ + aiohttp==3.14.5
+ + aiosignal==1.4.0
+ + anthropic==2.3.0
+ + astor==0.8.1
+ + attrs==26.1.0
+ + blake3==1.0.11
+ + cachetools==7.2.7
+ + cbor2==6.1.5
+ + certifi==2026.10.23
+ + cffi==2.1.1
+ + charset-normalizer==3.5.2
+ + cloudpickle==3.1.2
+ - compressed-tensors==0.20.1
+ + compressed-tensors==0.17.0
+ + cryptography==50.0.2
+ + depyf==0.20.0
+ + detect-installer==0.2.1
+ + dill==0.4.1
+ + dnspython==2.9.1
+ + docstring-parser==0.18.0
+ + email-validator==2.3.0
+ + fastapi-cli==0.0.32
+ + fastapi-cloud-cli==0.26.0
+ + fastar==0.12.0
+ + frozenlist==1.8.0
+ + googleapis-common-protos==1.76.0
+ + grpcio==1.85.1
+ + httpcore==1.0.9
+ + httptools==0.9.0
+ + httpx==0.28.1
+ + ijson==3.6.0
+ + interegular==0.3.3
+ + jiter==0.18.0
+ + jmespath==1.1.0
+ + jsonschema==4.26.0
+ + jsonschema-specifications==2025.9.1
+ + lark==1.2.2
+ + llguidance==1.7.6
+ + lm-format-enforcer==0.11.3
+ + mcp==2.3.0
+ + mcp-types==2.3.0
+ + mistral-common==1.13.0
+ + model-hosting-container-standards==0.1.16
+ + msgspec==0.22.0
+ + multidict==7.2.1
+ + ninja==1.13.2
+ - numpy==2.5.4
+ + numpy==2.3.5
+ + openai==3.42.0
+ + opencv-python-headless==5.0.0.93
+ + opentelemetry-api==1.45.2
+ + opentelemetry-exporter-http-transport==0.66b2
+ + opentelemetry-exporter-otlp==1.45.2
+ + opentelemetry-exporter-otlp-common==0.66b2
+ + opentelemetry-exporter-otlp-proto-common==1.45.2
+ + opentelemetry-exporter-otlp-proto-grpc==1.45.2
+ + opentelemetry-exporter-otlp-proto-http==1.45.2
+ + opentelemetry-proto==1.45.2
+ + opentelemetry-sdk==1.45.2
+ + opentelemetry-semantic-conventions==0.66b2
+ + opentelemetry-semantic-conventions-ai==0.5.1
+ + orjson==3.13.0
+ + oss-harmony==0.0.12
+ + outlines-core==0.2.14
+ + partial-json-parser==0.2.1.1.post7
+ + pillow==13.0.0
+ + prometheus-client==0.26.0
+ + prometheus-fastapi-instrumentator==8.1.0
+ + propcache==0.5.4
+ + protobuf==7.36.2
+ + py-cpuinfo==9.0.0
+ + pybase64==1.5.1
+ + pycountry==26.2.16
+ + pycparser==3.12
+ + pydantic-extra-types==2.11.1
+ + pydantic-settings==2.16.2
+ + pyjwt==2.15.1
+ + python-dotenv==1.2.4
+ + python-json-logger==4.2.0
+ + python-multipart==0.0.32
+ + pyzmq==27.2.0
+ + referencing==0.37.0
+ + requests==2.34.2
+ + rich-toolkit==0.20.6
+ + rignore==0.8.1
+ + rpds-py==2026.9.1
+ + sentencepiece==0.2.2
+ + sentry-sdk==2.73.0
+ + setproctitle==1.3.8
+ - setuptools==78.1.0
+ + setuptools==80.10.2
+ + sniffio==1.3.1
+ + sse-starlette==3.6.0
+ + supervisor==4.3.0
+ + tiktoken==0.14.0
+ + urllib3==2.8.0
+ + uvicorn==0.54.0
+ + uvloop==0.23.0
+ + watchfiles==1.3.0
+ + websockets==17.4
+ + yarl==1.25.1
+torch 2.10.0+cpu | vllm 0.1.dev1+ge5196e295
+== exp1_tp1
+   exit=0 (log: out/exp1_tp1.log)
+== exp1_tp4
+   exit=0 (log: out/exp1_tp4.log)
+== exp2_A2
+   exit=0 (log: out/exp2_A2.log)
+== exp3_A2
+   exit=0 (log: out/exp3_A2.log)
+
+results:
+out/exp1_vllm_meta_tp1.json
+out/exp1_vllm_meta_tp4.json
+out/exp2_ascend_overlay_A2.json
+out/exp3_ascend_meta_A2.json
