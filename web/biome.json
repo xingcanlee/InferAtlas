@@ -1,0 +1,39 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.3.4/schema.json",
+  "root": false,
+  "extends": "//",
+  "files": {
+    "includes": [
+      "**",
+      "!!dist",
+      "!!dist-single",
+      "!!test-results",
+      "!!playwright-report",
+      "!!public/data"
+    ]
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["src/components/ui/**"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noArrayIndexKey": "off"
+          },
+          "security": {
+            "noDangerouslySetInnerHtml": "off"
+          },
+          "a11y": {
+            "useSemanticElements": "off",
+            "useFocusableInteractive": "off"
+          }
+        }
+      }
+    }
+  ]
+}
