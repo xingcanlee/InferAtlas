@@ -32,11 +32,16 @@ annotations = load_annotations("annotations/a2")
 resolved, stale_items = check_annotations(annotations, sources)
 ```
 
-The loader uses the existing Pydantic Annotation/Annotations contracts, rejects
-duplicate ids across files, and returns entries ordered by id. YAML duplicate keys
-and unknown schema fields fail. The caller performs T2's syntax/symbol checks on
-`applies_when` in its declared lowering context; the loader does not implement a
-second DSL parser or evaluator.
+The loader uses `AnchoredAnnotation`, a local Pydantic subclass of the shared
+Annotation model with optional `anchors: [{target, anchor_hash}]` for additional
+implementation dependencies. The shared contract cannot yet express these
+anchors; its adoption is requested in `docs/requests/T5.md`. Until then, load these
+files through `load_annotations`, not the shared Annotations model. Both the base
+fields and the extension have schema validation tests. The loader rejects
+duplicate ids across files and returns entries ordered by id. YAML duplicate keys
+and unknown fields (including inside anchors) fail. The caller performs T2's
+syntax/symbol checks on `applies_when` in its declared lowering context; the
+loader does not implement a second DSL parser or evaluator.
 
 `SourceTree` reads Git blobs at the supplied immutable full commit, ignoring
 uncommitted edits and the checkout's HEAD. It locates module/package files and
@@ -46,25 +51,34 @@ use the defining qualified symbol, not an import alias. `SourceAnchor.src` is a
 contract SourceRef whose line is the declaration line; its `source` also includes
 decorators. Upstream modules are never imported.
 
-`anchor_hash(anchor.source)` dedents, tokenizes and hashes a canonical JSON list
-of token types/values. Comments, insignificant newlines, token positions and
+`anchor_hash(anchor.source)` removes comment-only lines before dedenting, then
+tokenizes and hashes a canonical JSON list of token types/values. This includes
+comments at column zero inside indented method fragments; comment-like text
+inside strings is preserved. Comments, insignificant newlines, token positions and
 formatting spaces are omitted; indent/dedent and logical newline tokens remain.
 String literals/docstrings and decorators remain significant. This makes normal
 whitespace/comment edits stable while preserving code and block changes. Hashes
-include the `sha256:` prefix. A hash covers the target declaration and its nested
-definitions, not definitions of external helpers it calls.
+include the `sha256:` prefix. Each hash covers one declaration and its nested
+definitions. List relevant external implementations as additional anchors.
 
 To compute a draft's anchor, call `sources[package].resolve(target).anchor_hash`;
 never author a digest or a source line manually. Every committed annotation uses
-the implementation as both `target` and `resolves_to`, so a patch-body change
-invalidates its note. If another annotation uses distinct symbols, only `target`
-is hashed and both declarations are linked. Such notes require reviewing changes
-to both implementations.
+the replacement class/function as both `target` and `resolves_to`. Linear notes
+add the post-load method, NZ policy/conversion helpers and parallel selector;
+the row parallel note anchors the independent output projection implementation.
+RoPE also hashes the module-level derived-cache helper. Expert notes include the
+NZ policy/conversion helpers alongside the class containing post-load processing.
+If `resolves_to` differs, it is linked; add it to `anchors` if its changes must
+invalidate the note too. Unlisted helper definitions are not recursively hashed.
 
 `check_annotations` returns `(list[ResolvedAnnotation], list[StaleAnnotation])`.
-Changed anchors are excluded from the usable list; append stale items to the
-snapshot's existing Triage.items. Missing targets/replacements raise ValueError
-and fail the build because the triage schema has no unresolved-target variant.
+The primary target and all extra anchors must match. A change in any declaration
+excludes the entire annotation from the usable list. One stale item per annotation
+reports the first changed target in symbol order, with that target's old/new
+hashes, preserving the existing triage wire format. Append stale items to the
+snapshot's existing Triage.items. Repeated anchor targets are rejected. Missing
+targets, helpers or replacements raise ValueError and fail the build because the
+triage schema has no unresolved-target variant.
 
 `apply_annotations(ir, resolved, bindings=..., active_ids=...)` returns a deep IR
 copy and leaves all inputs untouched. `bindings` maps node id to annotation id;
@@ -73,10 +87,14 @@ patched-symbol facts. `active_ids` is an explicit set selected by the shared TS
 predicate evaluator, or a caller's already-established fixed snapshot context.
 No default condition selection is assumed. Unknown/stale ids, unknown nodes,
 duplicate ids and active source commits inconsistent with the IR snapshot fail.
-Inactive bound nodes have their prior overlay cleared; unbound nodes are copied
-unchanged. The function fills `ascend.tag/level/note/annotation_id/src`, sorts and
-deduplicates tags, and validates the overlay through AscendTag. It does not rewrite
-weight/communication formulas: lowering must model any noted semantic changes.
+Inactive bindings preserve existing Ascend facts, including extracted replacement
+source links and OOT tags; unbound nodes are copied unchanged. Active notes set
+`ascend.level/note/annotation_id`, merge tags, and add source links while retaining
+extracted links. Tags and complete SourceRefs are sorted/deduplicated, and copies
+share no mutable source objects with inputs. Apply mode changes to the original
+extracted/lowered IR; this merge API cannot reconstruct which old links/tags came
+from an earlier annotation. It does not rewrite weight/communication formulas:
+lowering must model any noted semantic changes.
 
 The wire format supports one annotation per node. Select a mutually exclusive
 lane, put separately relevant patches on their own semantic node, or retain a
@@ -98,7 +116,7 @@ dependent selection must be recomputed when the corresponding setting changes.
 | `is_qwen3_moe` | Pinned model architecture is Qwen3MoeForCausalLM / model_type qwen3_moe. |
 | `unquantized` | No active quantization config/method for the matched implementation. BF16 weight dtype alone does not prove this. |
 | `dtype_w` | Standard IR weight dtype symbol; these notes target `bf16`. |
-| `custom_parallel` | Per matched linear, `get_parallel_op` chooses a custom op; derive from resolved model prefix and Ascend parallel settings. Different projections can have different values. |
+| `custom_parallel` | For Qwen's `o_proj`, `get_parallel_op` chooses `OProjRowParallelOp` when `oproj_tp_enable()` is true. Derive from the resolved prefix/settings, not FlashComm. The pinned column selector only customizes `wo_a` or `gate_up_proj`, so QKV has no custom-parallel lane or predicate. |
 | `linear_nz` | For that unquantized linear's loaded weight, `_should_trans_nz` is true and no explicit skip flag bypasses conversion. This refers to the intended loaded NPU weight, never the meta tensor's always-false conversion test. |
 | `vocab_parallel_override` | The matched embedding/head plan is FINE_GRAINED or PCP_X_TP rather than standard TP/replicated. For logits use its actual head's plan. |
 | `mtp_draft` | Active forward is an MTP draft path; ordinary rotary-cache note excludes its optional position all-gather. |
@@ -113,6 +131,12 @@ notes describe the changed execution/communication implementation; singleton
 groups do not imply real network traffic. Gate output dtype differs from upstream
 in this pinned model because upstream leaves `out_dtype` unset while Ascend
 defaults it to fp32.
+
+Expert matrix transposition runs unconditionally after loading. Forced NZ casts
+occur only when `enable_fused_mc2` is true and MegaMoE is not selected. With fused
+MC2 disabled, the code calls `maybe_trans_nz`, so conversion depends on NZ policy;
+the note does not claim all experts always use NZ. These are source facts, not
+evidence of a post-load conversion having run in a meta build.
 
 ## Validation
 

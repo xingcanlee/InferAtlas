@@ -39,7 +39,16 @@
   - OOT
   target: vllm_ascend.ops.fused_moe.gate_linear.AscendGateLinear
 - anchor_hash: sha256:e65e727c08018bf26d206e8d69fa8476bdb4f8940e8f7da76766e0ae7cd39561
-  applies_when: is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16 && (!custom_parallel && !linear_nz)
+  anchors:
+  - anchor_hash: sha256:925533d5f845197303242fcab67e3b632b9d5257d2f23504ae2b473eaa233ebf
+    target: vllm_ascend.ops.linear.AscendUnquantizedLinearMethod.process_weights_after_loading
+  - anchor_hash: sha256:b46f1ad59c958c22f397e46ecbf189e71213895303763fd0c66e966ea220dcad
+    target: vllm_ascend.ops.linear_op._get_column_parallel_op
+  - anchor_hash: sha256:86628a05c08a6beef0114c49bdb2f79465f3ff914048fc2f386f2e2bff24e5a8
+    target: vllm_ascend.utils._should_trans_nz
+  - anchor_hash: sha256:3c4334bf804b27699715997ed66e47480904d6ed830ba6d76f9ecee821d846d9
+    target: vllm_ascend.utils.maybe_trans_nz
+  applies_when: is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16 && (!linear_nz)
   id: a2.qwen3_moe.linear.qkv.kernel
   level: KERNEL
   note: QKV 投影沿用标准张量并行分片及通信，未启用 NZ 权重转换时仅替换矩阵乘内核。
@@ -49,7 +58,16 @@
   - OOT
   target: vllm_ascend.ops.linear.AscendQKVParallelLinear
 - anchor_hash: sha256:e65e727c08018bf26d206e8d69fa8476bdb4f8940e8f7da76766e0ae7cd39561
-  applies_when: is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16 && (!custom_parallel && linear_nz)
+  anchors:
+  - anchor_hash: sha256:925533d5f845197303242fcab67e3b632b9d5257d2f23504ae2b473eaa233ebf
+    target: vllm_ascend.ops.linear.AscendUnquantizedLinearMethod.process_weights_after_loading
+  - anchor_hash: sha256:b46f1ad59c958c22f397e46ecbf189e71213895303763fd0c66e966ea220dcad
+    target: vllm_ascend.ops.linear_op._get_column_parallel_op
+  - anchor_hash: sha256:86628a05c08a6beef0114c49bdb2f79465f3ff914048fc2f386f2e2bff24e5a8
+    target: vllm_ascend.utils._should_trans_nz
+  - anchor_hash: sha256:3c4334bf804b27699715997ed66e47480904d6ed830ba6d76f9ecee821d846d9
+    target: vllm_ascend.utils.maybe_trans_nz
+  applies_when: is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16 && (linear_nz)
   id: a2.qwen3_moe.linear.qkv.layout
   level: LAYOUT
   note: QKV 投影保持逻辑参数形状，加载后的非量化矩阵乘权重按 NZ 策略转换存储；meta 构造不执行该转换。
@@ -58,17 +76,16 @@
   tag:
   - OOT
   target: vllm_ascend.ops.linear.AscendQKVParallelLinear
-- anchor_hash: sha256:e65e727c08018bf26d206e8d69fa8476bdb4f8940e8f7da76766e0ae7cd39561
-  applies_when: is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16 && (custom_parallel)
-  id: a2.qwen3_moe.linear.qkv.parallel
-  level: SEMANTIC
-  note: QKV 投影经 get_parallel_op 选择自定义并行操作；启用输出投影独立并行或 FlashComm 时，通信组与激活切分需按实际分支建模。
-  resolves_to: vllm_ascend.ops.linear.AscendQKVParallelLinear
-  reviewed_by: pending
-  tag:
-  - OOT
-  target: vllm_ascend.ops.linear.AscendQKVParallelLinear
 - anchor_hash: sha256:fa9a6613a3d9bf677e19592e14815bcea553f75249f76dd7216445f4978c7ea4
+  anchors:
+  - anchor_hash: sha256:925533d5f845197303242fcab67e3b632b9d5257d2f23504ae2b473eaa233ebf
+    target: vllm_ascend.ops.linear.AscendUnquantizedLinearMethod.process_weights_after_loading
+  - anchor_hash: sha256:55da5496c74ceddb17a8fccdb389e5d1d1223d23284639eab1671cfbd0b0372c
+    target: vllm_ascend.ops.linear_op._get_row_parallel_op
+  - anchor_hash: sha256:86628a05c08a6beef0114c49bdb2f79465f3ff914048fc2f386f2e2bff24e5a8
+    target: vllm_ascend.utils._should_trans_nz
+  - anchor_hash: sha256:3c4334bf804b27699715997ed66e47480904d6ed830ba6d76f9ecee821d846d9
+    target: vllm_ascend.utils.maybe_trans_nz
   applies_when: is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16 && (!custom_parallel && !linear_nz)
   id: a2.qwen3_moe.linear.row.kernel
   level: KERNEL
@@ -79,6 +96,15 @@
   - OOT
   target: vllm_ascend.ops.linear.AscendRowParallelLinear
 - anchor_hash: sha256:fa9a6613a3d9bf677e19592e14815bcea553f75249f76dd7216445f4978c7ea4
+  anchors:
+  - anchor_hash: sha256:925533d5f845197303242fcab67e3b632b9d5257d2f23504ae2b473eaa233ebf
+    target: vllm_ascend.ops.linear.AscendUnquantizedLinearMethod.process_weights_after_loading
+  - anchor_hash: sha256:55da5496c74ceddb17a8fccdb389e5d1d1223d23284639eab1671cfbd0b0372c
+    target: vllm_ascend.ops.linear_op._get_row_parallel_op
+  - anchor_hash: sha256:86628a05c08a6beef0114c49bdb2f79465f3ff914048fc2f386f2e2bff24e5a8
+    target: vllm_ascend.utils._should_trans_nz
+  - anchor_hash: sha256:3c4334bf804b27699715997ed66e47480904d6ed830ba6d76f9ecee821d846d9
+    target: vllm_ascend.utils.maybe_trans_nz
   applies_when: is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16 && (!custom_parallel && linear_nz)
   id: a2.qwen3_moe.linear.row.layout
   level: LAYOUT
@@ -89,10 +115,19 @@
   - OOT
   target: vllm_ascend.ops.linear.AscendRowParallelLinear
 - anchor_hash: sha256:fa9a6613a3d9bf677e19592e14815bcea553f75249f76dd7216445f4978c7ea4
+  anchors:
+  - anchor_hash: sha256:a52318dce0df786f52d03795f08ef1bbcba44f2142679c5c996ab96d33ab675f
+    target: vllm_ascend.ops.linear_op.CustomRowParallelOp
+  - anchor_hash: sha256:7bfdc8bd5825a326badb7abfff7be386a924c2e33a5c334e249a0b440b7bf9c3
+    target: vllm_ascend.ops.linear_op.OProjRowParallelOp
+  - anchor_hash: sha256:55da5496c74ceddb17a8fccdb389e5d1d1223d23284639eab1671cfbd0b0372c
+    target: vllm_ascend.ops.linear_op._get_row_parallel_op
+  - anchor_hash: sha256:e15651a8370a7420a9ee639991981a5cbd319c2ddd75bb429c542851d0326374
+    target: vllm_ascend.ops.linear_op.get_parallel_op
   applies_when: is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16 && (custom_parallel)
   id: a2.qwen3_moe.linear.row.parallel
   level: SEMANTIC
-  note: 输出投影经 get_parallel_op 选择自定义并行操作；启用输出投影独立并行或 FlashComm 时，通信组与激活切分需按实际分支建模。
+  note: 输出投影经 get_parallel_op 选择 OProjRowParallelOp；启用 o_proj 独立张量并行时，权重分片和通信使用独立 oproj TP 组，须按实际配置建模。
   resolves_to: vllm_ascend.ops.linear.AscendRowParallelLinear
   reviewed_by: pending
   tag:
@@ -199,6 +234,9 @@
   - OOT
   target: vllm_ascend.ops.layernorm.AscendRMSNorm
 - anchor_hash: sha256:6cd4a14090f7b3b25a022b38c883818f3c258b3ef0691387e0398d090244c665
+  anchors:
+  - anchor_hash: sha256:d342dbba83109a46ee0da40b4316be531fe76ba93cd92a63ba6effbff9691f17
+    target: vllm_ascend.ops.rotary_embedding._record_cos_and_sin_cache_interleaved
   applies_when: is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16 && (!mtp_draft)
   id: a2.qwen3_moe.rotary
   level: LAYOUT
@@ -219,10 +257,15 @@
   - OOT
   target: vllm_ascend.ops.fused_moe.routed_experts.AscendRoutedExperts
 - anchor_hash: sha256:f44897236a713e51b592402fcf77a659e9c38b2979ff381969a763fa751536cd
+  anchors:
+  - anchor_hash: sha256:86628a05c08a6beef0114c49bdb2f79465f3ff914048fc2f386f2e2bff24e5a8
+    target: vllm_ascend.utils._should_trans_nz
+  - anchor_hash: sha256:3c4334bf804b27699715997ed66e47480904d6ed830ba6d76f9ecee821d846d9
+    target: vllm_ascend.utils.maybe_trans_nz
   applies_when: is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16
   id: a2.qwen3_moe.unquantized_experts
   level: LAYOUT
-  note: 加载后将专家矩阵转置为分组矩阵乘布局，并按 NZ 或融合通信策略转换格式；构造时逻辑形状相同不代表加载后存储相同。
+  note: 加载后总是将专家矩阵转置为分组矩阵乘布局；仅 enable_fused_mc2 且未使用 MegaMoE 时强制转为 NZ，未启用融合时由 maybe_trans_nz 按 NZ 策略决定是否转换。构造时逻辑形状相同不代表加载后存储相同。
   resolves_to: vllm_ascend.ops.fused_moe.routed_experts.AscendUnquantizedFusedMoEMethod
   reviewed_by: pending
   tag:

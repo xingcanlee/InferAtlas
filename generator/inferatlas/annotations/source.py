@@ -20,9 +20,17 @@ def anchor_hash(source: str) -> str:
     Block boundaries and logical newlines remain significant; whitespace inside
     string literals is data. Decorators and docstrings are part of the anchor.
     """
+    # A column-zero comment must not prevent dedenting a method fragment.
+    lines = source.splitlines(keepends=True)
+    for token in tokenize.generate_tokens(io.StringIO(source).readline):
+        if token.type == tokenize.COMMENT:
+            row, column = token.start
+            if not lines[row - 1][:column].strip():
+                lines[row - 1] = "\n"
+    source = textwrap.dedent("".join(lines))
     ignored = {tokenize.COMMENT, tokenize.NL, tokenize.ENCODING, tokenize.ENDMARKER}
     tokens = []
-    for token in tokenize.generate_tokens(io.StringIO(textwrap.dedent(source)).readline):
+    for token in tokenize.generate_tokens(io.StringIO(source).readline):
         if token.type in ignored:
             continue
         value = (

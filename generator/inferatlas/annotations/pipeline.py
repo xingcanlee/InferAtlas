@@ -4,22 +4,33 @@ from collections.abc import Collection, Iterable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
+from pydantic import Field, TypeAdapter
 from ruamel.yaml import YAML
 
-from inferatlas.schema import IR, Annotation, Annotations
-from inferatlas.schema.models import AscendTag, SourceRef, StaleAnnotation
+from inferatlas.schema import IR, Annotation
+from inferatlas.schema.models import AnchorHash, AscendTag, Contract, SourceRef, StaleAnnotation
 
 from .source import SourceTree, resolve_target
 
 
-def load_annotations(path: str | Path) -> list[Annotation]:
+class AnnotationAnchor(Contract):
+    target: str
+    anchor_hash: AnchorHash
+
+
+class AnchoredAnnotation(Annotation):
+    # Pending shared-contract addition; see docs/requests/T5.md.
+    anchors: list[AnnotationAnchor] = Field(default_factory=list)
+
+
+def load_annotations(path: str | Path) -> list[AnchoredAnnotation]:
     """Load one YAML list or a directory recursively; reject duplicate ids."""
     path = Path(path)
     files = sorted([*path.rglob("*.yaml"), *path.rglob("*.yml")]) if path.is_dir() else [path]
     annotations = []
     yaml = YAML(typ="safe")
     for file in files:
-        annotations.extend(Annotations.model_validate(yaml.load(file)).root)
+        annotations.extend(TypeAdapter(list[AnchoredAnnotation]).validate_python(yaml.load(file)))
     ids = [annotation.id for annotation in annotations]
     if len(ids) != len(set(ids)):
         raise ValueError("Duplicate annotation id")
@@ -37,8 +48,8 @@ def check_annotations(
 ) -> tuple[list[ResolvedAnnotation], list[StaleAnnotation]]:
     """Return usable anchors and triage items. Unresolvable symbols fail the build.
 
-    Anchor the implementation whose behavior the note describes. If target and
-    resolves_to differ, both declarations are linked, but only target is hashed.
+    Hash target and every additional anchor; any mismatch invalidates the note.
+    Link resolves_to as well, even if it is not one of the hashed declarations.
     """
     valid = []
     stale = []
@@ -47,19 +58,27 @@ def check_annotations(
         if annotation.id in seen:
             raise ValueError(f"Duplicate annotation id: {annotation.id}")
         seen.add(annotation.id)
-        anchor = resolve_target(annotation.target, sources)
+        expected = [(annotation.target, annotation.anchor_hash)] + [
+            (anchor.target, anchor.anchor_hash) for anchor in getattr(annotation, "anchors", ())
+        ]
+        if len({target for target, _ in expected}) != len(expected):
+            raise ValueError(f"Duplicate annotation anchor: {annotation.id}")
+        anchors = [(resolve_target(target, sources), digest) for target, digest in sorted(expected)]
         replacement = resolve_target(annotation.resolves_to, sources)
-        if anchor.anchor_hash != annotation.anchor_hash:
-            stale.append(
-                StaleAnnotation(
-                    kind="stale_annotation",
-                    id=annotation.id,
-                    anchor_hash_old=annotation.anchor_hash,
-                    anchor_hash_new=anchor.anchor_hash,
+        for anchor, digest in anchors:
+            if anchor.anchor_hash != digest:
+                stale.append(
+                    StaleAnnotation(
+                        kind="stale_annotation",
+                        id=annotation.id,
+                        anchor_hash_old=digest,
+                        anchor_hash_new=anchor.anchor_hash,
+                    )
                 )
-            )
+                break
         else:
-            refs = {ref.symbol: ref for ref in (anchor.src, replacement.src)}
+            refs = {anchor.src.symbol: anchor.src for anchor, _ in anchors}
+            refs[replacement.src.symbol] = replacement.src
             valid.append(ResolvedAnnotation(annotation, tuple(refs[key] for key in sorted(refs))))
     return valid, stale
 
@@ -92,7 +111,6 @@ def apply_annotations(
         annotation_id = bindings.get(node.id)
         if annotation_id is None:
             continue
-        node.ascend = None
         if annotation_id not in active_ids:
             continue
         item = by_id[annotation_id]
@@ -103,11 +121,17 @@ def apply_annotations(
                     f"Annotation source commit differs from IR snapshot: {annotation_id}"
                 )
         annotation = item.annotation
-        node.ascend = AscendTag(
-            tag=sorted(set(annotation.tag)),
-            level=annotation.level,
-            note=annotation.note,
-            annotation_id=annotation.id,
-            src=[src.model_copy(deep=True) for src in item.src],
-        )
+        existing = node.ascend
+        refs = {
+            (src.repo, src.commit, src.file, src.line, src.symbol): src
+            for src in [*(existing.src if existing else []), *item.src]
+        }
+        overlay = {
+            "tag": sorted(set(annotation.tag) | set(existing.tag if existing else [])),
+            "level": annotation.level,
+            "note": annotation.note,
+            "annotation_id": annotation.id,
+            "src": [refs[key].model_copy(deep=True) for key in sorted(refs)],
+        }
+        node.ascend = existing.model_copy(update=overlay) if existing else AscendTag(**overlay)
     return result

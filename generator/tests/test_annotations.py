@@ -9,6 +9,7 @@ from pydantic import ValidationError
 from ruamel.yaml import YAML
 
 from inferatlas.annotations import (
+    AnchoredAnnotation,
     ResolvedAnnotation,
     SourceTree,
     anchor_hash,
@@ -94,6 +95,20 @@ def test_hash_ignores_formatting(source):
     assert anchor_hash(source) == anchor_hash(reference)
 
 
+def test_column_zero_comments_do_not_block_dedent_or_change_string_data():
+    source = (
+        "    def f(x):\n"
+        '        """A multiline docstring.\n'
+        "        # This is string data.\n"
+        '        """\n'
+        "        if x:\n"
+        "            return x + 1\n"
+    )
+    commented = "# before\n" + source.replace("        if x:", "# body\n\n        if x:")
+    assert anchor_hash(commented) == anchor_hash(source)
+    assert anchor_hash(commented.replace("string data", "different data")) != anchor_hash(source)
+
+
 @pytest.mark.parametrize(
     "before,after",
     [
@@ -168,7 +183,10 @@ def test_multiline_decorators_are_included_in_anchor(source_tree):
 def test_comment_only_commit_keeps_annotation_valid_and_updates_source_line(source_tree):
     annotation = annotation_for(source_tree.resolve("sample.layer.Layer.forward"))
     path = source_tree.root / "sample/layer.py"
-    path.write_text("# shifted source\n" + path.read_text().replace("x + 1", "x+1"))
+    path.write_text(
+        "# shifted source\n"
+        + path.read_text().replace("        return x + 1", "# body comment\n        return x+1")
+    )
     git(source_tree.root, "add", ".")
     git(
         source_tree.root,
@@ -237,7 +255,14 @@ def test_load_schema_sorting_and_duplicate_ids(tmp_path):
 
 @pytest.mark.parametrize(
     "change",
-    [{"anchor_hash": "invented"}, {"line": 10}, {"level": "UNKNOWN"}, {"applies_when": 42}],
+    [
+        {"anchor_hash": "invented"},
+        {"line": 10},
+        {"level": "UNKNOWN"},
+        {"applies_when": 42},
+        {"anchors": [{"target": "sample.helper", "anchor_hash": "invented"}]},
+        {"anchors": [{"target": "sample.helper", "anchor_hash": "sha256:" + "0" * 64, "line": 1}]},
+    ],
 )
 def test_invalid_yaml_annotations_rejected(tmp_path, change):
     fixture = json.loads((ROOT / "fixtures/annotation.json").read_text())
@@ -283,6 +308,74 @@ def test_stale_detection_across_commits_and_schema(source_tree):
         check_annotations([missing], sources)
 
 
+@pytest.mark.parametrize("changed", ["Layer.forward", "outer.inner", "conditional"])
+def test_all_anchors_are_linked_and_any_change_invalidates_note(source_tree, tmp_path, changed):
+    primary = annotation_for(source_tree.resolve("sample.layer.Layer.forward"))
+    helpers = [
+        source_tree.resolve("sample.layer." + name) for name in ["outer.inner", "conditional"]
+    ]
+    data = {
+        **primary.model_dump(),
+        "anchors": [
+            {"target": helper.src.symbol, "anchor_hash": helper.anchor_hash} for helper in helpers
+        ],
+    }
+    path = tmp_path / "notes.yaml"
+    with path.open("w") as stream:
+        YAML().dump([data], stream)
+    annotations = load_annotations(path)
+    valid, stale = check_annotations(annotations, {"sample": source_tree})
+    assert stale == []
+    assert [ref.symbol for ref in valid[0].src] == sorted(
+        [primary.target, *(helper.src.symbol for helper in helpers)]
+    )
+
+    code = source_tree.root / "sample/layer.py"
+    before, after = {
+        "Layer.forward": ("x + 1", "x + 2"),
+        "outer.inner": ("'nested'", "'changed'"),
+        "conditional": ("return True", "return False"),
+    }[changed]
+    code.write_text(code.read_text().replace(before, after))
+    git(source_tree.root, "add", "sample/layer.py")
+    git(
+        source_tree.root,
+        "-c",
+        "user.name=Test",
+        "-c",
+        "user.email=test@example.com",
+        "commit",
+        "-qm",
+        "changed anchor",
+    )
+    tree = SourceTree(
+        source_tree.root, source_tree.repo, git(source_tree.root, "rev-parse", "HEAD")
+    )
+    valid, stale = check_annotations(annotations, {"sample": tree})
+    assert valid == [] and len(stale) == 1
+    assert stale[0].id == primary.id
+    assert stale[0].anchor_hash_new == tree.resolve("sample.layer." + changed).anchor_hash
+    assert stale[0].anchor_hash_old != stale[0].anchor_hash_new
+    # Anchor input order never changes the stale record.
+    annotations[0].anchors.reverse()
+    assert check_annotations(annotations, {"sample": tree}) == (valid, stale)
+
+
+def test_extra_anchors_reject_duplicates_and_missing_declarations(source_tree):
+    primary = annotation_for(source_tree.resolve("sample.layer.Layer.forward"))
+    duplicate = AnchoredAnnotation.model_validate(
+        {
+            **primary.model_dump(),
+            "anchors": [{"target": primary.target, "anchor_hash": primary.anchor_hash}],
+        }
+    )
+    with pytest.raises(ValueError, match="Duplicate annotation anchor"):
+        check_annotations([duplicate], {"sample": source_tree})
+    duplicate.anchors[0].target = "sample.layer.Removed"
+    with pytest.raises(ValueError, match="Missing"):
+        check_annotations([duplicate], {"sample": source_tree})
+
+
 def overlay_for_ir(source_tree):
     ir = IR.model_validate_json(FIXTURE.read_text())
     anchor = source_tree.resolve("sample.layer.Layer.forward")
@@ -302,15 +395,53 @@ def test_apply_is_pure_conditional_deterministic_and_idempotent(source_tree):
     nodes = {n.id: n for n in result.nodes}
     assert nodes["attn.qkv"].ascend.annotation_id == item.annotation.id
     assert nodes["attn.qkv"].ascend.tag == ["OOT", "PATCH"]
-    assert nodes["attn.qkv"].ascend.src[0].line == item.src[0].line
+    assert item.src[0] in nodes["attn.qkv"].ascend.src
     assert (
         apply_annotations(result, [item], bindings=bindings, active_ids={item.annotation.id})
         == result
     )
     inactive = apply_annotations(result, [item], bindings=bindings, active_ids=set())
-    assert all(n.ascend is None for n in inactive.nodes if n.id in bindings)
+    assert inactive == result
     nodes["attn.qkv"].ascend.src[0].line += 1
-    assert nodes["attn.o"].ascend.src[0].line == item.src[0].line
+    assert item.src[0] in nodes["attn.o"].ascend.src
+
+
+def test_inactive_annotation_preserves_extracted_ascend_facts(source_tree):
+    ir, item = overlay_for_ir(source_tree)
+    node = next(node for node in ir.nodes if node.id == "attn.qkv")
+    assert node.ascend is not None and node.ascend.src and "OOT" in node.ascend.tag
+    result = apply_annotations(ir, [item], bindings={node.id: item.annotation.id}, active_ids=set())
+    assert result == ir and result is not ir
+    assert next(n for n in result.nodes if n.id == node.id).ascend is not node.ascend
+
+
+def test_active_annotation_merges_existing_tags_and_extracted_source(source_tree):
+    ir, item = overlay_for_ir(source_tree)
+    node = next(node for node in ir.nodes if node.id == "attn.qkv")
+    node.ascend.tag = ["QUANT", "OOT"]
+    existing_sources = [src.model_copy(deep=True) for src in node.ascend.src]
+    item.annotation.tag = ["PATCH"]
+    before = ir.model_dump_json(by_alias=True)
+    result = apply_annotations(
+        ir, [item], bindings={node.id: item.annotation.id}, active_ids={item.annotation.id}
+    )
+    updated = next(n for n in result.nodes if n.id == node.id)
+    assert updated.ascend.tag == ["OOT", "PATCH", "QUANT"]
+    assert all(src in updated.ascend.src for src in [*existing_sources, *item.src])
+    assert len(updated.ascend.src) == len(existing_sources) + len(item.src)
+    assert updated.ascend.note == item.annotation.note
+    assert updated.ascend.level == item.annotation.level
+    assert updated.ascend.annotation_id == item.annotation.id
+    assert ir.model_dump_json(by_alias=True) == before
+    assert (
+        apply_annotations(
+            result, [item], bindings={node.id: item.annotation.id}, active_ids={item.annotation.id}
+        )
+        == result
+    )
+    updated.ascend.src[-1].line += 1
+    assert ir.model_dump_json(by_alias=True) == before
+    assert item.src[0].line == 5
 
 
 @pytest.mark.parametrize(
