@@ -21,7 +21,7 @@ from inferatlas.schema.models import (
 
 from .pipeline import LowerResult, lower
 
-DEFAULT_SOURCE_ROOT = Path("/home/cyberspace/projects/InferAtlas/experiments/a2_qwen3moe/src")
+DEFAULT_SOURCE_ROOT = Path(__file__).resolve().parents[3] / "experiments/a2_qwen3moe/src"
 
 
 def catalog_extract(
@@ -182,6 +182,10 @@ def catalog_extract(
 
 
 def lower_catalog(
-    model: CatalogModel, snapshot: Snapshot, source_root: str | Path | None = None
+    model: CatalogModel,
+    snapshot: Snapshot,
+    source_root: str | Path | None = None,
+    *,
+    moe_a2a: bool = False,
 ) -> LowerResult:
-    return lower(catalog_extract(model, snapshot, source_root))
+    return lower(catalog_extract(model, snapshot, source_root), moe_a2a=moe_a2a)

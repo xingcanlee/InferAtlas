@@ -50,11 +50,11 @@
         "tp": 1
       },
       "expected": {
-        "/nodes/moe.experts.combine/comm/bus_bytes/decode": 0,
-        "/nodes/moe.experts.combine/comm/bus_bytes/prefill": 0,
-        "/nodes/moe.experts.dispatch/comm/bus_bytes/decode": 0,
-        "/nodes/moe.experts.dispatch/comm/bus_bytes/prefill": 0,
-        "/nodes/moe.experts.dispatch/comm/when": 0,
+        "/nodes/moe.experts.combine/comm/bus_bytes/decode": 9216.0,
+        "/nodes/moe.experts.combine/comm/bus_bytes/prefill": 12582912.0,
+        "/nodes/moe.experts.dispatch/comm/bus_bytes/decode": 9216.0,
+        "/nodes/moe.experts.dispatch/comm/bus_bytes/prefill": 12582912.0,
+        "/nodes/moe.experts.dispatch/comm/when": 1,
         "/nodes/moe.experts.reduce/comm/bus_bytes/decode": 0,
         "/nodes/moe.experts.reduce/comm/bus_bytes/prefill": 0,
         "/nodes/moe.experts.reduce/comm/logical_bytes/decode": 12288,
@@ -77,10 +77,10 @@
         "tp": 1
       },
       "expected": {
-        "/nodes/moe.experts.combine/comm/bus_bytes/decode": 73728.0,
-        "/nodes/moe.experts.combine/comm/bus_bytes/prefill": 100663296.0,
-        "/nodes/moe.experts.dispatch/comm/bus_bytes/decode": 73728.0,
-        "/nodes/moe.experts.dispatch/comm/bus_bytes/prefill": 100663296.0,
+        "/nodes/moe.experts.combine/comm/bus_bytes/decode": 9216.0,
+        "/nodes/moe.experts.combine/comm/bus_bytes/prefill": 12582912.0,
+        "/nodes/moe.experts.dispatch/comm/bus_bytes/decode": 9216.0,
+        "/nodes/moe.experts.dispatch/comm/bus_bytes/prefill": 12582912.0,
         "/nodes/moe.experts.dispatch/comm/when": 1,
         "/nodes/moe.experts.reduce/comm/bus_bytes/decode": 0.0,
         "/nodes/moe.experts.reduce/comm/bus_bytes/prefill": 0.0,
@@ -104,10 +104,10 @@
         "tp": 2
       },
       "expected": {
-        "/nodes/moe.experts.combine/comm/bus_bytes/decode": 73728.0,
-        "/nodes/moe.experts.combine/comm/bus_bytes/prefill": 100663296.0,
-        "/nodes/moe.experts.dispatch/comm/bus_bytes/decode": 73728.0,
-        "/nodes/moe.experts.dispatch/comm/bus_bytes/prefill": 100663296.0,
+        "/nodes/moe.experts.combine/comm/bus_bytes/decode": 9216.0,
+        "/nodes/moe.experts.combine/comm/bus_bytes/prefill": 12582912.0,
+        "/nodes/moe.experts.dispatch/comm/bus_bytes/decode": 9216.0,
+        "/nodes/moe.experts.dispatch/comm/bus_bytes/prefill": 12582912.0,
         "/nodes/moe.experts.dispatch/comm/when": 1,
         "/nodes/moe.experts.reduce/comm/bus_bytes/decode": 12288.0,
         "/nodes/moe.experts.reduce/comm/bus_bytes/prefill": 16777216.0,
@@ -152,6 +152,27 @@
         "/nodes/moe.w2/weight_bytes": 100663296
       },
       "id": "tp4-bf16-T4096"
+    },
+    {
+      "env": {
+        "S": 1,
+        "T": 4096,
+        "batch": 2,
+        "dp": 1,
+        "dtype_a": "bf16",
+        "dtype_kv": "bf16",
+        "dtype_w": "bf16",
+        "ep": 1,
+        "pp": 1,
+        "tp": 4
+      },
+      "expected": {
+        "/memory/activation_peak": 855703552,
+        "/nodes/moe.act/bytes_moved/decode": 9216,
+        "/nodes/moe.w13/bytes_moved/decode": 12621824,
+        "/nodes/moe.w2/bytes_moved/decode": 6327296
+      },
+      "id": "tp4-decode-expert-traffic"
     },
     {
       "env": {

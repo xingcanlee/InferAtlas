@@ -2058,12 +2058,12 @@
       "topk": 8,
       "tp": 1
     },
-    "expr": "ep>1 && dp>1 ? (ep-1)/ep*(S*topk*H*bytes(dtype_a)) : 0",
+    "expr": "dp>1 ? (tp*dp-1)/(tp*dp)*(S*H*bytes(dtype_a)) : 0",
     "fixture": {
       "case": "tp1-dp4-ep1-comm-estimate",
       "pointer": "/nodes/moe.experts.combine/comm/bus_bytes/decode"
     },
-    "value": 0
+    "value": 9216.0
   },
   {
     "env": {
@@ -2096,12 +2096,12 @@
       "topk": 8,
       "tp": 1
     },
-    "expr": "ep>1 && dp>1 ? (ep-1)/ep*(T*topk*H*bytes(dtype_a)) : 0",
+    "expr": "dp>1 ? (tp*dp-1)/(tp*dp)*(T*H*bytes(dtype_a)) : 0",
     "fixture": {
       "case": "tp1-dp4-ep1-comm-estimate",
       "pointer": "/nodes/moe.experts.combine/comm/bus_bytes/prefill"
     },
-    "value": 0
+    "value": 12582912.0
   },
   {
     "env": {
@@ -2134,12 +2134,12 @@
       "topk": 8,
       "tp": 1
     },
-    "expr": "ep>1 && dp>1 ? (ep-1)/ep*(S*topk*H*bytes(dtype_a)) : 0",
+    "expr": "dp>1 ? (tp*dp-1)/(tp*dp)*(S*H*bytes(dtype_a)) : 0",
     "fixture": {
       "case": "tp1-dp4-ep1-comm-estimate",
       "pointer": "/nodes/moe.experts.dispatch/comm/bus_bytes/decode"
     },
-    "value": 0
+    "value": 9216.0
   },
   {
     "env": {
@@ -2172,12 +2172,12 @@
       "topk": 8,
       "tp": 1
     },
-    "expr": "ep>1 && dp>1 ? (ep-1)/ep*(T*topk*H*bytes(dtype_a)) : 0",
+    "expr": "dp>1 ? (tp*dp-1)/(tp*dp)*(T*H*bytes(dtype_a)) : 0",
     "fixture": {
       "case": "tp1-dp4-ep1-comm-estimate",
       "pointer": "/nodes/moe.experts.dispatch/comm/bus_bytes/prefill"
     },
-    "value": 0
+    "value": 12582912.0
   },
   {
     "env": {
@@ -2210,12 +2210,12 @@
       "topk": 8,
       "tp": 1
     },
-    "expr": "ep>1 && dp>1",
+    "expr": "dp>1",
     "fixture": {
       "case": "tp1-dp4-ep1-comm-estimate",
       "pointer": "/nodes/moe.experts.dispatch/comm/when"
     },
-    "value": 0
+    "value": 1
   },
   {
     "env": {
@@ -2438,12 +2438,12 @@
       "topk": 8,
       "tp": 1
     },
-    "expr": "ep>1 && dp>1 ? (ep-1)/ep*(S*topk*H*bytes(dtype_a)) : 0",
+    "expr": "dp>1 ? (tp*dp-1)/(tp*dp)*(S*H*bytes(dtype_a)) : 0",
     "fixture": {
       "case": "tp1-dp4-ep4-comm-estimate",
       "pointer": "/nodes/moe.experts.combine/comm/bus_bytes/decode"
     },
-    "value": 73728.0
+    "value": 9216.0
   },
   {
     "env": {
@@ -2476,12 +2476,12 @@
       "topk": 8,
       "tp": 1
     },
-    "expr": "ep>1 && dp>1 ? (ep-1)/ep*(T*topk*H*bytes(dtype_a)) : 0",
+    "expr": "dp>1 ? (tp*dp-1)/(tp*dp)*(T*H*bytes(dtype_a)) : 0",
     "fixture": {
       "case": "tp1-dp4-ep4-comm-estimate",
       "pointer": "/nodes/moe.experts.combine/comm/bus_bytes/prefill"
     },
-    "value": 100663296.0
+    "value": 12582912.0
   },
   {
     "env": {
@@ -2514,12 +2514,12 @@
       "topk": 8,
       "tp": 1
     },
-    "expr": "ep>1 && dp>1 ? (ep-1)/ep*(S*topk*H*bytes(dtype_a)) : 0",
+    "expr": "dp>1 ? (tp*dp-1)/(tp*dp)*(S*H*bytes(dtype_a)) : 0",
     "fixture": {
       "case": "tp1-dp4-ep4-comm-estimate",
       "pointer": "/nodes/moe.experts.dispatch/comm/bus_bytes/decode"
     },
-    "value": 73728.0
+    "value": 9216.0
   },
   {
     "env": {
@@ -2552,12 +2552,12 @@
       "topk": 8,
       "tp": 1
     },
-    "expr": "ep>1 && dp>1 ? (ep-1)/ep*(T*topk*H*bytes(dtype_a)) : 0",
+    "expr": "dp>1 ? (tp*dp-1)/(tp*dp)*(T*H*bytes(dtype_a)) : 0",
     "fixture": {
       "case": "tp1-dp4-ep4-comm-estimate",
       "pointer": "/nodes/moe.experts.dispatch/comm/bus_bytes/prefill"
     },
-    "value": 100663296.0
+    "value": 12582912.0
   },
   {
     "env": {
@@ -2590,7 +2590,7 @@
       "topk": 8,
       "tp": 1
     },
-    "expr": "ep>1 && dp>1",
+    "expr": "dp>1",
     "fixture": {
       "case": "tp1-dp4-ep4-comm-estimate",
       "pointer": "/nodes/moe.experts.dispatch/comm/when"
@@ -2818,12 +2818,12 @@
       "topk": 8,
       "tp": 2
     },
-    "expr": "ep>1 && dp>1 ? (ep-1)/ep*(S*topk*H*bytes(dtype_a)) : 0",
+    "expr": "dp>1 ? (tp*dp-1)/(tp*dp)*(S*H*bytes(dtype_a)) : 0",
     "fixture": {
       "case": "tp2-dp2-ep4-comm-estimate",
       "pointer": "/nodes/moe.experts.combine/comm/bus_bytes/decode"
     },
-    "value": 73728.0
+    "value": 9216.0
   },
   {
     "env": {
@@ -2856,12 +2856,12 @@
       "topk": 8,
       "tp": 2
     },
-    "expr": "ep>1 && dp>1 ? (ep-1)/ep*(T*topk*H*bytes(dtype_a)) : 0",
+    "expr": "dp>1 ? (tp*dp-1)/(tp*dp)*(T*H*bytes(dtype_a)) : 0",
     "fixture": {
       "case": "tp2-dp2-ep4-comm-estimate",
       "pointer": "/nodes/moe.experts.combine/comm/bus_bytes/prefill"
     },
-    "value": 100663296.0
+    "value": 12582912.0
   },
   {
     "env": {
@@ -2894,12 +2894,12 @@
       "topk": 8,
       "tp": 2
     },
-    "expr": "ep>1 && dp>1 ? (ep-1)/ep*(S*topk*H*bytes(dtype_a)) : 0",
+    "expr": "dp>1 ? (tp*dp-1)/(tp*dp)*(S*H*bytes(dtype_a)) : 0",
     "fixture": {
       "case": "tp2-dp2-ep4-comm-estimate",
       "pointer": "/nodes/moe.experts.dispatch/comm/bus_bytes/decode"
     },
-    "value": 73728.0
+    "value": 9216.0
   },
   {
     "env": {
@@ -2932,12 +2932,12 @@
       "topk": 8,
       "tp": 2
     },
-    "expr": "ep>1 && dp>1 ? (ep-1)/ep*(T*topk*H*bytes(dtype_a)) : 0",
+    "expr": "dp>1 ? (tp*dp-1)/(tp*dp)*(T*H*bytes(dtype_a)) : 0",
     "fixture": {
       "case": "tp2-dp2-ep4-comm-estimate",
       "pointer": "/nodes/moe.experts.dispatch/comm/bus_bytes/prefill"
     },
-    "value": 100663296.0
+    "value": 12582912.0
   },
   {
     "env": {
@@ -2970,7 +2970,7 @@
       "topk": 8,
       "tp": 2
     },
-    "expr": "ep>1 && dp>1",
+    "expr": "dp>1",
     "fixture": {
       "case": "tp2-dp2-ep4-comm-estimate",
       "pointer": "/nodes/moe.experts.dispatch/comm/when"
@@ -3822,6 +3822,158 @@
       "Hq": 32,
       "I_moe": 768,
       "L": 48,
+      "S": 1,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 1,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 1,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 4
+    },
+    "expr": "max(max_num_batched_tokens*(4*H+(Hq/tp+2*max(1,Hkv/tp))*D+dp*topk/(ep>1 ? ep : 1)*(2*H+3*I_moe/(ep>1 ? 1 : tp*dp))+dp*(H+E))*bytes(dtype_a),max_num_seqs*V*(bytes(dtype_a)+3*bytes(fp32)+bytes(int64)))",
+    "fixture": {
+      "case": "tp4-decode-expert-traffic",
+      "pointer": "/memory/activation_peak"
+    },
+    "value": 855703552
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 1,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 1,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 1,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 4
+    },
+    "expr": "(0)+(S*dp*topk/(ep>1 ? ep : 1))*((2*I_moe/(ep>1 ? 1 : tp*dp))+(I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a)",
+    "fixture": {
+      "case": "tp4-decode-expert-traffic",
+      "pointer": "/nodes/moe.act/bytes_moved/decode"
+    },
+    "value": 9216
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 1,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 1,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 1,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 4
+    },
+    "expr": "(2*(min(E/(ep>1 ? ep : 1),S*dp*topk/(ep>1 ? ep : 1)))*H*I_moe/(ep>1 ? 1 : tp*dp)*bytes(dtype_w))+(S*dp*topk/(ep>1 ? ep : 1))*((H)+(2*I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a)",
+    "fixture": {
+      "case": "tp4-decode-expert-traffic",
+      "pointer": "/nodes/moe.w13/bytes_moved/decode"
+    },
+    "value": 12621824
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
+      "S": 1,
+      "T": 4096,
+      "V": 151936,
+      "batch": 2,
+      "block_size": 128,
+      "context": 4096,
+      "dp": 1,
+      "dtype_a": "bf16",
+      "dtype_ids": "int64",
+      "dtype_kv": "bf16",
+      "dtype_w": "bf16",
+      "ep": 1,
+      "gpu_memory_utilization": 0.9,
+      "hbm_bytes": 64000000000,
+      "max_num_batched_tokens": 4096,
+      "max_num_seqs": 256,
+      "non_torch_bytes": 0,
+      "pp": 1,
+      "reserved_bytes": 0,
+      "topk": 8,
+      "tp": 4
+    },
+    "expr": "(1*(min(E/(ep>1 ? ep : 1),S*dp*topk/(ep>1 ? ep : 1)))*H*I_moe/(ep>1 ? 1 : tp*dp)*bytes(dtype_w))+(S*dp*topk/(ep>1 ? ep : 1))*((I_moe/(ep>1 ? 1 : tp*dp))+(H))*bytes(dtype_a)",
+    "fixture": {
+      "case": "tp4-decode-expert-traffic",
+      "pointer": "/nodes/moe.w2/bytes_moved/decode"
+    },
+    "value": 6327296
+  },
+  {
+    "env": {
+      "D": 128,
+      "E": 128,
+      "H": 2048,
+      "Hkv": 4,
+      "Hq": 32,
+      "I_moe": 768,
+      "L": 48,
       "S": 3,
       "T": 4096,
       "V": 151936,
@@ -3844,7 +3996,7 @@
       "topk": 8,
       "tp": 4
     },
-    "expr": "ep>1 && dp>1 ? (ep-1)/ep*(S*topk*H*bytes(dtype_a)) : 0",
+    "expr": "dp>1 ? (tp*dp-1)/(tp*dp)*(S*H*bytes(dtype_a)) : 0",
     "fixture": {
       "case": "tp4-dp1-ep4-comm-estimate",
       "pointer": "/nodes/moe.experts.combine/comm/bus_bytes/decode"
@@ -3882,7 +4034,7 @@
       "topk": 8,
       "tp": 4
     },
-    "expr": "ep>1 && dp>1 ? (ep-1)/ep*(T*topk*H*bytes(dtype_a)) : 0",
+    "expr": "dp>1 ? (tp*dp-1)/(tp*dp)*(T*H*bytes(dtype_a)) : 0",
     "fixture": {
       "case": "tp4-dp1-ep4-comm-estimate",
       "pointer": "/nodes/moe.experts.combine/comm/bus_bytes/prefill"
@@ -3920,7 +4072,7 @@
       "topk": 8,
       "tp": 4
     },
-    "expr": "ep>1 && dp>1 ? (ep-1)/ep*(S*topk*H*bytes(dtype_a)) : 0",
+    "expr": "dp>1 ? (tp*dp-1)/(tp*dp)*(S*H*bytes(dtype_a)) : 0",
     "fixture": {
       "case": "tp4-dp1-ep4-comm-estimate",
       "pointer": "/nodes/moe.experts.dispatch/comm/bus_bytes/decode"
@@ -3958,7 +4110,7 @@
       "topk": 8,
       "tp": 4
     },
-    "expr": "ep>1 && dp>1 ? (ep-1)/ep*(T*topk*H*bytes(dtype_a)) : 0",
+    "expr": "dp>1 ? (tp*dp-1)/(tp*dp)*(T*H*bytes(dtype_a)) : 0",
     "fixture": {
       "case": "tp4-dp1-ep4-comm-estimate",
       "pointer": "/nodes/moe.experts.dispatch/comm/bus_bytes/prefill"
@@ -3996,7 +4148,7 @@
       "topk": 8,
       "tp": 4
     },
-    "expr": "ep>1 && dp>1",
+    "expr": "dp>1",
     "fixture": {
       "case": "tp4-dp1-ep4-comm-estimate",
       "pointer": "/nodes/moe.experts.dispatch/comm/when"

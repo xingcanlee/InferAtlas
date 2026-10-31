@@ -15,8 +15,8 @@
       prefill: 4*T*intermediate_size/tp
       decode: 4*S*intermediate_size/tp
     bytes_moved:
-      prefill: (0)+2*T*H*bytes(dtype_a)
-      decode: (0)+2*S*H*bytes(dtype_a)
+      prefill: 3*T*intermediate_size/tp*bytes(dtype_a)
+      decode: 3*S*intermediate_size/tp*bytes(dtype_a)
     shard: {}
     emits: []
     notes: []
@@ -710,34 +710,36 @@
         suffix: dispatch
         kind: comm
         comm:
-          op: all_to_all
+          op: all_gather
           group: ep
           logical_bytes:
-            prefill: T*topk*H*bytes(dtype_a)
-            decode: S*topk*H*bytes(dtype_a)
+            prefill: T*H*bytes(dtype_a)
+            decode: S*H*bytes(dtype_a)
           bus_bytes:
-            prefill: 'ep>1 && dp>1 ? ((ep-1)/ep)*(T*topk*H*bytes(dtype_a)) : 0'
-            decode: 'ep>1 && dp>1 ? ((ep-1)/ep)*(S*topk*H*bytes(dtype_a)) : 0'
-          when: ep>1 && dp>1
+            prefill: 'dp>1 ? (tp*dp-1)/(tp*dp)*(T*H*bytes(dtype_a)) : 0'
+            decode: 'dp>1 ? (tp*dp-1)/(tp*dp)*(S*H*bytes(dtype_a)) : 0'
+          when: dp>1
           notes:
-            - Uniform routing; outgoing payload counted once per rank. Routing metadata, padding and DP
-              gather/scatter excluded.
+            - Default allgather_reducescatter backend, flattened tp*dp group even with ep=1. Logical tensor is
+              T*H; ring bus factor is (n-1)/n. Expert compute uses T*dp gathered tokens. Router
+              scores/metadata omitted.
       - &id002
         suffix: combine
         kind: comm
         comm:
-          op: all_to_all
+          op: reduce_scatter
           group: ep
           logical_bytes:
-            prefill: T*topk*H*bytes(dtype_a)
-            decode: S*topk*H*bytes(dtype_a)
+            prefill: T*H*bytes(dtype_a)
+            decode: S*H*bytes(dtype_a)
           bus_bytes:
-            prefill: 'ep>1 && dp>1 ? ((ep-1)/ep)*(T*topk*H*bytes(dtype_a)) : 0'
-            decode: 'ep>1 && dp>1 ? ((ep-1)/ep)*(S*topk*H*bytes(dtype_a)) : 0'
-          when: ep>1 && dp>1
+            prefill: 'dp>1 ? (tp*dp-1)/(tp*dp)*(T*H*bytes(dtype_a)) : 0'
+            decode: 'dp>1 ? (tp*dp-1)/(tp*dp)*(S*H*bytes(dtype_a)) : 0'
+          when: dp>1
           notes:
-            - Uniform routing; outgoing payload counted once per rank. Routing metadata, padding and DP
-              gather/scatter excluded.
+            - Default allgather_reducescatter backend, flattened tp*dp group even with ep=1. Logical tensor is
+              T*H; ring bus factor is (n-1)/n. Expert compute uses T*dp gathered tokens. Router
+              scores/metadata omitted.
       - &id003
         suffix: reduce
         kind: comm
@@ -825,10 +827,10 @@
       decode: '6*S*dp*top_k*H*intermediate_size/(ep>1 ? ep : tp*dp)+4*S*dp*top_k*intermediate_size/(ep>1 ? ep :
         tp*dp)'
     bytes_moved:
-      prefill: '3*min(num_experts/(ep>1 ? ep : 1),T*dp*top_k/(ep>1 ? ep : 1))*H*intermediate_size/(ep>1 ? 1 : tp*dp)*bytes(dtype_w)+2*T*dp*top_k*H/(ep>1
-        ? ep : tp*dp)*bytes(dtype_a)'
-      decode: '3*min(num_experts/(ep>1 ? ep : 1),S*dp*top_k/(ep>1 ? ep : 1))*H*intermediate_size/(ep>1 ? 1 : tp*dp)*bytes(dtype_w)+2*S*dp*top_k*H/(ep>1
-        ? ep : tp*dp)*bytes(dtype_a)'
+      prefill: '3*min(num_experts/(ep>1 ? ep : 1),T*dp*top_k/(ep>1 ? ep : 1))*H*intermediate_size/(ep>1 ? 1 : tp*dp)*bytes(dtype_w)+T*dp*top_k/(ep>1
+        ? ep : 1)*(2*H+6*intermediate_size/(ep>1 ? 1 : tp*dp))*bytes(dtype_a)'
+      decode: '3*min(num_experts/(ep>1 ? ep : 1),S*dp*top_k/(ep>1 ? ep : 1))*H*intermediate_size/(ep>1 ? 1 : tp*dp)*bytes(dtype_w)+S*dp*top_k/(ep>1
+        ? ep : 1)*(2*H+6*intermediate_size/(ep>1 ? 1 : tp*dp))*bytes(dtype_a)'
     shard:
       tp: intermediate
       ep: experts
@@ -924,8 +926,8 @@
       prefill: 3*T*(Hq/tp+max(1,Hkv/tp))*D
       decode: 3*S*(Hq/tp+max(1,Hkv/tp))*D
     bytes_moved:
-      prefill: (0)+2*T*H*bytes(dtype_a)
-      decode: (0)+2*S*H*bytes(dtype_a)
+      prefill: 2*T*(Hq/tp+max(1,Hkv/tp))*D*bytes(dtype_a)
+      decode: 2*S*(Hq/tp+max(1,Hkv/tp))*D*bytes(dtype_a)
     shard: {}
     emits: []
     notes: []
@@ -952,4 +954,5 @@
     shard: {}
     emits: []
     notes:
-      - Sampling workspace is fp32; top-p/sort-specific work is not modelled.
+      - Activation peak models logits, fp32 copy/probabilities/sort values, and int64 indices; backend scratch
+        excluded.

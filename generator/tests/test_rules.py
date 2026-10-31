@@ -48,11 +48,19 @@ def test_twelve_measured_ascend_swaps_inherit_math(rules):
 
 def test_specific_class_precedes_base_and_mro(rules):
     qkv = match_rule(
-        "pkg.QKVParallelLinear", rules, vllm_version="0.32.0", mro=("ColumnParallelLinear",)
+        "vllm.model_executor.layers.linear.QKVParallelLinear",
+        rules,
+        vllm_version="0.32.0",
+        mro=("ColumnParallelLinear",),
     )
     assert qkv.id == "linear.qkv"
     assert (
-        match_rule("pkg.NewLinear", rules, vllm_version="0.32.0", mro=("pkg.RowParallelLinear",)).id
+        match_rule(
+            "pkg.NewLinear",
+            rules,
+            vllm_version="0.32.0",
+            mro=("vllm.model_executor.layers.linear.RowParallelLinear",),
+        ).id
         == "linear.row"
     )
     base = next(r for r in rules if r.id == "linear.row")
@@ -197,3 +205,17 @@ def test_bias_and_vocabulary_padding(rules):
         0
     ] -= 1
     assert lower(bad).triage.items
+
+
+@pytest.mark.parametrize(
+    "symbol",
+    [
+        "private.RowParallelLinear",
+        "private.Attention",
+        "vllm.other.RMSNorm",
+        "vllm.model_executor.layers_evil.linear.RowParallelLinear",
+    ],
+)
+def test_private_short_class_collisions_fail_closed(rules, symbol):
+    with pytest.raises(RuleMatchError):
+        match_rule(symbol, rules, vllm_version="0.32.0")

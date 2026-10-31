@@ -431,9 +431,9 @@
     }
   ],
   "memory": {
-    "activation_peak": "max(max_num_batched_tokens*(4*H+(Hq/tp+2*max(1,Hkv/tp))*D+2*topk*I_moe)*bytes(dtype_a),max_num_seqs*V*bytes(fp32))",
+    "activation_peak": "max(max_num_batched_tokens*(4*H+(Hq/tp+2*max(1,Hkv/tp))*D+dp*topk/(ep>1 ? ep : 1)*(2*H+3*I_moe/(ep>1 ? 1 : tp*dp))+dp*(H+E))*bytes(dtype_a),max_num_seqs*V*(bytes(dtype_a)+3*bytes(fp32)+bytes(int64)))",
     "kv_per_token": "2*(L/pp)*max(1,Hkv/tp)*D*bytes(dtype_kv)",
-    "kv_tokens": "floor(max(0,hbm_bytes*gpu_memory_utilization-((((H*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_w))+(H*Hq*D/tp*bytes(dtype_w))+2*D*bytes(dtype_w))+(H*E*bytes(dtype_w)+(3*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w)))+2*H*bytes(dtype_w))*(L/pp)+(pp==1 ? 2*(round_up(V,64)/tp*H*bytes(dtype_w))+H*bytes(dtype_w) : (round_up(V,64)/tp*H*bytes(dtype_w))+H*bytes(dtype_w)))-(max(max_num_batched_tokens*(4*H+(Hq/tp+2*max(1,Hkv/tp))*D+2*topk*I_moe)*bytes(dtype_a),max_num_seqs*V*bytes(fp32)))-non_torch_bytes-reserved_bytes)/((2*(L/pp)*max(1,Hkv/tp)*D*bytes(dtype_kv))*block_size))*block_size",
+    "kv_tokens": "floor(max(0,hbm_bytes*gpu_memory_utilization-((((H*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_w))+(H*Hq*D/tp*bytes(dtype_w))+2*D*bytes(dtype_w))+(H*E*bytes(dtype_w)+(3*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w)))+2*H*bytes(dtype_w))*(L/pp)+(pp==1 ? 2*(round_up(V,64)/tp*H*bytes(dtype_w))+H*bytes(dtype_w) : (round_up(V,64)/tp*H*bytes(dtype_w))+H*bytes(dtype_w)))-(max(max_num_batched_tokens*(4*H+(Hq/tp+2*max(1,Hkv/tp))*D+dp*topk/(ep>1 ? ep : 1)*(2*H+3*I_moe/(ep>1 ? 1 : tp*dp))+dp*(H+E))*bytes(dtype_a),max_num_seqs*V*(bytes(dtype_a)+3*bytes(fp32)+bytes(int64))))-non_torch_bytes-reserved_bytes)/((2*(L/pp)*max(1,Hkv/tp)*D*bytes(dtype_kv))*block_size))*block_size",
     "non_torch": "non_torch_bytes",
     "reserved": "reserved_bytes",
     "unmodelled": [
@@ -442,7 +442,7 @@
       "HCCL/NCCL workspace beyond configured non_torch_bytes",
       "RoPE tables and non-parameter buffers",
       "quantization scales/zeros and NZ padding",
-      "DP MoE gather/scatter buffers",
+      "backend-specific MoE transport buffers beyond gathered activations",
       "backend-specific attention scratch space",
       "input/output token index storage"
     ],
@@ -1148,8 +1148,8 @@
     },
     {
       "bytes_moved": {
-        "decode": "((H*bytes(dtype_w)+2*S*H*bytes(dtype_a))+(((H*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_w))+S*(H+(Hq/tp+2*max(1,Hkv/tp))*D)*bytes(dtype_a))+((D*bytes(dtype_w)+2*S*(Hq/tp)*D*bytes(dtype_a))+(D*bytes(dtype_w)+2*S*(max(1,Hkv/tp))*D*bytes(dtype_a)))+((2*S*(Hq/tp+max(1,Hkv/tp))*D*bytes(dtype_a)))+(2*S*(context+1)*max(1,Hkv/tp)*D*bytes(dtype_kv)+2*S*Hq/tp*D*bytes(dtype_a))+((H*Hq*D/tp*bytes(dtype_w))+S*(H+Hq*D/tp)*bytes(dtype_a))+(0))+(H*bytes(dtype_w)+3*S*H*bytes(dtype_a))+((H*E*bytes(dtype_w)+S*(H+E)*bytes(dtype_a))+(((0)+((2*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w))+(S*dp*topk/(ep>1 ? ep : 1))*((H)+(2*I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a))+((1*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w))+(S*dp*topk/(ep>1 ? ep : 1))*((I_moe/(ep>1 ? 1 : tp*dp))+(H))*bytes(dtype_a))+((0)+(S*dp*topk/(ep>1 ? ep : 1))*((2*I_moe/(ep>1 ? 1 : tp*dp))+(I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a))))+(0)+(0)+(0)))*(L/pp)",
-        "prefill": "((H*bytes(dtype_w)+2*T*H*bytes(dtype_a))+(((H*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_w))+T*(H+(Hq/tp+2*max(1,Hkv/tp))*D)*bytes(dtype_a))+((D*bytes(dtype_w)+2*T*(Hq/tp)*D*bytes(dtype_a))+(D*bytes(dtype_w)+2*T*(max(1,Hkv/tp))*D*bytes(dtype_a)))+((2*T*(Hq/tp+max(1,Hkv/tp))*D*bytes(dtype_a)))+(T*(2*Hq/tp+4*max(1,Hkv/tp))*D*bytes(dtype_a))+((H*Hq*D/tp*bytes(dtype_w))+T*(H+Hq*D/tp)*bytes(dtype_a))+(0))+(H*bytes(dtype_w)+3*T*H*bytes(dtype_a))+((H*E*bytes(dtype_w)+T*(H+E)*bytes(dtype_a))+(((0)+((2*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w))+(T*dp*topk/(ep>1 ? ep : 1))*((H)+(2*I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a))+((1*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w))+(T*dp*topk/(ep>1 ? ep : 1))*((I_moe/(ep>1 ? 1 : tp*dp))+(H))*bytes(dtype_a))+((0)+(T*dp*topk/(ep>1 ? ep : 1))*((2*I_moe/(ep>1 ? 1 : tp*dp))+(I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a))))+(0)+(0)+(0)))*(L/pp)"
+        "decode": "((H*bytes(dtype_w)+2*S*H*bytes(dtype_a))+(((H*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_w))+S*(H+(Hq/tp+2*max(1,Hkv/tp))*D)*bytes(dtype_a))+((D*bytes(dtype_w)+2*S*(Hq/tp)*D*bytes(dtype_a))+(D*bytes(dtype_w)+2*S*(max(1,Hkv/tp))*D*bytes(dtype_a)))+((2*S*(Hq/tp+max(1,Hkv/tp))*D*bytes(dtype_a)))+(2*S*(context+1)*max(1,Hkv/tp)*D*bytes(dtype_kv)+2*S*Hq/tp*D*bytes(dtype_a))+((H*Hq*D/tp*bytes(dtype_w))+S*(H+Hq*D/tp)*bytes(dtype_a))+(0))+(H*bytes(dtype_w)+3*S*H*bytes(dtype_a))+((H*E*bytes(dtype_w)+S*(H+E)*bytes(dtype_a))+(((0)+((2*(min(E/(ep>1 ? ep : 1),S*dp*topk/(ep>1 ? ep : 1)))*H*I_moe/(ep>1 ? 1 : tp*dp)*bytes(dtype_w))+(S*dp*topk/(ep>1 ? ep : 1))*((H)+(2*I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a))+((1*(min(E/(ep>1 ? ep : 1),S*dp*topk/(ep>1 ? ep : 1)))*H*I_moe/(ep>1 ? 1 : tp*dp)*bytes(dtype_w))+(S*dp*topk/(ep>1 ? ep : 1))*((I_moe/(ep>1 ? 1 : tp*dp))+(H))*bytes(dtype_a))+((0)+(S*dp*topk/(ep>1 ? ep : 1))*((2*I_moe/(ep>1 ? 1 : tp*dp))+(I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a))))+(0)+(0)+(0)))*(L/pp)",
+        "prefill": "((H*bytes(dtype_w)+2*T*H*bytes(dtype_a))+(((H*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_w))+T*(H+(Hq/tp+2*max(1,Hkv/tp))*D)*bytes(dtype_a))+((D*bytes(dtype_w)+2*T*(Hq/tp)*D*bytes(dtype_a))+(D*bytes(dtype_w)+2*T*(max(1,Hkv/tp))*D*bytes(dtype_a)))+((2*T*(Hq/tp+max(1,Hkv/tp))*D*bytes(dtype_a)))+(T*(2*Hq/tp+4*max(1,Hkv/tp))*D*bytes(dtype_a))+((H*Hq*D/tp*bytes(dtype_w))+T*(H+Hq*D/tp)*bytes(dtype_a))+(0))+(H*bytes(dtype_w)+3*T*H*bytes(dtype_a))+((H*E*bytes(dtype_w)+T*(H+E)*bytes(dtype_a))+(((0)+((2*(min(E/(ep>1 ? ep : 1),T*dp*topk/(ep>1 ? ep : 1)))*H*I_moe/(ep>1 ? 1 : tp*dp)*bytes(dtype_w))+(T*dp*topk/(ep>1 ? ep : 1))*((H)+(2*I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a))+((1*(min(E/(ep>1 ? ep : 1),T*dp*topk/(ep>1 ? ep : 1)))*H*I_moe/(ep>1 ? 1 : tp*dp)*bytes(dtype_w))+(T*dp*topk/(ep>1 ? ep : 1))*((I_moe/(ep>1 ? 1 : tp*dp))+(H))*bytes(dtype_a))+((0)+(T*dp*topk/(ep>1 ? ep : 1))*((2*I_moe/(ep>1 ? 1 : tp*dp))+(I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a))))+(0)+(0)+(0)))*(L/pp)"
       },
       "class": "vllm.model_executor.models.qwen3_moe.Qwen3MoeDecoderLayer",
       "comm": null,
@@ -1539,8 +1539,8 @@
     },
     {
       "bytes_moved": {
-        "decode": "(H*E*bytes(dtype_w)+S*(H+E)*bytes(dtype_a))+(((0)+((2*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w))+(S*dp*topk/(ep>1 ? ep : 1))*((H)+(2*I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a))+((1*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w))+(S*dp*topk/(ep>1 ? ep : 1))*((I_moe/(ep>1 ? 1 : tp*dp))+(H))*bytes(dtype_a))+((0)+(S*dp*topk/(ep>1 ? ep : 1))*((2*I_moe/(ep>1 ? 1 : tp*dp))+(I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a))))+(0)+(0)+(0)",
-        "prefill": "(H*E*bytes(dtype_w)+T*(H+E)*bytes(dtype_a))+(((0)+((2*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w))+(T*dp*topk/(ep>1 ? ep : 1))*((H)+(2*I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a))+((1*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w))+(T*dp*topk/(ep>1 ? ep : 1))*((I_moe/(ep>1 ? 1 : tp*dp))+(H))*bytes(dtype_a))+((0)+(T*dp*topk/(ep>1 ? ep : 1))*((2*I_moe/(ep>1 ? 1 : tp*dp))+(I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a))))+(0)+(0)+(0)"
+        "decode": "(H*E*bytes(dtype_w)+S*(H+E)*bytes(dtype_a))+(((0)+((2*(min(E/(ep>1 ? ep : 1),S*dp*topk/(ep>1 ? ep : 1)))*H*I_moe/(ep>1 ? 1 : tp*dp)*bytes(dtype_w))+(S*dp*topk/(ep>1 ? ep : 1))*((H)+(2*I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a))+((1*(min(E/(ep>1 ? ep : 1),S*dp*topk/(ep>1 ? ep : 1)))*H*I_moe/(ep>1 ? 1 : tp*dp)*bytes(dtype_w))+(S*dp*topk/(ep>1 ? ep : 1))*((I_moe/(ep>1 ? 1 : tp*dp))+(H))*bytes(dtype_a))+((0)+(S*dp*topk/(ep>1 ? ep : 1))*((2*I_moe/(ep>1 ? 1 : tp*dp))+(I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a))))+(0)+(0)+(0)",
+        "prefill": "(H*E*bytes(dtype_w)+T*(H+E)*bytes(dtype_a))+(((0)+((2*(min(E/(ep>1 ? ep : 1),T*dp*topk/(ep>1 ? ep : 1)))*H*I_moe/(ep>1 ? 1 : tp*dp)*bytes(dtype_w))+(T*dp*topk/(ep>1 ? ep : 1))*((H)+(2*I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a))+((1*(min(E/(ep>1 ? ep : 1),T*dp*topk/(ep>1 ? ep : 1)))*H*I_moe/(ep>1 ? 1 : tp*dp)*bytes(dtype_w))+(T*dp*topk/(ep>1 ? ep : 1))*((I_moe/(ep>1 ? 1 : tp*dp))+(H))*bytes(dtype_a))+((0)+(T*dp*topk/(ep>1 ? ep : 1))*((2*I_moe/(ep>1 ? 1 : tp*dp))+(I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a))))+(0)+(0)+(0)"
       },
       "class": "vllm.model_executor.models.qwen3_moe.Qwen3MoeSparseMoeBlock",
       "comm": null,
@@ -1652,8 +1652,8 @@
         ]
       },
       "bytes_moved": {
-        "decode": "((0)+((2*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w))+(S*dp*topk/(ep>1 ? ep : 1))*((H)+(2*I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a))+((1*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w))+(S*dp*topk/(ep>1 ? ep : 1))*((I_moe/(ep>1 ? 1 : tp*dp))+(H))*bytes(dtype_a))+((0)+(S*dp*topk/(ep>1 ? ep : 1))*((2*I_moe/(ep>1 ? 1 : tp*dp))+(I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a)))",
-        "prefill": "((0)+((2*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w))+(T*dp*topk/(ep>1 ? ep : 1))*((H)+(2*I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a))+((1*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w))+(T*dp*topk/(ep>1 ? ep : 1))*((I_moe/(ep>1 ? 1 : tp*dp))+(H))*bytes(dtype_a))+((0)+(T*dp*topk/(ep>1 ? ep : 1))*((2*I_moe/(ep>1 ? 1 : tp*dp))+(I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a)))"
+        "decode": "((0)+((2*(min(E/(ep>1 ? ep : 1),S*dp*topk/(ep>1 ? ep : 1)))*H*I_moe/(ep>1 ? 1 : tp*dp)*bytes(dtype_w))+(S*dp*topk/(ep>1 ? ep : 1))*((H)+(2*I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a))+((1*(min(E/(ep>1 ? ep : 1),S*dp*topk/(ep>1 ? ep : 1)))*H*I_moe/(ep>1 ? 1 : tp*dp)*bytes(dtype_w))+(S*dp*topk/(ep>1 ? ep : 1))*((I_moe/(ep>1 ? 1 : tp*dp))+(H))*bytes(dtype_a))+((0)+(S*dp*topk/(ep>1 ? ep : 1))*((2*I_moe/(ep>1 ? 1 : tp*dp))+(I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a)))",
+        "prefill": "((0)+((2*(min(E/(ep>1 ? ep : 1),T*dp*topk/(ep>1 ? ep : 1)))*H*I_moe/(ep>1 ? 1 : tp*dp)*bytes(dtype_w))+(T*dp*topk/(ep>1 ? ep : 1))*((H)+(2*I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a))+((1*(min(E/(ep>1 ? ep : 1),T*dp*topk/(ep>1 ? ep : 1)))*H*I_moe/(ep>1 ? 1 : tp*dp)*bytes(dtype_w))+(T*dp*topk/(ep>1 ? ep : 1))*((I_moe/(ep>1 ? 1 : tp*dp))+(H))*bytes(dtype_a))+((0)+(T*dp*topk/(ep>1 ? ep : 1))*((2*I_moe/(ep>1 ? 1 : tp*dp))+(I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a)))"
       },
       "class": "vllm.model_executor.layers.fused_moe.runner.moe_runner.MoERunner",
       "comm": null,
@@ -1705,16 +1705,16 @@
       "class": "vllm.model_executor.layers.fused_moe.runner.moe_runner.MoERunner",
       "comm": {
         "bus_bytes": {
-          "decode": "ep>1 && dp>1 ? (ep-1)/ep*(S*topk*H*bytes(dtype_a)) : 0",
-          "prefill": "ep>1 && dp>1 ? (ep-1)/ep*(T*topk*H*bytes(dtype_a)) : 0"
+          "decode": "dp>1 ? (tp*dp-1)/(tp*dp)*(S*H*bytes(dtype_a)) : 0",
+          "prefill": "dp>1 ? (tp*dp-1)/(tp*dp)*(T*H*bytes(dtype_a)) : 0"
         },
         "group": "ep",
         "logical_bytes": {
-          "decode": "S*topk*H*bytes(dtype_a)",
-          "prefill": "T*topk*H*bytes(dtype_a)"
+          "decode": "S*H*bytes(dtype_a)",
+          "prefill": "T*H*bytes(dtype_a)"
         },
-        "op": "all_to_all",
-        "when": "ep>1 && dp>1"
+        "op": "reduce_scatter",
+        "when": "dp>1"
       },
       "flops": {
         "decode": "0",
@@ -1734,7 +1734,7 @@
       "kind": "comm",
       "label": "EP combine",
       "notes": [
-        "Uniform routing, equal token counts per attention replica, ideal deduplication across TP replicas; byte count is outgoing per rank and excludes expert IDs/scales/padding. Actual Ascend MoE transport is backend-dependent."
+        "Default allgather_reducescatter backend, flattened tp*dp group even with ep=1. Contract logical tensor is T*H; router metadata omitted. Expert compute uses T*dp tokens."
       ],
       "out": [
         {
@@ -1766,16 +1766,16 @@
       "class": "vllm.model_executor.layers.fused_moe.runner.moe_runner.MoERunner",
       "comm": {
         "bus_bytes": {
-          "decode": "ep>1 && dp>1 ? (ep-1)/ep*(S*topk*H*bytes(dtype_a)) : 0",
-          "prefill": "ep>1 && dp>1 ? (ep-1)/ep*(T*topk*H*bytes(dtype_a)) : 0"
+          "decode": "dp>1 ? (tp*dp-1)/(tp*dp)*(S*H*bytes(dtype_a)) : 0",
+          "prefill": "dp>1 ? (tp*dp-1)/(tp*dp)*(T*H*bytes(dtype_a)) : 0"
         },
         "group": "ep",
         "logical_bytes": {
-          "decode": "S*topk*H*bytes(dtype_a)",
-          "prefill": "T*topk*H*bytes(dtype_a)"
+          "decode": "S*H*bytes(dtype_a)",
+          "prefill": "T*H*bytes(dtype_a)"
         },
-        "op": "all_to_all",
-        "when": "ep>1 && dp>1"
+        "op": "all_gather",
+        "when": "dp>1"
       },
       "flops": {
         "decode": "0",
@@ -1803,7 +1803,7 @@
       "kind": "comm",
       "label": "EP dispatch",
       "notes": [
-        "Uniform routing, equal token counts per attention replica, ideal deduplication across TP replicas; byte count is outgoing per rank and excludes expert IDs/scales/padding. Actual Ascend MoE transport is backend-dependent."
+        "Default allgather_reducescatter backend, flattened tp*dp group even with ep=1. Contract logical tensor is T*H; router metadata omitted. Expert compute uses T*dp tokens."
       ],
       "out": [
         {
@@ -1930,7 +1930,7 @@
       "kind": "comm",
       "label": "MoE TP reduce",
       "notes": [
-        "moe_runner.py output reduction uses the attention TP group, including when EP is enabled; TP=1 has zero bus traffic. DP gather/scatter is excluded."
+        "moe_runner.py output reduction uses the attention TP group, including when EP is enabled; TP=1 has zero bus traffic. DP dispatch/combine is modelled separately."
       ],
       "out": [
         {
@@ -1973,8 +1973,8 @@
         ]
       },
       "bytes_moved": {
-        "decode": "(0)+((2*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w))+(S*dp*topk/(ep>1 ? ep : 1))*((H)+(2*I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a))+((1*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w))+(S*dp*topk/(ep>1 ? ep : 1))*((I_moe/(ep>1 ? 1 : tp*dp))+(H))*bytes(dtype_a))+((0)+(S*dp*topk/(ep>1 ? ep : 1))*((2*I_moe/(ep>1 ? 1 : tp*dp))+(I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a))",
-        "prefill": "(0)+((2*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w))+(T*dp*topk/(ep>1 ? ep : 1))*((H)+(2*I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a))+((1*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w))+(T*dp*topk/(ep>1 ? ep : 1))*((I_moe/(ep>1 ? 1 : tp*dp))+(H))*bytes(dtype_a))+((0)+(T*dp*topk/(ep>1 ? ep : 1))*((2*I_moe/(ep>1 ? 1 : tp*dp))+(I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a))"
+        "decode": "(0)+((2*(min(E/(ep>1 ? ep : 1),S*dp*topk/(ep>1 ? ep : 1)))*H*I_moe/(ep>1 ? 1 : tp*dp)*bytes(dtype_w))+(S*dp*topk/(ep>1 ? ep : 1))*((H)+(2*I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a))+((1*(min(E/(ep>1 ? ep : 1),S*dp*topk/(ep>1 ? ep : 1)))*H*I_moe/(ep>1 ? 1 : tp*dp)*bytes(dtype_w))+(S*dp*topk/(ep>1 ? ep : 1))*((I_moe/(ep>1 ? 1 : tp*dp))+(H))*bytes(dtype_a))+((0)+(S*dp*topk/(ep>1 ? ep : 1))*((2*I_moe/(ep>1 ? 1 : tp*dp))+(I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a))",
+        "prefill": "(0)+((2*(min(E/(ep>1 ? ep : 1),T*dp*topk/(ep>1 ? ep : 1)))*H*I_moe/(ep>1 ? 1 : tp*dp)*bytes(dtype_w))+(T*dp*topk/(ep>1 ? ep : 1))*((H)+(2*I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a))+((1*(min(E/(ep>1 ? ep : 1),T*dp*topk/(ep>1 ? ep : 1)))*H*I_moe/(ep>1 ? 1 : tp*dp)*bytes(dtype_w))+(T*dp*topk/(ep>1 ? ep : 1))*((I_moe/(ep>1 ? 1 : tp*dp))+(H))*bytes(dtype_a))+((0)+(T*dp*topk/(ep>1 ? ep : 1))*((2*I_moe/(ep>1 ? 1 : tp*dp))+(I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a))"
       },
       "class": "vllm.model_executor.layers.fused_moe.routed_experts.RoutedExperts",
       "comm": null,
@@ -2107,8 +2107,8 @@
     },
     {
       "bytes_moved": {
-        "decode": "(2*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w))+(S*dp*topk/(ep>1 ? ep : 1))*((H)+(2*I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a)",
-        "prefill": "(2*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w))+(T*dp*topk/(ep>1 ? ep : 1))*((H)+(2*I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a)"
+        "decode": "(2*(min(E/(ep>1 ? ep : 1),S*dp*topk/(ep>1 ? ep : 1)))*H*I_moe/(ep>1 ? 1 : tp*dp)*bytes(dtype_w))+(S*dp*topk/(ep>1 ? ep : 1))*((H)+(2*I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a)",
+        "prefill": "(2*(min(E/(ep>1 ? ep : 1),T*dp*topk/(ep>1 ? ep : 1)))*H*I_moe/(ep>1 ? 1 : tp*dp)*bytes(dtype_w))+(T*dp*topk/(ep>1 ? ep : 1))*((H)+(2*I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a)"
       },
       "class": "vllm.model_executor.layers.fused_moe.routed_experts.RoutedExperts",
       "comm": null,
@@ -2130,7 +2130,7 @@
       "kind": "compute",
       "label": "Gate/up GEMM",
       "notes": [
-        "Weight traffic assumes all local expert weights read once; conservative when few experts activate."
+        "Weight traffic reads min(E_local, local routed token count) experts; unquantized uniform-routing estimate."
       ],
       "out": [
         {
@@ -2156,8 +2156,8 @@
     },
     {
       "bytes_moved": {
-        "decode": "(1*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w))+(S*dp*topk/(ep>1 ? ep : 1))*((I_moe/(ep>1 ? 1 : tp*dp))+(H))*bytes(dtype_a)",
-        "prefill": "(1*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w))+(T*dp*topk/(ep>1 ? ep : 1))*((I_moe/(ep>1 ? 1 : tp*dp))+(H))*bytes(dtype_a)"
+        "decode": "(1*(min(E/(ep>1 ? ep : 1),S*dp*topk/(ep>1 ? ep : 1)))*H*I_moe/(ep>1 ? 1 : tp*dp)*bytes(dtype_w))+(S*dp*topk/(ep>1 ? ep : 1))*((I_moe/(ep>1 ? 1 : tp*dp))+(H))*bytes(dtype_a)",
+        "prefill": "(1*(min(E/(ep>1 ? ep : 1),T*dp*topk/(ep>1 ? ep : 1)))*H*I_moe/(ep>1 ? 1 : tp*dp)*bytes(dtype_w))+(T*dp*topk/(ep>1 ? ep : 1))*((I_moe/(ep>1 ? 1 : tp*dp))+(H))*bytes(dtype_a)"
       },
       "class": "vllm.model_executor.layers.fused_moe.routed_experts.RoutedExperts",
       "comm": null,
@@ -2179,7 +2179,7 @@
       "kind": "compute",
       "label": "Down GEMM",
       "notes": [
-        "Weight traffic assumes all local expert weights read once; conservative when few experts activate."
+        "Weight traffic reads min(E_local, local routed token count) experts; unquantized uniform-routing estimate."
       ],
       "out": [
         {

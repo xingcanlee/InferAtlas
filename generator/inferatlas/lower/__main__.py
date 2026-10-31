@@ -23,11 +23,15 @@ def main(
     snapshot: Annotated[Path | None, typer.Option(exists=True)] = None,
     catalog: Annotated[Path, typer.Option(exists=True)] = DEFAULT_CATALOG,
     source_root: Annotated[Path | None, typer.Option(exists=True)] = None,
+    moe_a2a: Annotated[
+        bool,
+        typer.Option(help="Select an all-to-all kernel backend instead of default gather/scatter."),
+    ] = False,
 ):
     if (extract is None) == (model is None):
         raise typer.BadParameter("Choose exactly one of --extract or --model")
     if extract is not None:
-        result = lower(extract)
+        result = lower(extract, moe_a2a=moe_a2a)
     else:
         if snapshot is None:
             raise typer.BadParameter("--model requires --snapshot")
@@ -36,7 +40,10 @@ def main(
         if selected is None:
             raise typer.BadParameter(f"Unknown catalog model: {model}")
         result = lower_catalog(
-            selected, Snapshot.model_validate_json(snapshot.read_text()), source_root
+            selected,
+            Snapshot.model_validate_json(snapshot.read_text()),
+            source_root,
+            moe_a2a=moe_a2a,
         )
     result.write(out)
     typer.echo(f"{len(result.ir.nodes)} nodes; {len(result.triage.items)} blocking triage items")

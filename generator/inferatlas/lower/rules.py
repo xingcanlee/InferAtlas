@@ -13,6 +13,26 @@ from inferatlas.schema.models import Rule
 DEFAULT_RULES = Path(__file__).resolve().parents[3] / "rules"
 
 
+# Explicitly reviewed containers, engine sampling, and Ascend replacement modules.
+SHORT_CLASS_MODULES = frozenset(
+    {
+        "torch.nn.modules.container",
+        "vllm.model_executor.models.qwen2",
+        "vllm.model_executor.models.qwen3",
+        "vllm.model_executor.models.qwen3_moe",
+        "vllm.v1.sample.sampler",
+        "vllm_ascend.ops.linear",
+        "vllm_ascend.ops.activation",
+        "vllm_ascend.ops.layernorm",
+        "vllm_ascend.ops.rotary_embedding",
+        "vllm_ascend.ops.vocab_parallel_embedding",
+        "vllm_ascend.ops.fused_moe.fused_moe",
+        "vllm_ascend.ops.fused_moe.gate_linear",
+        "vllm_ascend.ops.fused_moe.routed_experts",
+    }
+)
+
+
 class RuleSpec(Rule):
     """Authoring metadata is expanded before exporting the public Rule contract."""
 
@@ -85,7 +105,11 @@ def match_rule(
     version = Version(vllm_version)
     ascend = Version(ascend_version) if ascend_version else None
     for cls in dict.fromkeys((symbol, *mro)):
-        for name in dict.fromkeys((cls, cls.rsplit(".", 1)[-1])):
+        namespace, _, short = cls.rpartition(".")
+        names = [cls]
+        if namespace.startswith("vllm.model_executor.layers.") or namespace in SHORT_CLASS_MODULES:
+            names.append(short)
+        for name in dict.fromkeys(names):
             candidates = [
                 r
                 for r in rules

@@ -17,7 +17,7 @@ from inferatlas.schema.models import Catalog, Extract, Snapshot
 
 ROOT = Path(__file__).resolve().parents[2]
 FIXTURE = ROOT / "fixtures/qwen3-30b-a3b/extract.json"
-SOURCE = Path("/home/cyberspace/projects/InferAtlas/experiments/a2_qwen3moe/src")
+SOURCE = Path(os.environ["INFERATLAS_SRC"]) if os.environ.get("INFERATLAS_SRC") else None
 
 
 @pytest.fixture
@@ -31,31 +31,10 @@ def catalog():
 
 
 @pytest.fixture(scope="module")
-def source(tmp_path_factory):
-    if SOURCE.is_dir():
-        return SOURCE
-    # Portable AST-only declarations for the config projection boundary. No vLLM import.
-    path = tmp_path_factory.mktemp("sources")
-    classes = {
-        "models/qwen3": ["Qwen3ForCausalLM", "Qwen3Model", "Qwen3DecoderLayer", "Qwen3Attention"],
-        "models/qwen2": ["Qwen2MLP"],
-        "layers/vocab_parallel_embedding": ["VocabParallelEmbedding", "ParallelLMHead"],
-        "layers/layernorm": ["RMSNorm"],
-        "layers/logits_processor": ["LogitsProcessor"],
-        "layers/linear": ["QKVParallelLinear", "RowParallelLinear", "MergedColumnParallelLinear"],
-        "layers/rotary_embedding/base": ["RotaryEmbedding"],
-        "layers/rotary_embedding/common": ["ApplyRotaryEmb"],
-        "layers/attention/attention": ["Attention"],
-        "layers/activation": ["SiluAndMul"],
-    }
-    for name, names in classes.items():
-        file = path / "vllm/vllm/model_executor" / f"{name}.py"
-        file.parent.mkdir(parents=True, exist_ok=True)
-        file.write_text("\n".join(f"class {name}:\n    pass\n" for name in names))
-    file = path / "vllm/vllm/v1/sample/sampler.py"
-    file.parent.mkdir(parents=True, exist_ok=True)
-    file.write_text("class Sampler:\n    pass\n")
-    return path
+def source():
+    if SOURCE is None or not SOURCE.is_dir():
+        pytest.skip("Set INFERATLAS_SRC to the directory containing pinned upstream clones")
+    return SOURCE
 
 
 @pytest.mark.parametrize(
@@ -178,7 +157,7 @@ def test_kv_replication_capacity_budget_and_activation_profiling(data):
     assert evaluate(r.ir.memory.activation_peak, e | {"context": 8192}) == peak
     assert evaluate(r.ir.memory.activation_peak, e | {"max_num_batched_tokens": 2048}) > peak
     assert (
-        evaluate(r.ir.memory.activation_peak, e | {"max_num_seqs": 100000}) == 100000 * 151936 * 4
+        evaluate(r.ir.memory.activation_peak, e | {"max_num_seqs": 100000}) == 100000 * 151936 * 22
     )
     assert {"graph capture workspace", "allocator fragmentation"} <= set(r.ir.memory.unmodelled)
 
@@ -200,7 +179,9 @@ def test_lm_head_uses_batch_not_token_count_and_tied_storage(data):
     assert nodes["lm_head"].inputs[0].shape.decode == ["S", "H"]
 
 
-@pytest.mark.parametrize("tp,dp,ep", [(1, 1, 1), (4, 1, 1), (4, 1, 4), (1, 4, 4), (2, 2, 4)])
+@pytest.mark.parametrize(
+    "tp,dp,ep", [(1, 1, 1), (4, 1, 1), (4, 1, 4), (1, 4, 1), (1, 4, 4), (2, 2, 1), (2, 2, 4)]
+)
 def test_communication_and_moe_flops(data, tp, dp, ep):
     r = lower(data)
     nodes = {n.id: n for n in r.ir.nodes}
@@ -214,7 +195,7 @@ def test_communication_and_moe_flops(data, tp, dp, ep):
         for name in ["moe.experts.dispatch", "moe.experts.combine"]:
             comm = nodes[name].comm
             assert evaluate(getattr(comm.bus_bytes, phase), e) == (
-                (ep - 1) / ep * tokens * 8 * 2048 * 2 if ep > 1 and dp > 1 else 0
+                (tp * dp - 1) / (tp * dp) * logical if dp > 1 else 0
             )
         rows = 2 if phase == "prefill" else 3
         assert (
@@ -305,7 +286,10 @@ def test_bands_stable_ids_and_layer_types(data):
             second.append(m)
     data["modules"] += second
     r = lower(data)
-    assert coverage_gate(r.triage)
+    assert not coverage_gate(r.triage)
+    assert any(
+        "Unsupported layer_types" in i.diff for i in r.triage.items if i.kind == "golden_diff"
+    )
     assert [(g.id, g.layers) for g in r.ir.groups] == [
         ("band_0_1", ("0", "1")),
         ("band_2_3", ("2", "3")),
@@ -326,8 +310,8 @@ def test_incomplete_production_extract_blocks(data):
 
 def test_cached_real_extracts():
     directories = [
+        ROOT / ".cache/extract",
         ROOT.parents[1] / ".cache/extract",
-        Path("/home/cyberspace/projects/InferAtlas/.cache/extract"),
     ]
     if os.environ.get("INFERATLAS_LOWER_EXTRACTS"):
         directories.append(Path(os.environ["INFERATLAS_LOWER_EXTRACTS"]))
@@ -390,6 +374,8 @@ def test_unmatched_whole_version_still_returns_triage(data):
     assert not coverage_gate(result.triage)
     assert not result.ir.nodes
     assert not result.ir.groups
+    assert len(result.triage.items) == 1
+    assert result.triage.items[0].diff.startswith("version_mismatch:")
 
 
 def test_cli_writes_outputs_before_coverage_failure(data, tmp_path):
@@ -427,3 +413,170 @@ def test_missing_descendant_and_changed_collective_block_compression(data):
     assert not coverage_gate(lower(data).triage)
     data["modules"] = [m for m in data["modules"] if m["path"] != "model.layers.1.self_attn.attn"]
     assert not coverage_gate(lower(data).triage)
+
+
+@pytest.mark.parametrize("tp,dp,ep", [(1, 1, 1), (4, 1, 1), (4, 1, 4), (2, 2, 1), (2, 2, 4)])
+def test_expert_traffic_is_transferred_to_children(data, tp, dp, ep):
+    from inferatlas.lower.context import bind_context, substitute
+
+    r = lower(data)
+    nodes = {n.id: n for n in r.ir.nodes}
+    rule = next(rule for rule in load_rules() if rule.id == "moe.weights")
+    extract = Extract.model_validate(data)
+    module = next(m for m in extract.modules if m.path.endswith("routed_experts"))
+    bindings = bind_context(module, extract, rule)
+    for phase, tokens in [("prefill", 256), ("decode", 1)]:
+        env = environment(r.ir, tp=tp, dp=dp, ep=ep, T=256, S=1)
+        children = [nodes["moe." + key] for key in ["w13", "act", "w2"]]
+        total = sum(evaluate(getattr(n.bytes_moved, phase), env) for n in children)
+        assert total == pytest.approx(
+            evaluate(substitute(getattr(rule.bytes_moved, phase), bindings), env)
+        )
+        assert total == pytest.approx(
+            evaluate(getattr(nodes["moe.experts.weights"].bytes_moved, phase), env)
+        )
+        touched = min(128 / (ep if ep > 1 else 1), tokens * dp * 8 / (ep if ep > 1 else 1))
+        inter = 768 / (1 if ep > 1 else tp * dp)
+        routed = tokens * dp * 8 / (ep if ep > 1 else 1)
+        expected = [
+            2 * touched * 2048 * inter * 2 + routed * (2048 + 2 * inter) * 2,
+            routed * 3 * inter * 2,
+            touched * 2048 * inter * 2 + routed * (inter + 2048) * 2,
+        ]
+        assert [evaluate(getattr(n.bytes_moved, phase), env) for n in children] == expected
+    # A2 dense bf16 ridge point: 320 TFLOP/s / 1.6 TB/s = 200 FLOP/byte.
+    env = environment(r.ir, tp=4, S=1, dp=1, ep=1)
+    assert (
+        0
+        < evaluate(nodes["moe.w13"].flops.decode, env)
+        / evaluate(nodes["moe.w13"].bytes_moved.decode, env)
+        < 200
+    )
+
+
+@pytest.mark.parametrize("tp,dp,ep", [(4, 1, 4), (2, 2, 1), (2, 2, 4), (1, 4, 4)])
+def test_moe_backend_collectives_are_exclusive(data, tp, dp, ep):
+    for a2a in [False, True]:
+        r = lower(data, moe_a2a=a2a)
+        nodes = {n.id: n for n in r.ir.nodes}
+        assert not any(n.endswith("_a2a") for n in nodes)
+        for phase, tokens in [("prefill", 256), ("decode", 3)]:
+            env = environment(r.ir, tp=tp, dp=dp, ep=ep, T=256, S=3)
+            for name, op in [("dispatch", "all_gather"), ("combine", "reduce_scatter")]:
+                comm = nodes["moe.experts." + name].comm
+                assert comm.op == ("all_to_all" if a2a else op)
+                assert comm.group == "ep"
+                active = dp > 1 and (ep > 1 if a2a else True)
+                logical = tokens * (8 if a2a else 1) * 2048 * 2
+                degree = ep if a2a else tp * dp
+                assert evaluate(getattr(comm.logical_bytes, phase), env) == logical
+                assert evaluate(comm.when, env) == active
+                assert evaluate(getattr(comm.bus_bytes, phase), env) == (
+                    (degree - 1) / degree * logical if active else 0
+                )
+
+
+def test_missing_context_key_names_module_and_key(data):
+    # Config symbols remain available but this module's expert binding cannot be resolved.
+    del data["config"]["num_experts"]
+    result = lower(data)
+    assert not coverage_gate(result.triage)
+    assert any(
+        "model.layers.0.mlp.gate: missing key num_experts" in i.diff
+        for i in result.triage.items
+        if i.kind == "golden_diff"
+    )
+
+
+@pytest.mark.parametrize("active", [True, False])
+def test_sliding_window_blocks_only_when_active(data, active):
+    data["config"].update(sliding_window=4096, use_sliding_window=active)
+    assert coverage_gate(lower(data).triage) is not active
+
+
+@pytest.mark.parametrize(
+    "tag,metadata", [("main", "0.1.dev1+gstale"), ("main", "0.32.0"), ("v0.31.0", "0.32.0")]
+)
+def test_unknown_or_stale_version_has_one_diagnostic(data, tag, metadata):
+    data["snapshot"]["vllm"].update(commit="0" * 40, tag=tag)
+    data["env"]["vllm"] = metadata
+    result = lower(data)
+    assert len(result.triage.items) == 1
+    assert result.triage.items[0].diff.startswith("version_mismatch:")
+
+
+def test_rope_hierarchy_and_dense_gather(catalog, source):
+    model = next(m for m in catalog.models if m.id == "qwen3-8b")
+    snapshot = Snapshot.model_validate_json(FIXTURE.with_name("snapshot.json").read_text())
+    projected = catalog_extract(model, snapshot, source)
+    result = lower(projected)
+    nodes = {n.id: n for n in result.ir.nodes}
+    assert nodes["attn.rope.apply"].parent == "attn.rope"
+    assert "mlp.gate_up.gather" not in nodes
+    env = environment(result.ir, tp=4, T=32, S=3)
+    assert nodes["attn.rope"].kind == "group"
+    assert evaluate(nodes["attn.rope"].bytes_moved.decode, env) == evaluate(
+        nodes["attn.rope.apply"].bytes_moved.decode, env
+    )
+    assert evaluate(nodes["mlp.act"].bytes_moved.prefill, env) == 32 * 3 * 12288 / 4 * 2
+    assert (
+        evaluate(nodes["attn.rope.apply"].bytes_moved.decode, env)
+        == 2 * 3 * (32 / 4 + 8 / 4) * 128 * 2
+    )
+    next(m for m in projected.modules if m.path.endswith("gate_up_proj")).attrs["gather_output"] = (
+        True
+    )
+    real = lower(projected)
+    assert any(e.from_node == "mlp.gate_up.gather" and e.to == "mlp.act" for e in real.ir.edges)
+
+
+def test_moe_activation_peak_tracks_tp_and_routed_hidden_workspace(data):
+    result = lower(data)
+    env = environment(result.ir, tp=4, dp=2, ep=1, max_num_batched_tokens=1024, max_num_seqs=1)
+    expected = (
+        1024
+        * (
+            4 * 2048
+            + (32 / 4 + 2 * max(1, 4 / 4)) * 128
+            + 2 * 8 * (2 * 2048 + 3 * 768 / (4 * 2))
+            + 2 * (2048 + 128)
+        )
+        * 2
+    )
+    assert evaluate(result.ir.memory.activation_peak, env) == expected
+    assert evaluate(result.ir.memory.activation_peak, env | {"tp": 8}) < expected
+
+
+def test_deepseek_v3_extract_blocks_coverage():
+    directories = [ROOT / ".cache/extract", ROOT.parents[1] / ".cache/extract"]
+    if os.environ.get("INFERATLAS_LOWER_EXTRACTS"):
+        directories.insert(0, Path(os.environ["INFERATLAS_LOWER_EXTRACTS"]))
+    path = next((p for d in directories for p in sorted(d.glob("deepseek-v3/*.json"))), None)
+    if path is None:
+        pytest.skip(
+            "Set INFERATLAS_LOWER_EXTRACTS to a cache containing deepseek-v3 CPU/meta extracts"
+        )
+    result = lower(path)
+    assert not coverage_gate(result.triage)
+    assert any(
+        i.kind == "unknown_layer_class" and "Deepseek" in i.symbol for i in result.triage.items
+    )
+
+
+@pytest.mark.parametrize("a2a", [False, True])
+def test_cli_selects_moe_backend(tmp_path, a2a):
+    import typer
+    from typer.testing import CliRunner
+
+    from inferatlas.lower.__main__ import main
+
+    app = typer.Typer()
+    app.command()(main)
+    args = ["--extract", str(FIXTURE), "--out", str(tmp_path)]
+    if a2a:
+        args.append("--moe-a2a")
+    result = CliRunner().invoke(app, args)
+    assert result.exit_code == 0, result.output
+    ir = json.loads((tmp_path / "ir.json").read_text())
+    dispatch = next(n for n in ir["nodes"] if n["id"] == "moe.experts.dispatch")
+    assert dispatch["comm"]["op"] == ("all_to_all" if a2a else "all_gather")

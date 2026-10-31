@@ -10,6 +10,7 @@ from __future__ import annotations
 import ast
 import copy
 import hashlib
+import io
 import json
 import os
 from pathlib import Path
@@ -408,7 +409,7 @@ lw = f"({aw})+({mw})+2*H*bytes(dtype_w)"
 vw = "round_up(V,64)/tp*H*bytes(dtype_w)"
 weights = f"({lw})*(L/pp)+(pp==1 ? 2*({vw})+H*bytes(dtype_w) : ({vw})+H*bytes(dtype_w))"
 kv = "2*(L/pp)*max(1,Hkv/tp)*D*bytes(dtype_kv)"
-activation = "max(max_num_batched_tokens*(4*H+(Hq/tp+2*max(1,Hkv/tp))*D+2*topk*I_moe)*bytes(dtype_a),max_num_seqs*V*bytes(fp32))"
+activation = "max(max_num_batched_tokens*(4*H+(Hq/tp+2*max(1,Hkv/tp))*D+dp*topk/(ep>1 ? ep : 1)*(2*H+3*I_moe/(ep>1 ? 1 : tp*dp))+dp*(H+E))*bytes(dtype_a),max_num_seqs*V*(bytes(dtype_a)+3*bytes(fp32)+bytes(int64)))"
 capacity = f"floor(max(0,hbm_bytes*gpu_memory_utilization-({weights})-({activation})-non_torch_bytes-reserved_bytes)/(({kv})*block_size))*block_size"
 
 
@@ -703,8 +704,8 @@ node(
         "Execution strategy metadata node; no additional tensors/weights. Not included in data-flow views."
     ],
 )
-logical = "T*topk*H*bytes(dtype_a)"
-for name in ["dispatch", "combine"]:
+logical = "T*H*bytes(dtype_a)"
+for name, op in [("dispatch", "all_gather"), ("combine", "reduce_scatter")]:
     node(
         "moe.experts." + name,
         experts,
@@ -712,10 +713,14 @@ for name in ["dispatch", "combine"]:
         parent="moe",
         kind="comm",
         communication=comm(
-            "all_to_all", "ep", logical, f"ep>1 && dp>1 ? (ep-1)/ep*({logical}) : 0", "ep>1 && dp>1"
+            op,
+            "ep",
+            logical,
+            f"dp>1 ? (tp*dp-1)/(tp*dp)*({logical}) : 0",
+            "dp>1",
         ),
         notes=[
-            "Uniform routing, equal token counts per attention replica, ideal deduplication across TP replicas; byte count is outgoing per rank and excludes expert IDs/scales/padding. Actual Ascend MoE transport is backend-dependent."
+            "Default allgather_reducescatter backend, flattened tp*dp group even with ep=1. Contract logical tensor is T*H; router metadata omitted. Expert compute uses T*dp tokens."
         ],
     )
 for name, factor in [("w13", 4), ("w2", 2)]:
@@ -738,7 +743,7 @@ for name, factor in [("w13", 4), ("w2", 2)]:
         ),
         outputs=[tensor("expert_activations", shape)],
         notes=[
-            "Weight traffic assumes all local expert weights read once; conservative when few experts activate."
+            "Weight traffic reads min(E_local, local routed token count) experts; unquantized uniform-routing estimate."
         ],
     )
 node(
@@ -769,7 +774,7 @@ node(
         "tp>1 || ep>1",
     ),
     notes=[
-        "moe_runner.py output reduction uses the attention TP group, including when EP is enabled; TP=1 has zero bus traffic. DP gather/scatter is excluded."
+        "moe_runner.py output reduction uses the attention TP group, including when EP is enabled; TP=1 has zero bus traffic. DP dispatch/combine is modelled separately."
     ],
 )
 node(
@@ -862,9 +867,15 @@ for key, in_dim, out_dim in [
     n = node_map[key]
     n["in"] = [tensor("routed", [routed_tokens, in_dim])]
     n["out"] = [tensor("routed", [routed_tokens, out_dim])]
+    touched = "min(E/(ep>1 ? ep : 1),T*dp*topk/(ep>1 ? ep : 1))"
+    traffic_weight = (
+        f"{2 if key == 'moe.w13' else 1}*({touched})*H*I_moe/{moe_tp}*bytes(dtype_w)"
+        if key != "moe.act"
+        else "0"
+    )
     n["bytes_moved"] = phase(
-        f"({n['weight_bytes']})+({routed_tokens})*(({in_dim})+({out_dim}))*bytes(dtype_a)",
-        f"({n['weight_bytes']})+({routed_tokens.replace('T*', 'S*')})*(({in_dim})+({out_dim}))*bytes(dtype_a)",
+        f"({traffic_weight})+({routed_tokens})*(({in_dim})+({out_dim}))*bytes(dtype_a)",
+        f"({traffic_weight.replace('T*', 'S*')})+({routed_tokens.replace('T*', 'S*')})*(({in_dim})+({out_dim}))*bytes(dtype_a)",
     )
 node_map["moe.experts.combine"]["in"] = [tensor("routed", [routed_tokens, "H"])]
 node_map["attn.rope.apply"]["in"] = node_map["attn.rope"]["in"]
@@ -1003,7 +1014,7 @@ ir = {
             "HCCL/NCCL workspace beyond configured non_torch_bytes",
             "RoPE tables and non-parameter buffers",
             "quantization scales/zeros and NZ padding",
-            "DP MoE gather/scatter buffers",
+            "backend-specific MoE transport buffers beyond gathered activations",
             "backend-specific attention scratch space",
             "input/output token index storage",
         ],
@@ -1064,19 +1075,19 @@ for tp in [1, 4]:
     cases.append({"id": f"tp{tp}-bf16-T4096", "env": env, "expected": expected})
 # Unverified transport estimates, independent arithmetic for the EP/DP boundary cases.
 for tp, dp, ep in [(4, 1, 4), (2, 2, 4), (1, 4, 4), (1, 4, 1)]:
-    active_a2a = ep > 1 and dp > 1
+    active_dispatch = dp > 1
     active_reduce = tp > 1 or ep > 1
     expected = {}
     for phase_name, tokens in [("prefill", 4096), ("decode", 3)]:
         for suffix in ["dispatch", "combine"]:
             expected[f"/nodes/moe.experts.{suffix}/comm/bus_bytes/{phase_name}"] = (
-                (ep - 1) / ep * tokens * 8 * 2048 * 2 if active_a2a else 0
+                (tp * dp - 1) / (tp * dp) * tokens * 2048 * 2 if active_dispatch else 0
             )
         expected[f"/nodes/moe.experts.reduce/comm/logical_bytes/{phase_name}"] = tokens * 2048 * 2
         expected[f"/nodes/moe.experts.reduce/comm/bus_bytes/{phase_name}"] = (
             2 * (tp - 1) / tp * tokens * 2048 * 2 if active_reduce else 0
         )
-    expected["/nodes/moe.experts.dispatch/comm/when"] = int(active_a2a)
+    expected["/nodes/moe.experts.dispatch/comm/when"] = int(active_dispatch)
     expected["/nodes/moe.experts.reduce/comm/when"] = int(active_reduce)
     cases.append(
         {
@@ -1085,6 +1096,18 @@ for tp, dp, ep in [(4, 1, 4), (2, 2, 4), (1, 4, 4), (1, 4, 1)]:
             "expected": expected,
         }
     )
+cases.append(
+    {
+        "id": "tp4-decode-expert-traffic",
+        "env": env | {"tp": 4, "dp": 1, "ep": 1, "S": 1},
+        "expected": {
+            "/nodes/moe.w13/bytes_moved/decode": 2 * 8 * 2048 * 192 * 2 + 8 * (2048 + 2 * 192) * 2,
+            "/nodes/moe.act/bytes_moved/decode": 8 * 3 * 192 * 2,
+            "/nodes/moe.w2/bytes_moved/decode": 8 * 2048 * 192 * 2 + 8 * (192 + 2048) * 2,
+            "/memory/activation_peak": 256 * 151936 * 22,
+        },
+    }
+)
 cases.sort(key=lambda c: c["id"])
 write(
     OUT / "qwen3-30b-a3b/eval.json",
@@ -1341,7 +1364,7 @@ dense_params = params | {
     "ep": param("integer", 1, "Dense model has no expert parallelism.", choices=["1"]),
 }
 dw = f"({dense_layer})*(L/pp)+(pp==1 ? 2*({vw})+H*bytes(dtype_w) : ({vw})+H*bytes(dtype_w))"
-da = "max(max_num_batched_tokens*(4*H+2*I/tp)*bytes(dtype_a),max_num_seqs*V*bytes(fp32))"
+da = "max(max_num_batched_tokens*(4*H+(Hq/tp+2*max(1,Hkv/tp))*D+3*I/tp)*bytes(dtype_a),max_num_seqs*V*(bytes(dtype_a)+3*bytes(fp32)+bytes(int64)))"
 dense_ir = {
     "snapshot": dense_snapshot,
     "symbols": {
@@ -1597,5 +1620,7 @@ def sort_keys(value):
     return value
 
 
-with (ROOT / "catalog.yaml").open("w") as handle:
-    yaml.dump(sort_keys(catalog), handle)
+catalog_text = io.StringIO()
+yaml.dump(sort_keys(catalog), catalog_text)
+if (ROOT / "catalog.yaml").read_text() != catalog_text.getvalue():
+    raise RuntimeError("Catalog differs; regeneration requires catalog owner coordination")

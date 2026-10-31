@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
+from packaging.specifiers import SpecifierSet
 from packaging.version import InvalidVersion, Version
 
 from inferatlas.schema.models import (
@@ -229,13 +230,13 @@ def _version(extract: Extract, explicit: str | None) -> str:
     # Immutable source identity therefore wins over that known-stale package string.
     if extract.snapshot.vllm.commit in VERIFIED_VERSIONS:
         return VERIFIED_VERSIONS[extract.snapshot.vllm.commit]
-    for candidate in (extract.env.get("vllm"), extract.snapshot.vllm.tag.removeprefix("v")):
-        try:
-            if candidate:
-                return str(Version(candidate))
-        except InvalidVersion:
-            pass
-    raise ValueError("Development snapshot needs a verified base vllm_version")
+    try:
+        version = Version(extract.snapshot.vllm.tag.removeprefix("v"))
+        if not version.is_devrelease:
+            return str(version)
+    except InvalidVersion:
+        pass
+    raise ValueError("Unverified development snapshot needs an explicit vllm_version")
 
 
 def lower(
@@ -245,6 +246,7 @@ def lower(
     vllm_version: str | None = None,
     ascend_version: str | None = None,
     mro: Mapping[str, tuple[str, ...]] | None = None,
+    moe_a2a: bool = False,
 ) -> LowerResult:
     """Lower all reachable modules; unknown/ambiguous/invalid facts block coverage.
 
@@ -256,7 +258,13 @@ def lower(
     else:
         extract = Extract.model_validate(extract)
     rules = load_rules(rules) if isinstance(rules, str | Path) else rules
-    version = _version(extract, vllm_version)
+    version_error = None
+    try:
+        version = _version(extract, vllm_version)
+        if not any(SpecifierSet(r.match.vllm).contains(version, prereleases=True) for r in rules):
+            version_error = f"No rules support vLLM {version}"
+    except (ValueError, InvalidVersion) as error:
+        version_error = str(error)
     c = extract.config
     moe = bool(c.get("num_experts", 0))
     symbols = {
@@ -271,6 +279,39 @@ def lower(
         "I": str(c["intermediate_size"]),
         "I_moe": str(c.get("moe_intermediate_size", c["intermediate_size"])),
     }
+    if version_error:
+        # The wire contract has no version_mismatch variant; retain one blocking diagnostic.
+        return LowerResult(
+            ir=IR(
+                snapshot=extract.snapshot,
+                symbols=dict(sorted(symbols.items())),
+                params=runtime_params(extract),
+                nodes=[],
+                edges=[],
+                groups=[],
+                memory=Memory(
+                    weights="0",
+                    kv_per_token="0",
+                    kv_tokens="0",
+                    activation_peak="0",
+                    non_torch="0",
+                    reserved="0",
+                    unmodelled=["Unsupported vLLM version; metrics unavailable"],
+                ),
+                views=ViewFamily(family="moe" if moe else "dense"),
+            ),
+            triage=Triage(
+                snapshot=extract.snapshot,
+                items=[
+                    GoldenDiffItem(
+                        kind="golden_diff",
+                        model=extract.snapshot.model.hf_id,
+                        diff="version_mismatch: " + version_error,
+                    )
+                ],
+            ),
+            parameter_shapes={},
+        )
     items, nodes, shapes, module_weights, kv_terms = [], {}, {}, {}, {}
     modules = {m.path: m for m in extract.modules}
     groups: list[LayerGroup] = []
@@ -302,6 +343,12 @@ def lower(
 
     if not layer_types or len(layer_types) != int(c["num_hidden_layers"]):
         problem("layer_types must contain one entry per configured decoder layer")
+    if unsupported := sorted(set(layer_types) - {"full_attention"}):
+        problem(
+            f"Unsupported layer_types: {unsupported}; only full_attention KV residency is modelled"
+        )
+    if c.get("sliding_window") and c.get("use_sliding_window", True):
+        problem("Active sliding_window needs a window-aware attention and KV rule")
     if extract.parallel.pp != 1:
         problem(
             "Observed PP extraction needs a rank-specific partition ledger; lower currently requires PP1 facts"
@@ -389,7 +436,10 @@ def lower(
                 raise ValueError(f"{module.path}: fused/SP reduction requires a specialized rule")
             shapes[module.path] = {p.name: param_shapes[p.name] for p in module.params}
             nid = semantic_id(module.path, moe)
-        except (ValueError, KeyError) as error:
+        except KeyError as error:
+            problem(f"{module.path}: missing key {error.args[0]}")
+            continue
+        except ValueError as error:
             problem(str(error))
             continue
         layer = LAYER.fullmatch(module.path)
@@ -403,7 +453,7 @@ def lower(
             problem(f"{module.path}: semantic module has no source declaration")
             continue
         group = rule.id.startswith("container.") or nid.endswith(
-            ("moe.experts", "moe.experts.weights")
+            ("moe.experts", "moe.experts.weights", "attn.rope")
         )
         weight = substitute(rule.weight, bindings)
         module_weights[module.path] = weight
@@ -465,7 +515,7 @@ def lower(
             for p in module.params
         ]
         parent = prefix + "decoder" if layer and layer[2] else None
-        for stem in ("moe.experts.weights", "attn", "moe.experts", "moe", "mlp"):
+        for stem in ("moe.experts.weights", "attn.rope", "attn", "moe.experts", "moe", "mlp"):
             if nid.startswith(prefix + stem + "."):
                 parent = prefix + stem
                 break
@@ -495,8 +545,31 @@ def lower(
                 + "; reviewed significance is applied by the annotations stage.",
             ]
         for emission in rule.emits:
+            if emission.suffix == "gather" and bindings.get("gather_output") == "false":
+                continue
             cid = nid + "." + emission.suffix
             collective = comm_map(emission.comm, bindings)
+            if moe_a2a and emission.suffix in {"dispatch", "combine"}:
+                # Comm.op is static in IR; backend selection happens at lowering time.
+                logical = PhaseExpr(
+                    prefill="T*topk*H*bytes(dtype_a)", decode="S*topk*H*bytes(dtype_a)"
+                )
+                collective = collective.model_copy(
+                    update={
+                        "op": "all_to_all",
+                        "when": "ep>1 && dp>1",
+                        "logical_bytes": logical,
+                        "bus_bytes": PhaseExpr(
+                            **{
+                                phase: f"ep>1 && dp>1 ? (ep-1)/ep*({value}) : 0"
+                                for phase, value in logical.model_dump().items()
+                            }
+                        ),
+                        "notes": [
+                            "All-to-all kernel backend selected at lowering time; uniform routing, metadata/padding excluded."
+                        ],
+                    }
+                )
             comm_in, comm_out = output, output
             if nid == "logits":
                 comm_in = [
@@ -530,7 +603,7 @@ def lower(
                 class_name=module.class_name,
                 src=module.src,
                 rule=rule.id,
-                label=emission.comm.op,
+                label=collective.op,
                 parent=nid if group else parent,
                 inputs=comm_in,
                 out=comm_out,
@@ -634,6 +707,9 @@ def lower(
             node = weights_node
             degree = "(ep>1 ? ep : tp*dp)"
             work = f"T*dp*topk*H*I_moe/{degree}"
+            routed = "T*dp*topk/(ep>1 ? ep : 1)"
+            inter = "I_moe/(ep>1 ? 1 : tp*dp)"
+            touched = "min(E/(ep>1 ? ep : 1),T*dp*topk/(ep>1 ? ep : 1))"
             for suffix, multiplier, param in (
                 ("w13", 4, "w13_weight"),
                 ("act", 0, None),
@@ -644,6 +720,12 @@ def lower(
                     "*".join(f"({d})" for d in tensor.shape) + "*bytes(dtype_w)" if tensor else "0"
                 )
                 flops = f"{multiplier}*{work}" if multiplier else f"4*T*dp*topk*I_moe/{degree}"
+                in_dim = inter if suffix == "w2" else f"2*({inter})" if suffix == "act" else "H"
+                out_dim = "H" if suffix == "w2" else f"2*({inter})" if suffix == "w13" else inter
+                moved = f"({routed})*(({in_dim})+({out_dim}))*bytes(dtype_a)"
+                if param:
+                    share = 2 if suffix == "w13" else 1
+                    moved = f"{share}*{touched}*H*({inter})*bytes(dtype_w)+({moved})"
                 nodes[prefix + "moe." + suffix] = node.model_copy(
                     update={
                         "id": prefix + "moe." + suffix,
@@ -652,7 +734,7 @@ def lower(
                         "label": suffix,
                         "weight_bytes": weight,
                         "flops": PhaseExpr(prefill=flops, decode=flops.replace("T", "S")),
-                        "bytes_moved": ZERO,
+                        "bytes_moved": PhaseExpr(prefill=moved, decode=moved.replace("T", "S")),
                         "out": [
                             TensorSpec(
                                 name="output",
@@ -665,7 +747,10 @@ def lower(
                                 ],
                             )
                         ],
-                        "inputs": [t for t in node.inputs if t.name in {"input", param}],
+                        "inputs": [
+                            TensorSpec(name="routed", shape=[routed, in_dim]),
+                            *[t for t in node.inputs if t.name == param],
+                        ],
                         "notes": [
                             "Curated expert operation; provenance and rule inherited from RoutedExperts."
                         ],
@@ -675,6 +760,7 @@ def lower(
             # remains in module_weights and is never counted twice in memory.weights.
             node.weight_bytes = "0"
             node.flops = ZERO
+            node.bytes_moved = ZERO
 
     edges: dict[str, IREdge] = {}
 
@@ -728,7 +814,14 @@ def lower(
                         "moe.experts.reduce",
                     ]
                     if moe
-                    else ["norm.post", "mlp.gate_up", "mlp.act", "mlp.down", "mlp.down.reduce"]
+                    else [
+                        "norm.post",
+                        "mlp.gate_up",
+                        "mlp.gate_up.gather",
+                        "mlp.act",
+                        "mlp.down",
+                        "mlp.down.reduce",
+                    ]
                 )
             ]
         )
@@ -807,8 +900,8 @@ def lower(
         kv_per_token = "0"
     activation = (
         "max(max_num_batched_tokens*(4*H+(Hq/tp+2*max(1,Hkv/tp))*D+"
-        + ("2*topk*I_moe" if moe else "2*I/tp")
-        + ")*bytes(dtype_a),max_num_seqs*V*bytes(fp32))"
+        + ("dp*topk/(ep>1 ? ep : 1)*(2*H+3*I_moe/(ep>1 ? 1 : tp*dp))+dp*(H+E)" if moe else "3*I/tp")
+        + ")*bytes(dtype_a),max_num_seqs*V*(bytes(dtype_a)+3*bytes(fp32)+bytes(int64)))"
     )
     kv_tokens = f"({kv_per_token})>0 ? floor(max(0,hbm_bytes*gpu_memory_utilization-({weights})-({activation})-non_torch_bytes-reserved_bytes)/(({kv_per_token})*block_size))*block_size : 0"
     # A decoder group represents its entire resident band; children remain one-layer templates.
@@ -843,7 +936,7 @@ def lower(
                 "HCCL/NCCL workspace beyond configured non_torch_bytes",
                 "RoPE tables and non-parameter buffers",
                 "quantization scales/zeros and NZ padding",
-                "DP MoE gather/scatter buffers",
+                "backend-specific MoE transport buffers beyond gathered activations",
                 "backend-specific attention scratch space",
                 "input/output token index storage",
             ],

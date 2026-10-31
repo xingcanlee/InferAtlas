@@ -247,12 +247,32 @@ semantics prefix their node ids with `<band-id>.`; the single-band fixtures use 
 ids. Unknown module paths require an explicit family mapping or triage.
 
 For pinned vLLM 544f182, this fixture excludes PCP/SP and uses the default unfused output
-reduction path. All-to-all dispatch/combine activates only for `ep>1 && dp>1`
-(`fused_moe/config.py:use_all2all_kernels`). Final MoE output all-reduce activates for
-`tp>1 || ep>1` over **TP**, of size `tp`, with logical bytes `T*H*bytes(dtype_a)` /
-`S*H*bytes(dtype_a)` (`fused_moe/runner/moe_runner.py`). At tp=1 the call has no bus traffic.
+reduction path. The default `all2all_backend` is `allgather_reducescatter`
+(`config/parallel.py`); naive dispatch/combine activates whenever `dp>1`
+(`fused_moe/runner/moe_runner.py`), regardless of whether EP is enabled.
+The approved communication contract represents dispatch as **all_gather** and combine as
+**reduce_scatter** over the flattened **tp*dp** EP group, including `ep=1`.
+Each has logical bytes `T*H*bytes(dtype_a)` / `S*H*bytes(dtype_a)` and bus bytes
+`(tp*dp-1)/(tp*dp)` times that tensor, gated by `dp>1`.
+The group size for these default collectives is `tp*dp`, not the `ep` enable degree.
+Expert FLOPs and workspace use the `T*dp` / `S*dp` gathered tokens, with local expert
+ownership divided by `ep` when EP is enabled, or intermediate TP `tp*dp` otherwise.
+
+`lower(..., moe_a2a=False)` exposes backend selection as a boolean **lowering parameter**,
+also available as `python -m inferatlas.lower --moe-a2a`. The default is `false`.
+Selecting `true` makes the same dispatch/combine nodes use **all_to_all**, logical bytes
+`T*topk*H*bytes(dtype_a)` / `S*topk*H*bytes(dtype_a)` and uniform-routing bus factor
+`(ep-1)/ep`, gated by `ep>1 && dp>1`. The backend requires enabled EP and DP for traffic.
+`Comm.op` is a static enum in the IR schema, so switching backend requires lowering again;
+TP/DP/EP degrees remain interactive expressions in either output. Reusing the existing
+node IDs keeps layout budgets and drill-down links stable.
+These logical tensors omit router scores, expert IDs, padding, and transport scratch.
+
+Final MoE output all-reduce activates for `tp>1 || ep>1` over **TP**, of size `tp`,
+with logical bytes `T*H*bytes(dtype_a)` / `S*H*bytes(dtype_a)`
+(`fused_moe/runner/moe_runner.py`). At tp=1 the call has no bus traffic.
 Fused backends that already reduce output must lower the equivalent semantics without a
-duplicate collective. Uniform routing and omitted DP gather/scatter remain estimates.
+duplicate collective. Communication remains an uncalibrated uniform-routing estimate.
 
 VocabParallelEmbedding emits `embed.reduce` for tp>1, logical bytes `T*H*bytes(dtype_a)` /
 `S*H*bytes(dtype_a)`. LogitsProcessor emits `logits.gather`: default op `gather` to TP rank 0,
