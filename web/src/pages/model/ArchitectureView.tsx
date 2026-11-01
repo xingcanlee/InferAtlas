@@ -20,6 +20,7 @@ import {
   layerCount,
   layerRange,
   moduleStages,
+  normalizeArch,
   slotAt,
   stacks,
 } from "@/lib/arch";
@@ -38,7 +39,9 @@ function isTyping(e: KeyboardEvent): boolean {
 }
 
 /** Architecture tab: whole-model figure (left) + per-layer / per-stage tensor I/O (right). */
-export function ArchitectureView({ arch }: { arch: Arch }) {
+export function ArchitectureView({ arch: raw }: { arch: Arch }) {
+  // Older arch.json (deprecated attention variants) is viewed through the v1.3 shape.
+  const arch = useMemo(() => normalizeArch(raw), [raw]);
   const search = route.useSearch();
   const navigate = route.useNavigate();
   const patch = useCallback(

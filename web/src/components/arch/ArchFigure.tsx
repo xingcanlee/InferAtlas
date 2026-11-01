@@ -31,7 +31,6 @@ import { type ReactNode, useState } from "react";
 import {
   bandSummary,
   blockSegments,
-  canonicalStages,
   compactFocus,
   isAsideStage,
   itemLayers,
@@ -44,6 +43,7 @@ import {
   represented,
   type StackItem,
   shortClass,
+  spineStages,
   stackColumns,
   stackItems,
   subTarget,
@@ -151,7 +151,7 @@ export function ComponentGlyph({
                 }
               : undefined
           }
-          window={num(x.sliding_window)}
+          window={num(x.sliding_window) ?? (x.sliding_window === true ? true : undefined)}
           compressRatio={num(x.compress_ratio)}
           indexer={x.indexer === true}
           tensors={tensors}
@@ -238,10 +238,9 @@ export function ArchFigure({
   detailId,
   showInternals = false,
 }: ArchFigureProps) {
-  // v1.2 §5 canonical order; `other` stages on the spine unless `placement: "aside"`.
-  const ordered = canonicalStages(arch);
-  const main = ordered.filter((s) => !isAsideStage(s));
-  const others = ordered.filter((s): s is ArchModuleStage => isAsideStage(s));
+  // v1.3 §2: array order is dataflow order; `other` stages on the spine unless aside.
+  const main = spineStages(arch);
+  const others = arch.stages.filter((s): s is ArchModuleStage => isAsideStage(s));
   const primary = primaryStack(arch);
   // Secondary stacks (vision / encoder) start collapsed unless they hold the selection.
   const [openStacks, setOpenStacks] = useState<Set<string>>(() => new Set());
@@ -279,12 +278,25 @@ export function ArchFigure({
     );
   };
 
-  const mhcBox = (band: ArchBand, sub: ArchSublayer | undefined, post: boolean, streams: number) =>
+  const mhcBox = (
+    items: StackItem[],
+    band: ArchBand,
+    sub: ArchSublayer | undefined,
+    post: boolean,
+    streams: number,
+  ) =>
     sub ? (
       <MhcBox
         key={sub.id}
         post={post}
         streams={streams}
+        status={sub.module?.status}
+        notes={noteMarker(
+          notesFor(
+            arch,
+            represented(items, band).map((b) => subTarget(b.id, sub.id)),
+          ),
+        )}
         onSelect={() => onSelectSub(band, sub.id)}
         selected={selection.band === band && selection.sub === sub.id}
         label={`${sub.id} (${layerRange(band.layers)}): show details`}
@@ -298,8 +310,8 @@ export function ArchFigure({
         seg.kind === "hyper" ? (
           <HyperBranch
             key={`hyper-${seg.pre?.id ?? seg.body[0]?.id ?? seg.post?.id}`}
-            pre={mhcBox(band, seg.pre, false, hyperStreams(band, evaluate))}
-            post={mhcBox(band, seg.post, true, hyperStreams(band, evaluate))}
+            pre={mhcBox(items, band, seg.pre, false, hyperStreams(band, evaluate))}
+            post={mhcBox(items, band, seg.post, true, hyperStreams(band, evaluate))}
           >
             {seg.body.map((s) => subGlyph(items, band, s))}
           </HyperBranch>
@@ -332,6 +344,8 @@ export function ArchFigure({
       title={inPattern ? bandSummary(band) : layerRange(band.layers)}
       subtitle={inPattern ? undefined : bandSummary(band)}
       count={band.count}
+      // Inside a pattern group a single-layer member needs no "1×".
+      hideCount={inPattern && band.count === 1}
       selected={selection.band === band}
       onSelect={() => onSelectBand(band)}
       controls={detailId}

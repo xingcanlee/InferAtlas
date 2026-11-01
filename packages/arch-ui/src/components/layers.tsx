@@ -100,6 +100,19 @@ export function Generic({
 }: GenericProps) {
   const shown = kids.slice(0, maxChildren);
   const more = kids.length - shown.length;
+  if (!kids.length && caption === undefined) {
+    // Leaf generic (e.g. a custom op): one compact row, the caption moves to the tooltip.
+    return (
+      <FigureNode
+        kind="generic"
+        size="sm"
+        title={<span className="font-mono text-[11px]">{moduleClass}</span>}
+        badge={<VariantBadge>generic</VariantBadge>}
+        data-component="generic"
+        {...props}
+      />
+    );
+  }
   return (
     <FigureNode
       kind="generic"
@@ -218,8 +231,8 @@ export interface AttentionProps extends ComponentNodeProps {
   /** Sigmoid output gate (gated attention). */
   gated?: boolean | undefined;
   latent?: LatentPath | undefined;
-  /** Sliding-window size in tokens (sliding / hybrid attention). */
-  window?: number | undefined;
+  /** Sliding-window size in tokens, or `true` when windowed with unknown size. */
+  window?: number | boolean | undefined;
   /** Sparse attention: tokens kept by the indexer (e.g. DeepSeek-V3.2 `index_topk`). */
   indexTopk?: number | undefined;
   /** Compressed attention: KV compression ratio (DeepSeek-V4 `compress_ratio`, > 1). */
@@ -314,7 +327,7 @@ export function Attention({
           .join(" · ")
       : undefined;
   const tags = [
-    window !== undefined ? `window ${fmt(window)}` : undefined,
+    typeof window === "number" ? `window ${fmt(window)}` : window ? "sliding window" : undefined,
     compressRatio !== undefined && compressRatio > 1 ? `KV ÷${fmt(compressRatio)}` : undefined,
     indexer
       ? `indexer${indexTopk !== undefined ? ` top-${fmt(indexTopk)}` : ""}`

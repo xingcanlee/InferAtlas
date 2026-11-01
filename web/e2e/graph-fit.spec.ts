@@ -30,10 +30,13 @@ async function viewsToCheck(page: Page): Promise<{ route: string; view: string }
   for (const c of cells) {
     if (seen.has(c.model) || c.version.startsWith("fixture-prev")) continue;
     seen.add(c.model);
-    const res = await page.request.get(`./${c.data_path}/view.json`);
-    // Structure-only cells (arch.json without ir/view) have no graph to fit.
-    if (!res.ok() || !(res.headers()["content-type"] ?? "").includes("json")) continue;
-    const view = (await res.json()) as { views: { id: string }[] };
+    // Skip only structure-only cells (no ir.json); a cell with IR must have a view to fit.
+    const ir = await page.request.get(`./${c.data_path}/ir.json`);
+    const isJson = (r: typeof ir) => r.ok() && (r.headers()["content-type"] ?? "").includes("json");
+    if (!isJson(ir)) continue;
+    const view = (await (await page.request.get(`./${c.data_path}/view.json`)).json()) as {
+      views: { id: string }[];
+    };
     for (const v of view.views)
       out.push({ route: `#/m/${c.version}/${c.device}/${c.model}`, view: v.id });
   }

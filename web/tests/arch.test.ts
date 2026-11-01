@@ -8,7 +8,6 @@ import {
   bandOrdinal,
   blockSegments,
   blockSignature,
-  canonicalStages,
   compactFocus,
   evaluator,
   groupNotes,
@@ -18,6 +17,7 @@ import {
   layerPath,
   MAX_STACK_COLUMNS,
   modelNotes,
+  normalizeArch,
   noteMarker,
   notesFor,
   primaryStack,
@@ -25,6 +25,7 @@ import {
   represented,
   shortClass,
   slotAt,
+  spineStages,
   stackColumns,
   stackItems,
   stacks,
@@ -271,7 +272,7 @@ describe("symbols, paths and notes", () => {
       "conditional_override",
       null,
     ]);
-    expect(groups[0]?.warn).toBe(1);
+    expect(groups[0]?.warn).toBe(3);
     expect(groups.at(-1)?.notes).toHaveLength(2);
   });
 });
@@ -287,7 +288,7 @@ describe("contract v1.2", () => {
     const g = items[2];
     if (g?.kind !== "pattern") throw new Error("pattern");
     expect(g.period.map((b) => b.id)).toEqual(["c128_3", "c4_4"]);
-    expect(g.label).toBe("1× KV ÷128 + 1× KV ÷4 + indexer");
+    expect(g.label).toBe("1× MQA ÷128 + 1× MQA ÷4 + indexer");
     // Hash-routed layer 2 differs from the learned-router ÷4 layers.
     expect(blockSignature((items[1] as { band: ArchBand }).band.block)).not.toBe(
       blockSignature(g.period[1]?.block as ArchBlock),
@@ -310,43 +311,52 @@ describe("contract v1.2", () => {
         s.kind === "hyper" ? [s.pre?.id, s.body.map((b) => b.id), s.post?.id] : s.kind,
       ),
     ).toEqual([
-      ["mhc_attn_pre", ["attn_norm", "attn"], "mhc_attn_post"],
-      ["mhc_ffn_pre", ["ffn_norm", "ffn"], "mhc_ffn_post"],
+      ["mhc_pre_attn", ["attn_norm", "attn"], "mhc_post_attn"],
+      ["mhc_pre_ffn", ["ffn_norm", "ffn"], "mhc_post_ffn"],
     ]);
     expect(block.sublayers.filter(isMhc)).toHaveLength(4);
     // A fused post/pre sublayer closes one segment and opens the next.
     const fused: ArchBlock = {
       ...block,
       sublayers: block.sublayers
-        .filter((s) => s.id !== "mhc_ffn_pre")
-        .map((s) => (s.id === "mhc_attn_post" ? { ...s, id: "mhc_fused_post_pre" } : s)),
+        .filter((s) => s.id !== "mhc_pre_ffn")
+        .map((s) => (s.id === "mhc_post_attn" ? { ...s, id: "mhc_fused_post_pre" } : s)),
     };
     expect(blockSegments(fused).map((s) => s.kind)).toEqual(["hyper", "hyper"]);
   });
 
-  it("gpt-oss alternates sliding / full attention", () => {
+  it("gpt-oss alternates sliding-window / full GQA (locality is an extra, v1.3 §5)", () => {
     const items = stackItems(stacks(oss)[0]?.bands ?? []);
     expect(items).toHaveLength(1);
     const g = items[0];
     if (g?.kind !== "pattern") throw new Error("pattern");
     expect(g.repeats).toBe(18);
-    expect(
-      g.period.map(
-        (b) =>
-          b.block.sublayers[1]?.component?.kind === "attention" &&
-          (b.block.sublayers[1].component as { variant: string }).variant,
-      ),
-    ).toEqual(["sliding_window", "gqa"]);
+    const attn = g.period.map((b) => b.block.sublayers[1]?.component as never);
+    expect(attn.map((c: { variant: string }) => c.variant)).toEqual(["gqa", "gqa"]);
+    expect(attn.map((c: never) => attentionLabel(c))).toEqual(["GQA attn · SWA", "GQA attn"]);
   });
 
-  it("canonical stage order and the primary stack", () => {
-    const shuffled: Arch = { ...v4, stages: [...v4.stages].reverse() };
-    expect(canonicalStages(shuffled).map((s) => s.id)).toEqual([
+  it("deprecated sliding_window / sparse variants normalise to head-sharing + extras", () => {
+    const band = stacks(oss)[0]?.bands[0] as ArchBand;
+    const old = JSON.parse(JSON.stringify(oss)) as Arch;
+    const sub0 = (stacks(old)[0]?.bands[0] as ArchBand).block.sublayers[1];
+    if (sub0?.component?.kind !== "attention") throw new Error("attention");
+    sub0.component.variant = "sliding_window";
+    const norm = normalizeArch(old);
+    const c = (stacks(norm)[0]?.bands[0] as ArchBand).block.sublayers[1]?.component;
+    expect(c).toMatchObject({ variant: "gqa", extras: { sliding_window: 128 } });
+    expect(blockSignature((stacks(norm)[0]?.bands[0] as ArchBand).block)).toBe(
+      blockSignature(band.block),
+    );
+  });
+
+  it("stages render in array (dataflow) order; aside stages leave the spine", () => {
+    expect(spineStages(v4).map((s) => s.id)).toEqual([
       "embed",
       "layers",
+      "hc_head_op",
       "final_norm",
       "lm_head",
-      "mtp",
     ]);
     const stack = stacks(dense)[0] as ArchStackStage;
     const vision: Arch = {

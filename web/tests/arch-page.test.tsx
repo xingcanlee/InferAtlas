@@ -295,13 +295,26 @@ describe("architecture page", { timeout: 20_000 }, () => {
     expect(within(list).getAllByRole("button")).toHaveLength(3);
     expect(screen.getAllByTestId(/^band-(c128_3|c4_4)$/)).toHaveLength(2);
     expect(document.querySelectorAll("[data-slot=residual-bus]").length).toBe(2);
+    // v1.3 §3: targeted mHC warnings badge the mHC box like any sublayer.
+    const mhc = screen.getByTestId("sub-c128_3-mhc_pre_attn");
+    expect(mhc.querySelector("[data-slot=note-badge]")).toHaveAttribute("data-severity", "warn");
+    // Single-layer members of a pattern group show no "1×".
+    expect(within(screen.getByTestId("band-c128_3")).queryByText("repeated 1 times")).toBeNull();
+    // Array order: the HC head merges the streams before the final norm.
+    const fig = screen.getByTestId("arch-figure");
+    const order = ["stage-hc_head_op", "stage-final_norm"].map((id) =>
+      [...fig.querySelectorAll("[data-testid]")].findIndex(
+        (e) => e.getAttribute("data-testid") === id,
+      ),
+    );
+    expect(order[0]).toBeLessThan(order[1] as number);
     expect(document.querySelectorAll("[data-slot=tensor-chip]")).toHaveLength(0);
     await userEvent.click(screen.getByTestId("internals-toggle"));
     expect(document.querySelectorAll("[data-slot=tensor-chip]").length).toBeGreaterThan(0);
     await userEvent.click(screen.getByTestId("sub-c4_4-attn"));
     const card = await screen.findByTestId("sub-card-attn");
     const internals = within(card).getByTestId("internals");
-    expect(internals).toHaveTextContent("index_topk_ids");
+    expect(internals).toHaveTextContent("index_scores");
     expect(internals).toHaveTextContent("[1024, 512]"); // kv_compressed = [cdiv(T, 4), D]
     // Outputs are only what leaves the sublayer.
     expect(within(card).getAllByTestId("tensor-row").length).toBeGreaterThan(2);

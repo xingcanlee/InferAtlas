@@ -1,8 +1,10 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import * as React from "react";
 import { cn } from "../cn";
+import { NoteBadge, StatusBadge } from "./badges";
 import { Flow, FlowArrow } from "./flow";
 import { Norm, ResidualAdd } from "./layers";
+import type { NodeMarkers } from "./node";
 
 // -------------------------------------------------------------------------- ResidualBranch
 
@@ -241,7 +243,7 @@ export function ResidualBus({ streams = 4 }: { streams?: number }) {
   );
 }
 
-export interface MhcBoxProps extends React.HTMLAttributes<HTMLElement> {
+export interface MhcBoxProps extends React.HTMLAttributes<HTMLElement>, NodeMarkers {
   /** `post` writes the branch output back to the streams (H_post / H_res); else reads (H_pre). */
   post?: boolean;
   title?: string;
@@ -261,12 +263,14 @@ export function MhcBox({
   onSelect,
   selected,
   label,
+  status,
+  notes,
   className,
   ...props
 }: MhcBoxProps) {
   const text = title ?? (post ? "H_post · H_res" : "H_pre");
   const cls = cn(
-    "relative flex h-5 w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-arch-router-border bg-arch-router/60 font-mono text-[10.5px] text-arch-router-ink outline-none",
+    "relative flex h-[18px] w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-arch-router-border bg-arch-router/60 font-mono text-[10.5px] text-arch-router-ink outline-none",
     onSelect &&
       "cursor-pointer hover:border-foreground/45 focus-visible:ring-2 focus-visible:ring-ring/70",
     selected && "ring-2 ring-focus ring-offset-1 ring-offset-background",
@@ -281,6 +285,16 @@ export function MhcBox({
       />
       <span className="font-semibold">mHC</span>
       <span className="text-muted-foreground">{text}</span>
+      {/* Same markers as FigureNode; `generic` is the expected status of mHC ops, so only
+          overrides and notes are flagged. */}
+      {(status && status !== "ruled" && status !== "generic") || notes ? (
+        <span className="absolute -top-2 -right-2 flex gap-0.5">
+          {status && status !== "ruled" && status !== "generic" ? (
+            <StatusBadge status={status} size="dot" />
+          ) : null}
+          {notes ? <NoteBadge severity={notes.severity} count={notes.count} size="dot" /> : null}
+        </span>
+      ) : null}
     </>
   );
   if (onSelect)
@@ -379,6 +393,8 @@ export interface BandProps
   onSelect?: (() => void) | undefined;
   /** id of the element the header controls (detail panel). */
   controls?: string | undefined;
+  /** Omit the `N×` (e.g. single-layer members of a pattern group). */
+  hideCount?: boolean | undefined;
 }
 
 /** A run of identical layers: header + `N×` + the block drawn once. */
@@ -389,6 +405,7 @@ export function Band({
   selected,
   onSelect,
   controls,
+  hideCount,
   className,
   children,
   ...props
@@ -434,7 +451,7 @@ export function Band({
         <div className="inline-flex h-6 items-center gap-1.5 px-2 text-[11.5px]">{header}</div>
       )}
       <div className="flex items-center gap-2">
-        <RepeatCount count={count} />
+        {hideCount ? null : <RepeatCount count={count} />}
         <div className={bandFrame({ selected })}>{children}</div>
       </div>
     </div>

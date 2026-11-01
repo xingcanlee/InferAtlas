@@ -266,7 +266,7 @@
                   ],
                   "internals": [
                     {
-                      "name": "c_q",
+                      "name": "q_latent",
                       "shape": [
                         "T",
                         "Rq"
@@ -274,7 +274,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "c_kv",
+                      "name": "kv_latent",
                       "shape": [
                         "T",
                         "Rkv"
@@ -298,7 +298,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "attn_out",
+                      "name": "o",
                       "shape": [
                         "T",
                         "Hq*Dv/tp"
@@ -699,7 +699,7 @@
                   ],
                   "internals": [
                     {
-                      "name": "c_q",
+                      "name": "q_latent",
                       "shape": [
                         "T",
                         "Rq"
@@ -707,7 +707,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "c_kv",
+                      "name": "kv_latent",
                       "shape": [
                         "T",
                         "Rkv"
@@ -731,7 +731,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "attn_out",
+                      "name": "o",
                       "shape": [
                         "T",
                         "Hq*Dv/tp"
@@ -964,6 +964,14 @@
                       "dtype": "float32"
                     },
                     {
+                      "name": "expert_input",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
                       "name": "expert_gate_up",
                       "shape": [
                         "T*topk",
@@ -972,7 +980,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "expert_down",
+                      "name": "expert_output",
                       "shape": [
                         "T*topk",
                         "H"
@@ -980,7 +988,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "shared_out",
+                      "name": "shared_output",
                       "shape": [
                         "T",
                         "H"

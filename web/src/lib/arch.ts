@@ -92,7 +92,13 @@ function componentSignature(c: ArchComponent | null): unknown {
   switch (c.kind) {
     case "attention":
       // v1.2 §3: compression ratio and indexer distinguish otherwise identical attention.
-      return [c.kind, c.variant, c.extras.compress_ratio ?? null, c.extras.indexer ?? null];
+      return [
+        c.kind,
+        c.variant,
+        c.extras.sliding_window != null,
+        c.extras.compress_ratio ?? null,
+        c.extras.indexer ?? null,
+      ];
     case "mlp":
     case "norm":
       return [c.kind, c.variant];
@@ -152,7 +158,8 @@ export function attentionLabel(c: Extract<ArchComponent, { kind: "attention" }>)
   const base = c.variant === "linear" ? "linear attn" : `${ATTN[c.variant]} attn`;
   const r = c.extras.compress_ratio;
   const comp = typeof r === "number" && r > 1 ? ` ÷${r}` : "";
-  return `${base}${comp}${c.extras.indexer === true ? " + indexer" : ""}`;
+  const swa = c.extras.sliding_window != null && c.extras.sliding_window !== false ? " · SWA" : "";
+  return `${base}${comp}${c.extras.indexer === true ? " + indexer" : ""}${swa}`;
 }
 
 const autoLabel = (period: ArchBand[]) =>
@@ -195,11 +202,18 @@ function group(members: ArchBand[], period: ArchBand[], label: string): StackIte
  * bands without labelling them).
  */
 export function stackItems(bands: ArchBand[]): StackItem[] {
+  // v1.3 §1: a label only groups when ≥ 2 consecutive bands share it; a single-member labelled
+  // run (emitters that label every band individually) is a plain band and folds structurally.
+  const label = (k: number): string | null => {
+    const p = bands[k]?.pattern;
+    if (!p) return null;
+    return bands[k - 1]?.pattern === p || bands[k + 1]?.pattern === p ? p : null;
+  };
   const out: StackItem[] = [];
   let i = 0;
   while (i < bands.length) {
     const b = bands[i] as ArchBand;
-    if (b.pattern) {
+    if (label(i)) {
       let j = i;
       while (j < bands.length && bands[j]?.pattern === b.pattern) j++;
       const members = bands.slice(i, j);
@@ -211,12 +225,12 @@ export function stackItems(bands: ArchBand[]): StackItem[] {
           break;
         }
       }
-      out.push(group(members, members.slice(0, p), b.pattern));
+      out.push(group(members, members.slice(0, p), b.pattern as string));
       i = j;
       continue;
     }
     let end = i;
-    while (end < bands.length && !bands[end]?.pattern) end++;
+    while (end < bands.length && !label(end)) end++;
     const f = foldAt(bands, i, end);
     if (f) {
       const period = bands.slice(i, i + f.p);
@@ -377,6 +391,64 @@ export function blockSegments(block: ArchBlock): Segment[] {
   return out;
 }
 
+// --------------------------------------------------------------------------- normalize
+
+type Attn = Extract<ArchComponent, { kind: "attention" }>;
+
+/**
+ * v1.3 §5: `variant` is the head-sharing scheme (mha/gqa/mqa/mla) or `linear`; locality and
+ * sparsity live in extras. Older data used `sliding_window` / `sparse` variants: infer the
+ * head-sharing scheme from the head counts and keep the locality in extras.
+ */
+export function normalizeAttention(c: Attn): Attn {
+  if (c.variant !== "sliding_window" && c.variant !== "sparse") return c;
+  const variant =
+    c.extras.kv_lora_rank !== undefined
+      ? "mla"
+      : c.heads_kv === 1
+        ? "mqa"
+        : c.heads_kv === c.heads_q
+          ? "mha"
+          : "gqa";
+  const extras = { ...c.extras };
+  if (c.variant === "sliding_window" && extras.sliding_window === undefined)
+    extras.sliding_window = true;
+  return { ...c, variant, extras };
+}
+
+const archNorm = new WeakMap<Arch, Arch>();
+
+/** Contract-compatible view of older `arch.json` (deprecated variants); cached per object. */
+export function normalizeArch(arch: Arch): Arch {
+  const hit = archNorm.get(arch);
+  if (hit) return hit;
+  const fix = (c: ArchComponent | null | undefined) =>
+    c?.kind === "attention" ? normalizeAttention(c) : c;
+  const out: Arch = {
+    ...arch,
+    notes: arch.notes ?? [],
+    stages: arch.stages.map((st) =>
+      st.kind === "stack"
+        ? {
+            ...st,
+            bands: st.bands.map((b) => ({
+              ...b,
+              block: {
+                ...b.block,
+                sublayers: b.block.sublayers.map((x) => ({
+                  ...x,
+                  component: fix(x.component) ?? null,
+                })),
+              },
+            })),
+          }
+        : { ...st, component: fix(st.component) ?? null },
+    ),
+  };
+  archNorm.set(arch, out);
+  return out;
+}
+
 // ----------------------------------------------------------------------------- symbols
 
 /**
@@ -488,43 +560,38 @@ export function modelNotes(arch: Arch): ArchNote[] {
 
 // ------------------------------------------------------------------------------- stages
 
-const STAGE_RANK: Record<string, number> = { embedding: 0, stack: 1, norm: 2, lm_head: 3 };
-
 /** `other` stages drawn as side branches (v1.1 §5; legacy default aside). */
 export const isAsideStage = (s: Arch["stages"][number]): boolean =>
   s.kind === "other" && (s.placement ?? "aside") === "aside";
 
 /**
- * Canonical stage order (v1.2 §5): embedding(s) → stack(s) → final norm → lm_head → spine
- * others; aside others last. Stable within a rank, so emitter order breaks ties.
+ * Stage order (v1.3 §2) is the array order: the emitter writes true dataflow order (e.g. an mHC
+ * `hc_head_op` before the final norm). Aside stages are drawn as side branches, not on the spine.
  */
-export function canonicalStages(arch: Arch): Arch["stages"] {
-  const rank = (s: Arch["stages"][number]) =>
-    s.kind === "other" ? (isAsideStage(s) ? 5 : 4) : (STAGE_RANK[s.kind] ?? 4);
-  return arch.stages
-    .map((s, i) => ({ s, i }))
-    .sort((a, b) => rank(a.s) - rank(b.s) || a.i - b.i)
-    .map(({ s }) => s);
-}
+export const spineStages = (arch: Arch): Arch["stages"] =>
+  arch.stages.filter((s) => !isAsideStage(s));
 
-/** The decoder stack feeding the final norm: the last stack in canonical order. */
+/** The decoder stack feeding the head: the last stack in dataflow order. */
 export function primaryStack(arch: Arch): ArchStackStage | undefined {
-  return canonicalStages(arch).filter(isStack).at(-1);
+  return stacks(arch).at(-1);
 }
 
 // ---------------------------------------------------------------------------- internals
 
+/** Priority of internals for figure chips (v1.3 §6 canonical names; `*_lora_latent` tolerated). */
 const KEY_INTERNALS = [
   /^q$/,
   /^k$/,
   /^v$/,
-  /^c_?kv/i,
-  /^c_?q/i,
-  /^kv/i,
-  /^qkv/i,
-  /router_logits/i,
-  /^topk_(ids|weights)/i,
-  /^index/i,
+  /^q_(lora_)?latent$/,
+  /^kv_(lora_)?latent$/,
+  /^kv_compressed$/,
+  /^index_scores$/,
+  /^qkvz$/,
+  /^recurrent_state$/,
+  /^router_logits$/,
+  /^topk_ids$/,
+  /^topk_weights$/,
 ];
 
 /** A few representative internal tensors for figure chips (q/k/v, latents, routing). */
@@ -546,12 +613,9 @@ export function layerPath(module: ArchModule, band: ArchBand, layer: number): st
 
 /** One-line human summary of a component ("GQA attention", "MoE 128E top-8"). */
 export function componentSummary(c: ArchComponent | null, role?: string, id?: string): string {
-  if (!c) {
-    if (role === "residual_add") return "Residual add";
-    if (id && /^mhc/i.test(id))
-      return /post/i.test(id) ? "mHC write-back (H_post · H_res)" : "mHC read (H_pre)";
-    return role ?? "module";
-  }
+  if (id && /^mhc/i.test(id))
+    return /post/i.test(id) ? "mHC write-back (H_post · H_res)" : "mHC read (H_pre)";
+  if (!c) return role === "residual_add" ? "Residual add" : (role ?? "module");
   switch (c.kind) {
     case "norm":
       return c.variant === "rmsnorm" ? "RMSNorm" : c.variant === "layernorm" ? "LayerNorm" : "Norm";

@@ -258,7 +258,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "attn_out",
+                      "name": "o",
                       "shape": [
                         "T",
                         "Hq*D/tp"

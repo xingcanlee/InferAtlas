@@ -197,7 +197,7 @@
                 "role": "mixer",
                 "component": {
                   "kind": "attention",
-                  "variant": "sliding_window",
+                  "variant": "gqa",
                   "heads_q": 64,
                   "heads_kv": 8,
                   "head_dim": 64,
@@ -269,7 +269,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "attn_out",
+                      "name": "o",
                       "shape": [
                         "T",
                         "Hq*D/tp"
@@ -484,6 +484,14 @@
                       "dtype": "float32"
                     },
                     {
+                      "name": "expert_input",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
                       "name": "expert_gate_up",
                       "shape": [
                         "T*topk",
@@ -492,7 +500,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "expert_down",
+                      "name": "expert_output",
                       "shape": [
                         "T*topk",
                         "H"
@@ -728,7 +736,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "attn_out",
+                      "name": "o",
                       "shape": [
                         "T",
                         "Hq*D/tp"
@@ -943,6 +951,14 @@
                       "dtype": "float32"
                     },
                     {
+                      "name": "expert_input",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
                       "name": "expert_gate_up",
                       "shape": [
                         "T*topk",
@@ -951,7 +967,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "expert_down",
+                      "name": "expert_output",
                       "shape": [
                         "T*topk",
                         "H"
@@ -1116,7 +1132,7 @@
                 "role": "mixer",
                 "component": {
                   "kind": "attention",
-                  "variant": "sliding_window",
+                  "variant": "gqa",
                   "heads_q": 64,
                   "heads_kv": 8,
                   "head_dim": 64,
@@ -1188,7 +1204,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "attn_out",
+                      "name": "o",
                       "shape": [
                         "T",
                         "Hq*D/tp"
@@ -1403,6 +1419,14 @@
                       "dtype": "float32"
                     },
                     {
+                      "name": "expert_input",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
                       "name": "expert_gate_up",
                       "shape": [
                         "T*topk",
@@ -1411,7 +1435,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "expert_down",
+                      "name": "expert_output",
                       "shape": [
                         "T*topk",
                         "H"
@@ -1647,7 +1671,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "attn_out",
+                      "name": "o",
                       "shape": [
                         "T",
                         "Hq*D/tp"
@@ -1862,6 +1886,14 @@
                       "dtype": "float32"
                     },
                     {
+                      "name": "expert_input",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
                       "name": "expert_gate_up",
                       "shape": [
                         "T*topk",
@@ -1870,7 +1902,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "expert_down",
+                      "name": "expert_output",
                       "shape": [
                         "T*topk",
                         "H"
@@ -2035,7 +2067,7 @@
                 "role": "mixer",
                 "component": {
                   "kind": "attention",
-                  "variant": "sliding_window",
+                  "variant": "gqa",
                   "heads_q": 64,
                   "heads_kv": 8,
                   "head_dim": 64,
@@ -2107,7 +2139,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "attn_out",
+                      "name": "o",
                       "shape": [
                         "T",
                         "Hq*D/tp"
@@ -2322,6 +2354,14 @@
                       "dtype": "float32"
                     },
                     {
+                      "name": "expert_input",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
                       "name": "expert_gate_up",
                       "shape": [
                         "T*topk",
@@ -2330,7 +2370,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "expert_down",
+                      "name": "expert_output",
                       "shape": [
                         "T*topk",
                         "H"
@@ -2566,7 +2606,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "attn_out",
+                      "name": "o",
                       "shape": [
                         "T",
                         "Hq*D/tp"
@@ -2781,6 +2821,14 @@
                       "dtype": "float32"
                     },
                     {
+                      "name": "expert_input",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
                       "name": "expert_gate_up",
                       "shape": [
                         "T*topk",
@@ -2789,7 +2837,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "expert_down",
+                      "name": "expert_output",
                       "shape": [
                         "T*topk",
                         "H"
@@ -2954,7 +3002,7 @@
                 "role": "mixer",
                 "component": {
                   "kind": "attention",
-                  "variant": "sliding_window",
+                  "variant": "gqa",
                   "heads_q": 64,
                   "heads_kv": 8,
                   "head_dim": 64,
@@ -3026,7 +3074,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "attn_out",
+                      "name": "o",
                       "shape": [
                         "T",
                         "Hq*D/tp"
@@ -3241,6 +3289,14 @@
                       "dtype": "float32"
                     },
                     {
+                      "name": "expert_input",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
                       "name": "expert_gate_up",
                       "shape": [
                         "T*topk",
@@ -3249,7 +3305,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "expert_down",
+                      "name": "expert_output",
                       "shape": [
                         "T*topk",
                         "H"
@@ -3485,7 +3541,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "attn_out",
+                      "name": "o",
                       "shape": [
                         "T",
                         "Hq*D/tp"
@@ -3700,6 +3756,14 @@
                       "dtype": "float32"
                     },
                     {
+                      "name": "expert_input",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
                       "name": "expert_gate_up",
                       "shape": [
                         "T*topk",
@@ -3708,7 +3772,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "expert_down",
+                      "name": "expert_output",
                       "shape": [
                         "T*topk",
                         "H"
@@ -3873,7 +3937,7 @@
                 "role": "mixer",
                 "component": {
                   "kind": "attention",
-                  "variant": "sliding_window",
+                  "variant": "gqa",
                   "heads_q": 64,
                   "heads_kv": 8,
                   "head_dim": 64,
@@ -3945,7 +4009,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "attn_out",
+                      "name": "o",
                       "shape": [
                         "T",
                         "Hq*D/tp"
@@ -4160,6 +4224,14 @@
                       "dtype": "float32"
                     },
                     {
+                      "name": "expert_input",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
                       "name": "expert_gate_up",
                       "shape": [
                         "T*topk",
@@ -4168,7 +4240,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "expert_down",
+                      "name": "expert_output",
                       "shape": [
                         "T*topk",
                         "H"
@@ -4404,7 +4476,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "attn_out",
+                      "name": "o",
                       "shape": [
                         "T",
                         "Hq*D/tp"
@@ -4619,6 +4691,14 @@
                       "dtype": "float32"
                     },
                     {
+                      "name": "expert_input",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
                       "name": "expert_gate_up",
                       "shape": [
                         "T*topk",
@@ -4627,7 +4707,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "expert_down",
+                      "name": "expert_output",
                       "shape": [
                         "T*topk",
                         "H"
@@ -4792,7 +4872,7 @@
                 "role": "mixer",
                 "component": {
                   "kind": "attention",
-                  "variant": "sliding_window",
+                  "variant": "gqa",
                   "heads_q": 64,
                   "heads_kv": 8,
                   "head_dim": 64,
@@ -4864,7 +4944,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "attn_out",
+                      "name": "o",
                       "shape": [
                         "T",
                         "Hq*D/tp"
@@ -5079,6 +5159,14 @@
                       "dtype": "float32"
                     },
                     {
+                      "name": "expert_input",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
                       "name": "expert_gate_up",
                       "shape": [
                         "T*topk",
@@ -5087,7 +5175,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "expert_down",
+                      "name": "expert_output",
                       "shape": [
                         "T*topk",
                         "H"
@@ -5323,7 +5411,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "attn_out",
+                      "name": "o",
                       "shape": [
                         "T",
                         "Hq*D/tp"
@@ -5538,6 +5626,14 @@
                       "dtype": "float32"
                     },
                     {
+                      "name": "expert_input",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
                       "name": "expert_gate_up",
                       "shape": [
                         "T*topk",
@@ -5546,7 +5642,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "expert_down",
+                      "name": "expert_output",
                       "shape": [
                         "T*topk",
                         "H"
@@ -5711,7 +5807,7 @@
                 "role": "mixer",
                 "component": {
                   "kind": "attention",
-                  "variant": "sliding_window",
+                  "variant": "gqa",
                   "heads_q": 64,
                   "heads_kv": 8,
                   "head_dim": 64,
@@ -5783,7 +5879,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "attn_out",
+                      "name": "o",
                       "shape": [
                         "T",
                         "Hq*D/tp"
@@ -5998,6 +6094,14 @@
                       "dtype": "float32"
                     },
                     {
+                      "name": "expert_input",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
                       "name": "expert_gate_up",
                       "shape": [
                         "T*topk",
@@ -6006,7 +6110,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "expert_down",
+                      "name": "expert_output",
                       "shape": [
                         "T*topk",
                         "H"
@@ -6242,7 +6346,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "attn_out",
+                      "name": "o",
                       "shape": [
                         "T",
                         "Hq*D/tp"
@@ -6457,6 +6561,14 @@
                       "dtype": "float32"
                     },
                     {
+                      "name": "expert_input",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
                       "name": "expert_gate_up",
                       "shape": [
                         "T*topk",
@@ -6465,7 +6577,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "expert_down",
+                      "name": "expert_output",
                       "shape": [
                         "T*topk",
                         "H"
@@ -6630,7 +6742,7 @@
                 "role": "mixer",
                 "component": {
                   "kind": "attention",
-                  "variant": "sliding_window",
+                  "variant": "gqa",
                   "heads_q": 64,
                   "heads_kv": 8,
                   "head_dim": 64,
@@ -6702,7 +6814,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "attn_out",
+                      "name": "o",
                       "shape": [
                         "T",
                         "Hq*D/tp"
@@ -6917,6 +7029,14 @@
                       "dtype": "float32"
                     },
                     {
+                      "name": "expert_input",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
                       "name": "expert_gate_up",
                       "shape": [
                         "T*topk",
@@ -6925,7 +7045,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "expert_down",
+                      "name": "expert_output",
                       "shape": [
                         "T*topk",
                         "H"
@@ -7161,7 +7281,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "attn_out",
+                      "name": "o",
                       "shape": [
                         "T",
                         "Hq*D/tp"
@@ -7376,6 +7496,14 @@
                       "dtype": "float32"
                     },
                     {
+                      "name": "expert_input",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
                       "name": "expert_gate_up",
                       "shape": [
                         "T*topk",
@@ -7384,7 +7512,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "expert_down",
+                      "name": "expert_output",
                       "shape": [
                         "T*topk",
                         "H"
@@ -7549,7 +7677,7 @@
                 "role": "mixer",
                 "component": {
                   "kind": "attention",
-                  "variant": "sliding_window",
+                  "variant": "gqa",
                   "heads_q": 64,
                   "heads_kv": 8,
                   "head_dim": 64,
@@ -7621,7 +7749,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "attn_out",
+                      "name": "o",
                       "shape": [
                         "T",
                         "Hq*D/tp"
@@ -7836,6 +7964,14 @@
                       "dtype": "float32"
                     },
                     {
+                      "name": "expert_input",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
                       "name": "expert_gate_up",
                       "shape": [
                         "T*topk",
@@ -7844,7 +7980,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "expert_down",
+                      "name": "expert_output",
                       "shape": [
                         "T*topk",
                         "H"
@@ -8080,7 +8216,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "attn_out",
+                      "name": "o",
                       "shape": [
                         "T",
                         "Hq*D/tp"
@@ -8295,6 +8431,14 @@
                       "dtype": "float32"
                     },
                     {
+                      "name": "expert_input",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
                       "name": "expert_gate_up",
                       "shape": [
                         "T*topk",
@@ -8303,7 +8447,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "expert_down",
+                      "name": "expert_output",
                       "shape": [
                         "T*topk",
                         "H"
@@ -8468,7 +8612,7 @@
                 "role": "mixer",
                 "component": {
                   "kind": "attention",
-                  "variant": "sliding_window",
+                  "variant": "gqa",
                   "heads_q": 64,
                   "heads_kv": 8,
                   "head_dim": 64,
@@ -8540,7 +8684,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "attn_out",
+                      "name": "o",
                       "shape": [
                         "T",
                         "Hq*D/tp"
@@ -8755,6 +8899,14 @@
                       "dtype": "float32"
                     },
                     {
+                      "name": "expert_input",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
                       "name": "expert_gate_up",
                       "shape": [
                         "T*topk",
@@ -8763,7 +8915,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "expert_down",
+                      "name": "expert_output",
                       "shape": [
                         "T*topk",
                         "H"
@@ -8999,7 +9151,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "attn_out",
+                      "name": "o",
                       "shape": [
                         "T",
                         "Hq*D/tp"
@@ -9214,6 +9366,14 @@
                       "dtype": "float32"
                     },
                     {
+                      "name": "expert_input",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
                       "name": "expert_gate_up",
                       "shape": [
                         "T*topk",
@@ -9222,7 +9382,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "expert_down",
+                      "name": "expert_output",
                       "shape": [
                         "T*topk",
                         "H"
@@ -9387,7 +9547,7 @@
                 "role": "mixer",
                 "component": {
                   "kind": "attention",
-                  "variant": "sliding_window",
+                  "variant": "gqa",
                   "heads_q": 64,
                   "heads_kv": 8,
                   "head_dim": 64,
@@ -9459,7 +9619,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "attn_out",
+                      "name": "o",
                       "shape": [
                         "T",
                         "Hq*D/tp"
@@ -9674,6 +9834,14 @@
                       "dtype": "float32"
                     },
                     {
+                      "name": "expert_input",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
                       "name": "expert_gate_up",
                       "shape": [
                         "T*topk",
@@ -9682,7 +9850,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "expert_down",
+                      "name": "expert_output",
                       "shape": [
                         "T*topk",
                         "H"
@@ -9918,7 +10086,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "attn_out",
+                      "name": "o",
                       "shape": [
                         "T",
                         "Hq*D/tp"
@@ -10133,6 +10301,14 @@
                       "dtype": "float32"
                     },
                     {
+                      "name": "expert_input",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
                       "name": "expert_gate_up",
                       "shape": [
                         "T*topk",
@@ -10141,7 +10317,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "expert_down",
+                      "name": "expert_output",
                       "shape": [
                         "T*topk",
                         "H"
@@ -10306,7 +10482,7 @@
                 "role": "mixer",
                 "component": {
                   "kind": "attention",
-                  "variant": "sliding_window",
+                  "variant": "gqa",
                   "heads_q": 64,
                   "heads_kv": 8,
                   "head_dim": 64,
@@ -10378,7 +10554,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "attn_out",
+                      "name": "o",
                       "shape": [
                         "T",
                         "Hq*D/tp"
@@ -10593,6 +10769,14 @@
                       "dtype": "float32"
                     },
                     {
+                      "name": "expert_input",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
                       "name": "expert_gate_up",
                       "shape": [
                         "T*topk",
@@ -10601,7 +10785,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "expert_down",
+                      "name": "expert_output",
                       "shape": [
                         "T*topk",
                         "H"
@@ -10837,7 +11021,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "attn_out",
+                      "name": "o",
                       "shape": [
                         "T",
                         "Hq*D/tp"
@@ -11052,6 +11236,14 @@
                       "dtype": "float32"
                     },
                     {
+                      "name": "expert_input",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
                       "name": "expert_gate_up",
                       "shape": [
                         "T*topk",
@@ -11060,7 +11252,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "expert_down",
+                      "name": "expert_output",
                       "shape": [
                         "T*topk",
                         "H"
@@ -11225,7 +11417,7 @@
                 "role": "mixer",
                 "component": {
                   "kind": "attention",
-                  "variant": "sliding_window",
+                  "variant": "gqa",
                   "heads_q": 64,
                   "heads_kv": 8,
                   "head_dim": 64,
@@ -11297,7 +11489,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "attn_out",
+                      "name": "o",
                       "shape": [
                         "T",
                         "Hq*D/tp"
@@ -11512,6 +11704,14 @@
                       "dtype": "float32"
                     },
                     {
+                      "name": "expert_input",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
                       "name": "expert_gate_up",
                       "shape": [
                         "T*topk",
@@ -11520,7 +11720,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "expert_down",
+                      "name": "expert_output",
                       "shape": [
                         "T*topk",
                         "H"
@@ -11756,7 +11956,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "attn_out",
+                      "name": "o",
                       "shape": [
                         "T",
                         "Hq*D/tp"
@@ -11971,6 +12171,14 @@
                       "dtype": "float32"
                     },
                     {
+                      "name": "expert_input",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
                       "name": "expert_gate_up",
                       "shape": [
                         "T*topk",
@@ -11979,7 +12187,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "expert_down",
+                      "name": "expert_output",
                       "shape": [
                         "T*topk",
                         "H"
@@ -12144,7 +12352,7 @@
                 "role": "mixer",
                 "component": {
                   "kind": "attention",
-                  "variant": "sliding_window",
+                  "variant": "gqa",
                   "heads_q": 64,
                   "heads_kv": 8,
                   "head_dim": 64,
@@ -12216,7 +12424,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "attn_out",
+                      "name": "o",
                       "shape": [
                         "T",
                         "Hq*D/tp"
@@ -12431,6 +12639,14 @@
                       "dtype": "float32"
                     },
                     {
+                      "name": "expert_input",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
                       "name": "expert_gate_up",
                       "shape": [
                         "T*topk",
@@ -12439,7 +12655,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "expert_down",
+                      "name": "expert_output",
                       "shape": [
                         "T*topk",
                         "H"
@@ -12675,7 +12891,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "attn_out",
+                      "name": "o",
                       "shape": [
                         "T",
                         "Hq*D/tp"
@@ -12890,6 +13106,14 @@
                       "dtype": "float32"
                     },
                     {
+                      "name": "expert_input",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
                       "name": "expert_gate_up",
                       "shape": [
                         "T*topk",
@@ -12898,7 +13122,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "expert_down",
+                      "name": "expert_output",
                       "shape": [
                         "T*topk",
                         "H"
@@ -13063,7 +13287,7 @@
                 "role": "mixer",
                 "component": {
                   "kind": "attention",
-                  "variant": "sliding_window",
+                  "variant": "gqa",
                   "heads_q": 64,
                   "heads_kv": 8,
                   "head_dim": 64,
@@ -13135,7 +13359,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "attn_out",
+                      "name": "o",
                       "shape": [
                         "T",
                         "Hq*D/tp"
@@ -13350,6 +13574,14 @@
                       "dtype": "float32"
                     },
                     {
+                      "name": "expert_input",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
                       "name": "expert_gate_up",
                       "shape": [
                         "T*topk",
@@ -13358,7 +13590,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "expert_down",
+                      "name": "expert_output",
                       "shape": [
                         "T*topk",
                         "H"
@@ -13594,7 +13826,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "attn_out",
+                      "name": "o",
                       "shape": [
                         "T",
                         "Hq*D/tp"
@@ -13809,6 +14041,14 @@
                       "dtype": "float32"
                     },
                     {
+                      "name": "expert_input",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
                       "name": "expert_gate_up",
                       "shape": [
                         "T*topk",
@@ -13817,7 +14057,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "expert_down",
+                      "name": "expert_output",
                       "shape": [
                         "T*topk",
                         "H"
@@ -13982,7 +14222,7 @@
                 "role": "mixer",
                 "component": {
                   "kind": "attention",
-                  "variant": "sliding_window",
+                  "variant": "gqa",
                   "heads_q": 64,
                   "heads_kv": 8,
                   "head_dim": 64,
@@ -14054,7 +14294,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "attn_out",
+                      "name": "o",
                       "shape": [
                         "T",
                         "Hq*D/tp"
@@ -14269,6 +14509,14 @@
                       "dtype": "float32"
                     },
                     {
+                      "name": "expert_input",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
                       "name": "expert_gate_up",
                       "shape": [
                         "T*topk",
@@ -14277,7 +14525,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "expert_down",
+                      "name": "expert_output",
                       "shape": [
                         "T*topk",
                         "H"
@@ -14513,7 +14761,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "attn_out",
+                      "name": "o",
                       "shape": [
                         "T",
                         "Hq*D/tp"
@@ -14728,6 +14976,14 @@
                       "dtype": "float32"
                     },
                     {
+                      "name": "expert_input",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
                       "name": "expert_gate_up",
                       "shape": [
                         "T*topk",
@@ -14736,7 +14992,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "expert_down",
+                      "name": "expert_output",
                       "shape": [
                         "T*topk",
                         "H"
@@ -14901,7 +15157,7 @@
                 "role": "mixer",
                 "component": {
                   "kind": "attention",
-                  "variant": "sliding_window",
+                  "variant": "gqa",
                   "heads_q": 64,
                   "heads_kv": 8,
                   "head_dim": 64,
@@ -14973,7 +15229,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "attn_out",
+                      "name": "o",
                       "shape": [
                         "T",
                         "Hq*D/tp"
@@ -15188,6 +15444,14 @@
                       "dtype": "float32"
                     },
                     {
+                      "name": "expert_input",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
                       "name": "expert_gate_up",
                       "shape": [
                         "T*topk",
@@ -15196,7 +15460,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "expert_down",
+                      "name": "expert_output",
                       "shape": [
                         "T*topk",
                         "H"
@@ -15432,7 +15696,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "attn_out",
+                      "name": "o",
                       "shape": [
                         "T",
                         "Hq*D/tp"
@@ -15647,6 +15911,14 @@
                       "dtype": "float32"
                     },
                     {
+                      "name": "expert_input",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
                       "name": "expert_gate_up",
                       "shape": [
                         "T*topk",
@@ -15655,7 +15927,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "expert_down",
+                      "name": "expert_output",
                       "shape": [
                         "T*topk",
                         "H"
@@ -15820,7 +16092,7 @@
                 "role": "mixer",
                 "component": {
                   "kind": "attention",
-                  "variant": "sliding_window",
+                  "variant": "gqa",
                   "heads_q": 64,
                   "heads_kv": 8,
                   "head_dim": 64,
@@ -15892,7 +16164,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "attn_out",
+                      "name": "o",
                       "shape": [
                         "T",
                         "Hq*D/tp"
@@ -16107,6 +16379,14 @@
                       "dtype": "float32"
                     },
                     {
+                      "name": "expert_input",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
                       "name": "expert_gate_up",
                       "shape": [
                         "T*topk",
@@ -16115,7 +16395,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "expert_down",
+                      "name": "expert_output",
                       "shape": [
                         "T*topk",
                         "H"
@@ -16351,7 +16631,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "attn_out",
+                      "name": "o",
                       "shape": [
                         "T",
                         "Hq*D/tp"
@@ -16566,6 +16846,14 @@
                       "dtype": "float32"
                     },
                     {
+                      "name": "expert_input",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
                       "name": "expert_gate_up",
                       "shape": [
                         "T*topk",
@@ -16574,7 +16862,7 @@
                       "dtype": "bfloat16"
                     },
                     {
-                      "name": "expert_down",
+                      "name": "expert_output",
                       "shape": [
                         "T*topk",
                         "H"
