@@ -13,7 +13,7 @@ import { spawnSync } from "node:child_process";
  *           versions. None of this is publication data.
  */
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parse } from "yaml";
 
@@ -32,9 +32,9 @@ if (process.env.INFERATLAS_DATA_DIR) {
     console.error(`[sync-data] ${src} has no index.json`);
     process.exit(1);
   }
-  if (src === out) {
-    console.log(`[sync-data] using ${out} in place`);
-    process.exit(0);
+  if (src === out || src.startsWith(`${out}${sep}`) || out.startsWith(`${src}${sep}`)) {
+    console.error("[sync-data] release input must be separate from web/public/data");
+    process.exit(1);
   }
   rmSync(out, { recursive: true, force: true });
   cpSync(src, out, { recursive: true });

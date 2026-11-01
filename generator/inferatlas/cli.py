@@ -357,6 +357,12 @@ def annotate_stage(ir: IR, extracts: list[Extract], triage: Triage) -> tuple[IR,
             for _, module_fact in facts:
                 if module_fact.ascend:
                     observed.add(module_fact.ascend.class_name)
+            contexts = [annotation_context(extract, fact) for extract, fact in facts]
+            context_agrees = (
+                bool(contexts)
+                and all(ctx == contexts[0] for ctx in contexts)
+                and all(any(source is extract for source, _ in facts) for extract in extracts)
+            )
             swaps = observed.copy()
             for extract in extracts:
                 if extract.ascend:
@@ -373,9 +379,9 @@ def annotate_stage(ir: IR, extracts: list[Extract], triage: Triage) -> tuple[IR,
                 ann = item.annotation
                 if ann.resolves_to not in observed:
                     continue
-                contexts = [{**env, **annotation_context(extract, fact)} for extract, fact in facts]
                 outcomes = set()
-                for context in contexts:
+                for fixed_context in contexts:
+                    context = {**env, **fixed_context}
                     if set(validate(ann.applies_when)) <= context.keys():
                         key = (ann.applies_when, tuple(sorted(context.items())))
                         if key not in evaluated:
@@ -383,9 +389,9 @@ def annotate_stage(ir: IR, extracts: list[Extract], triage: Triage) -> tuple[IR,
                         outcomes.add(evaluated[key])
                     else:
                         outcomes.add(None)
-                if outcomes == {True}:
+                if outcomes == {True} and context_agrees:
                     candidates.append(ann)
-                elif outcomes != {False}:
+                elif outcomes != {False} or not context_agrees:
                     pending.append(
                         ConditionalOverride(
                             kind="conditional_override",
@@ -397,7 +403,7 @@ def annotate_stage(ir: IR, extracts: list[Extract], triage: Triage) -> tuple[IR,
             if len(candidates) == 1:
                 bindings[node.id] = candidates[0].id
                 active.add(candidates[0].id)
-                contexts_by_node[node.id] = annotation_context(*facts[0])
+                contexts_by_node[node.id] = contexts[0]
             elif len(candidates) > 1:
                 pending.append(
                     ConditionalOverride(
@@ -762,7 +768,6 @@ def site(
 ) -> None:
     """Copy build outputs, generate the version/model index and build the web app."""
     build_root = build_root or ROOT / ".cache/build"
-    data_dir = data_dir or ROOT / "web/public/data"
     data = catalog()
     cells = {}
     artifacts = []
@@ -800,7 +805,7 @@ def site(
         code = max(code, status)
         relative = Path(directory.parent.name) / model.id
         for name, value in (("ir", ir), ("view", view), ("report", report)):
-            artifacts.append((data_dir / relative / f"{name}.json", value))
+            artifacts.append((relative / f"{name}.json", value))
         cells[key] = dict(
             version=pair.id,
             model=model.id,
@@ -840,20 +845,28 @@ def site(
         ],
         cells=[cells[k] for k in sorted(cells)],
     )
-    for path, value in artifacts:
-        write_json(path, value)
-    write_json(data_dir / "index.json", index)
-    write_json(
-        data_dir / "hardware.json",
-        [p.model_dump(mode="json") for p in sorted(data.hardware_presets, key=lambda p: p.id)],
-    )
-    subprocess.run(
-        ["pnpm", "--filter", "web", "build"],
-        cwd=ROOT,
-        env={**os.environ, "INFERATLAS_DATA_DIR": str(data_dir.resolve())},
-        check=True,
-        timeout=300,
-    )
+    if data_dir is not None:
+        data_dir.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(
+        prefix="inferatlas-site-", dir=data_dir.parent if data_dir is not None else None
+    ) as temporary:
+        fresh_data = Path(temporary) / "data"
+        for path, value in artifacts:
+            write_json(fresh_data / path, value)
+        write_json(fresh_data / "index.json", index)
+        write_json(
+            fresh_data / "hardware.json",
+            [p.model_dump(mode="json") for p in sorted(data.hardware_presets, key=lambda p: p.id)],
+        )
+        subprocess.run(
+            ["pnpm", "--filter", "web", "build"],
+            cwd=ROOT,
+            env={**os.environ, "INFERATLAS_DATA_DIR": str(fresh_data.resolve())},
+            check=True,
+            timeout=300,
+        )
+        if data_dir is not None:
+            publish_directory(fresh_data, data_dir)
     raise typer.Exit(code)
 
 

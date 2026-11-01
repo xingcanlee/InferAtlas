@@ -173,7 +173,18 @@ export function runtimeAnnotations(ir: IR, env: ExprEnv): IR {
       const annotation = node.ascend;
       if (!annotation?.applies_when) return node;
       const result = tryEvaluate(annotation.applies_when, { ...env, ...annotation.context });
-      return result.ok && result.value !== 0 ? node : { ...node, ascend: null };
+      return result.ok && result.value !== 0
+        ? node
+        : {
+            ...node,
+            ascend: {
+              ...annotation,
+              tag: [],
+              level: "KERNEL" as const,
+              annotation_id: "",
+              note: "Ascend 替换 — 当前参数下无已审阅说明",
+            },
+          };
     }),
   };
 }

@@ -551,7 +551,40 @@ def test_annotations_select_per_node_and_keep_collisions(monkeypatch, runtime):
         lambda graph, anns, **kw: calls.append(kw) or graph,
     )
     _, triage = cli.annotate_stage(ir, [primary], Triage(snapshot=ir.snapshot, items=[]))
-    assert not any(item.symbol == node.class_name for item in triage.items)
+    expected = {
+        ("fused_moe.routed_experts.RoutedExperts", "fused_moe.routed_experts.AscendRoutedExperts"),
+        ("fused_moe.router.gate_linear.GateLinear", "fused_moe.gate_linear.AscendGateLinear"),
+        ("fused_moe.runner.moe_runner.MoERunner", "fused_moe.fused_moe.AscendMoERunner"),
+        (
+            "fused_moe.unquantized_fused_moe_method.UnquantizedFusedMoEMethod",
+            "fused_moe.routed_experts.AscendUnquantizedFusedMoEMethod",
+        ),
+        ("layernorm.RMSNorm", "layernorm.AscendRMSNorm"),
+        ("linear.QKVParallelLinear", "linear.AscendQKVParallelLinear"),
+        ("logits_processor.LogitsProcessor", "vocab_parallel_embedding.AscendLogitsProcessor"),
+        ("rotary_embedding.base.RotaryEmbedding", "rotary_embedding.AscendRotaryEmbedding"),
+        ("rotary_embedding.common.ApplyRotaryEmb", "rotary_embedding.AscendApplyRotaryEmb"),
+        (
+            "vocab_parallel_embedding.ParallelLMHead",
+            "vocab_parallel_embedding.AscendParallelLMHead",
+        ),
+        (
+            "vocab_parallel_embedding.VocabParallelEmbedding",
+            "vocab_parallel_embedding.AscendVocabParallelEmbedding",
+        ),
+    }
+    assert {
+        (item.symbol, tuple(item.candidates), item.reason, tuple(item.conditions))
+        for item in triage.items
+    } == {
+        (
+            f"vllm.model_executor.layers.{symbol}",
+            (f"vllm_ascend.ops.{replacement}",),
+            "unannotated_override",
+            (),
+        )
+        for symbol, replacement in expected
+    }
     assert calls[-1]["bindings"]["attn.o"] == "parallel"
     assert calls[-1]["bindings"]["mlp.down"] == "kernel"
     resolved.append(
@@ -568,6 +601,64 @@ def test_annotations_select_per_node_and_keep_collisions(monkeypatch, runtime):
     _, triage = cli.annotate_stage(ir, [primary], Triage(snapshot=ir.snapshot, items=[]))
     assert "attn.o" not in calls[-1]["bindings"]
     assert any(len(item.candidates) == 2 for item in triage.items)
+
+
+@pytest.mark.parametrize("reverse", [False, True])
+def test_annotation_context_must_agree_across_extracts(monkeypatch, runtime, reverse):
+    ir = IR.model_validate(read_json(FIXTURE / "ir.json"))
+    primary = Extract.model_validate(read_json(FIXTURE / "extract.json"))
+    secondary = primary.model_copy(deep=True)
+    secondary.parallel.tp = 4
+    # This fact is outside the predicate; equal outcomes must not hide context drift.
+    secondary.ascend.profile["enable_fused_mc2"] = True
+    row = next(m for m in primary.modules if m.path.endswith("o_proj"))
+    annotation = SimpleNamespace(id="row", resolves_to=row.ascend.class_name, applies_when="is_a2")
+    calls = []
+    monkeypatch.setattr(cli, "Evaluator", lambda *args: runtime)
+    monkeypatch.setattr(inferatlas.annotations, "load_annotations", lambda path: [])
+    monkeypatch.setattr(
+        inferatlas.annotations,
+        "check_annotations",
+        lambda *args: ([SimpleNamespace(annotation=annotation, src=[])], []),
+    )
+    monkeypatch.setattr(
+        inferatlas.annotations,
+        "apply_annotations",
+        lambda graph, anns, **kw: calls.append(kw) or graph,
+    )
+    extracts = [secondary, primary] if reverse else [primary, secondary]
+    _, triage = cli.annotate_stage(ir, extracts, Triage(snapshot=ir.snapshot, items=[]))
+    assert calls[-1] == {"bindings": {}, "active_ids": set()}
+    assert any(
+        item.symbol == row.class_name and item.conditions == ["is_a2"] for item in triage.items
+    )
+    assert (
+        cli.exit_code(
+            Report(snapshot=ir.snapshot, checks=[], golden_diff=[], source_link_failures=[]), triage
+        )
+        == 2
+    )
+
+
+def test_site_hands_off_fresh_data_and_replaces_explicit_export(tmp_path, monkeypatch):
+    site_build(tmp_path, 0)
+    export = tmp_path / "data"
+    write_json(export / "stale.json", {})
+    seen = []
+
+    def run(command, **kwargs):
+        data = Path(kwargs["env"]["INFERATLAS_DATA_DIR"])
+        assert data != export and data != ROOT / "web/public/data"
+        assert not (data / "stale.json").exists()
+        assert (data / "index.json").is_file()
+        seen.append(data)
+
+    monkeypatch.setattr(cli.subprocess, "run", run)
+    invoke("site", "--build-root", tmp_path / "build", "--data-dir", export)
+    assert not (export / "stale.json").exists()
+    assert (export / "index.json").is_file()
+    invoke("site", "--build-root", tmp_path / "build")
+    assert len(seen) == 2 and all(not path.exists() for path in seen)
 
 
 def test_optional_does_not_hide_a_broken_installed_stage(monkeypatch):

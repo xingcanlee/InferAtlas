@@ -255,6 +255,8 @@ def test_report_contract_and_exit_precedence(ir, runtime, monkeypatch, tmp_path)
     report = verify_ir(ir, triage=triage, repos={}, evaluator=runtime, golden_dir=tmp_path)
     assert Report.model_validate_json(report.model_dump_json()) == report
     assert exit_code(report, triage) == 2
+    assert next(c for c in report.checks if c.id == "golden").status == "skip"
+    assert report.golden_diff == []
     assert next(c for c in report.checks if c.id == "evaluation").status == "pass"
     report.checks.append(Check(id="golden", status="fail", message="drift"))
     assert exit_code(report, triage) == 3

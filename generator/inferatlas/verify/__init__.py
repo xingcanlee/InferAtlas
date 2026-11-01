@@ -82,18 +82,23 @@ def verify_ir(
         except (ValueError, KeyError, OSError, RuntimeError, subprocess.SubprocessError) as error:
             checks.append(Check(id=check_id, status="fail", message=str(error)))
     diffs = []
-    try:
-        diffs = check_golden(golden_dir or golden_path(ir), ir, evaluator)
+    if triage and triage.items:
         checks.append(
-            Check(
-                id="golden",
-                status="fail" if diffs else "pass",
-                message=f"{len(diffs)} golden differences.",
-            )
+            Check(id="golden", status="skip", message="Blocked by triage; resolve it first.")
         )
-    except (OSError, ValueError, KeyError, RuntimeError, subprocess.SubprocessError) as error:
-        message = "Golden inputs unavailable." if isinstance(error, OSError) else str(error)
-        checks.append(Check(id="golden", status="fail", message=message))
+    else:
+        try:
+            diffs = check_golden(golden_dir or golden_path(ir), ir, evaluator)
+            checks.append(
+                Check(
+                    id="golden",
+                    status="fail" if diffs else "pass",
+                    message=f"{len(diffs)} golden differences.",
+                )
+            )
+        except (OSError, ValueError, KeyError, RuntimeError, subprocess.SubprocessError) as error:
+            message = "Golden inputs unavailable." if isinstance(error, OSError) else str(error)
+            checks.append(Check(id="golden", status="fail", message=message))
     unavailable = evaluator.backend != "node"
     checks.append(
         Check(

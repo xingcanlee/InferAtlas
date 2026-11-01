@@ -138,7 +138,7 @@ uses `weight_nz_mode=1`. Thus BF16/FP16 linear weights stay ND on A2's extracted
 weights; FP32, singleton matrix dimensions and explicit conversion skip flags
 exclude conversion. This describes intended loaded weights, not meta conversion.
 Use the node's prefix and selector settings for custom parallelism: Qwen's
-`o_proj` requires independent o_proj TP; `gate_up_proj` requires independent MLP
+`o_proj` requires independent o_proj TP; `gate_up_proj` and `down_proj` require independent MLP
 TP. QKV never inherits either lane. Use each embedding/head's actual parallel
 plan for vocabulary overrides (and the head plan for logits).
 
@@ -196,12 +196,21 @@ commit. BF16 default A2 weights use the ordinary kernel lane; rotary adds a deri
 cache and is LAYOUT. No post-load conversion is inferred from a meta tensor.
 
 The selected note is emitted as `IRNode.ascend.applies_when` with a boolean
-`context` of fixed extraction facts. The browser re-evaluates that predicate using
-current runtime parameters after every edit; a false/unknown predicate hides that
-note and its badges. `dtype_w` is a runtime parameter, never frozen into context.
+`context` of fixed extraction facts. Context is emitted only when the complete
+boolean mapping is identical across every matched module in every supplied TP
+extract. Any difference, even in a fact unused by the selected predicate, leaves
+the note unbound and produces blocking `conditional_override` triage. This avoids
+freezing a lowest-TP constructor setting into a context used at all runtime TPs;
+per-TP contexts are not part of the current contract.
+
+The browser re-evaluates that predicate using current runtime parameters after
+every edit; a false/unknown predicate replaces the note with
+"Ascend 替换 — 当前参数下无已审阅说明", retaining the replacement class and source
+links while removing the note's badges and annotation identifier.
+`dtype_w` is a runtime parameter, never frozen into context.
 Only notes active at build defaults are emitted. For this pinned worker all notes
 require BF16 and all alternate lanes depend on fixed constructor settings, so a
-runtime edit cannot activate an omitted lane. Changing dtype away from BF16 removes
-the note; returning to BF16 restores it. Additional-config/quantization controls
+runtime edit cannot activate an omitted lane. Changing dtype away from BF16 shows
+the replacement marker; returning to BF16 restores the note. Additional-config/quantization controls
 require new extraction facts and emitting all selectable lanes before exposing
 those settings as runtime controls.

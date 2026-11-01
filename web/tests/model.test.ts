@@ -81,8 +81,17 @@ it("re-evaluates annotation predicates after runtime dtype changes", async () =>
   expect(
     runtimeAnnotations(source, { dtype_w: "bf16" }).nodes.find((n) => n.id === node.id)?.ascend,
   ).toBeTruthy();
+  const inactiveEnvs: Record<string, string>[] = [{ dtype_w: "fp16" }, {}];
+  for (const env of inactiveEnvs) {
+    const fallback = runtimeAnnotations(source, env).nodes.find((n) => n.id === node.id)?.ascend;
+    expect(fallback?.note).toBe("Ascend 替换 — 当前参数下无已审阅说明");
+    expect(fallback?.src).toEqual(node.ascend.src);
+    expect(fallback?.src.some((s) => s.symbol.includes("Ascend"))).toBe(true);
+    expect(fallback?.tag).toEqual([]);
+    expect(fallback?.annotation_id).toBe("");
+  }
   expect(
-    runtimeAnnotations(source, { dtype_w: "fp16" }).nodes.find((n) => n.id === node.id)?.ascend,
-  ).toBeNull();
+    runtimeAnnotations(source, { dtype_w: "bf16" }).nodes.find((n) => n.id === node.id)?.ascend,
+  ).toEqual(node.ascend);
   expect(node.ascend).toBeTruthy();
 });

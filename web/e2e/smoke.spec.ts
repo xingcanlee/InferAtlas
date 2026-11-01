@@ -169,14 +169,18 @@ if (!demo) {
     await expect(page.getByTestId("node-detail")).toContainText("RowParallelLinear");
   });
 
-  test("changing runtime dtype removes and restores a conditional Ascend note", async ({
+  test("changing runtime dtype keeps the replacement marker and restores its note", async ({
     page,
   }) => {
     await page.goto(`./${MODEL}?view=L2%3Aattn&node=attn.o&overlay=true`);
-    await expect(page.getByTestId("ascend-card")).toBeVisible();
+    const card = page.getByTestId("ascend-card");
+    await expect(card).toBeVisible();
+    await expect(card).not.toContainText("当前参数下无已审阅说明");
     await page.getByTestId("param-dtype_w").getByText("fp16", { exact: true }).click();
-    await expect(page.getByTestId("ascend-card")).toHaveCount(0);
+    await expect(card).toContainText("Ascend 替换 — 当前参数下无已审阅说明");
+    await expect(card).toContainText("AscendRowParallelLinear");
+    await expect(card.locator('a[href*="vllm-ascend"]')).not.toHaveCount(0);
     await page.getByTestId("param-dtype_w").getByText("bf16", { exact: true }).click();
-    await expect(page.getByTestId("ascend-card")).toBeVisible();
+    await expect(card).not.toContainText("当前参数下无已审阅说明");
   });
 }

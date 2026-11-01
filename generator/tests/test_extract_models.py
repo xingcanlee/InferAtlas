@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pytest
 from jsonschema import Draft202012Validator
+from t6_runtime import node_backend as node_backend
 
 from inferatlas.extract import ExtractionError, extract
 from inferatlas.resolve import ROOT, experiment_dir, resolve, source_dir
@@ -43,6 +44,29 @@ def parameters(value):
         for module in value.modules
         for param in module.params
     }
+
+
+def test_build_with_empty_annotations_exits_triage(observed, tmp_path, monkeypatch, node_backend):
+    from typer.testing import CliRunner
+
+    import inferatlas.annotations
+    import inferatlas.cli as cli
+
+    # Replay real CPU facts while exercising the CLI's production lower/verify/layout stages.
+    facts = observed("qwen3-8b", device="A2")
+    monkeypatch.delenv("INFERATLAS_ALLOW_FIXTURES", raising=False)
+    monkeypatch.setattr(cli, "extract_stage", lambda *args: facts)
+    monkeypatch.setattr(inferatlas.annotations, "load_annotations", lambda path: [])
+    result = CliRunner().invoke(
+        cli.app, ["build", "--model", "qwen3-8b", "--tp", "1", "--output", str(tmp_path)]
+    )
+    assert result.exit_code == 2, result.output or repr(result.exception)
+    report = json.loads((tmp_path / "report.json").read_text())
+    assert next(c for c in report["checks"] if c["id"] == "golden")["status"] == "skip"
+    assert report["golden_diff"] == []
+    assert not any(c["status"] == "fail" for c in report["checks"] if c["id"] != "coverage")
+    triage = json.loads((tmp_path / "triage.json").read_text())
+    assert any(item.get("reason") == "unannotated_override" for item in triage["items"])
 
 
 def param_count(value):

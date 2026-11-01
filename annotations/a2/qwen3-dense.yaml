@@ -244,8 +244,9 @@
     (custom_parallel)
   id: a2.qwen3_dense.linear.row.parallel
   level: SEMANTIC
-  note: 输出投影经 get_parallel_op 选择 OProjRowParallelOp；启用 o_proj
-    独立张量并行时，权重分片和通信使用独立 oproj TP 组，须按实际配置建模。
+  note: get_parallel_op 为 o_proj 选择 OProjRowParallelOp，为 down_proj 选择
+    MLPRowParallelOp；启用对应的独立张量并行时，权重分片和通信分别使用独立 oproj 或 MLP
+    TP 组，down_proj 的输出沿 token 维 reduce-scatter，须按实际配置建模。
   resolves_to: vllm_ascend.ops.linear.AscendRowParallelLinear
   reviewed_by: pending
   tag: [OOT]
