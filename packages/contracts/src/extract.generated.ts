@@ -169,7 +169,7 @@ export interface ExtractModule {
    * Observed replacement, absent/null if class identity did not change.
    */
   ascend?: ExtractOverride | null;
-  attrs?: Attrs;
+  attrs?: Attrs1;
   class: Class1;
   params?: Params;
   path: Path;
@@ -179,8 +179,15 @@ export interface ExtractModule {
   src?: SourceRef1 | null;
 }
 export interface ExtractOverride {
+  attrs?: Attrs;
   class: Class;
   src: SourceRef;
+}
+/**
+ * Optional whitelisted replacement attributes from the CPU/meta instance.
+ */
+export interface Attrs {
+  [k: string]: JsonValue;
 }
 /**
  * Actual replacement declaration from immutable source.
@@ -195,7 +202,7 @@ export interface SourceRef {
 /**
  * Whitelisted observed attributes; partition/head attrs are per-rank facts, constructor input_size/output_size can be global. Lower normalizes GLOBAL rule context, never divides local attrs twice.
  */
-export interface Attrs {
+export interface Attrs1 {
   [k: string]: JsonValue;
 }
 export interface ExtractParam {

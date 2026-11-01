@@ -86,6 +86,24 @@ export function validateView(value: unknown): asserts value is View {
         if (x > graph.width || y > graph.height) throw new Error(`Edge outside canvas: ${edge.id}`);
         if (previous && previous[0] !== x && previous[1] !== y)
           throw new Error(`Diagonal edge: ${edge.id}`);
+        if (previous && Math.abs(previous[0] - x) + Math.abs(previous[1] - y) <= 8)
+          throw new Error(`Tiny edge segment: ${edge.id}`);
+      }
+      for (const [id, point] of [
+        [edge.from, edge.points[0]],
+        [edge.to, edge.points.at(-1)],
+      ] as const) {
+        const node = graph.nodes.find((node) => node.id === id);
+        if (!node || !point) throw new Error(`Missing view endpoint: ${edge.id}`);
+        const [x, y] = point as [number, number];
+        if (
+          x < node.x ||
+          x > node.x + node.w ||
+          y < node.y ||
+          y > node.y + node.h ||
+          (x !== node.x && x !== node.x + node.w && y !== node.y && y !== node.y + node.h)
+        )
+          throw new Error(`Detached edge endpoint: ${edge.id}`);
       }
     }
   }

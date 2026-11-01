@@ -3,7 +3,7 @@
 /**
  * Default hardware_presets[].id for this device.
  */
-export type HardwarePreset = string;
+export type HardwarePresetId = string;
 /**
  * Supported extraction device family.
  */
@@ -37,9 +37,17 @@ export type InterconnectGbps = number | null;
  */
 export type Label = string;
 /**
+ * Estimated communication/runtime workspace deduction; not a measurement.
+ */
+export type NonTorchBytes = number;
+/**
  * Variant, sparsity/duplex conventions and TODOs for uncertain specifications.
  */
 export type Notes = string[];
+/**
+ * Estimated graph capture/allocator deduction; not a measurement.
+ */
+export type ReservedBytes = number;
 /**
  * Provenance class; these are specs, not measured throughput.
  */
@@ -51,7 +59,7 @@ export type SourceUrl = string;
 /**
  * Roofline/memory presets including H100 reference, sorted by id.
  */
-export type HardwarePresets = HardwarePreset1[];
+export type HardwarePresets = HardwarePreset[];
 export type JsonValue = unknown;
 /**
  * HF commit SHA or inline:sha256:<canonical-config-hash>; no weights revision.
@@ -101,18 +109,20 @@ export interface Catalog {
   version_pairs: VersionPairs;
 }
 export interface CatalogDevice {
-  hardware_preset: HardwarePreset;
+  hardware_preset: HardwarePresetId;
   id: Id;
 }
-export interface HardwarePreset1 {
+export interface HardwarePreset {
   bandwidth_gbps: BandwidthGbps;
   device: Device;
   hbm_gb: HbmGb;
   id: Id1;
   interconnect_gbps: InterconnectGbps;
   label: Label;
+  non_torch_bytes?: NonTorchBytes;
   notes?: Notes;
   peak_tflops: PeakTflops;
+  reserved_bytes?: ReservedBytes;
   source: Source;
   source_url: SourceUrl;
 }

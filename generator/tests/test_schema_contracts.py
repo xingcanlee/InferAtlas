@@ -48,7 +48,7 @@ def test_schema_catalog():
     Draft202012Validator(read(ROOT / "schemas/catalog.schema.json")).validate(data)
     catalog = Catalog.model_validate(data)
     assert len(catalog.models) == 3
-    assert {d.id for d in catalog.devices} == {"A2", "A3", "A5", "310P"}
+    assert {d.id for d in catalog.devices} == {"A2", "A3", "A5", "310P", "H100"}
     assert {p.device for p in catalog.hardware_presets} == {"A2", "A3", "A5", "310P", "H100"}
     for model in catalog.models:
         digest = hashlib.sha256(

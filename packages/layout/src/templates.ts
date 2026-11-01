@@ -137,6 +137,12 @@ export function templates(ir: IR, warn: (message: string) => void): Template[] {
       edges: byId([...routes.values()]),
       collapsed_of: scope.map((node) => node.id).sort(compare),
     };
+    if (visible.length > 1) {
+      const connected = new Set(result.edges.flatMap((edge) => [edge.from, edge.to]));
+      for (const node of result.nodes) {
+        if (!connected.has(node.node.id)) warn(`${id}: edgeless visible node ${node.node.id}.`);
+      }
+    }
     const issues = checkBudget(result);
     if (issues.length && !supported) {
       warn(`${issues.join("; ")}; collapsing generic fallback to one summary (see IR).`);
@@ -223,6 +229,15 @@ export function templates(ir: IR, warn: (message: string) => void): Template[] {
       const isMlp = role === "mlp" || role === "moe" || /(?:MLP|MoeBlock|MoE)$/.test(group.class);
       if (!isAttention && !isMlp) continue;
       const internals = descendants(group.id);
+      const merged = new Map<string, string>();
+      if (isAttention) {
+        for (const node of internals) {
+          if (node.id.endsWith(".rope.apply")) {
+            const owner = node.id.slice(0, -6);
+            if (lookup.has(owner)) merged.set(node.id, owner);
+          }
+        }
+      }
       if (!internals.length) {
         warn(`Node ${group.id}: no internals in IR; drill-down is unavailable.`);
         continue;
@@ -241,6 +256,7 @@ export function templates(ir: IR, warn: (message: string) => void): Template[] {
         candidates.filter((node) => node.kind === "group").map((node) => node.id),
       );
       const visible = candidates.filter((node) => {
+        if (merged.has(node.id)) return false;
         let parent = node.parent;
         while (parent && parent !== group.id) {
           if (summaries.has(parent)) return false;
@@ -252,7 +268,13 @@ export function templates(ir: IR, warn: (message: string) => void): Template[] {
         warn(`Node ${group.id}: no curated MLP/MoE operations matched; using generic children.`);
       }
       result.push(
-        project(`L2:${group.id}`, internals, visible.length ? visible : children(group.id)),
+        project(
+          `L2:${group.id}`,
+          internals,
+          visible.length ? visible : children(group.id),
+          new Map(),
+          merged,
+        ),
       );
     }
   }

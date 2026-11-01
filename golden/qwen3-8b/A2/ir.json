@@ -513,7 +513,38 @@
       "weight_bytes": "0"
     },
     {
-      "ascend": null,
+      "ascend": {
+        "annotation_id": "a2.qwen3_dense.rms_norm",
+        "applies_when": "is_a2 && is_qwen3_dense && unquantized && dtype_w == bf16",
+        "context": {
+          "capture_routing": false,
+          "custom_parallel": false,
+          "fused_mc2": false,
+          "is_a2": true,
+          "is_qwen3_dense": true,
+          "is_qwen3_moe": false,
+          "linear_nz": false,
+          "mtp_draft": false,
+          "redundant_experts": false,
+          "unquantized": true,
+          "use_mrope": false,
+          "vocab_parallel_override": false
+        },
+        "level": "KERNEL",
+        "note": "未量化路径以昇腾归一化及残差融合内核替换实现，保持归一化维度和权重；量化反偏置路径需另行审阅。",
+        "src": [
+          {
+            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+            "file": "vllm_ascend/ops/layernorm.py",
+            "line": 47,
+            "repo": "vllm-ascend",
+            "symbol": "vllm_ascend.ops.layernorm.AscendRMSNorm"
+          }
+        ],
+        "tag": [
+          "OOT"
+        ]
+      },
       "bytes_moved": {
         "decode": "D*bytes(dtype_w)+2*S*D*max(1,Hkv/tp)*bytes(dtype_a)",
         "prefill": "D*bytes(dtype_w)+2*T*D*max(1,Hkv/tp)*bytes(dtype_a)"
@@ -574,7 +605,66 @@
       "weight_bytes": "D*bytes(dtype_w)"
     },
     {
-      "ascend": null,
+      "ascend": {
+        "annotation_id": "a2.qwen3_dense.linear.row.kernel",
+        "applies_when": "is_a2 && is_qwen3_dense && unquantized && dtype_w == bf16 && (!custom_parallel && !linear_nz)",
+        "context": {
+          "capture_routing": false,
+          "custom_parallel": false,
+          "fused_mc2": false,
+          "is_a2": true,
+          "is_qwen3_dense": true,
+          "is_qwen3_moe": false,
+          "linear_nz": false,
+          "mtp_draft": false,
+          "redundant_experts": false,
+          "unquantized": true,
+          "use_mrope": false,
+          "vocab_parallel_override": false
+        },
+        "level": "KERNEL",
+        "note": "o_proj 与 down_proj 沿用标准张量并行分片及通信，未启用 NZ 权重转换时仅替换矩阵乘内核。",
+        "src": [
+          {
+            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+            "file": "vllm_ascend/ops/linear.py",
+            "line": 107,
+            "repo": "vllm-ascend",
+            "symbol": "vllm_ascend.ops.linear.AscendUnquantizedLinearMethod.process_weights_after_loading"
+          },
+          {
+            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+            "file": "vllm_ascend/ops/linear.py",
+            "line": 309,
+            "repo": "vllm-ascend",
+            "symbol": "vllm_ascend.ops.linear.AscendRowParallelLinear"
+          },
+          {
+            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+            "file": "vllm_ascend/ops/linear_op.py",
+            "line": 397,
+            "repo": "vllm-ascend",
+            "symbol": "vllm_ascend.ops.linear_op._get_row_parallel_op"
+          },
+          {
+            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+            "file": "vllm_ascend/utils.py",
+            "line": 350,
+            "repo": "vllm-ascend",
+            "symbol": "vllm_ascend.utils._should_trans_nz"
+          },
+          {
+            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+            "file": "vllm_ascend/utils.py",
+            "line": 392,
+            "repo": "vllm-ascend",
+            "symbol": "vllm_ascend.utils.maybe_trans_nz"
+          }
+        ],
+        "tag": [
+          "OOT"
+        ]
+      },
       "bytes_moved": {
         "decode": "((H/tp*H*bytes(dtype_w))+(false ? (H)*bytes(dtype_w) : 0))+S*((H/tp)+(H))*bytes(dtype_a)",
         "prefill": "((H/tp*H*bytes(dtype_w))+(false ? (H)*bytes(dtype_w) : 0))+T*((H/tp)+(H))*bytes(dtype_a)"
@@ -636,7 +726,66 @@
       "weight_bytes": "(H/tp*H*bytes(dtype_w))+(false ? (H)*bytes(dtype_w) : 0)"
     },
     {
-      "ascend": null,
+      "ascend": {
+        "annotation_id": "a2.qwen3_dense.linear.row.kernel",
+        "applies_when": "is_a2 && is_qwen3_dense && unquantized && dtype_w == bf16 && (!custom_parallel && !linear_nz)",
+        "context": {
+          "capture_routing": false,
+          "custom_parallel": false,
+          "fused_mc2": false,
+          "is_a2": true,
+          "is_qwen3_dense": true,
+          "is_qwen3_moe": false,
+          "linear_nz": false,
+          "mtp_draft": false,
+          "redundant_experts": false,
+          "unquantized": true,
+          "use_mrope": false,
+          "vocab_parallel_override": false
+        },
+        "level": "KERNEL",
+        "note": "o_proj 与 down_proj 沿用标准张量并行分片及通信，未启用 NZ 权重转换时仅替换矩阵乘内核。",
+        "src": [
+          {
+            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+            "file": "vllm_ascend/ops/linear.py",
+            "line": 107,
+            "repo": "vllm-ascend",
+            "symbol": "vllm_ascend.ops.linear.AscendUnquantizedLinearMethod.process_weights_after_loading"
+          },
+          {
+            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+            "file": "vllm_ascend/ops/linear.py",
+            "line": 309,
+            "repo": "vllm-ascend",
+            "symbol": "vllm_ascend.ops.linear.AscendRowParallelLinear"
+          },
+          {
+            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+            "file": "vllm_ascend/ops/linear_op.py",
+            "line": 397,
+            "repo": "vllm-ascend",
+            "symbol": "vllm_ascend.ops.linear_op._get_row_parallel_op"
+          },
+          {
+            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+            "file": "vllm_ascend/utils.py",
+            "line": 350,
+            "repo": "vllm-ascend",
+            "symbol": "vllm_ascend.utils._should_trans_nz"
+          },
+          {
+            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+            "file": "vllm_ascend/utils.py",
+            "line": 392,
+            "repo": "vllm-ascend",
+            "symbol": "vllm_ascend.utils.maybe_trans_nz"
+          }
+        ],
+        "tag": [
+          "OOT"
+        ]
+      },
       "bytes_moved": {
         "decode": "0",
         "prefill": "0"
@@ -699,7 +848,38 @@
       "weight_bytes": "0"
     },
     {
-      "ascend": null,
+      "ascend": {
+        "annotation_id": "a2.qwen3_dense.rms_norm",
+        "applies_when": "is_a2 && is_qwen3_dense && unquantized && dtype_w == bf16",
+        "context": {
+          "capture_routing": false,
+          "custom_parallel": false,
+          "fused_mc2": false,
+          "is_a2": true,
+          "is_qwen3_dense": true,
+          "is_qwen3_moe": false,
+          "linear_nz": false,
+          "mtp_draft": false,
+          "redundant_experts": false,
+          "unquantized": true,
+          "use_mrope": false,
+          "vocab_parallel_override": false
+        },
+        "level": "KERNEL",
+        "note": "未量化路径以昇腾归一化及残差融合内核替换实现，保持归一化维度和权重；量化反偏置路径需另行审阅。",
+        "src": [
+          {
+            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+            "file": "vllm_ascend/ops/layernorm.py",
+            "line": 47,
+            "repo": "vllm-ascend",
+            "symbol": "vllm_ascend.ops.layernorm.AscendRMSNorm"
+          }
+        ],
+        "tag": [
+          "OOT"
+        ]
+      },
       "bytes_moved": {
         "decode": "D*bytes(dtype_w)+2*S*D*Hq/tp*bytes(dtype_a)",
         "prefill": "D*bytes(dtype_w)+2*T*D*Hq/tp*bytes(dtype_a)"
@@ -760,7 +940,66 @@
       "weight_bytes": "D*bytes(dtype_w)"
     },
     {
-      "ascend": null,
+      "ascend": {
+        "annotation_id": "a2.qwen3_dense.linear.qkv.kernel",
+        "applies_when": "is_a2 && is_qwen3_dense && unquantized && dtype_w == bf16 && (!linear_nz)",
+        "context": {
+          "capture_routing": false,
+          "custom_parallel": false,
+          "fused_mc2": false,
+          "is_a2": true,
+          "is_qwen3_dense": true,
+          "is_qwen3_moe": false,
+          "linear_nz": false,
+          "mtp_draft": false,
+          "redundant_experts": false,
+          "unquantized": true,
+          "use_mrope": false,
+          "vocab_parallel_override": false
+        },
+        "level": "KERNEL",
+        "note": "QKV 投影沿用标准张量并行分片及通信，未启用 NZ 权重转换时仅替换矩阵乘内核。",
+        "src": [
+          {
+            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+            "file": "vllm_ascend/ops/linear.py",
+            "line": 107,
+            "repo": "vllm-ascend",
+            "symbol": "vllm_ascend.ops.linear.AscendUnquantizedLinearMethod.process_weights_after_loading"
+          },
+          {
+            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+            "file": "vllm_ascend/ops/linear.py",
+            "line": 179,
+            "repo": "vllm-ascend",
+            "symbol": "vllm_ascend.ops.linear.AscendQKVParallelLinear"
+          },
+          {
+            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+            "file": "vllm_ascend/ops/linear_op.py",
+            "line": 389,
+            "repo": "vllm-ascend",
+            "symbol": "vllm_ascend.ops.linear_op._get_column_parallel_op"
+          },
+          {
+            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+            "file": "vllm_ascend/utils.py",
+            "line": 350,
+            "repo": "vllm-ascend",
+            "symbol": "vllm_ascend.utils._should_trans_nz"
+          },
+          {
+            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+            "file": "vllm_ascend/utils.py",
+            "line": 392,
+            "repo": "vllm-ascend",
+            "symbol": "vllm_ascend.utils.maybe_trans_nz"
+          }
+        ],
+        "tag": [
+          "OOT"
+        ]
+      },
       "bytes_moved": {
         "decode": "((H*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_w))+(false ? ((Hq/tp+2*max(1,Hkv/tp))*D)*bytes(dtype_w) : 0))+S*((H)+((Hq/tp+2*max(1,Hkv/tp))*D))*bytes(dtype_a)",
         "prefill": "((H*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_w))+(false ? ((Hq/tp+2*max(1,Hkv/tp))*D)*bytes(dtype_w) : 0))+T*((H)+((Hq/tp+2*max(1,Hkv/tp))*D))*bytes(dtype_a)"
@@ -823,7 +1062,45 @@
       "weight_bytes": "(H*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_w))+(false ? ((Hq/tp+2*max(1,Hkv/tp))*D)*bytes(dtype_w) : 0)"
     },
     {
-      "ascend": null,
+      "ascend": {
+        "annotation_id": "a2.qwen3_dense.rotary",
+        "applies_when": "is_a2 && is_qwen3_dense && unquantized && dtype_w == bf16 && (!mtp_draft)",
+        "context": {
+          "capture_routing": false,
+          "custom_parallel": false,
+          "fused_mc2": false,
+          "is_a2": true,
+          "is_qwen3_dense": true,
+          "is_qwen3_moe": false,
+          "linear_nz": false,
+          "mtp_draft": false,
+          "redundant_experts": false,
+          "unquantized": true,
+          "use_mrope": false,
+          "vocab_parallel_override": false
+        },
+        "level": "LAYOUT",
+        "note": "保留旋转位置编码语义，同时为 cos/sin 建立交错派生缓存并登记为非持久缓冲；这会改变缓存存储，不能从参数形状推断其占用。",
+        "src": [
+          {
+            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+            "file": "vllm_ascend/ops/rotary_embedding.py",
+            "line": 171,
+            "repo": "vllm-ascend",
+            "symbol": "vllm_ascend.ops.rotary_embedding._record_cos_and_sin_cache_interleaved"
+          },
+          {
+            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+            "file": "vllm_ascend/ops/rotary_embedding.py",
+            "line": 299,
+            "repo": "vllm-ascend",
+            "symbol": "vllm_ascend.ops.rotary_embedding.AscendRotaryEmbedding"
+          }
+        ],
+        "tag": [
+          "OOT"
+        ]
+      },
       "bytes_moved": {
         "decode": "(2*S*(Hq/tp+max(1,Hkv/tp))*D*bytes(dtype_a))",
         "prefill": "(2*T*(Hq/tp+max(1,Hkv/tp))*D*bytes(dtype_a))"
@@ -894,7 +1171,38 @@
       "weight_bytes": "0"
     },
     {
-      "ascend": null,
+      "ascend": {
+        "annotation_id": "a2.qwen3_dense.apply_rotary",
+        "applies_when": "is_a2 && is_qwen3_dense && unquantized && dtype_w == bf16",
+        "context": {
+          "capture_routing": false,
+          "custom_parallel": false,
+          "fused_mc2": false,
+          "is_a2": true,
+          "is_qwen3_dense": true,
+          "is_qwen3_moe": false,
+          "linear_nz": false,
+          "mtp_draft": false,
+          "redundant_experts": false,
+          "unquantized": true,
+          "use_mrope": false,
+          "vocab_parallel_override": false
+        },
+        "level": "KERNEL",
+        "note": "以 npu_rotary_mul 应用旋转，预处理后恢复原始形状和类型，部分旋转维度外的分量保持不变。",
+        "src": [
+          {
+            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+            "file": "vllm_ascend/ops/rotary_embedding.py",
+            "line": 729,
+            "repo": "vllm-ascend",
+            "symbol": "vllm_ascend.ops.rotary_embedding.AscendApplyRotaryEmb"
+          }
+        ],
+        "tag": [
+          "OOT"
+        ]
+      },
       "bytes_moved": {
         "decode": "2*S*(Hq/tp+max(1,Hkv/tp))*D*bytes(dtype_a)",
         "prefill": "2*T*(Hq/tp+max(1,Hkv/tp))*D*bytes(dtype_a)"
@@ -1014,7 +1322,38 @@
       "weight_bytes": "((H*bytes(dtype_w))+(((12288/tp*H*bytes(dtype_w))+(false ? (H)*bytes(dtype_w) : 0))+((H*24576/tp*bytes(dtype_w))+(false ? (24576/tp)*bytes(dtype_w) : 0)))+(H*bytes(dtype_w))+((D*bytes(dtype_w))+((H/tp*H*bytes(dtype_w))+(false ? (H)*bytes(dtype_w) : 0))+(D*bytes(dtype_w))+((H*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_w))+(false ? ((Hq/tp+2*max(1,Hkv/tp))*D)*bytes(dtype_w) : 0))))*(36/pp)"
     },
     {
-      "ascend": null,
+      "ascend": {
+        "annotation_id": "a2.qwen3_dense.embedding.kernel",
+        "applies_when": "is_a2 && is_qwen3_dense && unquantized && dtype_w == bf16 && (!vocab_parallel_override)",
+        "context": {
+          "capture_routing": false,
+          "custom_parallel": false,
+          "fused_mc2": false,
+          "is_a2": true,
+          "is_qwen3_dense": true,
+          "is_qwen3_moe": false,
+          "linear_nz": false,
+          "mtp_draft": false,
+          "redundant_experts": false,
+          "unquantized": true,
+          "use_mrope": false,
+          "vocab_parallel_override": false
+        },
+        "level": "KERNEL",
+        "note": "标准词表并行模式保持词表分片与输出形状，使用昇腾实现；独立词表并行及上下文并行路径不在本标注条件内。",
+        "src": [
+          {
+            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+            "file": "vllm_ascend/ops/vocab_parallel_embedding.py",
+            "line": 162,
+            "repo": "vllm-ascend",
+            "symbol": "vllm_ascend.ops.vocab_parallel_embedding.AscendVocabParallelEmbedding"
+          }
+        ],
+        "tag": [
+          "OOT"
+        ]
+      },
       "bytes_moved": {
         "decode": "S*H*(bytes(dtype_w)+bytes(dtype_a))",
         "prefill": "T*H*(bytes(dtype_w)+bytes(dtype_a))"
@@ -1076,7 +1415,38 @@
       "weight_bytes": "round_up(V,64)/tp*H*bytes(dtype_w)"
     },
     {
-      "ascend": null,
+      "ascend": {
+        "annotation_id": "a2.qwen3_dense.embedding.kernel",
+        "applies_when": "is_a2 && is_qwen3_dense && unquantized && dtype_w == bf16 && (!vocab_parallel_override)",
+        "context": {
+          "capture_routing": false,
+          "custom_parallel": false,
+          "fused_mc2": false,
+          "is_a2": true,
+          "is_qwen3_dense": true,
+          "is_qwen3_moe": false,
+          "linear_nz": false,
+          "mtp_draft": false,
+          "redundant_experts": false,
+          "unquantized": true,
+          "use_mrope": false,
+          "vocab_parallel_override": false
+        },
+        "level": "KERNEL",
+        "note": "标准词表并行模式保持词表分片与输出形状，使用昇腾实现；独立词表并行及上下文并行路径不在本标注条件内。",
+        "src": [
+          {
+            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+            "file": "vllm_ascend/ops/vocab_parallel_embedding.py",
+            "line": 162,
+            "repo": "vllm-ascend",
+            "symbol": "vllm_ascend.ops.vocab_parallel_embedding.AscendVocabParallelEmbedding"
+          }
+        ],
+        "tag": [
+          "OOT"
+        ]
+      },
       "bytes_moved": {
         "decode": "0",
         "prefill": "0"
@@ -1139,7 +1509,38 @@
       "weight_bytes": "0"
     },
     {
-      "ascend": null,
+      "ascend": {
+        "annotation_id": "a2.qwen3_dense.rms_norm",
+        "applies_when": "is_a2 && is_qwen3_dense && unquantized && dtype_w == bf16",
+        "context": {
+          "capture_routing": false,
+          "custom_parallel": false,
+          "fused_mc2": false,
+          "is_a2": true,
+          "is_qwen3_dense": true,
+          "is_qwen3_moe": false,
+          "linear_nz": false,
+          "mtp_draft": false,
+          "redundant_experts": false,
+          "unquantized": true,
+          "use_mrope": false,
+          "vocab_parallel_override": false
+        },
+        "level": "KERNEL",
+        "note": "未量化路径以昇腾归一化及残差融合内核替换实现，保持归一化维度和权重；量化反偏置路径需另行审阅。",
+        "src": [
+          {
+            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+            "file": "vllm_ascend/ops/layernorm.py",
+            "line": 47,
+            "repo": "vllm-ascend",
+            "symbol": "vllm_ascend.ops.layernorm.AscendRMSNorm"
+          }
+        ],
+        "tag": [
+          "OOT"
+        ]
+      },
       "bytes_moved": {
         "decode": "H*bytes(dtype_w)+2*S*H*1*bytes(dtype_a)",
         "prefill": "H*bytes(dtype_w)+2*T*H*1*bytes(dtype_a)"
@@ -1248,7 +1649,38 @@
       "weight_bytes": "0"
     },
     {
-      "ascend": null,
+      "ascend": {
+        "annotation_id": "a2.qwen3_dense.lm_head.kernel",
+        "applies_when": "is_a2 && is_qwen3_dense && unquantized && dtype_w == bf16 && (!vocab_parallel_override)",
+        "context": {
+          "capture_routing": false,
+          "custom_parallel": false,
+          "fused_mc2": false,
+          "is_a2": true,
+          "is_qwen3_dense": true,
+          "is_qwen3_moe": false,
+          "linear_nz": false,
+          "mtp_draft": false,
+          "redundant_experts": false,
+          "unquantized": true,
+          "use_mrope": false,
+          "vocab_parallel_override": false
+        },
+        "level": "KERNEL",
+        "note": "标准词表并行模式保持词表分片与输出形状，使用昇腾实现；独立词表并行及上下文并行路径不在本标注条件内。",
+        "src": [
+          {
+            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+            "file": "vllm_ascend/ops/vocab_parallel_embedding.py",
+            "line": 420,
+            "repo": "vllm-ascend",
+            "symbol": "vllm_ascend.ops.vocab_parallel_embedding.AscendParallelLMHead"
+          }
+        ],
+        "tag": [
+          "OOT"
+        ]
+      },
       "bytes_moved": {
         "decode": "round_up(V,64)/tp*H*bytes(dtype_w)+S*(H+round_up(V,64)/tp)*bytes(dtype_a)",
         "prefill": "round_up(V,64)/tp*H*bytes(dtype_w)+batch*(H+round_up(V,64)/tp)*bytes(dtype_a)"
@@ -1323,7 +1755,38 @@
       "weight_bytes": "false ? 0 : round_up(V,64)/tp*H*bytes(dtype_w)"
     },
     {
-      "ascend": null,
+      "ascend": {
+        "annotation_id": "a2.qwen3_dense.logits.kernel",
+        "applies_when": "is_a2 && is_qwen3_dense && unquantized && dtype_w == bf16 && (!vocab_parallel_override)",
+        "context": {
+          "capture_routing": false,
+          "custom_parallel": false,
+          "fused_mc2": false,
+          "is_a2": true,
+          "is_qwen3_dense": true,
+          "is_qwen3_moe": false,
+          "linear_nz": false,
+          "mtp_draft": false,
+          "redundant_experts": false,
+          "unquantized": true,
+          "use_mrope": false,
+          "vocab_parallel_override": false
+        },
+        "level": "KERNEL",
+        "note": "标准词表并行模式保持词表分片与输出形状，使用昇腾实现；独立词表并行及上下文并行路径不在本标注条件内。",
+        "src": [
+          {
+            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+            "file": "vllm_ascend/ops/vocab_parallel_embedding.py",
+            "line": 503,
+            "repo": "vllm-ascend",
+            "symbol": "vllm_ascend.ops.vocab_parallel_embedding.AscendLogitsProcessor"
+          }
+        ],
+        "tag": [
+          "OOT"
+        ]
+      },
       "bytes_moved": {
         "decode": "2*S*V*bytes(dtype_a)",
         "prefill": "2*batch*V*bytes(dtype_a)"
@@ -1386,7 +1849,38 @@
       "weight_bytes": "0"
     },
     {
-      "ascend": null,
+      "ascend": {
+        "annotation_id": "a2.qwen3_dense.logits.kernel",
+        "applies_when": "is_a2 && is_qwen3_dense && unquantized && dtype_w == bf16 && (!vocab_parallel_override)",
+        "context": {
+          "capture_routing": false,
+          "custom_parallel": false,
+          "fused_mc2": false,
+          "is_a2": true,
+          "is_qwen3_dense": true,
+          "is_qwen3_moe": false,
+          "linear_nz": false,
+          "mtp_draft": false,
+          "redundant_experts": false,
+          "unquantized": true,
+          "use_mrope": false,
+          "vocab_parallel_override": false
+        },
+        "level": "KERNEL",
+        "note": "标准词表并行模式保持词表分片与输出形状，使用昇腾实现；独立词表并行及上下文并行路径不在本标注条件内。",
+        "src": [
+          {
+            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+            "file": "vllm_ascend/ops/vocab_parallel_embedding.py",
+            "line": 503,
+            "repo": "vllm-ascend",
+            "symbol": "vllm_ascend.ops.vocab_parallel_embedding.AscendLogitsProcessor"
+          }
+        ],
+        "tag": [
+          "OOT"
+        ]
+      },
       "bytes_moved": {
         "decode": "0",
         "prefill": "0"
@@ -1511,7 +2005,38 @@
       "weight_bytes": "((12288/tp*H*bytes(dtype_w))+(false ? (H)*bytes(dtype_w) : 0))+((H*24576/tp*bytes(dtype_w))+(false ? (24576/tp)*bytes(dtype_w) : 0))"
     },
     {
-      "ascend": null,
+      "ascend": {
+        "annotation_id": "a2.qwen3_dense.silu",
+        "applies_when": "is_a2 && is_qwen3_dense && unquantized && dtype_w == bf16",
+        "context": {
+          "capture_routing": false,
+          "custom_parallel": false,
+          "fused_mc2": false,
+          "is_a2": true,
+          "is_qwen3_dense": true,
+          "is_qwen3_moe": false,
+          "linear_nz": false,
+          "mtp_draft": false,
+          "redundant_experts": false,
+          "unquantized": true,
+          "use_mrope": false,
+          "vocab_parallel_override": false
+        },
+        "level": "KERNEL",
+        "note": "以 npu_swiglu 对 gate/up 合并输出执行 SiLU 与逐元素相乘，保持末维减半的激活语义，不引入参数或集合通信。",
+        "src": [
+          {
+            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+            "file": "vllm_ascend/ops/activation.py",
+            "line": 37,
+            "repo": "vllm-ascend",
+            "symbol": "vllm_ascend.ops.activation.AscendSiluAndMul"
+          }
+        ],
+        "tag": [
+          "OOT"
+        ]
+      },
       "bytes_moved": {
         "decode": "3*S*I/tp*bytes(dtype_a)",
         "prefill": "3*T*I/tp*bytes(dtype_a)"
@@ -1561,7 +2086,66 @@
       "weight_bytes": "0"
     },
     {
-      "ascend": null,
+      "ascend": {
+        "annotation_id": "a2.qwen3_dense.linear.row.kernel",
+        "applies_when": "is_a2 && is_qwen3_dense && unquantized && dtype_w == bf16 && (!custom_parallel && !linear_nz)",
+        "context": {
+          "capture_routing": false,
+          "custom_parallel": false,
+          "fused_mc2": false,
+          "is_a2": true,
+          "is_qwen3_dense": true,
+          "is_qwen3_moe": false,
+          "linear_nz": false,
+          "mtp_draft": false,
+          "redundant_experts": false,
+          "unquantized": true,
+          "use_mrope": false,
+          "vocab_parallel_override": false
+        },
+        "level": "KERNEL",
+        "note": "o_proj 与 down_proj 沿用标准张量并行分片及通信，未启用 NZ 权重转换时仅替换矩阵乘内核。",
+        "src": [
+          {
+            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+            "file": "vllm_ascend/ops/linear.py",
+            "line": 107,
+            "repo": "vllm-ascend",
+            "symbol": "vllm_ascend.ops.linear.AscendUnquantizedLinearMethod.process_weights_after_loading"
+          },
+          {
+            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+            "file": "vllm_ascend/ops/linear.py",
+            "line": 309,
+            "repo": "vllm-ascend",
+            "symbol": "vllm_ascend.ops.linear.AscendRowParallelLinear"
+          },
+          {
+            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+            "file": "vllm_ascend/ops/linear_op.py",
+            "line": 397,
+            "repo": "vllm-ascend",
+            "symbol": "vllm_ascend.ops.linear_op._get_row_parallel_op"
+          },
+          {
+            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+            "file": "vllm_ascend/utils.py",
+            "line": 350,
+            "repo": "vllm-ascend",
+            "symbol": "vllm_ascend.utils._should_trans_nz"
+          },
+          {
+            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+            "file": "vllm_ascend/utils.py",
+            "line": 392,
+            "repo": "vllm-ascend",
+            "symbol": "vllm_ascend.utils.maybe_trans_nz"
+          }
+        ],
+        "tag": [
+          "OOT"
+        ]
+      },
       "bytes_moved": {
         "decode": "((12288/tp*H*bytes(dtype_w))+(false ? (H)*bytes(dtype_w) : 0))+S*((12288/tp)+(H))*bytes(dtype_a)",
         "prefill": "((12288/tp*H*bytes(dtype_w))+(false ? (H)*bytes(dtype_w) : 0))+T*((12288/tp)+(H))*bytes(dtype_a)"
@@ -1623,7 +2207,66 @@
       "weight_bytes": "(12288/tp*H*bytes(dtype_w))+(false ? (H)*bytes(dtype_w) : 0)"
     },
     {
-      "ascend": null,
+      "ascend": {
+        "annotation_id": "a2.qwen3_dense.linear.row.kernel",
+        "applies_when": "is_a2 && is_qwen3_dense && unquantized && dtype_w == bf16 && (!custom_parallel && !linear_nz)",
+        "context": {
+          "capture_routing": false,
+          "custom_parallel": false,
+          "fused_mc2": false,
+          "is_a2": true,
+          "is_qwen3_dense": true,
+          "is_qwen3_moe": false,
+          "linear_nz": false,
+          "mtp_draft": false,
+          "redundant_experts": false,
+          "unquantized": true,
+          "use_mrope": false,
+          "vocab_parallel_override": false
+        },
+        "level": "KERNEL",
+        "note": "o_proj 与 down_proj 沿用标准张量并行分片及通信，未启用 NZ 权重转换时仅替换矩阵乘内核。",
+        "src": [
+          {
+            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+            "file": "vllm_ascend/ops/linear.py",
+            "line": 107,
+            "repo": "vllm-ascend",
+            "symbol": "vllm_ascend.ops.linear.AscendUnquantizedLinearMethod.process_weights_after_loading"
+          },
+          {
+            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+            "file": "vllm_ascend/ops/linear.py",
+            "line": 309,
+            "repo": "vllm-ascend",
+            "symbol": "vllm_ascend.ops.linear.AscendRowParallelLinear"
+          },
+          {
+            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+            "file": "vllm_ascend/ops/linear_op.py",
+            "line": 397,
+            "repo": "vllm-ascend",
+            "symbol": "vllm_ascend.ops.linear_op._get_row_parallel_op"
+          },
+          {
+            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+            "file": "vllm_ascend/utils.py",
+            "line": 350,
+            "repo": "vllm-ascend",
+            "symbol": "vllm_ascend.utils._should_trans_nz"
+          },
+          {
+            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+            "file": "vllm_ascend/utils.py",
+            "line": 392,
+            "repo": "vllm-ascend",
+            "symbol": "vllm_ascend.utils.maybe_trans_nz"
+          }
+        ],
+        "tag": [
+          "OOT"
+        ]
+      },
       "bytes_moved": {
         "decode": "0",
         "prefill": "0"
@@ -1686,7 +2329,73 @@
       "weight_bytes": "0"
     },
     {
-      "ascend": null,
+      "ascend": {
+        "annotation_id": "a2.qwen3_dense.linear.merged.kernel",
+        "applies_when": "is_a2 && is_qwen3_dense && unquantized && dtype_w == bf16 && (!custom_parallel && !linear_nz)",
+        "context": {
+          "capture_routing": false,
+          "custom_parallel": false,
+          "fused_mc2": false,
+          "is_a2": true,
+          "is_qwen3_dense": true,
+          "is_qwen3_moe": false,
+          "linear_nz": false,
+          "mtp_draft": false,
+          "redundant_experts": false,
+          "unquantized": true,
+          "use_mrope": false,
+          "vocab_parallel_override": false
+        },
+        "level": "KERNEL",
+        "note": "gate/up 合并投影使用昇腾矩阵乘实现；默认 MLP 并行关闭且未转换 NZ 时，保持各输出分片、逻辑形状和通信。",
+        "src": [
+          {
+            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+            "file": "vllm_ascend/ops/linear.py",
+            "line": 107,
+            "repo": "vllm-ascend",
+            "symbol": "vllm_ascend.ops.linear.AscendUnquantizedLinearMethod.process_weights_after_loading"
+          },
+          {
+            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+            "file": "vllm_ascend/ops/linear.py",
+            "line": 255,
+            "repo": "vllm-ascend",
+            "symbol": "vllm_ascend.ops.linear.AscendMergedColumnParallelLinear"
+          },
+          {
+            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+            "file": "vllm_ascend/ops/linear.py",
+            "line": 398,
+            "repo": "vllm-ascend",
+            "symbol": "vllm_ascend.ops.linear.AscendColumnParallelLinear"
+          },
+          {
+            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+            "file": "vllm_ascend/ops/linear_op.py",
+            "line": 389,
+            "repo": "vllm-ascend",
+            "symbol": "vllm_ascend.ops.linear_op._get_column_parallel_op"
+          },
+          {
+            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+            "file": "vllm_ascend/utils.py",
+            "line": 350,
+            "repo": "vllm-ascend",
+            "symbol": "vllm_ascend.utils._should_trans_nz"
+          },
+          {
+            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+            "file": "vllm_ascend/utils.py",
+            "line": 392,
+            "repo": "vllm-ascend",
+            "symbol": "vllm_ascend.utils.maybe_trans_nz"
+          }
+        ],
+        "tag": [
+          "OOT"
+        ]
+      },
       "bytes_moved": {
         "decode": "((H*24576/tp*bytes(dtype_w))+(false ? (24576/tp)*bytes(dtype_w) : 0))+S*((H)+(24576/tp))*bytes(dtype_a)",
         "prefill": "((H*24576/tp*bytes(dtype_w))+(false ? (24576/tp)*bytes(dtype_w) : 0))+T*((H)+(24576/tp))*bytes(dtype_a)"
@@ -1748,7 +2457,38 @@
       "weight_bytes": "(H*24576/tp*bytes(dtype_w))+(false ? (24576/tp)*bytes(dtype_w) : 0)"
     },
     {
-      "ascend": null,
+      "ascend": {
+        "annotation_id": "a2.qwen3_dense.rms_norm",
+        "applies_when": "is_a2 && is_qwen3_dense && unquantized && dtype_w == bf16",
+        "context": {
+          "capture_routing": false,
+          "custom_parallel": false,
+          "fused_mc2": false,
+          "is_a2": true,
+          "is_qwen3_dense": true,
+          "is_qwen3_moe": false,
+          "linear_nz": false,
+          "mtp_draft": false,
+          "redundant_experts": false,
+          "unquantized": true,
+          "use_mrope": false,
+          "vocab_parallel_override": false
+        },
+        "level": "KERNEL",
+        "note": "未量化路径以昇腾归一化及残差融合内核替换实现，保持归一化维度和权重；量化反偏置路径需另行审阅。",
+        "src": [
+          {
+            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+            "file": "vllm_ascend/ops/layernorm.py",
+            "line": 47,
+            "repo": "vllm-ascend",
+            "symbol": "vllm_ascend.ops.layernorm.AscendRMSNorm"
+          }
+        ],
+        "tag": [
+          "OOT"
+        ]
+      },
       "bytes_moved": {
         "decode": "H*bytes(dtype_w)+2*S*H*1*bytes(dtype_a)",
         "prefill": "H*bytes(dtype_w)+2*T*H*1*bytes(dtype_a)"
@@ -1809,7 +2549,38 @@
       "weight_bytes": "H*bytes(dtype_w)"
     },
     {
-      "ascend": null,
+      "ascend": {
+        "annotation_id": "a2.qwen3_dense.rms_norm",
+        "applies_when": "is_a2 && is_qwen3_dense && unquantized && dtype_w == bf16",
+        "context": {
+          "capture_routing": false,
+          "custom_parallel": false,
+          "fused_mc2": false,
+          "is_a2": true,
+          "is_qwen3_dense": true,
+          "is_qwen3_moe": false,
+          "linear_nz": false,
+          "mtp_draft": false,
+          "redundant_experts": false,
+          "unquantized": true,
+          "use_mrope": false,
+          "vocab_parallel_override": false
+        },
+        "level": "KERNEL",
+        "note": "未量化路径以昇腾归一化及残差融合内核替换实现，保持归一化维度和权重；量化反偏置路径需另行审阅。",
+        "src": [
+          {
+            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+            "file": "vllm_ascend/ops/layernorm.py",
+            "line": 47,
+            "repo": "vllm-ascend",
+            "symbol": "vllm_ascend.ops.layernorm.AscendRMSNorm"
+          }
+        ],
+        "tag": [
+          "OOT"
+        ]
+      },
       "bytes_moved": {
         "decode": "H*bytes(dtype_w)+2*S*H*1*bytes(dtype_a)",
         "prefill": "H*bytes(dtype_w)+2*T*H*1*bytes(dtype_a)"
@@ -1870,7 +2641,38 @@
       "weight_bytes": "H*bytes(dtype_w)"
     },
     {
-      "ascend": null,
+      "ascend": {
+        "annotation_id": "a2.qwen3_dense.logits.kernel",
+        "applies_when": "is_a2 && is_qwen3_dense && unquantized && dtype_w == bf16 && (!vocab_parallel_override)",
+        "context": {
+          "capture_routing": false,
+          "custom_parallel": false,
+          "fused_mc2": false,
+          "is_a2": true,
+          "is_qwen3_dense": true,
+          "is_qwen3_moe": false,
+          "linear_nz": false,
+          "mtp_draft": false,
+          "redundant_experts": false,
+          "unquantized": true,
+          "use_mrope": false,
+          "vocab_parallel_override": false
+        },
+        "level": "KERNEL",
+        "note": "标准词表并行模式保持词表分片与输出形状，使用昇腾实现；独立词表并行及上下文并行路径不在本标注条件内。",
+        "src": [
+          {
+            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+            "file": "vllm_ascend/ops/vocab_parallel_embedding.py",
+            "line": 503,
+            "repo": "vllm-ascend",
+            "symbol": "vllm_ascend.ops.vocab_parallel_embedding.AscendLogitsProcessor"
+          }
+        ],
+        "tag": [
+          "OOT"
+        ]
+      },
       "bytes_moved": {
         "decode": "0",
         "prefill": "0"
@@ -2057,7 +2859,9 @@
       "step": null
     },
     "ep": {
-      "choices": null,
+      "choices": [
+        "1"
+      ],
       "constraint": "ep==1",
       "default": "1",
       "description": "Dense model has no expert parallelism.",
@@ -2109,8 +2913,8 @@
     "non_torch_bytes": {
       "choices": null,
       "constraint": null,
-      "default": "0",
-      "description": "Explicit byte deduction; zero excludes unmeasured overhead.",
+      "default": "1000000000",
+      "description": "Catalog estimate for communication/runtime buffers.",
       "kind": "number",
       "max": null,
       "min": "0",
@@ -2139,8 +2943,8 @@
     "reserved_bytes": {
       "choices": null,
       "constraint": null,
-      "default": "0",
-      "description": "Explicit byte deduction; zero excludes unmeasured overhead.",
+      "default": "2000000000",
+      "description": "Catalog estimate for graph capture/allocator reserve.",
       "kind": "number",
       "max": null,
       "min": "0",

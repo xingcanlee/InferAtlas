@@ -25,6 +25,10 @@ export type Conditions = string[];
  */
 export type Kind1 = "conditional_override";
 /**
+ * Unannotated observed replacements block publication even when no candidate note exists.
+ */
+export type Reason = "conditional_override" | "unannotated_override";
+/**
  * Qualified conditional implementation symbol.
  */
 export type Symbol1 = string;
@@ -120,6 +124,7 @@ export interface ConditionalOverride {
   candidates: Candidates;
   conditions: Conditions;
   kind: Kind1;
+  reason?: Reason;
   symbol: Symbol1;
 }
 export interface StaleAnnotation {

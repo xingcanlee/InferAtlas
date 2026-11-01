@@ -113,6 +113,14 @@
     "ExtractOverride": {
       "additionalProperties": false,
       "properties": {
+        "attrs": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "description": "Optional whitelisted replacement attributes from the CPU/meta instance.",
+          "title": "Attrs",
+          "type": "object"
+        },
         "class": {
           "description": "Actual Ascend class after CustomOp registration.",
           "title": "Class",

@@ -8,12 +8,12 @@
     "pnpm": ">=10"
   },
   "scripts": {
-    "build": "pnpm -r build",
+    "build": "pnpm --filter '@inferatlas/*' -r build",
     "test": "pnpm -r test",
     "lint": "biome check .",
     "schemas": "uv run --project generator python -m inferatlas.schema.export && pnpm --filter @inferatlas/contracts gen",
-    "site": "pnpm --filter web build",
-    "single": "pnpm --filter web build:single"
+    "site": "uv run --project generator inferatlas site",
+    "single": "uv run --project generator inferatlas single"
   },
   "devDependencies": {
     "@biomejs/biome": "2.3.4",

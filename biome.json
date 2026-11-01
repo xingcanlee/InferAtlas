@@ -6,9 +6,13 @@
       "!!**/node_modules",
       "!!**/dist",
       "!!**/.venv",
+      "!!**/.cache",
+      "!!**/dist-single",
+      "!!web/public/data",
       "!!experiments",
       "!!schemas",
       "!!fixtures",
+      "!!golden",
       "!!packages/contracts/src/*.generated.ts"
     ]
   },

@@ -1,6 +1,6 @@
 # Ascend annotations
 
-`a2/qwen3-moe.yaml` contains Chinese draft notes anchored to Ascend commit
+`a2/qwen3-moe.yaml` and `a2/qwen3-dense.yaml` contain Chinese draft notes anchored to Ascend commit
 `24a76e84394ae3427195e3715fc08e90769d398c`, paired with vLLM commit
 `544f182d9f0c9bfe8bd7645525951d5e3692a542`. All entries have
 `reviewed_by: pending`; no human approval or NPU measurements are implied.
@@ -178,3 +178,30 @@ uv run --project generator ruff format --check generator/inferatlas/annotations 
 Source tests also discover the experiment clones in a normal checkout or this
 project's worktree layout. Without local clones those integration checks skip
 explicitly; unit tests build temporary Git repositories and never use the network.
+
+## Integration runtime selection
+
+Observed class swaps without a matching active, non-stale annotation produce
+blocking `conditional_override` triage with `reason: unannotated_override`.
+Unknown predicates, conflicting notes and stale anchors also block publication.
+`reviewed_by: pending` remains an explicit draft label; successful builds do not
+claim human review or device calibration.
+
+The dense Qwen3-8B notes use `is_qwen3_dense` from its pinned architecture/config.
+They cover the shared norm, QKV, row projections, rotary, vocabulary/head/logits
+implementations, plus `AscendMergedColumnParallelLinear` and `AscendSiluAndMul`.
+The independent MLP lane includes both gate/up and down projection selectors.
+All primary/helper digests are calculated with `SourceTree.resolve` at the pinned
+commit. BF16 default A2 weights use the ordinary kernel lane; rotary adds a derived
+cache and is LAYOUT. No post-load conversion is inferred from a meta tensor.
+
+The selected note is emitted as `IRNode.ascend.applies_when` with a boolean
+`context` of fixed extraction facts. The browser re-evaluates that predicate using
+current runtime parameters after every edit; a false/unknown predicate hides that
+note and its badges. `dtype_w` is a runtime parameter, never frozen into context.
+Only notes active at build defaults are emitted. For this pinned worker all notes
+require BF16 and all alternate lanes depend on fixed constructor settings, so a
+runtime edit cannot activate an omitted lane. Changing dtype away from BF16 removes
+the note; returning to BF16 restores it. Additional-config/quantization controls
+require new extraction facts and emitting all selectable lanes before exposing
+those settings as runtime controls.

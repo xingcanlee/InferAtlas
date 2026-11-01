@@ -89,7 +89,13 @@ export function DiffPage() {
       (c) => c.model === m.id && c.data_path && cellsFor(index, m.id, c.device).length >= 2,
     ),
   );
-  const model = search.model ?? candidates[0]?.id ?? index.models[0]?.id;
+  const model =
+    search.model ??
+    candidates[0]?.id ??
+    index.models.find((model) =>
+      index.cells.some((cell) => cell.model === model.id && cell.data_path),
+    )?.id ??
+    index.models[0]?.id;
   const devices = [
     ...new Set(index.cells.filter((c) => c.model === model && c.data_path).map((c) => c.device)),
   ];

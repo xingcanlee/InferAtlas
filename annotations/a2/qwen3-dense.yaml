@@ -1,0 +1,332 @@
+- anchor_hash:
+    sha256:4e474e6e08ae6074b5cff9ab0ab3d224fa0cccd27d0c69a11ac8ac3c44fa6ef0
+  applies_when: is_a2 && is_qwen3_dense && unquantized && dtype_w == bf16
+  id: a2.qwen3_dense.apply_rotary
+  level: KERNEL
+  note: 以 npu_rotary_mul 应用旋转，预处理后恢复原始形状和类型，部分旋转维度外的分量保持不变。
+  resolves_to: vllm_ascend.ops.rotary_embedding.AscendApplyRotaryEmb
+  reviewed_by: pending
+  tag: [OOT]
+  target: vllm_ascend.ops.rotary_embedding.AscendApplyRotaryEmb
+- anchor_hash:
+    sha256:552788744a07de30fccabeacad217968ac6bc3e550bf33d3f19bb515c1505d0e
+  applies_when: is_a2 && is_qwen3_dense && unquantized && dtype_w == bf16 &&
+    (!vocab_parallel_override)
+  id: a2.qwen3_dense.embedding.kernel
+  level: KERNEL
+  note: 标准词表并行模式保持词表分片与输出形状，使用昇腾实现；独立词表并行及上下文并行路径不在本标注条件内。
+  resolves_to:
+    vllm_ascend.ops.vocab_parallel_embedding.AscendVocabParallelEmbedding
+  reviewed_by: pending
+  tag: [OOT]
+  target: vllm_ascend.ops.vocab_parallel_embedding.AscendVocabParallelEmbedding
+- anchor_hash:
+    sha256:552788744a07de30fccabeacad217968ac6bc3e550bf33d3f19bb515c1505d0e
+  applies_when: is_a2 && is_qwen3_dense && unquantized && dtype_w == bf16 &&
+    (vocab_parallel_override)
+  id: a2.qwen3_dense.embedding.parallel
+  level: SEMANTIC
+  note: 独立词表并行或上下文并行改变词表权重所属通信组；输入嵌入可交换 token 并归约散射，logits 可按独立组全交换或聚合，须按实际模式区分。
+  resolves_to:
+    vllm_ascend.ops.vocab_parallel_embedding.AscendVocabParallelEmbedding
+  reviewed_by: pending
+  tag: [OOT]
+  target: vllm_ascend.ops.vocab_parallel_embedding.AscendVocabParallelEmbedding
+- anchor_hash:
+    sha256:7f65eae70ca2c7dbc8ac31ed7ee079cb1165a4bf79714abc7a81906329ff0cec
+  anchors:
+  - {anchor_hash:
+      sha256:bda90b029a8f569a7a71fe0f44631ea335b64df088d3611cc2cc4b708f499eb4,
+      target: vllm_ascend.ops.linear.AscendColumnParallelLinear}
+  - {anchor_hash:
+      sha256:925533d5f845197303242fcab67e3b632b9d5257d2f23504ae2b473eaa233ebf,
+      target:
+      vllm_ascend.ops.linear.AscendUnquantizedLinearMethod.process_weights_after_loading}
+  - {anchor_hash:
+      sha256:b46f1ad59c958c22f397e46ecbf189e71213895303763fd0c66e966ea220dcad,
+      target: vllm_ascend.ops.linear_op._get_column_parallel_op}
+  - {anchor_hash:
+      sha256:86628a05c08a6beef0114c49bdb2f79465f3ff914048fc2f386f2e2bff24e5a8,
+      target: vllm_ascend.utils._should_trans_nz}
+  - {anchor_hash:
+      sha256:3c4334bf804b27699715997ed66e47480904d6ed830ba6d76f9ecee821d846d9,
+      target: vllm_ascend.utils.maybe_trans_nz}
+  applies_when: is_a2 && is_qwen3_dense && unquantized && dtype_w == bf16 &&
+    (!custom_parallel && !linear_nz)
+  id: a2.qwen3_dense.linear.merged.kernel
+  level: KERNEL
+  note: gate/up 合并投影使用昇腾矩阵乘实现；默认 MLP 并行关闭且未转换 NZ 时，保持各输出分片、逻辑形状和通信。
+  resolves_to: vllm_ascend.ops.linear.AscendMergedColumnParallelLinear
+  reviewed_by: pending
+  tag: [OOT]
+  target: vllm_ascend.ops.linear.AscendMergedColumnParallelLinear
+- anchor_hash:
+    sha256:7f65eae70ca2c7dbc8ac31ed7ee079cb1165a4bf79714abc7a81906329ff0cec
+  anchors:
+  - {anchor_hash:
+      sha256:bda90b029a8f569a7a71fe0f44631ea335b64df088d3611cc2cc4b708f499eb4,
+      target: vllm_ascend.ops.linear.AscendColumnParallelLinear}
+  - {anchor_hash:
+      sha256:925533d5f845197303242fcab67e3b632b9d5257d2f23504ae2b473eaa233ebf,
+      target:
+      vllm_ascend.ops.linear.AscendUnquantizedLinearMethod.process_weights_after_loading}
+  - {anchor_hash:
+      sha256:b46f1ad59c958c22f397e46ecbf189e71213895303763fd0c66e966ea220dcad,
+      target: vllm_ascend.ops.linear_op._get_column_parallel_op}
+  - {anchor_hash:
+      sha256:86628a05c08a6beef0114c49bdb2f79465f3ff914048fc2f386f2e2bff24e5a8,
+      target: vllm_ascend.utils._should_trans_nz}
+  - {anchor_hash:
+      sha256:3c4334bf804b27699715997ed66e47480904d6ed830ba6d76f9ecee821d846d9,
+      target: vllm_ascend.utils.maybe_trans_nz}
+  applies_when: is_a2 && is_qwen3_dense && unquantized && dtype_w == bf16 &&
+    (!custom_parallel && linear_nz)
+  id: a2.qwen3_dense.linear.merged.layout
+  level: LAYOUT
+  note: gate/up 投影保持逻辑形状；加载后由非量化线性方法按 NZ 策略转换权重存储，meta 构造本身不执行转换。
+  resolves_to: vllm_ascend.ops.linear.AscendMergedColumnParallelLinear
+  reviewed_by: pending
+  tag: [OOT]
+  target: vllm_ascend.ops.linear.AscendMergedColumnParallelLinear
+- anchor_hash:
+    sha256:7f65eae70ca2c7dbc8ac31ed7ee079cb1165a4bf79714abc7a81906329ff0cec
+  anchors:
+  - {anchor_hash:
+      sha256:bda90b029a8f569a7a71fe0f44631ea335b64df088d3611cc2cc4b708f499eb4,
+      target: vllm_ascend.ops.linear.AscendColumnParallelLinear}
+  - {anchor_hash:
+      sha256:925533d5f845197303242fcab67e3b632b9d5257d2f23504ae2b473eaa233ebf,
+      target:
+      vllm_ascend.ops.linear.AscendUnquantizedLinearMethod.process_weights_after_loading}
+  - {anchor_hash:
+      sha256:30960bbb2551fecb34148f4144dbcc3510e78a4a5850c489979b59f79cd612fe,
+      target: vllm_ascend.ops.linear_op.CustomColumnParallelOp}
+  - {anchor_hash:
+      sha256:bf1c97799a9a32a3f7b5e16d16e049c55d5dd350d61d698eb206c58eb17b3b72,
+      target: vllm_ascend.ops.linear_op.MLPColumnParallelOp}
+  - {anchor_hash:
+      sha256:b46f1ad59c958c22f397e46ecbf189e71213895303763fd0c66e966ea220dcad,
+      target: vllm_ascend.ops.linear_op._get_column_parallel_op}
+  - {anchor_hash:
+      sha256:86628a05c08a6beef0114c49bdb2f79465f3ff914048fc2f386f2e2bff24e5a8,
+      target: vllm_ascend.utils._should_trans_nz}
+  - {anchor_hash:
+      sha256:3c4334bf804b27699715997ed66e47480904d6ed830ba6d76f9ecee821d846d9,
+      target: vllm_ascend.utils.maybe_trans_nz}
+  applies_when: is_a2 && is_qwen3_dense && unquantized && dtype_w == bf16 &&
+    (custom_parallel)
+  id: a2.qwen3_dense.linear.merged.parallel
+  level: SEMANTIC
+  note: gate/up 投影启用独立 MLP TP 时由 MLPColumnParallelOp 选择独立通信组，权重分片与输入聚合须按实际配置建模。
+  resolves_to: vllm_ascend.ops.linear.AscendMergedColumnParallelLinear
+  reviewed_by: pending
+  tag: [OOT]
+  target: vllm_ascend.ops.linear.AscendMergedColumnParallelLinear
+- anchor_hash:
+    sha256:e65e727c08018bf26d206e8d69fa8476bdb4f8940e8f7da76766e0ae7cd39561
+  anchors:
+  - {anchor_hash:
+      sha256:925533d5f845197303242fcab67e3b632b9d5257d2f23504ae2b473eaa233ebf,
+      target:
+      vllm_ascend.ops.linear.AscendUnquantizedLinearMethod.process_weights_after_loading}
+  - {anchor_hash:
+      sha256:b46f1ad59c958c22f397e46ecbf189e71213895303763fd0c66e966ea220dcad,
+      target: vllm_ascend.ops.linear_op._get_column_parallel_op}
+  - {anchor_hash:
+      sha256:86628a05c08a6beef0114c49bdb2f79465f3ff914048fc2f386f2e2bff24e5a8,
+      target: vllm_ascend.utils._should_trans_nz}
+  - {anchor_hash:
+      sha256:3c4334bf804b27699715997ed66e47480904d6ed830ba6d76f9ecee821d846d9,
+      target: vllm_ascend.utils.maybe_trans_nz}
+  applies_when: is_a2 && is_qwen3_dense && unquantized && dtype_w == bf16 &&
+    (!linear_nz)
+  id: a2.qwen3_dense.linear.qkv.kernel
+  level: KERNEL
+  note: QKV 投影沿用标准张量并行分片及通信，未启用 NZ 权重转换时仅替换矩阵乘内核。
+  resolves_to: vllm_ascend.ops.linear.AscendQKVParallelLinear
+  reviewed_by: pending
+  tag: [OOT]
+  target: vllm_ascend.ops.linear.AscendQKVParallelLinear
+- anchor_hash:
+    sha256:e65e727c08018bf26d206e8d69fa8476bdb4f8940e8f7da76766e0ae7cd39561
+  anchors:
+  - {anchor_hash:
+      sha256:925533d5f845197303242fcab67e3b632b9d5257d2f23504ae2b473eaa233ebf,
+      target:
+      vllm_ascend.ops.linear.AscendUnquantizedLinearMethod.process_weights_after_loading}
+  - {anchor_hash:
+      sha256:b46f1ad59c958c22f397e46ecbf189e71213895303763fd0c66e966ea220dcad,
+      target: vllm_ascend.ops.linear_op._get_column_parallel_op}
+  - {anchor_hash:
+      sha256:86628a05c08a6beef0114c49bdb2f79465f3ff914048fc2f386f2e2bff24e5a8,
+      target: vllm_ascend.utils._should_trans_nz}
+  - {anchor_hash:
+      sha256:3c4334bf804b27699715997ed66e47480904d6ed830ba6d76f9ecee821d846d9,
+      target: vllm_ascend.utils.maybe_trans_nz}
+  applies_when: is_a2 && is_qwen3_dense && unquantized && dtype_w == bf16 &&
+    (linear_nz)
+  id: a2.qwen3_dense.linear.qkv.layout
+  level: LAYOUT
+  note: QKV 投影保持逻辑参数形状，加载后的非量化矩阵乘权重按 NZ 策略转换存储；meta 构造不执行该转换。
+  resolves_to: vllm_ascend.ops.linear.AscendQKVParallelLinear
+  reviewed_by: pending
+  tag: [OOT]
+  target: vllm_ascend.ops.linear.AscendQKVParallelLinear
+- anchor_hash:
+    sha256:fa9a6613a3d9bf677e19592e14815bcea553f75249f76dd7216445f4978c7ea4
+  anchors:
+  - {anchor_hash:
+      sha256:925533d5f845197303242fcab67e3b632b9d5257d2f23504ae2b473eaa233ebf,
+      target:
+      vllm_ascend.ops.linear.AscendUnquantizedLinearMethod.process_weights_after_loading}
+  - {anchor_hash:
+      sha256:55da5496c74ceddb17a8fccdb389e5d1d1223d23284639eab1671cfbd0b0372c,
+      target: vllm_ascend.ops.linear_op._get_row_parallel_op}
+  - {anchor_hash:
+      sha256:86628a05c08a6beef0114c49bdb2f79465f3ff914048fc2f386f2e2bff24e5a8,
+      target: vllm_ascend.utils._should_trans_nz}
+  - {anchor_hash:
+      sha256:3c4334bf804b27699715997ed66e47480904d6ed830ba6d76f9ecee821d846d9,
+      target: vllm_ascend.utils.maybe_trans_nz}
+  applies_when: is_a2 && is_qwen3_dense && unquantized && dtype_w == bf16 &&
+    (!custom_parallel && !linear_nz)
+  id: a2.qwen3_dense.linear.row.kernel
+  level: KERNEL
+  note: o_proj 与 down_proj 沿用标准张量并行分片及通信，未启用 NZ 权重转换时仅替换矩阵乘内核。
+  resolves_to: vllm_ascend.ops.linear.AscendRowParallelLinear
+  reviewed_by: pending
+  tag: [OOT]
+  target: vllm_ascend.ops.linear.AscendRowParallelLinear
+- anchor_hash:
+    sha256:fa9a6613a3d9bf677e19592e14815bcea553f75249f76dd7216445f4978c7ea4
+  anchors:
+  - {anchor_hash:
+      sha256:925533d5f845197303242fcab67e3b632b9d5257d2f23504ae2b473eaa233ebf,
+      target:
+      vllm_ascend.ops.linear.AscendUnquantizedLinearMethod.process_weights_after_loading}
+  - {anchor_hash:
+      sha256:55da5496c74ceddb17a8fccdb389e5d1d1223d23284639eab1671cfbd0b0372c,
+      target: vllm_ascend.ops.linear_op._get_row_parallel_op}
+  - {anchor_hash:
+      sha256:86628a05c08a6beef0114c49bdb2f79465f3ff914048fc2f386f2e2bff24e5a8,
+      target: vllm_ascend.utils._should_trans_nz}
+  - {anchor_hash:
+      sha256:3c4334bf804b27699715997ed66e47480904d6ed830ba6d76f9ecee821d846d9,
+      target: vllm_ascend.utils.maybe_trans_nz}
+  applies_when: is_a2 && is_qwen3_dense && unquantized && dtype_w == bf16 &&
+    (!custom_parallel && linear_nz)
+  id: a2.qwen3_dense.linear.row.layout
+  level: LAYOUT
+  note: o_proj 与 down_proj 保持逻辑参数形状，加载后的非量化矩阵乘权重按 NZ 策略转换存储；meta 构造不执行该转换。
+  resolves_to: vllm_ascend.ops.linear.AscendRowParallelLinear
+  reviewed_by: pending
+  tag: [OOT]
+  target: vllm_ascend.ops.linear.AscendRowParallelLinear
+- anchor_hash:
+    sha256:fa9a6613a3d9bf677e19592e14815bcea553f75249f76dd7216445f4978c7ea4
+  anchors:
+  - {anchor_hash:
+      sha256:a52318dce0df786f52d03795f08ef1bbcba44f2142679c5c996ab96d33ab675f,
+      target: vllm_ascend.ops.linear_op.CustomRowParallelOp}
+  - {anchor_hash:
+      sha256:3301b73f7d71adf981c2b8f289453b4fda6343a952b70e6c4e446006f991d30f,
+      target: vllm_ascend.ops.linear_op.MLPRowParallelOp}
+  - {anchor_hash:
+      sha256:7bfdc8bd5825a326badb7abfff7be386a924c2e33a5c334e249a0b440b7bf9c3,
+      target: vllm_ascend.ops.linear_op.OProjRowParallelOp}
+  - {anchor_hash:
+      sha256:55da5496c74ceddb17a8fccdb389e5d1d1223d23284639eab1671cfbd0b0372c,
+      target: vllm_ascend.ops.linear_op._get_row_parallel_op}
+  - {anchor_hash:
+      sha256:e15651a8370a7420a9ee639991981a5cbd319c2ddd75bb429c542851d0326374,
+      target: vllm_ascend.ops.linear_op.get_parallel_op}
+  applies_when: is_a2 && is_qwen3_dense && unquantized && dtype_w == bf16 &&
+    (custom_parallel)
+  id: a2.qwen3_dense.linear.row.parallel
+  level: SEMANTIC
+  note: 输出投影经 get_parallel_op 选择 OProjRowParallelOp；启用 o_proj
+    独立张量并行时，权重分片和通信使用独立 oproj TP 组，须按实际配置建模。
+  resolves_to: vllm_ascend.ops.linear.AscendRowParallelLinear
+  reviewed_by: pending
+  tag: [OOT]
+  target: vllm_ascend.ops.linear.AscendRowParallelLinear
+- anchor_hash:
+    sha256:ca24b3e68c4d7dea195fa5203e4170421fe814a171ffafb5fa5cc7f9791de678
+  applies_when: is_a2 && is_qwen3_dense && unquantized && dtype_w == bf16 &&
+    (!vocab_parallel_override)
+  id: a2.qwen3_dense.lm_head.kernel
+  level: KERNEL
+  note: 标准词表并行模式保持词表分片与输出形状，使用昇腾实现；独立词表并行及上下文并行路径不在本标注条件内。
+  resolves_to: vllm_ascend.ops.vocab_parallel_embedding.AscendParallelLMHead
+  reviewed_by: pending
+  tag: [OOT]
+  target: vllm_ascend.ops.vocab_parallel_embedding.AscendParallelLMHead
+- anchor_hash:
+    sha256:ca24b3e68c4d7dea195fa5203e4170421fe814a171ffafb5fa5cc7f9791de678
+  applies_when: is_a2 && is_qwen3_dense && unquantized && dtype_w == bf16 &&
+    (vocab_parallel_override)
+  id: a2.qwen3_dense.lm_head.parallel
+  level: SEMANTIC
+  note: 独立词表并行或上下文并行改变词表权重所属通信组；输入嵌入可交换 token 并归约散射，logits 可按独立组全交换或聚合，须按实际模式区分。
+  resolves_to: vllm_ascend.ops.vocab_parallel_embedding.AscendParallelLMHead
+  reviewed_by: pending
+  tag: [OOT]
+  target: vllm_ascend.ops.vocab_parallel_embedding.AscendParallelLMHead
+- anchor_hash:
+    sha256:1867fa474db519610d06f7cef8a2a57ea9ca4a3ad6afd2d79be8c628aa5a2deb
+  applies_when: is_a2 && is_qwen3_dense && unquantized && dtype_w == bf16 &&
+    (!vocab_parallel_override)
+  id: a2.qwen3_dense.logits.kernel
+  level: KERNEL
+  note: 标准词表并行模式保持词表分片与输出形状，使用昇腾实现；独立词表并行及上下文并行路径不在本标注条件内。
+  resolves_to: vllm_ascend.ops.vocab_parallel_embedding.AscendLogitsProcessor
+  reviewed_by: pending
+  tag: [OOT]
+  target: vllm_ascend.ops.vocab_parallel_embedding.AscendLogitsProcessor
+- anchor_hash:
+    sha256:1867fa474db519610d06f7cef8a2a57ea9ca4a3ad6afd2d79be8c628aa5a2deb
+  applies_when: is_a2 && is_qwen3_dense && unquantized && dtype_w == bf16 &&
+    (vocab_parallel_override)
+  id: a2.qwen3_dense.logits.parallel
+  level: SEMANTIC
+  note: 独立词表并行或上下文并行改变词表权重所属通信组；输入嵌入可交换 token 并归约散射，logits 可按独立组全交换或聚合，须按实际模式区分。
+  resolves_to: vllm_ascend.ops.vocab_parallel_embedding.AscendLogitsProcessor
+  reviewed_by: pending
+  tag: [OOT]
+  target: vllm_ascend.ops.vocab_parallel_embedding.AscendLogitsProcessor
+- anchor_hash:
+    sha256:1da639f62e72445aabc8f90eb7d26bd7372792442053f94ca54cb498de026f74
+  applies_when: is_a2 && is_qwen3_dense && unquantized && dtype_w == bf16
+  id: a2.qwen3_dense.rms_norm
+  level: KERNEL
+  note: 未量化路径以昇腾归一化及残差融合内核替换实现，保持归一化维度和权重；量化反偏置路径需另行审阅。
+  resolves_to: vllm_ascend.ops.layernorm.AscendRMSNorm
+  reviewed_by: pending
+  tag: [OOT]
+  target: vllm_ascend.ops.layernorm.AscendRMSNorm
+- anchor_hash:
+    sha256:6cd4a14090f7b3b25a022b38c883818f3c258b3ef0691387e0398d090244c665
+  anchors:
+  - {anchor_hash:
+      sha256:d342dbba83109a46ee0da40b4316be531fe76ba93cd92a63ba6effbff9691f17,
+      target:
+      vllm_ascend.ops.rotary_embedding._record_cos_and_sin_cache_interleaved}
+  applies_when: is_a2 && is_qwen3_dense && unquantized && dtype_w == bf16 &&
+    (!mtp_draft)
+  id: a2.qwen3_dense.rotary
+  level: LAYOUT
+  note: 保留旋转位置编码语义，同时为 cos/sin 建立交错派生缓存并登记为非持久缓冲；这会改变缓存存储，不能从参数形状推断其占用。
+  resolves_to: vllm_ascend.ops.rotary_embedding.AscendRotaryEmbedding
+  reviewed_by: pending
+  tag: [OOT]
+  target: vllm_ascend.ops.rotary_embedding.AscendRotaryEmbedding
+- anchor_hash:
+    sha256:9387664fbbe0a7e19ffcef17842bb4d3c0202cb5040f46c121ccdbee46b92beb
+  applies_when: is_a2 && is_qwen3_dense && unquantized && dtype_w == bf16
+  id: a2.qwen3_dense.silu
+  level: KERNEL
+  note: 以 npu_swiglu 对 gate/up 合并输出执行 SiLU 与逐元素相乘，保持末维减半的激活语义，不引入参数或集合通信。
+  resolves_to: vllm_ascend.ops.activation.AscendSiluAndMul
+  reviewed_by: pending
+  tag: [OOT]
+  target: vllm_ascend.ops.activation.AscendSiluAndMul

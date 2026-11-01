@@ -96,6 +96,10 @@ export type Weights = string;
  */
 export type AnnotationId = string;
 /**
+ * Selected annotation predicate, re-evaluated after runtime parameter changes.
+ */
+export type AppliesWhen = string | null;
+/**
  * KERNEL preserves semantics; LAYOUT changes storage; SEMANTIC changes graph/communication.
  */
 export type Level = "KERNEL" | "LAYOUT" | "SEMANTIC";
@@ -343,10 +347,18 @@ export interface IRNode {
 }
 export interface AscendTag {
   annotation_id: AnnotationId;
+  applies_when?: AppliesWhen;
+  context?: Context;
   level: Level;
   note: Note;
   src: Src;
   tag: Tag;
+}
+/**
+ * Fixed extraction facts for applies_when; runtime params remain in the IR environment.
+ */
+export interface Context {
+  [k: string]: boolean;
 }
 export interface SourceRef {
   commit: Commit;

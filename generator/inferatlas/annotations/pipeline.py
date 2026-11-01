@@ -122,6 +122,7 @@ def apply_annotations(
             "level": annotation.level,
             "note": annotation.note,
             "annotation_id": annotation.id,
+            "applies_when": annotation.applies_when,
             "src": [refs[key].model_copy(deep=True) for key in sorted(refs)],
         }
         node.ascend = existing.model_copy(update=overlay) if existing else AscendTag(**overlay)

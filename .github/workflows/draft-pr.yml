@@ -106,7 +106,9 @@ jobs:
           just --set UV_INDEX_URL https://pypi.org/simple/ lint
           uv run --project generator pytest -c generator/pyproject.toml -m 'not extract'
           pnpm -r test
-          uv run --project generator inferatlas golden check
+          for ir in golden/*/*/ir.json; do
+            uv run --project generator inferatlas golden check --ir "$ir"
+          done
       - name: Open a draft for human review
         env:
           GH_TOKEN: ${{ secrets.MAINTENANCE_TOKEN }}

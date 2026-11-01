@@ -2454,7 +2454,16 @@
       "step": null
     },
     "ep": {
-      "choices": null,
+      "choices": [
+        "1",
+        "2",
+        "4",
+        "8",
+        "16",
+        "32",
+        "64",
+        "128"
+      ],
       "constraint": "ep==1 || (ep==tp*dp && E%ep==0)",
       "default": "1",
       "description": "Expert degree: 1 disables EP; otherwise ep must equal tp*dp and divide E.",
@@ -2476,7 +2485,7 @@
     "hbm_bytes": {
       "choices": null,
       "constraint": null,
-      "default": "64000000000",
+      "default": "80000000000",
       "description": "Per-device memory bytes; override with catalog hardware preset.",
       "kind": "number",
       "max": null,
@@ -2506,8 +2515,8 @@
     "non_torch_bytes": {
       "choices": null,
       "constraint": null,
-      "default": "0",
-      "description": "Explicit byte deduction; zero excludes unmeasured overhead.",
+      "default": "200000000",
+      "description": "Catalog estimate for communication/runtime buffers.",
       "kind": "number",
       "max": null,
       "min": "0",
@@ -2537,8 +2546,8 @@
     "reserved_bytes": {
       "choices": null,
       "constraint": null,
-      "default": "0",
-      "description": "Explicit byte deduction; zero excludes unmeasured overhead.",
+      "default": "2000000000",
+      "description": "Catalog estimate for graph capture/allocator reserve.",
       "kind": "number",
       "max": null,
       "min": "0",

@@ -27,6 +27,16 @@
           "title": "Kind",
           "type": "string"
         },
+        "reason": {
+          "default": "conditional_override",
+          "description": "Unannotated observed replacements block publication even when no candidate note exists.",
+          "enum": [
+            "conditional_override",
+            "unannotated_override"
+          ],
+          "title": "Reason",
+          "type": "string"
+        },
         "symbol": {
           "description": "Qualified conditional implementation symbol.",
           "title": "Symbol",

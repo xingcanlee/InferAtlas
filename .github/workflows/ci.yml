@@ -41,4 +41,7 @@ jobs:
           git diff --exit-code
           test -z "$(git ls-files --others --exclude-standard schemas packages/contracts)"
       - name: Golden check
-        run: uv run --project generator inferatlas golden check
+        run: |
+          for ir in golden/*/*/ir.json; do
+            uv run --project generator inferatlas golden check --ir "$ir"
+          done

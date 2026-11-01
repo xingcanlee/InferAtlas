@@ -1,5 +1,5 @@
 /// <reference types="vitest/config" />
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import tailwindcss from "@tailwindcss/vite";
@@ -15,12 +15,25 @@ function inlineData(): Plugin {
   const onlyModel = process.env.INFERATLAS_SINGLE_MODEL;
   return {
     name: "inferatlas-inline-data",
+    writeBundle(options) {
+      const output =
+        process.env.INFERATLAS_SINGLE_OUTPUT ??
+        (onlyModel ? resolve(here, "../dist", `inferatlas-${onlyModel}.html`) : undefined);
+      if (output) {
+        mkdirSync(dirname(output), { recursive: true });
+        copyFileSync(join(options.dir ?? "dist-single", "index.html"), output);
+      }
+    },
     transformIndexHtml() {
       const read = (p: string) => JSON.parse(readFileSync(p, "utf8")) as unknown;
       const index = read(join(dataDir, "index.json")) as {
         cells: { data_path?: string | null; model: string }[];
+        models: { id: string }[];
       };
-      if (onlyModel) index.cells = index.cells.filter((c) => c.model === onlyModel);
+      if (onlyModel) {
+        index.cells = index.cells.filter((c) => c.model === onlyModel);
+        index.models = index.models.filter((m) => m.id === onlyModel);
+      }
       const bundles: Record<string, Record<string, unknown>> = {};
       for (const cell of index.cells) {
         if (!cell.data_path) continue;

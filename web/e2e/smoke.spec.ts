@@ -4,8 +4,9 @@ import { fileURLToPath } from "node:url";
 import { expect, type Page, test } from "@playwright/test";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const shots = join(here, "..", "docs", "screenshots");
+const shots = join(here, "..", "test-results", "screenshots");
 const MODEL = "#/m/main-verified/A2/qwen3-30b-a3b";
+const demo = process.env.INFERATLAS_DEMO === "1";
 
 async function shot(page: Page, name: string) {
   await page.waitForTimeout(250);
@@ -16,7 +17,7 @@ test("home matrix lists cells and opens a model", async ({ page }) => {
   await page.goto("./");
   await expect(page.getByTestId("matrix")).toBeVisible();
   await expect(page.locator('[data-status="ok"]').first()).toBeVisible();
-  await expect(page.locator('[data-status="triage"]').first()).toBeVisible();
+  if (demo) await expect(page.locator('[data-status="triage"]').first()).toBeVisible();
   await expect(page.locator('[data-status="missing"]').first()).toBeVisible();
   await shot(page, "home");
   await page.getByTestId("cell-main-verified-qwen3-30b-a3b").click();
@@ -73,7 +74,7 @@ test("model page: drill down, select, recompute, overlay", async ({ page }) => {
   await page.getByTestId("node-search-input").fill("dispatch");
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/view=L2%3Amoe|view=L2:moe/);
-  await expect(page.getByTestId("node-detail")).toContainText("all_to_all");
+  await expect(page.getByTestId("node-detail")).toContainText("all_gather");
 });
 
 test("model page dark theme", async ({ page }) => {
@@ -84,11 +85,15 @@ test("model page dark theme", async ({ page }) => {
   await shot(page, "model-dark");
 });
 
-test("diff page highlights changes", async ({ page }) => {
+test("diff page handles the available versions", async ({ page }) => {
   await page.goto("./#/diff");
-  await expect(page.getByTestId("change-list")).toBeVisible();
-  await page.getByTestId("diff-view-L2:moe").click();
-  await expect(page.getByTestId("diff-graph-b").getByTestId("diff-badge").first()).toBeVisible();
+  if (demo) {
+    await expect(page.getByTestId("change-list")).toBeVisible();
+    await page.getByTestId("diff-view-L2:moe").click();
+    await expect(page.getByTestId("diff-graph-b").getByTestId("diff-badge").first()).toBeVisible();
+  } else {
+    await expect(page.getByText("Nothing to compare")).toBeVisible();
+  }
   await shot(page, "diff");
 });
 
@@ -128,9 +133,50 @@ test("ep choices are limited to 1 or tp×dp", async ({ page }) => {
 
 test("single-file build works from file://", async ({ page }) => {
   const file = join(here, "..", "dist-single", "index.html");
-  test.skip(!existsSync(file), "run build:single first");
+  expect(existsSync(file), "run inferatlas single before e2e").toBe(true);
+  await page.context().setOffline(true);
   await page.goto(`file://${file}#/m/main-verified/A2/qwen3-30b-a3b?view=L1%3Adecoder`);
   await expect(page.getByTestId("node-attn")).toBeVisible();
   await page.getByTestId("node-moe").click();
-  await expect(page.getByTestId("node-detail")).toContainText("Sparse MoE");
+  await expect(page.getByTestId("node-detail")).toContainText(
+    demo ? "Sparse MoE" : "Qwen3MoeSparseMoeBlock",
+  );
 });
+
+for (const device of demo ? ["A2"] : ["A2", "H100"]) {
+  for (const model of ["qwen3-30b-a3b", "qwen3-8b"]) {
+    test(`${model} on ${device} has data and a roofline`, async ({ page }) => {
+      await page.goto(`./#/m/main-verified/${device}/${model}?side=roofline`);
+      await expect(page.getByTestId("roofline-chart")).toBeVisible();
+      await expect(page.getByTestId("hw-select")).toContainText(device);
+      if (!demo && model === "qwen3-8b") {
+        await page.getByTestId("node-decoder").dblclick();
+        await page.getByTestId("node-mlp").dblclick();
+        await expect(page.getByTestId("node-mlp.gate_up")).toBeVisible();
+      }
+    });
+  }
+}
+
+if (!demo) {
+  test("dense single-file export works offline", async ({ page }) => {
+    const file = join(here, "..", "..", "dist", "inferatlas-qwen3-8b.html");
+    expect(existsSync(file), "build the dense single-file export first").toBe(true);
+    await page.context().setOffline(true);
+    await page.goto(`file://${file}#/m/main-verified/A2/qwen3-8b?view=L2%3Amlp`);
+    await expect(page.getByTestId("node-mlp.gate_up")).toBeVisible();
+    await page.getByTestId("node-mlp.down").click();
+    await expect(page.getByTestId("node-detail")).toContainText("RowParallelLinear");
+  });
+
+  test("changing runtime dtype removes and restores a conditional Ascend note", async ({
+    page,
+  }) => {
+    await page.goto(`./${MODEL}?view=L2%3Aattn&node=attn.o&overlay=true`);
+    await expect(page.getByTestId("ascend-card")).toBeVisible();
+    await page.getByTestId("param-dtype_w").getByText("fp16", { exact: true }).click();
+    await expect(page.getByTestId("ascend-card")).toHaveCount(0);
+    await page.getByTestId("param-dtype_w").getByText("bf16", { exact: true }).click();
+    await expect(page.getByTestId("ascend-card")).toBeVisible();
+  });
+}

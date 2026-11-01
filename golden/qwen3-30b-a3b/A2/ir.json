@@ -434,6 +434,21 @@
     {
       "ascend": {
         "annotation_id": "a2.qwen3_moe.patch.attention",
+        "applies_when": "is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16 && (!use_mrope)",
+        "context": {
+          "capture_routing": false,
+          "custom_parallel": false,
+          "fused_mc2": false,
+          "is_a2": true,
+          "is_qwen3_dense": false,
+          "is_qwen3_moe": true,
+          "linear_nz": false,
+          "mtp_draft": false,
+          "redundant_experts": false,
+          "unquantized": true,
+          "use_mrope": false,
+          "vocab_parallel_override": false
+        },
         "level": "KERNEL",
         "note": "该函数实际替换 Qwen3MoeAttention.forward；普通旋转分支仍依次执行 QKV 拆分、按头归一化、旋转和 attention，不能因补丁文件名将其误判为视觉专用融合。",
         "src": [
@@ -573,6 +588,21 @@
     {
       "ascend": {
         "annotation_id": "a2.qwen3_moe.rms_norm",
+        "applies_when": "is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16",
+        "context": {
+          "capture_routing": false,
+          "custom_parallel": false,
+          "fused_mc2": false,
+          "is_a2": true,
+          "is_qwen3_dense": false,
+          "is_qwen3_moe": true,
+          "linear_nz": false,
+          "mtp_draft": false,
+          "redundant_experts": false,
+          "unquantized": true,
+          "use_mrope": false,
+          "vocab_parallel_override": false
+        },
         "level": "KERNEL",
         "note": "未量化路径以昇腾归一化及残差融合内核替换实现，保持归一化维度和权重；量化反偏置路径需另行审阅。",
         "src": [
@@ -650,6 +680,21 @@
     {
       "ascend": {
         "annotation_id": "a2.qwen3_moe.linear.row.kernel",
+        "applies_when": "is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16 && (!custom_parallel && !linear_nz)",
+        "context": {
+          "capture_routing": false,
+          "custom_parallel": false,
+          "fused_mc2": false,
+          "is_a2": true,
+          "is_qwen3_dense": false,
+          "is_qwen3_moe": true,
+          "linear_nz": false,
+          "mtp_draft": false,
+          "redundant_experts": false,
+          "unquantized": true,
+          "use_mrope": false,
+          "vocab_parallel_override": false
+        },
         "level": "KERNEL",
         "note": "输出投影沿用标准张量并行分片及通信，未启用 NZ 权重转换时仅替换矩阵乘内核。",
         "src": [
@@ -756,6 +801,21 @@
     {
       "ascend": {
         "annotation_id": "a2.qwen3_moe.linear.row.kernel",
+        "applies_when": "is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16 && (!custom_parallel && !linear_nz)",
+        "context": {
+          "capture_routing": false,
+          "custom_parallel": false,
+          "fused_mc2": false,
+          "is_a2": true,
+          "is_qwen3_dense": false,
+          "is_qwen3_moe": true,
+          "linear_nz": false,
+          "mtp_draft": false,
+          "redundant_experts": false,
+          "unquantized": true,
+          "use_mrope": false,
+          "vocab_parallel_override": false
+        },
         "level": "KERNEL",
         "note": "输出投影沿用标准张量并行分片及通信，未启用 NZ 权重转换时仅替换矩阵乘内核。",
         "src": [
@@ -863,6 +923,21 @@
     {
       "ascend": {
         "annotation_id": "a2.qwen3_moe.rms_norm",
+        "applies_when": "is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16",
+        "context": {
+          "capture_routing": false,
+          "custom_parallel": false,
+          "fused_mc2": false,
+          "is_a2": true,
+          "is_qwen3_dense": false,
+          "is_qwen3_moe": true,
+          "linear_nz": false,
+          "mtp_draft": false,
+          "redundant_experts": false,
+          "unquantized": true,
+          "use_mrope": false,
+          "vocab_parallel_override": false
+        },
         "level": "KERNEL",
         "note": "未量化路径以昇腾归一化及残差融合内核替换实现，保持归一化维度和权重；量化反偏置路径需另行审阅。",
         "src": [
@@ -940,6 +1015,21 @@
     {
       "ascend": {
         "annotation_id": "a2.qwen3_moe.linear.qkv.kernel",
+        "applies_when": "is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16 && (!linear_nz)",
+        "context": {
+          "capture_routing": false,
+          "custom_parallel": false,
+          "fused_mc2": false,
+          "is_a2": true,
+          "is_qwen3_dense": false,
+          "is_qwen3_moe": true,
+          "linear_nz": false,
+          "mtp_draft": false,
+          "redundant_experts": false,
+          "unquantized": true,
+          "use_mrope": false,
+          "vocab_parallel_override": false
+        },
         "level": "KERNEL",
         "note": "QKV 投影沿用标准张量并行分片及通信，未启用 NZ 权重转换时仅替换矩阵乘内核。",
         "src": [
@@ -1047,6 +1137,21 @@
     {
       "ascend": {
         "annotation_id": "a2.qwen3_moe.rotary",
+        "applies_when": "is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16 && (!mtp_draft)",
+        "context": {
+          "capture_routing": false,
+          "custom_parallel": false,
+          "fused_mc2": false,
+          "is_a2": true,
+          "is_qwen3_dense": false,
+          "is_qwen3_moe": true,
+          "linear_nz": false,
+          "mtp_draft": false,
+          "redundant_experts": false,
+          "unquantized": true,
+          "use_mrope": false,
+          "vocab_parallel_override": false
+        },
         "level": "LAYOUT",
         "note": "保留旋转位置编码语义，同时为 cos/sin 建立交错派生缓存并登记为非持久缓冲；这会改变缓存存储，不能从参数形状推断其占用。",
         "src": [
@@ -1141,6 +1246,21 @@
     {
       "ascend": {
         "annotation_id": "a2.qwen3_moe.apply_rotary",
+        "applies_when": "is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16",
+        "context": {
+          "capture_routing": false,
+          "custom_parallel": false,
+          "fused_mc2": false,
+          "is_a2": true,
+          "is_qwen3_dense": false,
+          "is_qwen3_moe": true,
+          "linear_nz": false,
+          "mtp_draft": false,
+          "redundant_experts": false,
+          "unquantized": true,
+          "use_mrope": false,
+          "vocab_parallel_override": false
+        },
         "level": "KERNEL",
         "note": "以 npu_rotary_mul 应用旋转，预处理后恢复原始形状和类型，部分旋转维度外的分量保持不变。",
         "src": [
@@ -1277,6 +1397,21 @@
     {
       "ascend": {
         "annotation_id": "a2.qwen3_moe.embedding.kernel",
+        "applies_when": "is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16 && (!vocab_parallel_override)",
+        "context": {
+          "capture_routing": false,
+          "custom_parallel": false,
+          "fused_mc2": false,
+          "is_a2": true,
+          "is_qwen3_dense": false,
+          "is_qwen3_moe": true,
+          "linear_nz": false,
+          "mtp_draft": false,
+          "redundant_experts": false,
+          "unquantized": true,
+          "use_mrope": false,
+          "vocab_parallel_override": false
+        },
         "level": "KERNEL",
         "note": "标准词表并行模式保持词表分片与输出形状，使用昇腾实现；独立词表并行及上下文并行路径不在本标注条件内。",
         "src": [
@@ -1355,6 +1490,21 @@
     {
       "ascend": {
         "annotation_id": "a2.qwen3_moe.embedding.kernel",
+        "applies_when": "is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16 && (!vocab_parallel_override)",
+        "context": {
+          "capture_routing": false,
+          "custom_parallel": false,
+          "fused_mc2": false,
+          "is_a2": true,
+          "is_qwen3_dense": false,
+          "is_qwen3_moe": true,
+          "linear_nz": false,
+          "mtp_draft": false,
+          "redundant_experts": false,
+          "unquantized": true,
+          "use_mrope": false,
+          "vocab_parallel_override": false
+        },
         "level": "KERNEL",
         "note": "标准词表并行模式保持词表分片与输出形状，使用昇腾实现；独立词表并行及上下文并行路径不在本标注条件内。",
         "src": [
@@ -1434,6 +1584,21 @@
     {
       "ascend": {
         "annotation_id": "a2.qwen3_moe.rms_norm",
+        "applies_when": "is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16",
+        "context": {
+          "capture_routing": false,
+          "custom_parallel": false,
+          "fused_mc2": false,
+          "is_a2": true,
+          "is_qwen3_dense": false,
+          "is_qwen3_moe": true,
+          "linear_nz": false,
+          "mtp_draft": false,
+          "redundant_experts": false,
+          "unquantized": true,
+          "use_mrope": false,
+          "vocab_parallel_override": false
+        },
         "level": "KERNEL",
         "note": "未量化路径以昇腾归一化及残差融合内核替换实现，保持归一化维度和权重；量化反偏置路径需另行审阅。",
         "src": [
@@ -1559,6 +1724,21 @@
     {
       "ascend": {
         "annotation_id": "a2.qwen3_moe.lm_head.kernel",
+        "applies_when": "is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16 && (!vocab_parallel_override)",
+        "context": {
+          "capture_routing": false,
+          "custom_parallel": false,
+          "fused_mc2": false,
+          "is_a2": true,
+          "is_qwen3_dense": false,
+          "is_qwen3_moe": true,
+          "linear_nz": false,
+          "mtp_draft": false,
+          "redundant_experts": false,
+          "unquantized": true,
+          "use_mrope": false,
+          "vocab_parallel_override": false
+        },
         "level": "KERNEL",
         "note": "标准词表并行模式保持词表分片与输出形状，使用昇腾实现；独立词表并行及上下文并行路径不在本标注条件内。",
         "src": [
@@ -1650,6 +1830,21 @@
     {
       "ascend": {
         "annotation_id": "a2.qwen3_moe.logits.kernel",
+        "applies_when": "is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16 && (!vocab_parallel_override)",
+        "context": {
+          "capture_routing": false,
+          "custom_parallel": false,
+          "fused_mc2": false,
+          "is_a2": true,
+          "is_qwen3_dense": false,
+          "is_qwen3_moe": true,
+          "linear_nz": false,
+          "mtp_draft": false,
+          "redundant_experts": false,
+          "unquantized": true,
+          "use_mrope": false,
+          "vocab_parallel_override": false
+        },
         "level": "KERNEL",
         "note": "标准词表并行模式保持词表分片与输出形状，使用昇腾实现；独立词表并行及上下文并行路径不在本标注条件内。",
         "src": [
@@ -1729,6 +1924,21 @@
     {
       "ascend": {
         "annotation_id": "a2.qwen3_moe.logits.kernel",
+        "applies_when": "is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16 && (!vocab_parallel_override)",
+        "context": {
+          "capture_routing": false,
+          "custom_parallel": false,
+          "fused_mc2": false,
+          "is_a2": true,
+          "is_qwen3_dense": false,
+          "is_qwen3_moe": true,
+          "linear_nz": false,
+          "mtp_draft": false,
+          "redundant_experts": false,
+          "unquantized": true,
+          "use_mrope": false,
+          "vocab_parallel_override": false
+        },
         "level": "KERNEL",
         "note": "标准词表并行模式保持词表分片与输出形状，使用昇腾实现；独立词表并行及上下文并行路径不在本标注条件内。",
         "src": [
@@ -1870,6 +2080,21 @@
     {
       "ascend": {
         "annotation_id": "a2.qwen3_moe.routed_experts",
+        "applies_when": "is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16",
+        "context": {
+          "capture_routing": false,
+          "custom_parallel": false,
+          "fused_mc2": false,
+          "is_a2": true,
+          "is_qwen3_dense": false,
+          "is_qwen3_moe": true,
+          "linear_nz": false,
+          "mtp_draft": false,
+          "redundant_experts": false,
+          "unquantized": true,
+          "use_mrope": false,
+          "vocab_parallel_override": false
+        },
         "level": "SEMANTIC",
         "note": "专家容器绑定昇腾计算方法，前向经所选通信方法 prepare、路由和 finalize；序列切分与 EP 分发决定中间激活形状。",
         "src": [
@@ -1943,6 +2168,21 @@
     {
       "ascend": {
         "annotation_id": "a2.qwen3_moe.moe_runner",
+        "applies_when": "is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16",
+        "context": {
+          "capture_routing": false,
+          "custom_parallel": false,
+          "fused_mc2": false,
+          "is_a2": true,
+          "is_qwen3_dense": false,
+          "is_qwen3_moe": true,
+          "linear_nz": false,
+          "mtp_draft": false,
+          "redundant_experts": false,
+          "unquantized": true,
+          "use_mrope": false,
+          "vocab_parallel_override": false
+        },
         "level": "SEMANTIC",
         "note": "初始化昇腾 MoE 通信方法并接入路由专家执行；EP 或序列并行及融合通信路径会改变分发、合并与归约位置，单卡不能据此宣称发生集合通信。",
         "src": [
@@ -2010,6 +2250,21 @@
     {
       "ascend": {
         "annotation_id": "a2.qwen3_moe.moe_runner",
+        "applies_when": "is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16",
+        "context": {
+          "capture_routing": false,
+          "custom_parallel": false,
+          "fused_mc2": false,
+          "is_a2": true,
+          "is_qwen3_dense": false,
+          "is_qwen3_moe": true,
+          "linear_nz": false,
+          "mtp_draft": false,
+          "redundant_experts": false,
+          "unquantized": true,
+          "use_mrope": false,
+          "vocab_parallel_override": false
+        },
         "level": "SEMANTIC",
         "note": "初始化昇腾 MoE 通信方法并接入路由专家执行；EP 或序列并行及融合通信路径会改变分发、合并与归约位置，单卡不能据此宣称发生集合通信。",
         "src": [
@@ -2089,6 +2344,21 @@
     {
       "ascend": {
         "annotation_id": "a2.qwen3_moe.moe_runner",
+        "applies_when": "is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16",
+        "context": {
+          "capture_routing": false,
+          "custom_parallel": false,
+          "fused_mc2": false,
+          "is_a2": true,
+          "is_qwen3_dense": false,
+          "is_qwen3_moe": true,
+          "linear_nz": false,
+          "mtp_draft": false,
+          "redundant_experts": false,
+          "unquantized": true,
+          "use_mrope": false,
+          "vocab_parallel_override": false
+        },
         "level": "SEMANTIC",
         "note": "初始化昇腾 MoE 通信方法并接入路由专家执行；EP 或序列并行及融合通信路径会改变分发、合并与归约位置，单卡不能据此宣称发生集合通信。",
         "src": [
@@ -2168,6 +2438,21 @@
     {
       "ascend": {
         "annotation_id": "a2.qwen3_moe.unquantized_experts",
+        "applies_when": "is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16",
+        "context": {
+          "capture_routing": false,
+          "custom_parallel": false,
+          "fused_mc2": false,
+          "is_a2": true,
+          "is_qwen3_dense": false,
+          "is_qwen3_moe": true,
+          "linear_nz": false,
+          "mtp_draft": false,
+          "redundant_experts": false,
+          "unquantized": true,
+          "use_mrope": false,
+          "vocab_parallel_override": false
+        },
         "level": "LAYOUT",
         "note": "加载后总是将专家矩阵转置为分组矩阵乘布局；仅 enable_fused_mc2 且未使用 MegaMoE 时强制转为 NZ，未启用融合时由 maybe_trans_nz 按 NZ 策略决定是否转换。构造时逻辑形状相同不代表加载后存储相同。",
         "src": [
@@ -2248,6 +2533,21 @@
     {
       "ascend": {
         "annotation_id": "a2.qwen3_moe.moe_runner",
+        "applies_when": "is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16",
+        "context": {
+          "capture_routing": false,
+          "custom_parallel": false,
+          "fused_mc2": false,
+          "is_a2": true,
+          "is_qwen3_dense": false,
+          "is_qwen3_moe": true,
+          "linear_nz": false,
+          "mtp_draft": false,
+          "redundant_experts": false,
+          "unquantized": true,
+          "use_mrope": false,
+          "vocab_parallel_override": false
+        },
         "level": "SEMANTIC",
         "note": "初始化昇腾 MoE 通信方法并接入路由专家执行；EP 或序列并行及融合通信路径会改变分发、合并与归约位置，单卡不能据此宣称发生集合通信。",
         "src": [
@@ -2327,6 +2627,21 @@
     {
       "ascend": {
         "annotation_id": "a2.qwen3_moe.routed_experts",
+        "applies_when": "is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16",
+        "context": {
+          "capture_routing": false,
+          "custom_parallel": false,
+          "fused_mc2": false,
+          "is_a2": true,
+          "is_qwen3_dense": false,
+          "is_qwen3_moe": true,
+          "linear_nz": false,
+          "mtp_draft": false,
+          "redundant_experts": false,
+          "unquantized": true,
+          "use_mrope": false,
+          "vocab_parallel_override": false
+        },
         "level": "SEMANTIC",
         "note": "专家容器绑定昇腾计算方法，前向经所选通信方法 prepare、路由和 finalize；序列切分与 EP 分发决定中间激活形状。",
         "src": [
@@ -2419,6 +2734,21 @@
     {
       "ascend": {
         "annotation_id": "a2.qwen3_moe.gate",
+        "applies_when": "is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16",
+        "context": {
+          "capture_routing": false,
+          "custom_parallel": false,
+          "fused_mc2": false,
+          "is_a2": true,
+          "is_qwen3_dense": false,
+          "is_qwen3_moe": true,
+          "linear_nz": false,
+          "mtp_draft": false,
+          "redundant_experts": false,
+          "unquantized": true,
+          "use_mrope": false,
+          "vocab_parallel_override": false
+        },
         "level": "SEMANTIC",
         "note": "Qwen 构造路由层时未指定输出类型；昇腾将默认 logits 改为单精度，上游则保留未指定状态，因此中间类型与激活字节口径会变化，路由权重仍为复制参数。",
         "src": [
@@ -2497,6 +2827,21 @@
     {
       "ascend": {
         "annotation_id": "a2.qwen3_moe.routed_experts",
+        "applies_when": "is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16",
+        "context": {
+          "capture_routing": false,
+          "custom_parallel": false,
+          "fused_mc2": false,
+          "is_a2": true,
+          "is_qwen3_dense": false,
+          "is_qwen3_moe": true,
+          "linear_nz": false,
+          "mtp_draft": false,
+          "redundant_experts": false,
+          "unquantized": true,
+          "use_mrope": false,
+          "vocab_parallel_override": false
+        },
         "level": "SEMANTIC",
         "note": "专家容器绑定昇腾计算方法，前向经所选通信方法 prepare、路由和 finalize；序列切分与 EP 分发决定中间激活形状。",
         "src": [
@@ -2579,6 +2924,21 @@
     {
       "ascend": {
         "annotation_id": "a2.qwen3_moe.routed_experts",
+        "applies_when": "is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16",
+        "context": {
+          "capture_routing": false,
+          "custom_parallel": false,
+          "fused_mc2": false,
+          "is_a2": true,
+          "is_qwen3_dense": false,
+          "is_qwen3_moe": true,
+          "linear_nz": false,
+          "mtp_draft": false,
+          "redundant_experts": false,
+          "unquantized": true,
+          "use_mrope": false,
+          "vocab_parallel_override": false
+        },
         "level": "SEMANTIC",
         "note": "专家容器绑定昇腾计算方法，前向经所选通信方法 prepare、路由和 finalize；序列切分与 EP 分发决定中间激活形状。",
         "src": [
@@ -2661,6 +3021,21 @@
     {
       "ascend": {
         "annotation_id": "a2.qwen3_moe.rms_norm",
+        "applies_when": "is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16",
+        "context": {
+          "capture_routing": false,
+          "custom_parallel": false,
+          "fused_mc2": false,
+          "is_a2": true,
+          "is_qwen3_dense": false,
+          "is_qwen3_moe": true,
+          "linear_nz": false,
+          "mtp_draft": false,
+          "redundant_experts": false,
+          "unquantized": true,
+          "use_mrope": false,
+          "vocab_parallel_override": false
+        },
         "level": "KERNEL",
         "note": "未量化路径以昇腾归一化及残差融合内核替换实现，保持归一化维度和权重；量化反偏置路径需另行审阅。",
         "src": [
@@ -2738,6 +3113,21 @@
     {
       "ascend": {
         "annotation_id": "a2.qwen3_moe.rms_norm",
+        "applies_when": "is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16",
+        "context": {
+          "capture_routing": false,
+          "custom_parallel": false,
+          "fused_mc2": false,
+          "is_a2": true,
+          "is_qwen3_dense": false,
+          "is_qwen3_moe": true,
+          "linear_nz": false,
+          "mtp_draft": false,
+          "redundant_experts": false,
+          "unquantized": true,
+          "use_mrope": false,
+          "vocab_parallel_override": false
+        },
         "level": "KERNEL",
         "note": "未量化路径以昇腾归一化及残差融合内核替换实现，保持归一化维度和权重；量化反偏置路径需另行审阅。",
         "src": [
@@ -2815,6 +3205,21 @@
     {
       "ascend": {
         "annotation_id": "a2.qwen3_moe.logits.kernel",
+        "applies_when": "is_a2 && is_qwen3_moe && unquantized && dtype_w == bf16 && (!vocab_parallel_override)",
+        "context": {
+          "capture_routing": false,
+          "custom_parallel": false,
+          "fused_mc2": false,
+          "is_a2": true,
+          "is_qwen3_dense": false,
+          "is_qwen3_moe": true,
+          "linear_nz": false,
+          "mtp_draft": false,
+          "redundant_experts": false,
+          "unquantized": true,
+          "use_mrope": false,
+          "vocab_parallel_override": false
+        },
         "level": "KERNEL",
         "note": "标准词表并行模式保持词表分片与输出形状，使用昇腾实现；独立词表并行及上下文并行路径不在本标注条件内。",
         "src": [
@@ -3016,7 +3421,16 @@
       "step": null
     },
     "ep": {
-      "choices": null,
+      "choices": [
+        "1",
+        "2",
+        "4",
+        "8",
+        "16",
+        "32",
+        "64",
+        "128"
+      ],
       "constraint": "ep==1 || (ep==tp*dp && E%ep==0)",
       "default": "1",
       "description": "Expert degree: 1 disables EP; otherwise ep must equal tp*dp and divide E.",
@@ -3068,8 +3482,8 @@
     "non_torch_bytes": {
       "choices": null,
       "constraint": null,
-      "default": "0",
-      "description": "Explicit byte deduction; zero excludes unmeasured overhead.",
+      "default": "1000000000",
+      "description": "Catalog estimate for communication/runtime buffers.",
       "kind": "number",
       "max": null,
       "min": "0",
@@ -3099,8 +3513,8 @@
     "reserved_bytes": {
       "choices": null,
       "constraint": null,
-      "default": "0",
-      "description": "Explicit byte deduction; zero excludes unmeasured overhead.",
+      "default": "2000000000",
+      "description": "Catalog estimate for graph capture/allocator reserve.",
       "kind": "number",
       "max": null,
       "min": "0",

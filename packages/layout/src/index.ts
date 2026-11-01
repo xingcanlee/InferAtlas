@@ -27,7 +27,7 @@ export const ELK_OPTIONS = Object.freeze({
   "elk.spacing.nodeNode": "48",
   "elk.spacing.edgeNode": "24",
   "elk.spacing.edgeEdge": "16",
-  "elk.layered.spacing.nodeNodeBetweenLayers": "64",
+  "elk.layered.spacing.nodeNodeBetweenLayers": "48",
   "elk.layered.spacing.edgeNodeBetweenLayers": "24",
   "elk.layered.considerModelOrder.strategy": "NODES_AND_EDGES",
   "elk.layered.nodePlacement.strategy": "BRANDES_KOEPF",
@@ -99,19 +99,7 @@ async function place(template: Template, wrapping = true): Promise<GraphView> {
         : (points[Math.floor(points.length / 2)] as Point);
     return { ...edge, points: points as [Point, Point, ...Point[]], label_pos };
   });
-  // ELK 0.11's wrapping can leave diagonal or tiny segments around label dummies.
-  // Retry its unwrapped router rather than exporting invalid orthogonal geometry.
-  if (
-    wrapping &&
-    edges.some((edge) =>
-      (edge.points as Point[]).slice(1).some(([x, y], i) => {
-        const [px, py] = edge.points[i] as Point;
-        return (px !== x && py !== y) || Math.abs(px - x) + Math.abs(py - y) <= 8;
-      }),
-    )
-  )
-    return place(template, false);
-  return {
+  const graph: GraphView = {
     id: template.id,
     nodes: nodes as GraphView["nodes"],
     edges: edges as GraphView["edges"],
@@ -119,6 +107,14 @@ async function place(template: Template, wrapping = true): Promise<GraphView> {
     width: Math.max(48, ceilGrid(placed.width ?? 0)),
     height: Math.max(48, ceilGrid(placed.height ?? 0)),
   };
+  try {
+    validateView({ views: [graph] });
+  } catch (error) {
+    // ELK wrapping can leave tiny/diagonal routes or endpoints detached from their nodes.
+    if (wrapping) return place(template, false);
+    throw error;
+  }
+  return graph;
 }
 
 /** Validates input, curates family views, then runs deterministic build-time ELK layout. */

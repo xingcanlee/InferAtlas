@@ -143,7 +143,7 @@ function choiceBlocked(
   choice: string,
   env: ExprEnv,
 ): string | undefined {
-  const constraint = (spec as ParamSpec & { constraint?: string | null }).constraint;
+  const constraint = spec.constraint;
   if (constraint) {
     const r = tryEvaluate(constraint, { ...env, [name]: Number(choice) });
     return r.ok && r.value === 0 ? `violates ${constraint}` : undefined;
@@ -311,6 +311,12 @@ function HardwareSelect() {
             const bytes = h.hbm_gb * 1e9;
             patch.hbm_bytes = bytes === m.envState.defaults.hbm_bytes ? undefined : bytes;
           }
+          for (const name of ["non_torch_bytes", "reserved_bytes"] as const) {
+            if (h && name in m.ir.params) {
+              const value = h[name] ?? 0;
+              patch[name] = value === m.envState.defaults[name] ? undefined : value;
+            }
+          }
           m.patch(patch, true);
         }}
       >
@@ -327,7 +333,7 @@ function HardwareSelect() {
         </SelectContent>
       </Select>
       <div className="text-[10.5px] text-muted-foreground">
-        Sets device memory and the roofline ceilings.
+        Sets device memory, estimated overheads and the roofline ceilings.
       </div>
     </div>
   );

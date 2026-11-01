@@ -7,6 +7,8 @@ devices:
     id: A3
   - hardware_preset: atlas-a5-unconfirmed
     id: A5
+  - hardware_preset: h100-sxm-80gb
+    id: H100
 hardware_presets:
   - bandwidth_gbps: 204.8
     device: 310P
@@ -30,9 +32,12 @@ hardware_presets:
     device: A2
     hbm_gb: 64
     id: atlas-800i-a2-64gb
+    non_torch_bytes: 1000000000
+    reserved_bytes: 2000000000
     interconnect_gbps:
     label: Atlas 800I A2, 64 GB HCCS variant
     notes:
+      - "Integration planning defaults (not measured or vendor specs): non_torch_bytes estimates communication/runtime buffers; reserved_bytes estimates graph capture and allocator overhead. Override after startup-log calibration."
       - 'TODO: verify per-device 280/75/560 peaks, bf16 equivalence and 1600 GB/s against the exact 64 GB board whitepaper; provisional vendor-spec figures, not measurements.'
       - Vendor product page gives 392 GB/s at server interconnect scope; per-device/duplex convention is uncertain, so interconnect remains null.
       - 'TODO: fp8/int4 unknown for this SKU; do not derive throughput by dtype byte width.'
@@ -86,9 +91,12 @@ hardware_presets:
     device: H100
     hbm_gb: 80
     id: h100-sxm-80gb
+    non_torch_bytes: 200000000
+    reserved_bytes: 2000000000
     interconnect_gbps: 900
     label: NVIDIA H100 SXM 80 GB (dense)
     notes:
+      - "Integration planning defaults (not measured or vendor specs): non_torch_bytes estimates communication/runtime buffers; reserved_bytes estimates graph capture and allocator overhead. Override after startup-log calibration."
       - 'Tensor peaks are dense: vendor sparsity-enabled BF16/FP16 1979 and FP8/INT8 3958 divided by two. FP32 is CUDA-core FP32, not TF32.'
       - NVLink is aggregate bidirectional 900 GB/s; INT8 is TOPS in the common operations/s field.
       - 'TODO: int4 throughput not published in this source; null.'

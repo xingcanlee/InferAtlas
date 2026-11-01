@@ -8,6 +8,29 @@
           "title": "Annotation Id",
           "type": "string"
         },
+        "applies_when": {
+          "anyOf": [
+            {
+              "description": "Expression in docs/expr-dsl.md; never a JSON number.",
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Selected annotation predicate, re-evaluated after runtime parameter changes.",
+          "title": "Applies When"
+        },
+        "context": {
+          "additionalProperties": {
+            "type": "boolean"
+          },
+          "description": "Fixed extraction facts for applies_when; runtime params remain in the IR environment.",
+          "title": "Context",
+          "type": "object"
+        },
         "level": {
           "description": "KERNEL preserves semantics; LAYOUT changes storage; SEMANTIC changes graph/communication.",
           "enum": [

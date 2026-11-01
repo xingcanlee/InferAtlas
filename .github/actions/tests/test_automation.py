@@ -58,6 +58,21 @@ def test_catalog_order_identity_and_no_architecture_assumptions():
     assert pipeline.pair_key(dict(reversed(list(PAIR.items())))) == pipeline.pair_key(PAIR)
 
 
+def test_cli_log_survives_atomic_replacement_of_build_directory(tmp_path, monkeypatch):
+    import shutil
+
+    dest = tmp_path / "cell"
+    dest.mkdir()
+
+    def build(arguments, **kwargs):
+        shutil.rmtree(dest)
+        return subprocess.CompletedProcess(arguments, 0, "Built successfully.\n")
+
+    monkeypatch.setattr(pipeline.subprocess, "run", build)
+    assert pipeline.run_cli(["build"], dest / "build.log") == 0
+    assert (dest / "build.log").read_text() == "Built successfully.\n"
+
+
 @pytest.mark.parametrize("bad", ["../escape", "name/with/slashes", "bad\nname"])
 def test_matrix_rejects_unsafe_artifact_paths(bad):
     data = catalog()
@@ -201,16 +216,18 @@ def test_real_contract_cell_turns_golden_drift_into_actionable_triage(
         dest = tmp_path / "cell"
         log.write_text("golden drift\n" if arguments[0] == "golden" else "ok\n")
         if arguments[0] == "build":
+            assert arguments[-2:] == ["--output", str(dest)]
             for name in ("ir", "view", "report"):
                 shutil.copyfile(fixture / f"{name}.json", dest / f"{name}.json")
             pipeline.write_json(dest / "triage.json", {**triage, "items": []})
-        elif arguments[0] == "verify":
             report = json.loads((dest / "report.json").read_text())
-            report["checks"].extend(
+            report["checks"] = [
                 {"id": name, "status": "pass", "message": "Checked"}
                 for name in ("coverage", "source_links")
-            )
+            ] + [c for c in report["checks"] if c["id"] not in {"coverage", "source_links"}]
             pipeline.write_json(dest / "report.json", report)
+        else:
+            assert arguments == ["golden", "check", "--ir", str(dest / "ir.json")]
         return golden_status if arguments[0] == "golden" else 0
 
     monkeypatch.setattr(pipeline, "run_cli", run)
@@ -225,6 +242,68 @@ def test_real_contract_cell_turns_golden_drift_into_actionable_triage(
             "model": current["model"],
             "diff": "golden drift",
         }
+
+
+@pytest.mark.parametrize("production", [False, True])
+def test_retained_renderer_validates_provenance_and_exports_only_current_cells(
+    tmp_path, monkeypatch, production
+):
+    import shutil
+
+    fixture = pipeline.ROOT / "fixtures/qwen3-30b-a3b"
+    shutil.copyfile(pipeline.ROOT / "catalog.yaml", tmp_path / "catalog.yaml")
+    monkeypatch.setattr(pipeline, "ROOT", tmp_path)
+    monkeypatch.setattr(pipeline, "CACHE", tmp_path / ".cache")
+    current, previous = ("snapshot-" + c * 64 for c in ("a", "b"))
+    monkeypatch.setenv("SNAPSHOT_ID", current)
+    for snapshot in (current, previous):
+        dest = pipeline.CACHE / "state/data" / snapshot / "qwen3-30b-a3b/A2"
+        dest.mkdir(parents=True)
+        for name in ("ir", "view"):
+            shutil.copyfile(fixture / f"{name}.json", dest / f"{name}.json")
+        report = json.loads((fixture / "report.json").read_text())
+        report["checks"] = [
+            {"id": name, "status": "pass", "message": "Checked"}
+            for name in ("schema", "coverage", "source_links")
+        ]
+        report["checks"].append(
+            {
+                "id": "provenance",
+                "status": "pass" if production else "skip",
+                "message": "Production backends only" if production else "Fixture",
+            }
+        )
+        pipeline.write_json(dest / "report.json", report)
+    calls = []
+
+    def web(arguments, *, env, **kwargs):
+        calls.append(arguments)
+        index = pipeline.Index.model_validate_json(
+            (Path(env["INFERATLAS_DATA_DIR"]) / "index.json").read_text()
+        )
+        if arguments[-1] == "build":
+            assert {v.id for v in index.versions} == {current, previous}
+            assert len(index.cells) == 2
+            output = tmp_path / "web/dist/index.html"
+        else:
+            assert arguments[-1] == "build:single"
+            assert len(index.models) == len(index.cells) == len(index.versions) == 1
+            assert index.cells[0].version == current
+            output = Path(env["INFERATLAS_SINGLE_OUTPUT"])
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text("<!doctype html>validated render")
+
+    monkeypatch.setattr(pipeline.subprocess, "run", web)
+    if production:
+        pipeline.render()
+        assert len(calls) == 2
+        assert (tmp_path / "dist/site/index.html").exists()
+        assert (tmp_path / f"dist/single/{current}/qwen3-30b-a3b--A2.html").exists()
+        assert not (tmp_path / f"dist/single/{previous}").exists()
+    else:
+        with pytest.raises(ValueError, match="verified production data"):
+            pipeline.render()
+        assert not calls
 
 
 @pytest.mark.parametrize("bootstrap_failure", [False, True])

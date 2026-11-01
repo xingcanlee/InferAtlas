@@ -12,6 +12,10 @@ from pathlib import Path
 from jsonschema import validate
 from ruamel.yaml import YAML
 
+from inferatlas.cli import validate_view
+from inferatlas.resolve import load_catalog
+from inferatlas.schema import IR, Index, Report, View
+
 ROOT = Path(__file__).resolve().parents[2]
 CACHE = ROOT / ".cache"
 SHA = re.compile(r"[0-9a-f]{40}")
@@ -132,15 +136,18 @@ def check_identity(snapshot: dict, cell: dict, pair: dict) -> None:
 
 
 def run_cli(arguments: list[str], log: Path) -> int:
-    with log.open("w") as stream:
-        result = subprocess.run(
-            ["uv", "run", "--project", str(ROOT / "generator"), "inferatlas", *arguments],
-            cwd=ROOT,
-            stdout=stream,
-            stderr=subprocess.STDOUT,
-            check=False,
-        )
-    print(log.read_text(), end="")
+    # Build atomically replaces its output directory, including any pre-opened log.
+    result = subprocess.run(
+        ["uv", "run", "--project", str(ROOT / "generator"), "inferatlas", *arguments],
+        cwd=ROOT,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        check=False,
+    )
+    log.parent.mkdir(parents=True, exist_ok=True)
+    log.write_text(result.stdout)
+    print(result.stdout, end="")
     return result.returncode
 
 
@@ -165,7 +172,15 @@ def cell() -> None:
     result = {**current, "status": "error"}
     write_json(dest / "result.json", result)
     code = run_cli(
-        ["build", "--model", current["model"], "--device", current["device"], "--out", str(dest)],
+        [
+            "build",
+            "--model",
+            current["model"],
+            "--device",
+            current["device"],
+            "--output",
+            str(dest),
+        ],
         dest / "build.log",
     )
     triage = load_contract(dest / "triage.json", "triage")
@@ -176,11 +191,10 @@ def cell() -> None:
         ir = load_contract(dest / "ir.json", "ir")
         check_identity(ir["snapshot"], current, pair)
         load_contract(dest / "view.json", "view")
-        if run_cli(["verify", "--input", str(dest)], dest / "verify.log"):
-            raise RuntimeError("Source/coverage verification failed")
+        # Build already verifies source links, coverage, layout and both extracted TP points.
         report = load_contract(dest / "report.json", "report")
         check_identity(report["snapshot"], current, pair)
-        if run_cli(["golden", "check", "--input", str(dest)], dest / "golden.log"):
+        if run_cli(["golden", "check", "--ir", str(dest / "ir.json")], dest / "golden.log"):
             diff = (dest / "golden.log").read_text().replace(str(ROOT), "<repo>").strip()
             triage["items"].append(
                 {
@@ -255,6 +269,108 @@ def collect() -> None:
     output("triage", str(triage).lower())
     summary = json.loads((CACHE / "bundle/summary.json").read_text())
     output("errors", len(summary["errors"]))
+
+
+def render() -> None:
+    """Render retained immutable versions using the web's public data contract."""
+    catalog = load_catalog(ROOT / "catalog.yaml")
+    data = CACHE / "render-data"
+    shutil.rmtree(data, ignore_errors=True)
+    models = {model.hf_id: model for model in catalog.models}
+    versions, cells = {}, []
+    for path in sorted((CACHE / "state/data").glob("*/*/*/ir.json")):
+        snapshot, model_id, device = path.relative_to(CACHE / "state/data").parts[:3]
+        if not re.fullmatch(r"snapshot-[0-9a-f]{64}", snapshot):
+            raise ValueError("Invalid retained snapshot identity")
+        ir = IR.model_validate_json(path.read_text())
+        report = Report.model_validate_json(path.with_name("report.json").read_text())
+        view = View.model_validate_json(path.with_name("view.json").read_text())
+        model = models[ir.snapshot.model.hf_id]
+        if ir.snapshot != report.snapshot or (model.id, ir.snapshot.device) != (model_id, device):
+            raise ValueError("Retained artifact identity mismatch")
+        if not report_passes(report.model_dump()) or not any(
+            c.id == "provenance" and c.status == "pass" for c in report.checks
+        ):
+            raise ValueError("Retained artifact is not verified production data")
+        validate_view(ir, view)
+        version = dict(
+            id=snapshot,
+            label=snapshot,
+            vllm=ir.snapshot.vllm.commit,
+            ascend=ir.snapshot.ascend.commit,
+        )
+        if snapshot in versions and versions[snapshot] != version:
+            raise ValueError("Retained snapshot contains different upstream pairs")
+        versions[snapshot] = version
+        relative = path.parent.relative_to(CACHE / "state/data")
+        for name in ("ir.json", "view.json", "report.json"):
+            target = data / relative / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(path.with_name(name), target)
+        cells.append(
+            dict(
+                version=snapshot,
+                model=model_id,
+                device=device,
+                status="ok",
+                data_path=f"data/{relative.as_posix()}",
+            )
+        )
+    if not cells:
+        raise ValueError("No retained production data to render")
+    index = Index(
+        versions=[versions[key] for key in sorted(versions)],
+        models=[
+            dict(id=m.id, hf_id=m.hf_id, label=m.hf_id.split("/")[-1], family=m.family)
+            for m in sorted(catalog.models, key=lambda m: m.id)
+        ],
+        cells=sorted(cells, key=lambda c: (c["version"], c["model"], c["device"])),
+    )
+    hardware = [
+        p.model_dump(mode="json") for p in sorted(catalog.hardware_presets, key=lambda p: p.id)
+    ]
+    write_json(data / "index.json", index.model_dump(mode="json"))
+    write_json(data / "hardware.json", hardware)
+    subprocess.run(
+        ["pnpm", "--filter", "web", "build"],
+        cwd=ROOT,
+        check=True,
+        env={**os.environ, "INFERATLAS_DATA_DIR": str(data.resolve())},
+    )
+    shutil.rmtree(ROOT / "dist/site", ignore_errors=True)
+    shutil.copytree(ROOT / "web/dist", ROOT / "dist/site")
+    current = os.environ["SNAPSHOT_ID"]
+    for cell in index.cells:
+        if cell.version != current:
+            continue
+        single_data = CACHE / "render-single"
+        shutil.rmtree(single_data, ignore_errors=True)
+        relative = Path(cell.data_path).relative_to("data")
+        shutil.copytree(data / relative, single_data / relative)
+        selected = index.model_copy(
+            update={
+                "versions": [v for v in index.versions if v.id == current],
+                "models": [m for m in index.models if m.id == cell.model],
+                "cells": [cell],
+            }
+        )
+        write_json(single_data / "index.json", selected.model_dump(mode="json"))
+        write_json(single_data / "hardware.json", hardware)
+        output = ROOT / "dist/single" / current / f"{cell.model}--{cell.device}.html"
+        output.unlink(missing_ok=True)
+        subprocess.run(
+            ["pnpm", "--filter", "web", "build:single"],
+            cwd=ROOT,
+            check=True,
+            env={
+                **os.environ,
+                "INFERATLAS_DATA_DIR": str(single_data.resolve()),
+                "INFERATLAS_SINGLE_MODEL": cell.model,
+                "INFERATLAS_SINGLE_OUTPUT": str(output.resolve()),
+            },
+        )
+        if not output.is_file():
+            raise ValueError("Single renderer did not produce the requested artifact")
 
 
 def git(*arguments: str, check: bool = True) -> subprocess.CompletedProcess:
@@ -407,6 +523,7 @@ if __name__ == "__main__":
             cell,
             collect,
             restore,
+            render,
             publish,
             release_snapshot,
             record_failure,

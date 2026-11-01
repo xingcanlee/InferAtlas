@@ -5,7 +5,7 @@
       "properties": {
         "hardware_preset": {
           "description": "Default hardware_presets[].id for this device.",
-          "title": "Hardware Preset",
+          "title": "HardwarePresetId",
           "type": "string"
         },
         "id": {
@@ -138,6 +138,13 @@
           "title": "Label",
           "type": "string"
         },
+        "non_torch_bytes": {
+          "default": 0,
+          "description": "Estimated communication/runtime workspace deduction; not a measurement.",
+          "minimum": 0,
+          "title": "Non Torch Bytes",
+          "type": "integer"
+        },
         "notes": {
           "description": "Variant, sparsity/duplex conventions and TODOs for uncertain specifications.",
           "items": {
@@ -172,6 +179,13 @@
           },
           "title": "Peak Tflops",
           "type": "object"
+        },
+        "reserved_bytes": {
+          "default": 0,
+          "description": "Estimated graph capture/allocator deduction; not a measurement.",
+          "minimum": 0,
+          "title": "Reserved Bytes",
+          "type": "integer"
         },
         "source": {
           "const": "vendor spec",

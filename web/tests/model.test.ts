@@ -30,9 +30,10 @@ describe("env binding", () => {
     expect(Object.keys(s.errors).sort()).toEqual(["T", "dtype_w", "tp"]);
     expect(s.params.tp).toBe(1);
   });
-  it("warns on inconsistent ep", () => {
+  it("rejects inconsistent ep and computes with EP disabled", () => {
     const s = buildEnv(ir, { tp: 2, ep: 4 });
-    expect(s.warnings.some((w) => w.params.includes("ep"))).toBe(true);
+    expect(s.errors.ep).toContain("1 or tp×dp");
+    expect(s.env.ep).toBe(1);
   });
   it("recomputes a parameter change (metrics, ledger, graph, KV tab) within a frame", () => {
     const run = (i: number) => {
@@ -68,4 +69,20 @@ describe("env binding", () => {
     expect(seqCapacity(1000, { context: 128, block_size: 128 })).toBe(3);
     expect(seqCapacity(1000, { context: 99 })).toBe(10);
   });
+});
+
+it("re-evaluates annotation predicates after runtime dtype changes", async () => {
+  const { runtimeAnnotations } = await import("../src/lib/model");
+  const source = structuredClone(ir);
+  const node = source.nodes.find((n) => n.ascend);
+  if (!node?.ascend) throw new Error("fixture needs an overlay");
+  node.ascend.applies_when = "is_a2 && dtype_w == bf16";
+  node.ascend.context = { is_a2: true };
+  expect(
+    runtimeAnnotations(source, { dtype_w: "bf16" }).nodes.find((n) => n.id === node.id)?.ascend,
+  ).toBeTruthy();
+  expect(
+    runtimeAnnotations(source, { dtype_w: "fp16" }).nodes.find((n) => n.id === node.id)?.ascend,
+  ).toBeNull();
+  expect(node.ascend).toBeTruthy();
 });

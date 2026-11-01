@@ -25,6 +25,7 @@ inferatlas = "inferatlas.cli:app"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = ["extract: real CPU/meta extraction using the external torch/vLLM environment"]
 
 [tool.ruff]
 target-version = "py312"

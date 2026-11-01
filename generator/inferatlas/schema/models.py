@@ -92,11 +92,23 @@ class HardwarePreset(Contract):
         default_factory=list,
         description="Variant, sparsity/duplex conventions and TODOs for uncertain specifications.",
     )
+    non_torch_bytes: int = Field(
+        default=0,
+        ge=0,
+        description="Estimated communication/runtime workspace deduction; not a measurement.",
+    )
+    reserved_bytes: int = Field(
+        default=0,
+        ge=0,
+        description="Estimated graph capture/allocator deduction; not a measurement.",
+    )
 
 
 class CatalogDevice(Contract):
     id: Device = Field(description="Supported extraction device family.")
-    hardware_preset: str = Field(description="Default hardware_presets[].id for this device.")
+    hardware_preset: str = Field(
+        title="HardwarePresetId", description="Default hardware_presets[].id for this device."
+    )
 
 
 class Catalog(Contract):
@@ -159,6 +171,10 @@ class ExtractOverride(Contract):
         alias="class", description="Actual Ascend class after CustomOp registration."
     )
     src: SourceRef = Field(description="Actual replacement declaration from immutable source.")
+    attrs: dict[str, JsonValue] = Field(
+        default_factory=dict,
+        description="Optional whitelisted replacement attributes from the CPU/meta instance.",
+    )
 
 
 class ExtractModule(Contract):
@@ -313,6 +329,14 @@ class AscendTag(Contract):
         description="Script-resolved replacement/patch declarations, can include multiple relevant sources."
     )
     annotation_id: str = Field(description="Reviewed annotation identifier, not an inferred note.")
+    applies_when: Expr | None = Field(
+        default=None,
+        description="Selected annotation predicate, re-evaluated after runtime parameter changes.",
+    )
+    context: dict[str, bool] = Field(
+        default_factory=dict,
+        description="Fixed extraction facts for applies_when; runtime params remain in the IR environment.",
+    )
 
 
 class IRNode(Contract):
@@ -565,6 +589,10 @@ class ConditionalOverride(Contract):
     candidates: list[str] = Field(description="Candidate target symbols, sorted.")
     conditions: list[Expr] = Field(
         description="Candidate predicate expressions; undeclared symbols go to triage."
+    )
+    reason: Literal["conditional_override", "unannotated_override"] = Field(
+        default="conditional_override",
+        description="Unannotated observed replacements block publication even when no candidate note exists.",
     )
 
 

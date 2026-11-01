@@ -1,18 +1,6 @@
-import type { Index, IndexCell, IR, Report, View } from "@inferatlas/contracts";
+import type { HardwarePreset, Index, IndexCell, IR, Report, View } from "@inferatlas/contracts";
 
-/** Mirror of catalog.yaml `hardware_presets[]` (contracts exports the interface as HardwarePreset1). */
-export interface Hardware {
-  id: string;
-  device: string;
-  label: string;
-  hbm_gb: number | null;
-  bandwidth_gbps: number | null;
-  interconnect_gbps: number | null;
-  peak_tflops: Partial<Record<string, number | null>>;
-  notes?: string[];
-  source?: string;
-  source_url?: string;
-}
+export type Hardware = HardwarePreset;
 
 export interface Bundle {
   dataPath: string;

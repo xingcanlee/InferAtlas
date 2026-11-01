@@ -199,7 +199,9 @@ jobs:
           uv run --project generator python .github/actions/pipeline.py restore
       - name: Render the retained catalog and single files
         if: needs.collect.outputs.clean != '0'
-        run: uv run --project generator inferatlas site --input .cache/state/data --out dist
+        env:
+          SNAPSHOT_ID: ${{ needs.plan.outputs.snapshot }}
+        run: uv run --project generator python .github/actions/pipeline.py render
       - name: Publish or verify the immutable HTML release
         if: needs.collect.outputs.clean != '0'
         env:

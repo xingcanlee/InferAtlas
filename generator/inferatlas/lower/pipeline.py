@@ -125,6 +125,11 @@ def runtime_params(extract: Extract) -> dict[str, ParamSpec]:
         min="1",
         step="1",
         constraint="ep==1 || (ep==tp*dp && E%ep==0)" if moe else "ep==1",
+        choices=[
+            str(n) for n in range(1, int(c["num_experts"]) + 1) if int(c["num_experts"]) % n == 0
+        ]
+        if moe
+        else ["1"],
     )
     for key, default, desc in [
         ("T", 4096, "Local prefill chunk tokens; divisible by batch."),
@@ -171,6 +176,30 @@ def runtime_params(extract: Extract) -> dict[str, ParamSpec]:
         param(
             key, "number", 0, "Explicit byte deduction; zero excludes unmeasured overhead.", min="0"
         )
+    # Bind catalog defaults here so direct lower and CLI builds share the same ledger.
+    from inferatlas.resolve import load_catalog
+
+    data = load_catalog()
+    device = next((d for d in data.devices if d.id == extract.snapshot.device), None)
+    preset = next(
+        (
+            p
+            for p in data.hardware_presets
+            if p.id == (device.hardware_preset if device else "")
+            or (device is None and p.device == extract.snapshot.device)
+        ),
+        None,
+    )
+    if preset:
+        if preset.hbm_gb is not None:
+            values["hbm_bytes"].default = str(int(preset.hbm_gb * 1e9))
+        for key in ("non_torch_bytes", "reserved_bytes"):
+            values[key].default = str(getattr(preset, key))
+            values[key].description = (
+                "Catalog estimate for communication/runtime buffers."
+                if key == "non_torch_bytes"
+                else "Catalog estimate for graph capture/allocator reserve."
+            )
     return dict(sorted(values.items()))
 
 

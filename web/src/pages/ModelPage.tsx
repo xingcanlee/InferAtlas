@@ -9,7 +9,13 @@ import { ModelToolbar } from "@/components/model/ModelToolbar";
 import { NodeSearch } from "@/components/model/NodeSearch";
 import { ParamsPanel } from "@/components/model/ParamsPanel";
 import { ViewNav } from "@/components/model/ViewNav";
-import { buildEnv, computeAll, memoryLedger, type ParamValue } from "@/lib/model";
+import {
+  buildEnv,
+  computeAll,
+  memoryLedger,
+  type ParamValue,
+  runtimeAnnotations,
+} from "@/lib/model";
 import { paramOverrides } from "@/lib/search";
 import { useUi } from "@/lib/store";
 import { bandAnchor, descendants, drillTarget, getView, L0, parentView } from "@/lib/views";
@@ -26,14 +32,15 @@ export function ModelPage() {
   const { bundle, cell, hardware } = route.useLoaderData();
   const search = route.useSearch();
   const navigate = route.useNavigate();
-  const { ir, view, report } = bundle;
+  const { ir: sourceIr, view, report } = bundle;
   const searchOpen = useUi((s) => s.searchOpen);
   const setSearchOpen = useUi((s) => s.setSearchOpen);
 
   const overrides = paramOverrides(search);
   const overridesKey = JSON.stringify(overrides);
   // biome-ignore lint/correctness/useExhaustiveDependencies: keyed by serialized overrides
-  const envState = useMemo(() => buildEnv(ir, overrides), [ir, overridesKey]);
+  const envState = useMemo(() => buildEnv(sourceIr, overrides), [sourceIr, overridesKey]);
+  const ir = useMemo(() => runtimeAnnotations(sourceIr, envState.env), [sourceIr, envState]);
   const phase = search.phase ?? "prefill";
   const metrics = useMemo(() => computeAll(ir, envState.env, phase), [ir, envState, phase]);
   const ledger = useMemo(() => memoryLedger(ir, envState.env), [ir, envState]);

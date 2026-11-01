@@ -13,11 +13,12 @@ from test_lower_helpers import environment, evaluate, parse
 
 from inferatlas.lower import coverage_gate, load_rules, lower
 from inferatlas.lower.catalog import catalog_extract, lower_catalog
+from inferatlas.resolve import source_dir
 from inferatlas.schema.models import Catalog, Extract, Snapshot
 
 ROOT = Path(__file__).resolve().parents[2]
 FIXTURE = ROOT / "fixtures/qwen3-30b-a3b/extract.json"
-SOURCE = Path(os.environ["INFERATLAS_SRC"]) if os.environ.get("INFERATLAS_SRC") else None
+SOURCE = source_dir()
 
 
 @pytest.fixture
@@ -32,7 +33,7 @@ def catalog():
 
 @pytest.fixture(scope="module")
 def source():
-    if SOURCE is None or not SOURCE.is_dir():
+    if not SOURCE.is_dir():
         pytest.skip("Set INFERATLAS_SRC to the directory containing pinned upstream clones")
     return SOURCE
 
@@ -584,7 +585,15 @@ def test_deepseek_v3_extract_blocks_coverage():
     directories = [ROOT / ".cache/extract", ROOT.parents[1] / ".cache/extract"]
     if os.environ.get("INFERATLAS_LOWER_EXTRACTS"):
         directories.insert(0, Path(os.environ["INFERATLAS_LOWER_EXTRACTS"]))
-    path = next((p for d in directories for p in sorted(d.glob("deepseek-v3/*.json"))), None)
+    path = next(
+        (
+            p
+            for d in directories
+            for p in sorted(d.glob("deepseek-v3/*.json"))
+            if "modules" in json.loads(p.read_text())
+        ),
+        None,
+    )
     if path is None:
         pytest.skip(
             "Set INFERATLAS_LOWER_EXTRACTS to a cache containing deepseek-v3 CPU/meta extracts"

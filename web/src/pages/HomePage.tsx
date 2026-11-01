@@ -37,7 +37,10 @@ export function HomePage() {
   const search = route.useSearch();
   const navigate = route.useNavigate();
   const devices = devicesOf(index);
-  const device = search.device && devices.includes(search.device) ? search.device : devices[0];
+  const device =
+    search.device && devices.includes(search.device)
+      ? search.device
+      : (index.cells.find((cell) => cell.status === "ok" && cell.data_path)?.device ?? devices[0]);
 
   if (!index.models.length || !index.versions.length) {
     return (

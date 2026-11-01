@@ -256,7 +256,8 @@ def test_annotations_exact_apis_bind_observed_swaps_and_keep_stale(monkeypatch, 
         monkeypatch.setattr(module, name, value, raising=False)
     _, triage = cli.annotate_stage(ir, extracts, Triage(snapshot=ir.snapshot, items=[]))
     assert calls == [({"attn.qkv": "valid"}, {"valid"})]
-    assert triage.items == [stale]
+    assert stale in triage.items
+    assert any(getattr(item, "reason", None) == "unannotated_override" for item in triage.items)
     ann.applies_when = "unknown_runtime_flag"
     _, triage = cli.annotate_stage(ir, extracts, Triage(snapshot=ir.snapshot, items=[]))
     assert calls[-1] == ({}, set())
@@ -344,11 +345,17 @@ def test_site_always_refuses_fixture_provenance(tmp_path, monkeypatch):
 
 def test_single_blocked_gate_and_handoff(tmp_path, monkeypatch):
     directory, output = tmp_path / "model-build", tmp_path / "atlas.html"
+    for name in ("ir", "view", "report", "triage"):
+        write_json(directory / f"{name}.json", read_json(FIXTURE / f"{name}.json"))
     monkeypatch.setattr(cli, "build_pipeline", lambda *args: (directory, 2))
     calls = []
 
     def run(command, **kwargs):
         calls.append(command)
+        data = Path(kwargs["env"]["INFERATLAS_DATA_DIR"])
+        assert (data / "index.json").is_file()
+        assert (data / "hardware.json").is_file()
+        assert kwargs["env"]["INFERATLAS_SINGLE_MODEL"] == "qwen3-30b-a3b"
         Path(kwargs["env"]["INFERATLAS_SINGLE_OUTPUT"]).write_text("<!doctype html><p>Atlas</p>")
 
     monkeypatch.setattr(cli.subprocess, "run", run)
@@ -544,7 +551,7 @@ def test_annotations_select_per_node_and_keep_collisions(monkeypatch, runtime):
         lambda graph, anns, **kw: calls.append(kw) or graph,
     )
     _, triage = cli.annotate_stage(ir, [primary], Triage(snapshot=ir.snapshot, items=[]))
-    assert not triage.items
+    assert not any(item.symbol == node.class_name for item in triage.items)
     assert calls[-1]["bindings"]["attn.o"] == "parallel"
     assert calls[-1]["bindings"]["mlp.down"] == "kernel"
     resolved.append(
@@ -584,3 +591,50 @@ def test_site_reports_the_reason_for_refusal(tmp_path, monkeypatch):
     assert "fixture or unverified provenance" in invoke(*args, code=3).output
     site_build(tmp_path, 2)
     assert "blocked by triage" in invoke(*args, code=2).output
+
+
+@pytest.mark.parametrize("inactive", [False, True])
+def test_observed_swaps_without_active_annotations_block_publication(
+    monkeypatch, runtime, inactive
+):
+    ir = IR.model_validate(read_json(FIXTURE / "ir.json"))
+    primary = Extract.model_validate(read_json(FIXTURE / "extract.json"))
+    secondary = primary.model_copy(deep=True)
+    secondary.parallel.tp = 4
+    next(m for m in secondary.modules if m.ascend).ascend.class_name += "TP4"
+    unmatched = next(m for m in secondary.modules if m.ascend).model_copy(deep=True)
+    unmatched.class_name = "new.UnrepresentedOp"
+    unmatched.ascend.class_name = "new.AscendUnrepresentedOp"
+    secondary.modules.append(unmatched)
+    monkeypatch.setattr(cli, "Evaluator", lambda *args: runtime)
+    monkeypatch.setattr(inferatlas.annotations, "load_annotations", lambda path: [])
+    resolved = (
+        [
+            SimpleNamespace(
+                annotation=SimpleNamespace(
+                    id="inactive", resolves_to=m.ascend.class_name, applies_when="false"
+                ),
+                src=[],
+            )
+            for m in primary.modules
+            if m.ascend
+        ]
+        if inactive
+        else []
+    )
+    # Repeated modules share the same implementation; keep annotation ids unique.
+    resolved = list({item.annotation.resolves_to: item for item in resolved}.values())
+    for i, item in enumerate(resolved):
+        item.annotation.id = f"inactive-{i}"
+    monkeypatch.setattr(inferatlas.annotations, "check_annotations", lambda *args: (resolved, []))
+    result, triage = cli.annotate_stage(
+        ir, [primary, secondary], Triage(snapshot=ir.snapshot, items=[])
+    )
+    replacements = {
+        m.ascend.class_name for extract in (primary, secondary) for m in extract.modules if m.ascend
+    }
+    blocked = {candidate for item in triage.items for candidate in item.candidates}
+    assert replacements <= blocked
+    assert all(item.reason == "unannotated_override" for item in triage.items)
+    report = Report(snapshot=result.snapshot, checks=[], golden_diff=[], source_link_failures=[])
+    assert cli.exit_code(report, triage) == 2

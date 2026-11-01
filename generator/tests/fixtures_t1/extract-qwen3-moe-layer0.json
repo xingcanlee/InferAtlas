@@ -203,9 +203,7 @@
     }
   },
   "config": {
-    "architectures": [
-      "Qwen3MoeForCausalLM"
-    ],
+    "architectures": ["Qwen3MoeForCausalLM"],
     "attention_bias": false,
     "attention_dropout": 0.0,
     "bos_token_id": 151643,
@@ -228,7 +226,7 @@
     "num_hidden_layers": 48,
     "num_key_value_heads": 4,
     "output_router_logits": false,
-    "rms_norm_eps": 1e-06,
+    "rms_norm_eps": 1e-6,
     "rope_theta": 1000000.0,
     "router_aux_loss_coef": 0.001,
     "sliding_window": null,
@@ -324,16 +322,14 @@
       },
       "attrs": {
         "hidden_size": 2048,
-        "variance_epsilon": 1e-06
+        "variance_epsilon": 1e-6
       },
       "class": "vllm.model_executor.layers.layernorm.RMSNorm",
       "params": [
         {
           "dtype": "bfloat16",
           "name": "weight",
-          "shape": [
-            2048
-          ]
+          "shape": [2048]
         }
       ],
       "path": "model.layers.0.input_layernorm",
@@ -410,20 +406,12 @@
         {
           "dtype": "bfloat16",
           "name": "w13_weight",
-          "shape": [
-            128,
-            384,
-            2048
-          ]
+          "shape": [128, 384, 2048]
         },
         {
           "dtype": "bfloat16",
           "name": "w2_weight",
-          "shape": [
-            128,
-            2048,
-            192
-          ]
+          "shape": [128, 2048, 192]
         }
       ],
       "path": "model.layers.0.mlp.experts.routed_experts",
@@ -472,9 +460,7 @@
       "attrs": {
         "disable_tp": false,
         "input_size": 2048,
-        "output_partition_sizes": [
-          128
-        ],
+        "output_partition_sizes": [128],
         "output_size": 128,
         "quant_method": "vllm.model_executor.layers.linear.UnquantizedLinearMethod",
         "skip_bias_add": false,
@@ -486,10 +472,7 @@
         {
           "dtype": "bfloat16",
           "name": "weight",
-          "shape": [
-            128,
-            2048
-          ]
+          "shape": [128, 2048]
         }
       ],
       "path": "model.layers.0.mlp.gate",
@@ -514,16 +497,14 @@
       },
       "attrs": {
         "hidden_size": 2048,
-        "variance_epsilon": 1e-06
+        "variance_epsilon": 1e-6
       },
       "class": "vllm.model_executor.layers.layernorm.RMSNorm",
       "params": [
         {
           "dtype": "bfloat16",
           "name": "weight",
-          "shape": [
-            2048
-          ]
+          "shape": [2048]
         }
       ],
       "path": "model.layers.0.post_attention_layernorm",
@@ -592,16 +573,14 @@
       },
       "attrs": {
         "hidden_size": 128,
-        "variance_epsilon": 1e-06
+        "variance_epsilon": 1e-6
       },
       "class": "vllm.model_executor.layers.layernorm.RMSNorm",
       "params": [
         {
           "dtype": "bfloat16",
           "name": "weight",
-          "shape": [
-            128
-          ]
+          "shape": [128]
         }
       ],
       "path": "model.layers.0.self_attn.k_norm",
@@ -628,9 +607,7 @@
         "disable_tp": false,
         "input_size": 4096,
         "input_size_per_partition": 1024,
-        "output_partition_sizes": [
-          2048
-        ],
+        "output_partition_sizes": [2048],
         "output_size": 2048,
         "output_size_per_partition": 2048,
         "quant_method": "vllm.model_executor.layers.linear.UnquantizedLinearMethod",
@@ -644,10 +621,7 @@
         {
           "dtype": "bfloat16",
           "name": "weight",
-          "shape": [
-            2048,
-            1024
-          ]
+          "shape": [2048, 1024]
         }
       ],
       "path": "model.layers.0.self_attn.o_proj",
@@ -672,16 +646,14 @@
       },
       "attrs": {
         "hidden_size": 128,
-        "variance_epsilon": 1e-06
+        "variance_epsilon": 1e-6
       },
       "class": "vllm.model_executor.layers.layernorm.RMSNorm",
       "params": [
         {
           "dtype": "bfloat16",
           "name": "weight",
-          "shape": [
-            128
-          ]
+          "shape": [128]
         }
       ],
       "path": "model.layers.0.self_attn.q_norm",
@@ -713,18 +685,10 @@
         "input_size_per_partition": 2048,
         "num_heads": 8,
         "num_kv_heads": 1,
-        "output_partition_sizes": [
-          1024,
-          128,
-          128
-        ],
+        "output_partition_sizes": [1024, 128, 128],
         "output_size": 5120,
         "output_size_per_partition": 1280,
-        "output_sizes": [
-          4096,
-          512,
-          512
-        ],
+        "output_sizes": [4096, 512, 512],
         "quant_method": "vllm.model_executor.layers.linear.UnquantizedLinearMethod",
         "skip_bias_add": false,
         "total_num_heads": 32,
@@ -737,10 +701,7 @@
         {
           "dtype": "bfloat16",
           "name": "weight",
-          "shape": [
-            1280,
-            2048
-          ]
+          "shape": [1280, 2048]
         }
       ],
       "path": "model.layers.0.self_attn.qkv_proj",

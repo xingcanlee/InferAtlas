@@ -1,5 +1,9 @@
 set dotenv-load := false
+set positional-arguments
 export UV_INDEX_URL := "https://mirrors.aliyun.com/pypi/simple/"
+export npm_config_registry := "https://registry.npmmirror.com"
+MODEL := "Qwen/Qwen3-30B-A3B"
+DEVICE := "A2"
 
 # Install Node workspace and the independent Python 3.12 generator environment.
 setup:
@@ -8,7 +12,7 @@ setup:
 
 # Both contract stacks; new task packages add their own test scripts.
 test:
-    uv run --project generator pytest
+    uv run --project generator pytest -c generator/pyproject.toml
     pnpm -r test
 
 lint:
@@ -21,12 +25,27 @@ schemas:
     uv run --project generator python -m inferatlas.schema.export
     pnpm --filter @inferatlas/contracts gen
 
-build MODEL="Qwen/Qwen3-30B-A3B" DEVICE="A2":
-    uv run --project generator inferatlas build --model "{{MODEL}}" --device "{{DEVICE}}"
-    pnpm -r build
+build *args:
+    #!/usr/bin/env bash
+    set -eu
+    model="{{MODEL}}"
+    device="{{DEVICE}}"
+    for arg in "$@"; do
+        case "$arg" in
+            MODEL=*) model="${arg#MODEL=}" ;;
+            DEVICE=*) device="${arg#DEVICE=}" ;;
+            *) echo "Expected MODEL=... or DEVICE=..., got $arg" >&2; exit 1 ;;
+        esac
+    done
+    pnpm --filter '@inferatlas/*' -r build
+    uv run --project generator inferatlas build --model "$model" --device "$device"
 
 site:
-    pnpm --filter web build
+    uv run --project generator inferatlas site
 
 single:
-    pnpm --filter web build:single
+    uv run --project generator inferatlas single --model "{{MODEL}}" --device "{{DEVICE}}"
+
+# Real CPU/meta acceptance tests (external experiment venv required).
+extract-all:
+    uv run --project generator pytest -c generator/pyproject.toml -m extract

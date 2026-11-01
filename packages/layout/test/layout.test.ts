@@ -575,3 +575,27 @@ it("runs the built Node CLI twice with identical bytes and preserves output on i
     rmSync(directory, { recursive: true, force: true });
   }
 }, 45000);
+
+it("merges a sibling rope.apply by id and warns about edgeless visible nodes", async () => {
+  const ir = denseIR();
+  const apply = ir.nodes.find((node) => node.id === "attn.rope.apply");
+  if (!apply) throw new Error("test needs rotary apply");
+  apply.parent = "attn";
+  const warning = vi.fn();
+  const view = await layoutIR(ir, { onWarning: warning });
+  expect(
+    view.views.find((graph) => graph.id === "L2:attn")?.nodes.map((node) => node.id),
+  ).not.toContain("attn.rope.apply");
+  ir.edges = [];
+  await layoutIR(ir, { onWarning: warning });
+  expect(warning).toHaveBeenCalledWith(expect.stringContaining("edgeless visible node"));
+});
+
+it("rejects tiny segments even in an unwrapped fallback view", async () => {
+  const view = await layoutIR(denseIR(), quiet);
+  const edge = view.views[0]?.edges[0];
+  if (!edge) throw new Error("test needs an edge");
+  const [x, y] = edge.points[0];
+  edge.points.splice(1, 0, [x, y + 8]);
+  expect(() => validateView(view)).toThrow("Tiny edge segment");
+});

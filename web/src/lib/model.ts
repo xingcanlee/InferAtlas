@@ -151,7 +151,31 @@ export function buildEnv(ir: IR, overrides: Overrides = {}): EnvState {
     else params[name] = r.value;
   }
   const env: ExprEnv = { ...symbols, ...params };
+  const ep = Number(params.ep ?? 1);
+  if (ep !== 1 && ep !== Number(params.tp ?? 1) * Number(params.dp ?? 1)) {
+    errors.ep = "EP must be 1 or tp×dp";
+    params.ep = 1;
+    env.ep = 1;
+  }
+  for (const [name, spec] of Object.entries(ir.params)) {
+    if (!spec.constraint) continue;
+    const result = tryEvaluate(spec.constraint, env);
+    if (!result.ok || result.value === 0) errors[name] = `violates ${spec.constraint}`;
+  }
   return { env, symbols, defaults, params, errors, warnings: consistency(params, symbols) };
+}
+
+/** Fixed source facts are retained, while runtime params (e.g. dtype_w) are re-evaluated. */
+export function runtimeAnnotations(ir: IR, env: ExprEnv): IR {
+  return {
+    ...ir,
+    nodes: ir.nodes.map((node) => {
+      const annotation = node.ascend;
+      if (!annotation?.applies_when) return node;
+      const result = tryEvaluate(annotation.applies_when, { ...env, ...annotation.context });
+      return result.ok && result.value !== 0 ? node : { ...node, ascend: null };
+    }),
+  };
 }
 
 function consistency(

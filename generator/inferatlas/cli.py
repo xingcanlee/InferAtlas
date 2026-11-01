@@ -260,13 +260,18 @@ def annotation_context(primary: Extract, fact) -> dict:
     finegrained = profile.get("finegrained_tp_config", {})
     custom_parallel = (
         ("o_proj" in prefix and finegrained.get("oproj_tensor_parallel_size", 0) > 1)
-        or ("gate_up_proj" in prefix and finegrained.get("mlp_tensor_parallel_size", 0) > 1)
+        or (
+            any(part in prefix for part in ("gate_up_proj", "down_proj"))
+            and finegrained.get("mlp_tensor_parallel_size", 0) > 1
+        )
     ) and not attrs.get("disable_tp", False)
     policy = profile.get("weight_layout_policy", "").rsplit(".", 1)[-1]
     context = {
         "is_a2": primary.snapshot.device == "A2",
         "is_qwen3_moe": primary.config.get("model_type") == "qwen3_moe"
         or "Qwen3MoeForCausalLM" in primary.config.get("architectures", []),
+        "is_qwen3_dense": primary.config.get("model_type") == "qwen3"
+        or "Qwen3ForCausalLM" in primary.config.get("architectures", []),
         "unquantized": not primary.config.get("quantization_config")
         and (not attrs.get("quant_method") or "Unquantized" in attrs["quant_method"]),
         "custom_parallel": custom_parallel,
@@ -327,15 +332,20 @@ def annotate_stage(ir: IR, extracts: list[Extract], triage: Triage) -> tuple[IR,
         }
         resolved, stale = module.check_annotations(load(ROOT / "annotations"), sources)
         evaluator = Evaluator(ROOT, warning)
-        primary = min(extracts, key=lambda item: item.parallel.tp)
         env = evaluator.bind(ir, {})
         active = set()
         evaluated = {}
         pending = list(stale)
         bindings = {}
+        contexts_by_node = {}
         for node in ir.nodes:
             observed = set()
-            facts = [m for m in primary.modules if m.class_name == node.class_name]
+            facts = [
+                (extract, fact)
+                for extract in sorted(extracts, key=lambda item: item.parallel.tp)
+                for fact in extract.modules
+                if fact.class_name == node.class_name
+            ]
             # The same Linear class implements both attention and MLP projections.
             for label, suffix in (
                 ("attn.o", "o_proj"),
@@ -343,10 +353,11 @@ def annotate_stage(ir: IR, extracts: list[Extract], triage: Triage) -> tuple[IR,
                 ("mlp.down", "down_proj"),
             ):
                 if f".{label}." in f".{node.id}.":
-                    facts = [m for m in facts if m.path.endswith("." + suffix)]
-            for module_fact in facts:
+                    facts = [pair for pair in facts if pair[1].path.endswith("." + suffix)]
+            for _, module_fact in facts:
                 if module_fact.ascend:
                     observed.add(module_fact.ascend.class_name)
+            swaps = observed.copy()
             for extract in extracts:
                 if extract.ascend:
                     for symbol, file in extract.ascend.patched.items():
@@ -362,7 +373,7 @@ def annotate_stage(ir: IR, extracts: list[Extract], triage: Triage) -> tuple[IR,
                 ann = item.annotation
                 if ann.resolves_to not in observed:
                     continue
-                contexts = [{**env, **annotation_context(primary, fact)} for fact in facts]
+                contexts = [{**env, **annotation_context(extract, fact)} for extract, fact in facts]
                 outcomes = set()
                 for context in contexts:
                     if set(validate(ann.applies_when)) <= context.keys():
@@ -386,6 +397,7 @@ def annotate_stage(ir: IR, extracts: list[Extract], triage: Triage) -> tuple[IR,
             if len(candidates) == 1:
                 bindings[node.id] = candidates[0].id
                 active.add(candidates[0].id)
+                contexts_by_node[node.id] = annotation_context(*facts[0])
             elif len(candidates) > 1:
                 pending.append(
                     ConditionalOverride(
@@ -395,11 +407,38 @@ def annotate_stage(ir: IR, extracts: list[Extract], triage: Triage) -> tuple[IR,
                         conditions=sorted(ann.applies_when for ann in candidates),
                     )
                 )
+            covered = {ann.resolves_to for ann in candidates}
+            for replacement in sorted(swaps - covered):
+                pending.append(
+                    ConditionalOverride(
+                        kind="conditional_override",
+                        reason="unannotated_override",
+                        symbol=node.class_name,
+                        candidates=[replacement],
+                        conditions=[],
+                    )
+                )
+        represented = {node.class_name for node in ir.nodes}
+        for extract in extracts:
+            for fact in extract.modules:
+                if fact.ascend and fact.class_name not in represented:
+                    pending.append(
+                        ConditionalOverride(
+                            kind="conditional_override",
+                            reason="unannotated_override",
+                            symbol=fact.class_name,
+                            candidates=[fact.ascend.class_name],
+                            conditions=[],
+                        )
+                    )
         result = IR.model_validate(
             module.apply_annotations(ir, resolved, bindings=bindings, active_ids=active)
         )
         if result.snapshot != ir.snapshot:
             raise ValueError("annotation output disagrees with IR snapshot")
+        for node in result.nodes:
+            if node.id in bindings and node.ascend:
+                node.ascend.context = contexts_by_node[node.id]
         # Preserve newer stale.target when available; legacy contracts have no such field.
         merged = {item.model_dump_json(): item for item in [*triage.items, *pending]}
         return result, Triage(snapshot=ir.snapshot, items=[merged[key] for key in sorted(merged)])
@@ -804,7 +843,17 @@ def site(
     for path, value in artifacts:
         write_json(path, value)
     write_json(data_dir / "index.json", index)
-    subprocess.run(["pnpm", "--filter", "web", "build"], cwd=ROOT, check=True, timeout=300)
+    write_json(
+        data_dir / "hardware.json",
+        [p.model_dump(mode="json") for p in sorted(data.hardware_presets, key=lambda p: p.id)],
+    )
+    subprocess.run(
+        ["pnpm", "--filter", "web", "build"],
+        cwd=ROOT,
+        env={**os.environ, "INFERATLAS_DATA_DIR": str(data_dir.resolve())},
+        check=True,
+        timeout=300,
+    )
     raise typer.Exit(code)
 
 
@@ -825,9 +874,46 @@ def single(
         raise typer.Exit(code)
     output = output or ROOT / "dist" / f"inferatlas-{catalog_model(model).id}.html"
     output.parent.mkdir(parents=True, exist_ok=True)
-    env = {**os.environ, "INFERATLAS_DATA_DIR": str(directory.resolve()), "INFERATLAS_SINGLE": "1"}
     # A fresh destination prevents stale HTML from masquerading as build success.
     with tempfile.TemporaryDirectory(prefix="inferatlas-single-") as temporary:
+        selected = catalog_model(model)
+        data = Path(temporary) / "data"
+        relative = Path(f"{pair}-{device}") / selected.id
+        for name in ("ir", "view", "report"):
+            write_json(data / relative / f"{name}.json", read_json(directory / f"{name}.json"))
+        write_json(
+            data / "hardware.json", [p.model_dump(mode="json") for p in catalog().hardware_presets]
+        )
+        version = next(p for p in catalog().version_pairs if p.id == pair)
+        write_json(
+            data / "index.json",
+            Index(
+                versions=[dict(id=pair, label=pair, vllm=version.vllm, ascend=version.ascend)],
+                models=[
+                    dict(
+                        id=selected.id,
+                        hf_id=selected.hf_id,
+                        label=selected.hf_id.split("/")[-1],
+                        family=selected.family,
+                    )
+                ],
+                cells=[
+                    dict(
+                        version=pair,
+                        model=selected.id,
+                        device=device,
+                        status="ok" if code == 0 else "triage",
+                        data_path=f"data/{relative.as_posix()}",
+                        triage_count=len(read_json(directory / "triage.json")["items"]),
+                    )
+                ],
+            ),
+        )
+        env = {
+            **os.environ,
+            "INFERATLAS_DATA_DIR": str(data),
+            "INFERATLAS_SINGLE_MODEL": selected.id,
+        }
         generated = Path(temporary) / "index.html"
         env["INFERATLAS_SINGLE_OUTPUT"] = str(generated)
         subprocess.run(
