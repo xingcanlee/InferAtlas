@@ -147,11 +147,11 @@ def test_build_complete_deterministic_and_removes_stale_outputs(tmp_path, monkey
     )
 
 
-def test_failed_extraction_replaces_previous_numeric_generation_with_triage(tmp_path):
+def test_missing_fixture_preserves_previous_numeric_generation(tmp_path):
     invoke("build", "--output", tmp_path, code=3)
-    invoke("build", "--output", tmp_path, "--tp", 8, code=2)
-    assert {p.name for p in tmp_path.iterdir()} == {"snapshot.json", "triage.json"}
-    assert read_json(tmp_path / "triage.json")["items"][0]["kind"] == "extraction_failure"
+    previous = {p.name: p.read_bytes() for p in tmp_path.iterdir()}
+    assert "no fixture for" in invoke("build", "--output", tmp_path, "--tp", 8, code=3).output
+    assert {p.name: p.read_bytes() for p in tmp_path.iterdir()} == previous
 
 
 def test_resolve_and_extract_exact_apis(monkeypatch):

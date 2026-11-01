@@ -6,6 +6,7 @@ import json
 import os
 import subprocess
 import tempfile
+import warnings
 from pathlib import Path
 
 from inferatlas.resolve import (
@@ -22,9 +23,19 @@ from inferatlas.schema.models import CatalogModel, Device, ExtractParallel
 class ExtractionError(RuntimeError):
     """A CPU/meta worker failed; no successful output was published."""
 
-    def __init__(self, message: str, exception_type: str = "ExtractionError"):
+    def __init__(
+        self, message: str, exception_type: str = "ExtractionError", *, structured: bool = False
+    ):
         super().__init__(message)
         self.exception_type = exception_type
+        self.structured = structured
+
+
+def warn_stderr(stderr: str | bytes | None) -> None:
+    if stderr:
+        raw = stderr.encode() if isinstance(stderr, str) else stderr
+        tail = raw[-16384:].decode(errors="replace")
+        warnings.warn(f"CPU/meta worker stderr (last 16KB):\n{tail}", stacklevel=2)
 
 
 def extract(
@@ -86,22 +97,34 @@ def extract(
                 timeout=300,
             )
         except subprocess.TimeoutExpired as error:
+            warn_stderr(error.stderr)
             raise ExtractionError(
                 "CPU/meta worker exceeded 300 seconds", "TimeoutExpired"
             ) from error
         if result.returncode:
             if response_path.is_file():
-                failure = json.loads(response_path.read_text()).get("error")
-                if failure:
-                    raise ExtractionError(failure["message"], failure["exception_type"])
+                try:
+                    response = json.loads(response_path.read_text())
+                except ValueError:
+                    response = None
+                failure = response.get("error") if isinstance(response, dict) else None
+                if (
+                    isinstance(failure, dict)
+                    and isinstance(failure.get("message"), str)
+                    and isinstance(failure.get("exception_type"), str)
+                ):
+                    raise ExtractionError(
+                        failure["message"], failure["exception_type"], structured=True
+                    )
+            warn_stderr(result.stderr)
             raise ExtractionError(
                 f"CPU/meta worker exited {result.returncode} without a structured error"
             )
         value = Extract.model_validate_json(response_path.read_text())
     if value.snapshot != snapshot or value.parallel != parallel or value.config != entry.config:
-        raise ExtractionError("worker response identity/config does not match request")
+        raise ValueError("worker response identity/config does not match request")
     if (value.ascend is None) != (device is None):
-        raise ExtractionError("worker response overlay does not match request")
+        raise ValueError("worker response overlay does not match request")
     if out_path is not None:
         destination = Path(out_path)
         destination.parent.mkdir(parents=True, exist_ok=True)

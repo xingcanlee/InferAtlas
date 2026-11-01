@@ -6,18 +6,22 @@ from pydantic import Field, model_validator
 
 from inferatlas.schema.models import Contract, Device
 
+EXPORT_FILENAME = r"^[A-Za-z0-9_][A-Za-z0-9_.-]*\.html$"
+
 
 class ExportManifest(Contract):
     version: str
     model: str
     device: Device
-    file: str = Field(pattern=r"^[^/\\]+$")
+    file: str = Field(pattern=EXPORT_FILENAME)
     status: Literal["ok", "triage", "missing"]
     triage_count: int = Field(ge=0)
     exit_code: Literal[0, 2, 3]
 
     @model_validator(mode="after")
     def consistent_status(self) -> "ExportManifest":
+        if ".." in self.file:
+            raise ValueError("export filename must not contain '..' (the web hub rejects it)")
         if (self.status == "ok") != (self.exit_code == 0):
             raise ValueError("only successful exports may be ok")
         if self.status != "triage" and self.triage_count:

@@ -99,7 +99,7 @@ def test_failure_preserves_previous_output(monkeypatch, tmp_path, sample, failur
         monkeypatch.setattr(host.subprocess, "run", timeout)
     destination = tmp_path / "out.json"
     destination.write_text("previous valid output")
-    with pytest.raises((ExtractionError, ValidationError)):
+    with pytest.raises((ExtractionError, ValueError)):
         host.extract(sample.snapshot, "qwen3-30b-a3b", 4, False, "A2", destination)
     assert destination.read_text() == "previous valid output"
 
@@ -126,6 +126,7 @@ def test_worker_failure_preserves_original_exception_class(monkeypatch, tmp_path
     with pytest.raises(ExtractionError, match="rotary cache needs NPU") as caught:
         host.extract(sample.snapshot, "qwen3-30b-a3b", 4, False, "A2")
     assert caught.value.exception_type == "NotImplementedError"
+    assert caught.value.structured
 
 
 def test_source_ref_points_at_declaration_after_decorator(tmp_path):
@@ -171,3 +172,31 @@ def test_sample_matches_current_pinned_moe_config(sample):
     assert sample.config == get_model("qwen3-30b-a3b").config
     assert sample.snapshot.model.config_rev == get_model("qwen3-30b-a3b").config_rev
     assert (ROOT / "schemas/extract.schema.json").is_file()
+
+
+@pytest.mark.parametrize("response", [None, "{", '{"error": {"message": 42}}'])
+def test_unstructured_failure_warns_with_stderr_tail(monkeypatch, tmp_path, sample, response):
+    monkeypatch.setenv("INFERATLAS_PY", sys.executable)
+    monkeypatch.setattr(host, "checkout_sources", lambda snapshot: {"vllm": tmp_path})
+
+    def run(command, **kw):
+        if response is not None:
+            Path(command[-1]).write_text(response)
+        return subprocess.CompletedProcess(command, 1, "", "discard-me" + "x" * 16384)
+
+    monkeypatch.setattr(host.subprocess, "run", run)
+    with pytest.warns(UserWarning, match="last 16KB") as warnings:
+        with pytest.raises(ExtractionError) as caught:
+            host.extract(sample.snapshot, "qwen3-30b-a3b", 4, False, "A2")
+    assert not caught.value.structured
+    message = str(warnings[0].message)
+    assert "discard-me" not in message
+    assert message.endswith("x" * 16384)
+
+
+def test_stderr_warning_is_bounded_in_bytes():
+    with pytest.warns(UserWarning) as warnings:
+        host.warn_stderr("discard-me" + "中" * 10000)
+    tail = str(warnings[0].message).split("\n", 1)[1]
+    assert "discard-me" not in tail
+    assert len(tail.encode()) <= 16386  # A split UTF-8 codepoint becomes one replacement character.

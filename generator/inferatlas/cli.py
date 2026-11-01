@@ -17,8 +17,9 @@ from ruamel.yaml import YAML
 from typer.core import TyperCommand
 
 from inferatlas import __version__
-from inferatlas.exports import ExportManifest
+from inferatlas.exports import EXPORT_FILENAME, ExportManifest
 from inferatlas.expr import validate
+from inferatlas.extract import ExtractionError
 from inferatlas.schema import IR, Catalog, Eval, Extract, Index, Report, Snapshot, Triage, View
 from inferatlas.schema.models import Check, ConditionalOverride, ExtractionFailure
 from inferatlas.verify import Evaluator, exit_code, parse_vllm_logs, verify_ir
@@ -101,6 +102,7 @@ def guarded(function):
             ValueError,
             KeyError,
             TypeError,
+            AttributeError,
             ImportError,
             RuntimeError,
             subprocess.SubprocessError,
@@ -593,7 +595,7 @@ def build_pipeline(
         raise ValueError("unknown catalog device or version pair")
     try:
         snapshot = resolve_stage(model, device, pair)
-    except Exception as error:
+    except subprocess.CalledProcessError as error:
         directory = output or ROOT / ".cache/build" / f"{pair}-{device}-unresolved" / selected.id
         return extraction_failure(directory, None, model, device, pair, "resolve", error)
     directory = (
@@ -605,7 +607,14 @@ def build_pipeline(
         write_json(pending / "snapshot.json", snapshot)
         try:
             extracts = [extract_stage(snapshot, degree, ep) for degree in sorted(set(tp))]
-        except Exception as error:
+        except ExtractionError as error:
+            if not error.structured or error.exception_type in (
+                "TypeError",
+                "AttributeError",
+                "ValueError",
+                "ValidationError",
+            ):
+                raise
             return extraction_failure(directory, snapshot, model, device, pair, "extract", error)
         for extract in extracts:
             name = (
@@ -638,6 +647,11 @@ def build_pipeline(
         write_json(pending / "report.json", report)
         write_json(pending / "provenance.json", {"fixtures": sorted(_used_fixtures.get() or [])})
         publish_directory(pending, directory)
+    if output is None:
+        shutil.rmtree(
+            ROOT / ".cache/build" / f"{pair}-{device}-unresolved" / selected.id,
+            ignore_errors=True,
+        )
     typer.echo(str(directory))
     return directory, exit_code(report, triage)
 
@@ -837,8 +851,12 @@ def site(
         for name in ("ir.json", "triage.json")
         for path in build_root.glob(f"*/*/{name}")
     }
-    for directory in sorted(directories):
-        triage = Triage.model_validate(read_json(directory / "triage.json"))
+    builds = [
+        (directory, Triage.model_validate(read_json(directory / "triage.json")))
+        for directory in sorted(directories)
+    ]
+    # Resolved facts take precedence over an earlier or later resolve failure.
+    for directory, triage in sorted(builds, key=lambda item: item[1].snapshot is None):
         snapshot = triage.snapshot
         failure = triage.items[0] if snapshot is None else None
         model = catalog_model(failure.model if failure else snapshot.model.hf_id)
@@ -858,6 +876,9 @@ def site(
         device = failure.device if failure else snapshot.device
         key = (pair.id, model.id, device)
         if key in cells:
+            if failure:
+                warning(f"Ignoring unresolved build superseded by resolved facts: {directory}")
+                continue
             raise ValueError("multiple builds occupy the same version/model/device cell")
         status = 2
         if (directory / "ir.json").is_file():
@@ -959,7 +980,17 @@ def single(
 ) -> None:
     """Build a model and ask the web single-file plugin to inline its artifacts."""
     selected = catalog_model(model)
+    if device not in {item.id for item in catalog().devices}:
+        raise ValueError(f"unknown catalog device: {device}")
+    if pair not in {item.id for item in catalog().version_pairs}:
+        raise ValueError(f"unknown catalog version pair: {pair}")
     output = output or ROOT / "dist" / f"inferatlas-{selected.id}-{device.lower()}.html"
+    if not re.fullmatch(EXPORT_FILENAME, output.name) or ".." in output.name:
+        raise ValueError(
+            "single --output filename must match ASCII ^[\\w][\\w.-]*\\.html$ without '..'"
+        )
+    if output.name == "index.html":
+        raise ValueError("single --output index.html is reserved for the hub")
     output.parent.mkdir(parents=True, exist_ok=True)
     output.unlink(missing_ok=True)
     code, status, triage_count = 3, "missing", 0
@@ -1051,32 +1082,41 @@ def single(
     raise typer.Exit(code)
 
 
-def hub_export(directory: Path, output: Path) -> int:
+def hub_export(directory: Path, output: Path, manifest_paths: list[Path] | None = None) -> int:
+    if output.resolve() != (directory / "index.html").resolve():
+        raise ValueError("hub --output must be index.html inside --dir")
     data = catalog()
-    manifests = [
-        ExportManifest.model_validate(read_json(path))
-        for path in sorted((directory / ".inferatlas").glob("*.json"))
-    ]
-    versions = {item.version for item in manifests}
-    if len(versions) > 1:
-        raise ValueError("hub requires exports from one version pair")
-    pair = next(iter(versions), "main-verified")
-    version = next((p for p in data.version_pairs if p.id == pair), None)
-    if version is None:
-        raise ValueError(f"unknown catalog version pair: {pair}")
+    versions = {pair.id: pair for pair in data.version_pairs}
     models = {model.id for model in data.models}
     devices = {device.id for device in data.devices}
-    cells, exports = {}, []
-    for item in manifests:
+    manifests = {}
+    paths = (directory / ".inferatlas").glob("*.json") if manifest_paths is None else manifest_paths
+    for path in sorted(paths):
+        try:
+            item = ExportManifest.model_validate(read_json(path))
+        except (OSError, ValueError) as error:
+            warning(f"Skipping invalid export manifest {path.name}: {error}")
+            continue
+        if item.model not in models or item.device not in devices or item.version not in versions:
+            warning(f"Skipping export manifest outside the catalog: {path.name}")
+            continue
         key = (item.version, item.model, item.device)
-        if item.model not in models or item.device not in devices:
-            raise ValueError("export manifest has unknown model or device")
-        if key in cells:
-            raise ValueError("multiple exports occupy the same version/model/device cell")
+        if key in manifests:
+            warning(f"Ignoring duplicate export for {'/'.join(key)}; preferring default filename")
+            if item.file != f"inferatlas-{item.model}-{item.device.lower()}.html":
+                continue
+        manifests[key] = item
+    cells, exports = {}, []
+    code = 0
+    for item in manifests.values():
+        key = (item.version, item.model, item.device)
         exists = (directory / item.file).is_file()
         status = "missing" if item.status == "ok" and not exists else item.status
+        code = max(code, 3 if item.status == "ok" and not exists else item.exit_code)
+        if item.status == "ok" and not exists:
+            warning(f"Successful export HTML is missing: {item.file}")
         cells[key] = dict(
-            version=pair,
+            version=item.version,
             model=item.model,
             device=item.device,
             status=status,
@@ -1086,27 +1126,34 @@ def hub_export(directory: Path, output: Path) -> int:
         if exists and item.status != "missing":
             exports.append(
                 dict(
-                    version=pair,
+                    version=item.version,
                     model=item.model,
                     device=item.device,
-                    file=Path(os.path.relpath(directory / item.file, output.parent)).as_posix(),
+                    file=item.file,
                 )
             )
-    for model in sorted(models):
-        for device in sorted(devices):
-            cells.setdefault(
-                (pair, model, device),
-                dict(
-                    version=pair,
-                    model=model,
-                    device=device,
-                    status="missing",
-                    triage_count=0,
-                    data_path=None,
-                ),
-            )
+    if not exports:
+        raise ValueError("hub has zero exports; generate single HTML files first")
+    pairs = sorted({item.version for item in manifests.values()})
+    for pair in pairs:
+        for model in sorted(models):
+            for device in sorted(devices):
+                cells.setdefault(
+                    (pair, model, device),
+                    dict(
+                        version=pair,
+                        model=model,
+                        device=device,
+                        status="missing",
+                        triage_count=0,
+                        data_path=None,
+                    ),
+                )
     index = Index(
-        versions=[dict(id=pair, label=pair, vllm=version.vllm, ascend=version.ascend)],
+        versions=[
+            dict(id=pair, label=pair, vllm=versions[pair].vllm, ascend=versions[pair].ascend)
+            for pair in pairs
+        ],
         models=[
             dict(id=m.id, hf_id=m.hf_id, label=m.hf_id.split("/")[-1], family=m.family)
             for m in sorted(data.models, key=lambda m: m.id)
@@ -1147,7 +1194,7 @@ def hub_export(directory: Path, output: Path) -> int:
         output.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(generated, output)
     typer.echo(str(output))
-    return max((item.exit_code for item in manifests), default=0)
+    return code
 
 
 @app.command()
@@ -1156,7 +1203,7 @@ def hub(
     directory: Annotated[Path, typer.Option("--dir")] = Path("dist"),
     output: Path | None = None,
 ) -> None:
-    """Build the offline HTML hub from single-export manifests (one version pair)."""
+    """Build index.html beside the single exports, skipping unplaceable manifests."""
     raise typer.Exit(hub_export(directory, output or directory / "index.html"))
 
 
@@ -1167,6 +1214,10 @@ class ReleaseCommand(TyperCommand):
         while position < len(args):
             arg = args[position]
             position += 1
+            option, separator, value = arg.partition("=")
+            if separator and option in ("--models", "--devices"):
+                expanded.extend((option, value))
+                arg = option
             if arg not in ("--models", "--devices"):
                 expanded.append(arg)
                 continue
@@ -1174,7 +1225,7 @@ class ReleaseCommand(TyperCommand):
             while position < len(args) and not args[position].startswith("-"):
                 expanded.extend((arg, args[position]))
                 position += 1
-            if position == start:
+            if position == start and not separator:
                 expanded.append(arg)
         return super().parse_args(ctx, expanded)
 
@@ -1200,13 +1251,17 @@ def release(
     if set(targets) - {device.id for device in catalog().devices}:
         raise ValueError("unknown catalog device")
     code = 0
+    manifests = []
     for model in selected:
         for device in targets:
+            output = out / f"inferatlas-{model}-{device.lower()}.html"
+            manifest = out / ".inferatlas" / f"{output.name}.json"
+            manifest.unlink(missing_ok=True)
             try:
                 single(
                     model=model,
                     device=device,
-                    output=out / f"inferatlas-{model}-{device.lower()}.html",
+                    output=output,
                     include_blocked=True,
                 )
             except typer.Exit as error:
@@ -1214,8 +1269,10 @@ def release(
             except Exception as error:
                 warning(f"{model}/{device} failed: {error}")
                 code = max(code, 3)
+            if manifest.is_file():
+                manifests.append(manifest)
     try:
-        code = max(code, hub_export(out, out / "index.html"))
+        code = max(code, hub_export(out, out / "index.html", manifests))
     except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
         warning(f"Hub failed: {error}")
         code = max(code, 3)
