@@ -112,3 +112,18 @@ All lists are deterministically ordered; no timestamps.
    TP-sharded are written with `/tp` (e.g. `Hq*D/tp`), so the UI can recompute them.
 10. `class_name` is fully qualified; UI shows the last segment in figures and the full name in detail.
 11. TS type names are those exported by `@inferatlas/contracts` (S1); the UI adapts to them.
+
+## Contract decisions v1.2
+1. IO gains `internals: [Tensor]` (default `[]`): tensors produced inside a component that are
+   neither its inputs nor its outputs (q/k/v/o, MLA latents, router_logits, topk ids/weights,
+   per-expert gate/up/down). `outputs` holds only what leaves the sublayer (usually `[T, H]`).
+2. Notes are de-duplicated: one note per (class, triage_kind) at model or stack level, plus targeted
+   notes only where the sublayer itself is generic/unannotated. vLLM building blocks inside a ruled
+   component (parallel linears, Attention, rotary, activation, MoERunner, ModuleList,
+   LogitsProcessor) produce no warning. Severity `warn` only for things that change the figure.
+3. Attention `extras` may include `compress_ratio` and `indexer: bool` (DeepSeek-V4 style
+   compressed/sparse attention); these participate in band signatures and pattern labels.
+4. Block `residual` may be `"hyper_connection"` (DeepSeek-V4 mHC); `mhc_*` sublayers then have role
+   `"other"` and are ordered in dataflow position.
+5. Stage order is canonical: embedding(s) → stack(s) (each with its own pre/post norms) → final norm
+   → lm_head → spine others; aside others last.
