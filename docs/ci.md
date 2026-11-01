@@ -30,6 +30,44 @@ Poll and nightly were then disabled through the workflows API because `main`
 still has their old, unguarded definitions until C1 is merged. They remain
 registered with state `disabled_manually`; the other four are active.
 
+## C2: first full branch build
+
+Dispatch the verified pair without publishing:
+
+```bash
+gh workflow run build.yml --ref task/C2 \
+  -f vllm_commit=544f182d9f0c9bfe8bd7645525951d5e3692a542 \
+  -f ascend_commit=24a76e84394ae3427195e3715fc08e90769d398c \
+  -f publish=false
+gh run watch RUN_ID --exit-status
+gh run view RUN_ID --log-failed
+```
+
+The workflow builds all three models × 310P/A2/A3/A5/H100. C2's expected
+result is 4 ok / 11 triage / 0 hard errors, matching the all-device local release;
+the [verified full build](https://github.com/xingcanlee/InferAtlas/actions/runs/41295147620)
+passed plan, all 15 extraction jobs and collect. Downloaded triage records match
+local output exactly; see [the cell table and run history](progress/C2.md).
+Collection still blocks an
+entire model when any device triages, so its publication summary is **clean=0,
+errors=[]**, with all three models blocked. This is a successful review build;
+it does not produce a deployable bundle of the four local review exports.
+
+The first dispatch exposed three setup defects, now fixed: dispatched source
+pins were ignored in detached checkouts; source-only vLLM lacked generated version
+metadata; and the expression/layout packages were not built before verification.
+The resolver now honors `INFERATLAS_VLLM_COMMIT` and `INFERATLAS_ASCEND_COMMIT`
+together, requiring full lowercase SHAs. The worker uses upstream SCM versioning
+for main and the explicit release tag for Ascend's supported version override,
+without writing generated metadata to upstream sources. The extraction environment
+requires `setuptools-scm>=8` for this path. Extraction jobs build the TS packages.
+
+Cell handling preserves failure identity after atomic build publication, rejects
+exit 3 even when triage exists, and requires exit 2 exactly when blocking triage
+exists. A5's unconfirmed catalog memory capacity is explicit extraction triage;
+there is no assumed 64 GB device. Poll/nightly and publication remain disabled;
+no repository variables or Pages settings were changed for this validation.
+
 ## Repository configuration
 
 Configure repository variables under Settings → Secrets and variables → Actions
