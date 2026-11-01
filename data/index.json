@@ -4,8 +4,8 @@
       "data_path": null,
       "device": "310P",
       "model": "deepseek-v3",
-      "status": "missing",
-      "triage_count": 0,
+      "status": "triage",
+      "triage_count": 1,
       "version": "main-verified"
     },
     {
@@ -20,16 +20,16 @@
       "data_path": null,
       "device": "A3",
       "model": "deepseek-v3",
-      "status": "missing",
-      "triage_count": 0,
+      "status": "triage",
+      "triage_count": 1,
       "version": "main-verified"
     },
     {
       "data_path": null,
       "device": "A5",
       "model": "deepseek-v3",
-      "status": "missing",
-      "triage_count": 0,
+      "status": "triage",
+      "triage_count": 1,
       "version": "main-verified"
     },
     {
@@ -44,8 +44,8 @@
       "data_path": null,
       "device": "310P",
       "model": "qwen3-30b-a3b",
-      "status": "missing",
-      "triage_count": 0,
+      "status": "triage",
+      "triage_count": 19,
       "version": "main-verified"
     },
     {
@@ -60,16 +60,16 @@
       "data_path": null,
       "device": "A3",
       "model": "qwen3-30b-a3b",
-      "status": "missing",
-      "triage_count": 0,
+      "status": "triage",
+      "triage_count": 12,
       "version": "main-verified"
     },
     {
       "data_path": null,
       "device": "A5",
       "model": "qwen3-30b-a3b",
-      "status": "missing",
-      "triage_count": 0,
+      "status": "triage",
+      "triage_count": 13,
       "version": "main-verified"
     },
     {
@@ -84,8 +84,8 @@
       "data_path": null,
       "device": "310P",
       "model": "qwen3-8b",
-      "status": "missing",
-      "triage_count": 0,
+      "status": "triage",
+      "triage_count": 15,
       "version": "main-verified"
     },
     {
@@ -100,16 +100,16 @@
       "data_path": null,
       "device": "A3",
       "model": "qwen3-8b",
-      "status": "missing",
-      "triage_count": 0,
+      "status": "triage",
+      "triage_count": 10,
       "version": "main-verified"
     },
     {
       "data_path": null,
       "device": "A5",
       "model": "qwen3-8b",
-      "status": "missing",
-      "triage_count": 0,
+      "status": "triage",
+      "triage_count": 11,
       "version": "main-verified"
     },
     {
