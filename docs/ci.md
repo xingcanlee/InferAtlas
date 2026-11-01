@@ -45,12 +45,12 @@ gh run view RUN_ID --log-failed
 
 The workflow builds all three models × 310P/A2/A3/A5/H100. C2's expected
 result is 4 ok / 11 triage / 0 hard errors, matching the all-device local release;
-the [verified full build](https://github.com/xingcanlee/InferAtlas/actions/runs/41295147620)
+the [final verified build](https://github.com/xingcanlee/InferAtlas/actions/runs/41298510510)
 passed plan, all 15 extraction jobs and collect. Downloaded triage records match
 local output exactly; see [the cell table and run history](progress/C2.md).
 Collection gates each model×device cell: triage blocks that cell, and H100
 baseline triage blocks all Ascend cells of the same model. Clean Qwen A2/H100
-cells remain eligible beside triaged 310P/A3/A5 cells. Expected collection is
+cells remain eligible beside triaged 310P/A3/A5 cells. Verified collection is
 **clean=4, errors=[], 11 blocked_cells**. A missing/error cell prevents the whole
 publication. Bundle summary and publication state retain sorted `blocked_cells`
 objects (`model` catalog slug and `device`); `blocked_models` remains the aggregate
@@ -63,8 +63,7 @@ metadata; and the expression/layout packages were not built before verification.
 The resolver now honors `INFERATLAS_VLLM_COMMIT` and `INFERATLAS_ASCEND_COMMIT`
 together, requiring full lowercase SHAs and the Ascend pin's main-verified pairing
 file to declare the vLLM pin. Tagged catalog pairs reject pin overrides.
-The worker uses upstream SCM versioning
-for main and the explicit release tag for Ascend's supported version override,
+The worker uses upstream SCM versioning for main and the explicit release tag for Ascend's supported version override,
 without writing generated metadata to upstream sources. The extraction environment
 pins `setuptools-scm==10.3.4` for this path. In shallow clones without tags SCM
 produces a placeholder such as `0.1.dev1`, not a verified release version; the
@@ -76,8 +75,8 @@ exists. A5's unconfirmed catalog memory capacity yields
 `hardware_profile_incomplete` after extraction/lowering; unannotated replacement
 triage is preserved, numeric checks skip, and direct lowerer callers share this gate.
 There is no assumed 64 GB device. Standalone extraction retains facts and warns
-that numeric publication needs a confirmed board capacity. Poll/nightly and publication remain disabled;
-no repository variables or Pages settings were changed for this validation.
+that numeric publication needs a confirmed board capacity. Poll/nightly and
+publication remain disabled; no repository variables or Pages settings were changed for this validation.
 
 ## Repository configuration
 
