@@ -127,3 +127,23 @@ All lists are deterministically ordered; no timestamps.
    `"other"` and are ordered in dataflow position.
 5. Stage order is canonical: embedding(s) → stack(s) (each with its own pre/post norms) → final norm
    → lm_head → spine others; aside others last.
+
+## Contract decisions v1.3
+1. **Pattern labels are per period**: every band of one repeating period carries the same label,
+   e.g. `"1× MQA ÷128 + 1× MQA ÷4 + indexer"`; non-repeating bands use `pattern: null`. The UI
+   additionally folds structurally and treats single-member labelled runs as plain bands.
+2. **Stage order is the array order.** The emitter writes stages in true dataflow order (e.g.
+   DeepSeek-V4 `hc_head_op` — merging the residual streams — sits before the final norm as a spine
+   `other` stage); the UI renders in array order and does not re-sort.
+3. **mHC sublayers**: `role: "other"`, `component: generic` (keeps class/source), ids
+   `mhc_pre_attn`, `mhc_post_attn`, `mhc_pre_ffn`, `mhc_post_ffn`; residual stream tensor name
+   `residual_streams` with shape `[T, HC, H]`; the UI shows their notes/status like any sublayer.
+4. **Hash routing**: layers routed by token-id hash use `router.scoring: "hash"`.
+5. **Attention `variant` = head-sharing scheme** (`mha` | `gqa` | `mqa` | `mla`) or `linear` for
+   non-softmax mixers. Locality/sparsity are extras: `sliding_window`, `compress_ratio`, `indexer`,
+   `index_topk`, plus `o_lora_rank`, `o_groups`, `chunk_size`. Variants `sliding_window` and
+   `sparse` are deprecated (still accepted for old data).
+6. **Canonical internal tensor names**: attention `q`, `k`, `v`, `k_rope`, `q_latent`,
+   `kv_latent`, `kv_compressed`, `index_scores`, `o`; MoE `router_logits`, `topk_ids`,
+   `topk_weights`, `expert_input`, `expert_gate_up`, `expert_output`, `shared_output`; MLP
+   `gate_up`, `act`; linear attention `qkvz`, `ba`, `conv_out`, `recurrent_state`.
