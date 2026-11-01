@@ -21,10 +21,12 @@ and `evidence.json` describe H3, not this expanded matrix.
 
 Qwen's 310P implementations need distinct rules and annotations. A3's observed
 replacements lack applicable annotations; existing predicates explicitly require
-A2. A5's board SKU and memory capacity are unconfirmed: the CLI records an
-`extraction_failure` instead of assuming 64 GB. DeepSeek's Ascend construction
-requests an NPU allocation under CPU mocks; its H100 baseline reaches unsupported
-MLA lowering. A5's capacity prerequisite now blocks before that constructor.
+A2. A5's board SKU and memory capacity are unconfirmed: after extraction and
+lowering, `hardware_profile_incomplete` blocks numeric publication while preserving
+unannotated `conditional_override` items. Direct lowerer calls use the same gate,
+with zero as an explicit unknown-capacity sentinel, never a 64 GB default.
+DeepSeek's Ascend construction (including A5) requests an NPU allocation under
+CPU mocks; its H100 baseline reaches unsupported MLA lowering.
 All these cells exit **2**, retain diagnostics and publish no numeric data.
 Annotations remain `reviewed_by: pending`.
 
@@ -59,7 +61,9 @@ export UV_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/
 export npm_config_registry=https://registry.npmmirror.com
 export INFERATLAS_SRC=/home/cyberspace/projects/InferAtlas/experiments/a2_qwen3moe/src
 export INFERATLAS_PY=/home/cyberspace/projects/InferAtlas/experiments/a2_qwen3moe/.venv/bin/python
-# Both pins are required together. They override moving refs without relabelling artifacts.
+# Both pins are required together, only for --pair main-verified (the default).
+# The Ascend pin must declare exactly the vLLM pin in its main-verified pairing file.
+# Tagged pairs reject pin overrides; unset both pins to resolve a catalog release.
 export INFERATLAS_VLLM_COMMIT=544f182d9f0c9bfe8bd7645525951d5e3692a542
 export INFERATLAS_ASCEND_COMMIT=24a76e84394ae3427195e3715fc08e90769d398c
 pnpm install --frozen-lockfile
@@ -120,12 +124,22 @@ See [CI documentation](ci.md) for dispatch commands and the verified run.
 SHAs, builds its evaluator/layout prerequisites and handles fresh source-only
 vLLM version metadata through upstream SCM versioning.
 
-The hosted collector retains its stricter publication policy: any triaged device
-blocks that model across devices. All three models are therefore blocked in this
-full audit; a clean=0 / errors=0 collection is valid and differs from the local
-review release's four usable exports. `publish=false` prevents deployment and
-state updates. Publication and scheduled automation remain disabled.
+The hosted collector gates each model×device cell. A triaged cell is blocked;
+H100 baseline triage also blocks all Ascend cells of that model. Missing or error
+cells block the whole publication. The full audit yields `clean=4`, `errors=[]`
+and 11 `blocked_cells`, matching the four local Qwen A2/H100 exports.
+`blocked_cells` is retained in both bundle summary and publication state;
+`blocked_models` remains an aggregate for maintenance retries. `publish=false`
+prevents deployment and state updates. Publication and scheduled automation remain disabled.
 
 Remaining gaps are MLA, 310P rules/annotations and dtype validation, A3 annotations,
 a confirmed A5 profile, calibration, and a second real version pair. Null dtype
 peaks suppress unavailable rooflines; they do not establish dtype support.
+
+Source-only main version detection uses `setuptools-scm==10.3.4`. In a shallow,
+tagless checkout SCM reports a placeholder such as `0.1.dev1`; this is only an
+Ascend import compatibility value, not a claimed upstream release. Snapshot
+identity remains the validated source SHAs. Release-tag version overrides are
+used only for resolved release sources. Local SCM metadata can differ with Git
+history; environment facts and snapshot identity never substitute that placeholder
+for a source revision.

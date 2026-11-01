@@ -383,10 +383,11 @@ skills/inferatlas-maintain/
 ```
 poll.yml (cron) ──新 tag──▶ build.yml（纯脚本）
                               ├─ triage 为空  → verify → 发布
-                              └─ triage 非空  → 不发布该模型 → draft-pr.yml
+                              └─ triage 非空  → 不发布受影响的模型×设备单元格 → draft-pr.yml
                                                    └─ claude-code-action 运行 skill → 草稿 PR → 人审合入 → 重新 build
 ```
-- triage 非空时只拦下受影响的模型，其余模型照常发布。
+- triage 非空时只拦下受影响的模型×设备单元格（affected model×device cell），其余单元格照常发布。
+- H100 baseline 有 triage 时，同时拦下该模型全部 Ascend 单元格；缺失或硬错误单元格阻止整次发布。
 - 发布产物只依赖已合入的文件，任何人在同一 commit 上重跑 build 都得到同样结果。
 
 ---

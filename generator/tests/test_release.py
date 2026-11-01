@@ -8,12 +8,13 @@ from jsonschema import Draft202012Validator
 from pydantic import ValidationError
 from test_cli import FIXTURE, invoke, site_build
 from test_cli import isolated_sources as isolated_sources
+from test_cli import node_backend as node_backend
 
 import inferatlas.cli as cli
 from inferatlas.exports import ExportManifest
 from inferatlas.extract import ExtractionError
 from inferatlas.lower import coverage_gate
-from inferatlas.schema import Index, Report, Snapshot, Triage
+from inferatlas.schema import Extract, Index, Report, Snapshot, Triage
 from inferatlas.verify import exit_code
 from inferatlas.verify.io import ROOT, read_json, write_json
 
@@ -97,22 +98,74 @@ def test_null_snapshot_only_allowed_for_resolve_failures():
         Triage.model_validate(value)
 
 
-def test_unknown_device_capacity_blocks_before_worker_and_site_numeric_data(tmp_path, monkeypatch):
+def test_a5_lowering_preserves_unannotated_overrides_and_skips_numbers(
+    tmp_path, monkeypatch, node_backend
+):
+    import inferatlas.annotations
+    import inferatlas.lower
+    from inferatlas.lower.pipeline import lower
+    from inferatlas.verify.golden import Evaluator
+
     snapshot = Snapshot.model_validate(read_json(FIXTURE / "snapshot.json"))
     snapshot.device = "A5"
     monkeypatch.setattr(cli, "resolve_stage", lambda *args: snapshot)
-    monkeypatch.setattr(cli, "optional", lambda *args: pytest.fail("worker must not run"))
+
+    def facts(snapshot, tp, ep=False):
+        result = Extract.model_validate(
+            read_json(FIXTURE / ("extract.json" if tp == 1 else f"extract-tp{tp}.json"))
+        )
+        result.snapshot = snapshot
+        result.ascend.device = "A5"
+        return result
+
+    monkeypatch.setattr(cli, "extract_stage", facts)
+    monkeypatch.setattr(inferatlas.lower, "lower", lower)
+    monkeypatch.setattr(inferatlas.annotations, "load_annotations", lambda *args: [])
+    monkeypatch.setattr(cli, "Evaluator", Evaluator)
+    monkeypatch.setattr(cli, "select_default_tp", lambda *args: pytest.fail("numeric defaults ran"))
+    monkeypatch.setattr(cli, "layout_stage", lambda *args: pytest.fail("layout ran"))
     output = tmp_path / "build"
-    invoke("build", "--device", "A5", "--output", output, code=2)
+    response = invoke("build", "--device", "A5", "--output", output, code=3)
+    assert (output / "triage.json").exists(), response.output
     triage = Triage.model_validate(read_json(output / "triage.json"))
-    item = triage.items[0]
-    assert (item.kind, item.stage, item.exception_type) == (
-        "extraction_failure",
-        "extract",
-        "NotImplementedError",
-    )
-    assert "atlas-a5-unconfirmed" in item.message and "64 GB" in item.message
-    assert sorted(p.name for p in output.iterdir()) == ["snapshot.json", "triage.json"]
+    capacity = [item for item in triage.items if item.kind == "hardware_profile_incomplete"]
+    assert len(capacity) == 1 and capacity[0].preset == "atlas-a5-unconfirmed"
+    overrides = [item for item in triage.items if item.kind == "conditional_override"]
+    assert len(overrides) == 12
+    assert all(item.reason == "unannotated_override" for item in overrides)
+    assert not any(item.kind == "extraction_failure" for item in triage.items)
+    checks = {item["id"]: item for item in read_json(output / "report.json")["checks"]}
+    for name in ("weights.tp1", "weights.tp4", "golden", "evaluation", "calibration", "layout"):
+        assert checks[name]["status"] == "skip"
+    assert read_json(output / "ir.json")["params"]["hbm_bytes"]["default"] == "0"
+    assert (output / "extract.json").exists() and not (output / "view.json").exists()
+
+
+def test_a5_extract_keeps_facts_and_explains_numeric_block(tmp_path, monkeypatch):
+    import inferatlas.extract
+
+    result = Extract.model_validate(read_json(FIXTURE / "extract.json"))
+    result.snapshot.device = result.ascend.device = "A5"
+    monkeypatch.setattr(inferatlas.extract, "extract", lambda *args, **kwargs: result)
+    snapshot, output = tmp_path / "snapshot.json", tmp_path / "extract.json"
+    write_json(snapshot, result.snapshot)
+    response = invoke("extract", "--snapshot", snapshot, "--output", output)
+    assert "Facts extracted; numeric builds are blocked" in response.output
+    assert "atlas-a5-unconfirmed" in response.output
+    assert read_json(output)["snapshot"]["device"] == "A5"
+
+
+def test_extract_worker_error_has_clear_cli_message(tmp_path, monkeypatch):
+    def fail(*args):
+        raise ExtractionError(
+            "CPU/meta NPU constructor unavailable", "NotImplementedError", structured=True
+        )
+
+    monkeypatch.setattr(cli, "extract_stage", fail)
+    snapshot = tmp_path / "snapshot.json"
+    write_json(snapshot, read_json(FIXTURE / "snapshot.json"))
+    response = invoke("extract", "--snapshot", snapshot, code=3)
+    assert "ERROR: CPU/meta NPU constructor unavailable" in response.output
 
 
 def manifest(directory, model, device, status, code, count=0, exists=False):

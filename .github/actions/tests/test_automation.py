@@ -81,31 +81,60 @@ def test_matrix_rejects_unsafe_artifact_paths(bad):
         pipeline.catalog_matrix(data)
 
 
-def test_one_triaged_device_blocks_entire_model_and_retains_other_models(tmp_path):
-    expected = pipeline.catalog_matrix(catalog())
+def test_triaged_310p_retains_clean_a2_and_h100_cells(tmp_path):
+    data = catalog() | {"devices": [{"id": d} for d in ("310P", "A2", "H100")]}
+    expected = pipeline.catalog_matrix(data)
     for item in expected:
         artifact(
             tmp_path / "cells",
             item,
-            "triage" if item["id"] == "moe" and item["device"] == "A3" else "ok",
+            "triage" if item["id"] == "moe" and item["device"] == "310P" else "ok",
         )
     count, triage = pipeline.collect_cells(tmp_path / "cells", tmp_path / "bundle", expected)
-    assert count == 2 and triage
-    assert len(list((tmp_path / "bundle/data").rglob("ir.json"))) == 2
-    assert not list((tmp_path / "bundle/data").rglob("moe"))
-    assert (tmp_path / "bundle/triage/moe/A3/triage.json").exists()
+    assert count == 5 and triage
+    assert len(list((tmp_path / "bundle/data").rglob("ir.json"))) == 5
+    for device in ("A2", "H100"):
+        assert (tmp_path / f"bundle/data/{SNAPSHOT}/moe/{device}/ir.json").exists()
+    assert (tmp_path / "bundle/triage/moe/310P/triage.json").exists()
     summary = json.loads((tmp_path / "bundle/summary.json").read_text())
-    assert summary == {"blocked_models": ["moe"], "clean": 2, "errors": []}
+    assert summary == {
+        "blocked_models": ["moe"],
+        "blocked_cells": [{"model": "moe", "device": "310P"}],
+        "clean": 5,
+        "errors": [],
+    }
 
 
-def test_missing_cell_and_hard_failure_are_not_treated_as_triage(tmp_path):
+def test_triaged_h100_blocks_all_ascend_cells_of_that_model(tmp_path):
+    data = catalog() | {"devices": [{"id": d} for d in ("310P", "A2", "A3", "A5", "H100")]}
+    expected = pipeline.catalog_matrix(data)
+    for item in expected:
+        artifact(
+            tmp_path / "cells",
+            item,
+            "triage" if item["id"] == "moe" and item["device"] == "H100" else "ok",
+        )
+    count, triage = pipeline.collect_cells(tmp_path / "cells", tmp_path / "bundle", expected)
+    assert count == 5 and triage
+    assert not list((tmp_path / "bundle/data").rglob("moe"))
+    summary = json.loads((tmp_path / "bundle/summary.json").read_text())
+    assert summary["blocked_cells"] == [
+        {"model": "moe", "device": d} for d in ("310P", "A2", "A3", "A5", "H100")
+    ]
+
+
+@pytest.mark.parametrize("failure", ["missing", "error"])
+def test_missing_cell_and_hard_failure_block_whole_publish(tmp_path, failure):
     expected = pipeline.catalog_matrix(catalog())
-    for item in expected[:-1]:
-        artifact(tmp_path / "cells", item, "error" if item["id"] == "dense" else "ok")
+    for index, item in enumerate(expected):
+        if index == 0 and failure == "missing":
+            continue
+        artifact(tmp_path / "cells", item, "error" if index == 0 else "ok")
     count, triage = pipeline.collect_cells(tmp_path / "cells", tmp_path / "bundle", expected)
     assert count == 0 and not triage
     summary = json.loads((tmp_path / "bundle/summary.json").read_text())
-    assert len(summary["errors"]) == 3
+    assert len(summary["errors"]) == 1
+    assert len(summary["blocked_cells"]) == len(expected)
 
 
 def test_fallback_snapshot_and_skipped_coverage_cannot_pass():
@@ -394,7 +423,8 @@ def test_state_roundtrip_preserves_history_and_rejects_snapshot_overwrites(
             {
                 "errors": [],
                 "clean": 1,
-                "blocked_models": [],
+                "blocked_models": ["moe"],
+                "blocked_cells": [{"model": "moe", "device": "310P"}],
             },
         )
         pipeline.restore()
@@ -404,6 +434,9 @@ def test_state_roundtrip_preserves_history_and_rejects_snapshot_overwrites(
     assert json.loads((retained / "new/ir.json").read_text()) == {"version": "new"}
     state = json.loads((tmp_path / "new/state/state.json").read_text())
     assert state["pairs"][pipeline.pair_key(PAIR)]["snapshot"] == SNAPSHOT
+    assert state["pairs"][pipeline.pair_key(PAIR)]["blocked_cells"] == [
+        {"model": "moe", "device": "310P"}
+    ]
     # A hard failure must retain successes and historical JSON without publishing data.
     cache = tmp_path / "failed"
     monkeypatch.setattr(pipeline, "CACHE", cache)

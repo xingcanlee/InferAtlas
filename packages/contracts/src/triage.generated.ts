@@ -109,6 +109,22 @@ export type Stage = "resolve" | "extract";
  */
 export type Version = string;
 /**
+ * Affected device.
+ */
+export type Device1 = "A2" | "A3" | "A5" | "310P" | "H100";
+/**
+ * Device capacity is unconfirmed; extracted facts remain valid but numeric publication is blocked.
+ */
+export type Kind6 = "hardware_profile_incomplete";
+/**
+ * Stable explanation of the missing hardware prerequisite.
+ */
+export type Message2 = string;
+/**
+ * Catalog hardware preset id, or null if absent.
+ */
+export type Preset = string | null;
+/**
  * Unresolved items sorted by kind then symbol/id/model. Empty list permits publication subject to verify.
  */
 export type Items = (
@@ -118,6 +134,7 @@ export type Items = (
   | GoldenDiffItem
   | VersionMismatch
   | ExtractionFailure
+  | HardwareProfileIncomplete
 )[];
 /**
  * Full immutable Git commit SHA, never an abbreviated hash.
@@ -130,7 +147,7 @@ export type Tag = string;
 /**
  * Selected hardware profile; H100 is a reference profile.
  */
-export type Device1 = "A2" | "A3" | "A5" | "310P" | "H100";
+export type Device2 = "A2" | "A3" | "A5" | "310P" | "H100";
 /**
  * Generator package version; no generation timestamp.
  */
@@ -190,9 +207,15 @@ export interface ExtractionFailure {
   stage: Stage;
   version: Version;
 }
+export interface HardwareProfileIncomplete {
+  device: Device1;
+  kind: Kind6;
+  message: Message2;
+  preset: Preset;
+}
 export interface Snapshot {
   ascend: Revision;
-  device: Device1;
+  device: Device2;
   generator_version: GeneratorVersion;
   model: ModelRef;
   vllm: Revision1;

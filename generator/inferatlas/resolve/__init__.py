@@ -134,15 +134,21 @@ def resolve_version_pair(
     if pair.pairing_file != pairing_file:
         raise ValueError(f"unexpected pairing file for {pair.ascend}: {pair.pairing_file}")
     pins = [os.environ.get(f"INFERATLAS_{name}_COMMIT") for name in ("VLLM", "ASCEND")]
+    cache = cache or ROOT / ".cache/src"
     if any(pin is not None for pin in pins):
         if not all(pin is not None and _SHA.fullmatch(pin) for pin in pins):
             raise ValueError("Explicit source pins require both full lowercase commit SHAs")
+        if pair.ascend != "main":
+            raise ValueError("Explicit source pins are only supported for main-verified pairs")
         # Dispatch pins are immutable; detached checkouts need not have a main ref.
+        ascend_commit, ascend_root = _revision("vllm-ascend", pins[1], src, cache)
+        declared = git(ascend_root, "show", f"{ascend_commit}:{pairing_file}")
+        if declared != pins[0]:
+            raise ValueError("Ascend pin's main-verified pairing declaration differs from vLLM pin")
         return (
-            Revision(tag="main" if pair.ascend == "main" else pair.vllm, commit=pins[0]),
-            Revision(tag=pair.ascend, commit=pins[1]),
+            Revision(tag="main", commit=pins[0]),
+            Revision(tag="main", commit=ascend_commit),
         )
-    cache = cache or ROOT / ".cache/src"
     ascend_commit, ascend_root = _revision("vllm-ascend", pair.ascend, src, cache)
     vllm_ref = git(ascend_root, "show", f"{ascend_commit}:{pairing_file}")
     if not re.fullmatch(r"[A-Za-z0-9._/-]+", vllm_ref):

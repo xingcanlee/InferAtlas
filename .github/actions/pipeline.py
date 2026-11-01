@@ -192,8 +192,6 @@ def cell() -> None:
     if bool(triage["items"]) != (code == 2):
         raise RuntimeError("Build exit code disagrees with blocking triage")
     if not triage["items"]:
-        if code:
-            raise RuntimeError("Build failed without actionable triage")
         ir = load_contract(dest / "ir.json", "ir")
         check_identity(ir["snapshot"], current, pair)
         load_contract(dest / "view.json", "view")
@@ -231,8 +229,18 @@ def collect_cells(cells: Path, bundle: Path, expected: list[dict]) -> tuple[int,
     expected_keys = {(item["id"], item["device"]) for item in expected}
     if results.keys() - expected_keys:
         raise ValueError("Unexpected cell artifact")
-    blocked = {result["id"] for result, _ in results.values() if result["status"] != "ok"}
-    blocked.update(item["id"] for item in expected if (item["id"], item["device"]) not in results)
+    blocked = {key for key, (result, _) in results.items() if result["status"] != "ok"}
+    baseline_triage = {
+        model
+        for (model, device), (result, _) in results.items()
+        if device == "H100" and result["status"] == "triage"
+    }
+    blocked.update(key for key in expected_keys if key[0] in baseline_triage)
+    # Missing/error artifacts invalidate the whole publication, even beside clean cells.
+    if expected_keys - results.keys() or any(
+        result["status"] not in {"ok", "triage"} for result, _ in results.values()
+    ):
+        blocked.update(expected_keys)
     clean = 0
     has_triage = False
     for item in expected:
@@ -248,7 +256,7 @@ def collect_cells(cells: Path, bundle: Path, expected: list[dict]) -> tuple[int,
             shutil.copytree(source, bundle / "triage" / item["id"] / item["device"])
         elif result["status"] != "ok":
             errors.append(f"Failed cell: {item['id']}/{item['device']}")
-        elif item["id"] not in blocked:
+        elif key not in blocked:
             snapshot = result["snapshot"]
             if not re.fullmatch(r"snapshot-[0-9a-f]{64}", snapshot):
                 raise ValueError("Invalid snapshot identity")
@@ -262,7 +270,10 @@ def collect_cells(cells: Path, bundle: Path, expected: list[dict]) -> tuple[int,
         {
             "clean": clean,
             "errors": sorted(errors),
-            "blocked_models": sorted(blocked),
+            "blocked_models": sorted({model for model, _ in blocked}),
+            "blocked_cells": [
+                {"model": model, "device": device} for model, device in sorted(blocked)
+            ],
         },
     )
     return clean, has_triage
@@ -482,6 +493,7 @@ def publish() -> None:
         "snapshot": snapshot,
         "generator": os.environ["GITHUB_SHA"],
         "blocked_models": summary["blocked_models"],
+        "blocked_cells": summary["blocked_cells"],
     }
     save_state(state, f"chore(ci): retain {snapshot}")
 

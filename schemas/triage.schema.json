@@ -145,6 +145,54 @@
       "title": "GoldenDiffItem",
       "type": "object"
     },
+    "HardwareProfileIncomplete": {
+      "additionalProperties": false,
+      "properties": {
+        "device": {
+          "description": "Affected device.",
+          "enum": [
+            "A2",
+            "A3",
+            "A5",
+            "310P",
+            "H100"
+          ],
+          "title": "Device",
+          "type": "string"
+        },
+        "kind": {
+          "const": "hardware_profile_incomplete",
+          "description": "Device capacity is unconfirmed; extracted facts remain valid but numeric publication is blocked.",
+          "title": "Kind",
+          "type": "string"
+        },
+        "message": {
+          "description": "Stable explanation of the missing hardware prerequisite.",
+          "title": "Message",
+          "type": "string"
+        },
+        "preset": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Catalog hardware preset id, or null if absent.",
+          "title": "Preset"
+        }
+      },
+      "required": [
+        "kind",
+        "device",
+        "preset",
+        "message"
+      ],
+      "title": "HardwareProfileIncomplete",
+      "type": "object"
+    },
     "ModelRef": {
       "additionalProperties": false,
       "properties": {
@@ -360,6 +408,7 @@
             "conditional_override": "#/$defs/ConditionalOverride",
             "extraction_failure": "#/$defs/ExtractionFailure",
             "golden_diff": "#/$defs/GoldenDiffItem",
+            "hardware_profile_incomplete": "#/$defs/HardwareProfileIncomplete",
             "stale_annotation": "#/$defs/StaleAnnotation",
             "unknown_layer_class": "#/$defs/UnknownLayerClass",
             "version_mismatch": "#/$defs/VersionMismatch"
@@ -384,6 +433,9 @@
           },
           {
             "$ref": "#/$defs/ExtractionFailure"
+          },
+          {
+            "$ref": "#/$defs/HardwareProfileIncomplete"
           }
         ]
       },

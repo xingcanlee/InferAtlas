@@ -15,6 +15,7 @@ from inferatlas.schema.models import (
     ConditionalOverride,
     Extract,
     GoldenDiffItem,
+    HardwareProfileIncomplete,
     IREdge,
     IRNode,
     LayerGroup,
@@ -66,6 +67,36 @@ def comm_map(value: Comm, bindings: Mapping[str, str]) -> Comm:
             "logical_bytes": phase_map(value.logical_bytes, bindings),
             "bus_bytes": phase_map(value.bus_bytes, bindings),
         }
+    )
+
+
+def hardware_preset(device_id: str):
+    from inferatlas.resolve import load_catalog
+
+    data = load_catalog()
+    device = next((d for d in data.devices if d.id == device_id), None)
+    return next(
+        (
+            p
+            for p in data.hardware_presets
+            if p.id == (device.hardware_preset if device else "")
+            or (device is None and p.device == device_id)
+        ),
+        None,
+    )
+
+
+def hardware_profile_triage(extract: Extract) -> HardwareProfileIncomplete | None:
+    device = extract.snapshot.device
+    preset = hardware_preset(device)
+    if preset is not None and preset.hbm_gb is not None:
+        return None
+    return HardwareProfileIncomplete(
+        kind="hardware_profile_incomplete",
+        device=device,
+        preset=preset.id if preset else None,
+        message=f"{device} preset {preset.id if preset else '<missing>'} has no confirmed "
+        "device memory capacity; pin a board SKU/capacity before numeric publication.",
     )
 
 
@@ -157,12 +188,16 @@ def runtime_params(extract: Extract) -> dict[str, ParamSpec]:
         "Cache capacity rounds down to whole blocks.",
         choices=["16", "32", "64", "128"],
     )
+    preset = hardware_preset(extract.snapshot.device)
+    capacity = int(preset.hbm_gb * 1e9) if preset and preset.hbm_gb is not None else None
     param(
         "hbm_bytes",
         "number",
-        64000000000,
-        "Per-device memory bytes; override with catalog hardware preset.",
-        min="1",
+        capacity if capacity is not None else 0,
+        "Per-device memory bytes; override with catalog hardware preset."
+        if capacity is not None
+        else "Unknown capacity; zero is a sentinel and hardware triage blocks numeric use.",
+        min="1" if capacity is not None else "0",
     )
     param(
         "gpu_memory_utilization",
@@ -177,22 +212,7 @@ def runtime_params(extract: Extract) -> dict[str, ParamSpec]:
             key, "number", 0, "Explicit byte deduction; zero excludes unmeasured overhead.", min="0"
         )
     # Bind catalog defaults here so direct lower and CLI builds share the same ledger.
-    from inferatlas.resolve import load_catalog
-
-    data = load_catalog()
-    device = next((d for d in data.devices if d.id == extract.snapshot.device), None)
-    preset = next(
-        (
-            p
-            for p in data.hardware_presets
-            if p.id == (device.hardware_preset if device else "")
-            or (device is None and p.device == extract.snapshot.device)
-        ),
-        None,
-    )
     if preset:
-        if preset.hbm_gb is not None:
-            values["hbm_bytes"].default = str(int(preset.hbm_gb * 1e9))
         for key in ("non_torch_bytes", "reserved_bytes"):
             values[key].default = str(getattr(preset, key))
             values[key].description = (
@@ -341,14 +361,18 @@ def lower(
             ),
             triage=Triage(
                 snapshot=extract.snapshot,
-                items=[
-                    VersionMismatch(
-                        kind="version_mismatch",
-                        vllm_version=version,
-                        expected_ranges=sorted({r.match.vllm for r in rules}),
-                        message=version_error,
-                    )
-                ],
+                items=sorted(
+                    [
+                        VersionMismatch(
+                            kind="version_mismatch",
+                            vllm_version=version,
+                            expected_ranges=sorted({r.match.vllm for r in rules}),
+                            message=version_error,
+                        ),
+                        *([issue] if (issue := hardware_profile_triage(extract)) else []),
+                    ],
+                    key=lambda item: item.kind,
+                ),
             ),
             parameter_shapes={},
         )
@@ -991,6 +1015,8 @@ def lower(
             "Equal PP partitions only; mixed bands restrict PP to one. Runtime EP is a degree, not a boolean.",
         ],
     )
+    if issue := hardware_profile_triage(extract):
+        items.append(issue)
     unique = {json.dumps(item.model_dump(), sort_keys=True): item for item in items}
     triage = Triage(
         snapshot=extract.snapshot,

@@ -259,6 +259,7 @@ def ascend_version(request):
 
     revision = request["snapshot"]["vllm"]
     # Fresh source-only checkouts lack _version.py; use upstream's SCM versioning.
+    # Shallow, tagless clones yield SCM's placeholder (e.g. 0.1.dev1), not a release.
     # Ignore stale generated metadata and omit local build dates/dirty suffixes.
     os.environ["VLLM_VERSION"] = (
         get_version(root=request["sources"]["vllm"], local_scheme="no-local-version")

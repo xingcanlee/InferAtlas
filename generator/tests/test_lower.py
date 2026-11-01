@@ -622,3 +622,21 @@ def test_cli_selects_moe_backend(tmp_path, a2a):
     ir = json.loads((tmp_path / "ir.json").read_text())
     dispatch = next(n for n in ir["nodes"] if n["id"] == "moe.experts.dispatch")
     assert dispatch["comm"]["op"] == ("all_to_all" if a2a else "all_gather")
+
+
+@pytest.mark.parametrize("version", [None, "1.0"])
+def test_direct_lower_unknown_capacity_adds_hardware_triage(data, version):
+    data["snapshot"]["device"] = "A5"
+    result = lower(data, vllm_version=version)
+    items = [item for item in result.triage.items if item.kind == "hardware_profile_incomplete"]
+    assert len(items) == 1
+    assert (items[0].device, items[0].preset) == ("A5", "atlas-a5-unconfirmed")
+    assert not coverage_gate(result.triage)
+    assert result.ir.params["hbm_bytes"].default == "0"
+    if version:
+        assert any(item.kind == "version_mismatch" for item in result.triage.items)
+    else:
+        assert result.ir.nodes
+    Draft202012Validator(json.loads((ROOT / "schemas/triage.schema.json").read_text())).validate(
+        result.triage.model_dump(mode="json")
+    )

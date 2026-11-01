@@ -177,6 +177,7 @@ def test_missing_fixture_preserves_previous_numeric_generation(tmp_path):
 
 def test_resolve_and_extract_exact_apis(monkeypatch):
     snapshot = Snapshot.model_validate(read_json(FIXTURE / "snapshot.json"))
+    snapshot.vllm.tag = "main"
     calls = []
 
     def resolve(model, version="main-verified", device="A2", out_path=None, *, catalog_path):
@@ -187,6 +188,7 @@ def test_resolve_and_extract_exact_apis(monkeypatch):
         calls.append((value, model, tp, ep, device, out_path))
         result = Extract.model_validate(read_json(FIXTURE / "extract-tp4.json"))
         result.parallel.ep = ep
+        result.snapshot = snapshot
         return result
 
     monkeypatch.setattr(inferatlas.resolve, "resolve", resolve, raising=False)
@@ -807,3 +809,12 @@ def test_observed_swaps_without_active_annotations_block_publication(
     assert all(item.reason == "unannotated_override" for item in triage.items)
     report = Report(snapshot=result.snapshot, checks=[], golden_diff=[], source_link_failures=[])
     assert cli.exit_code(report, triage) == 2
+
+
+def test_resolve_checks_tags_even_when_commit_pins_match(monkeypatch):
+    snapshot = Snapshot.model_validate(read_json(FIXTURE / "snapshot.json"))
+    monkeypatch.setenv("INFERATLAS_VLLM_COMMIT", snapshot.vllm.commit)
+    monkeypatch.setenv("INFERATLAS_ASCEND_COMMIT", snapshot.ascend.commit)
+    monkeypatch.setattr(inferatlas.resolve, "resolve", lambda **kwargs: snapshot)
+    with pytest.raises(ValueError, match="catalog identity"):
+        cli.resolve_stage(cli.DEFAULT_MODEL, "A2", "v0.32.0")

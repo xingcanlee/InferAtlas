@@ -634,6 +634,15 @@ class VersionMismatch(Contract):
     )
 
 
+class HardwareProfileIncomplete(Contract):
+    kind: Literal["hardware_profile_incomplete"] = Field(
+        description="Device capacity is unconfirmed; extracted facts remain valid but numeric publication is blocked."
+    )
+    device: Device = Field(description="Affected device.")
+    preset: str | None = Field(description="Catalog hardware preset id, or null if absent.")
+    message: str = Field(description="Stable explanation of the missing hardware prerequisite.")
+
+
 class ExtractionFailure(Contract):
     kind: Literal["extraction_failure"] = Field(
         description="Resolve or CPU/meta extraction failed; blocks publication."
@@ -657,7 +666,8 @@ TriageItem = Annotated[
     | StaleAnnotation
     | GoldenDiffItem
     | VersionMismatch
-    | ExtractionFailure,
+    | ExtractionFailure
+    | HardwareProfileIncomplete,
     Field(discriminator="kind"),
 ]
 

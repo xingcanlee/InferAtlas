@@ -67,7 +67,14 @@ def main() -> None:
             print(f"::warning::CPU-only extraction skipped optional dependency: {requirement}")
             skipped.append(requirement)
     subprocess.run(
-        [*install, "pytest", "setuptools-scm>=8", "runai-model-streamer", "librosa", "soundfile"],
+        [
+            *install,
+            "pytest",
+            "setuptools-scm==10.3.4",
+            "runai-model-streamer",
+            "librosa",
+            "soundfile",
+        ],
         check=True,
     )
     (scratch / "skipped.txt").write_text("".join(f"{item}\n" for item in sorted(skipped)))

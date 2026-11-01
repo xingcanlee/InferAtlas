@@ -48,24 +48,35 @@ result is 4 ok / 11 triage / 0 hard errors, matching the all-device local releas
 the [verified full build](https://github.com/xingcanlee/InferAtlas/actions/runs/41295147620)
 passed plan, all 15 extraction jobs and collect. Downloaded triage records match
 local output exactly; see [the cell table and run history](progress/C2.md).
-Collection still blocks an
-entire model when any device triages, so its publication summary is **clean=0,
-errors=[]**, with all three models blocked. This is a successful review build;
-it does not produce a deployable bundle of the four local review exports.
+Collection gates each model×device cell: triage blocks that cell, and H100
+baseline triage blocks all Ascend cells of the same model. Clean Qwen A2/H100
+cells remain eligible beside triaged 310P/A3/A5 cells. Expected collection is
+**clean=4, errors=[], 11 blocked_cells**. A missing/error cell prevents the whole
+publication. Bundle summary and publication state retain sorted `blocked_cells`
+objects (`model` catalog slug and `device`); `blocked_models` remains the aggregate
+for maintenance retry detection. `publish=false` still prevents deployment and
+state writes. The C2 progress record links the final fix validation run.
 
 The first dispatch exposed three setup defects, now fixed: dispatched source
 pins were ignored in detached checkouts; source-only vLLM lacked generated version
 metadata; and the expression/layout packages were not built before verification.
 The resolver now honors `INFERATLAS_VLLM_COMMIT` and `INFERATLAS_ASCEND_COMMIT`
-together, requiring full lowercase SHAs. The worker uses upstream SCM versioning
+together, requiring full lowercase SHAs and the Ascend pin's main-verified pairing
+file to declare the vLLM pin. Tagged catalog pairs reject pin overrides.
+The worker uses upstream SCM versioning
 for main and the explicit release tag for Ascend's supported version override,
 without writing generated metadata to upstream sources. The extraction environment
-requires `setuptools-scm>=8` for this path. Extraction jobs build the TS packages.
+pins `setuptools-scm==10.3.4` for this path. In shallow clones without tags SCM
+produces a placeholder such as `0.1.dev1`, not a verified release version; the
+validated commit SHAs remain the source identity. Extraction jobs build the TS packages.
 
 Cell handling preserves failure identity after atomic build publication, rejects
 exit 3 even when triage exists, and requires exit 2 exactly when blocking triage
-exists. A5's unconfirmed catalog memory capacity is explicit extraction triage;
-there is no assumed 64 GB device. Poll/nightly and publication remain disabled;
+exists. A5's unconfirmed catalog memory capacity yields
+`hardware_profile_incomplete` after extraction/lowering; unannotated replacement
+triage is preserved, numeric checks skip, and direct lowerer callers share this gate.
+There is no assumed 64 GB device. Standalone extraction retains facts and warns
+that numeric publication needs a confirmed board capacity. Poll/nightly and publication remain disabled;
 no repository variables or Pages settings were changed for this validation.
 
 ## Repository configuration
@@ -96,8 +107,8 @@ Builds retain per-cell diagnostics and bundles for 14 days. Calibration logs are
 retained for 90 days. Publishing uses the separate `state` branch to retain
 verified snapshot JSON and handled/failed pairs. Published HTML release assets
 are immutable: reruns verify their bytes rather than replacing them. A triaged
-device blocks publication of that model across devices, while other verified
-models remain eligible.
+cell blocks its own publication. H100 baseline triage additionally blocks that
+model's Ascend cells; other verified cells remain eligible.
 
 To enable automation after merging and checking the configuration:
 

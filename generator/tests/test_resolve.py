@@ -106,12 +106,43 @@ def test_pairing_reads_selected_revision_and_not_working_tree(tmp_path):
         assert tuple(revision.commit for revision in actual) == expected
 
 
-def test_dispatch_pins_do_not_resolve_moving_refs(tmp_path, monkeypatch):
+@pytest.mark.parametrize("mismatch", [False, True])
+def test_dispatch_pins_validate_pairing_at_selected_ascend_revision(
+    tmp_path, monkeypatch, mismatch
+):
+    ascend = init_repo(tmp_path / "vllm-ascend")
+    sha = commit(ascend, {".github/vllm-main-verified.commit": "a" * 40 + "\n"})
+    # HEAD and its declaration move after dispatch; only the pinned tree matters.
+    commit(ascend, {".github/vllm-main-verified.commit": "c" * 40 + "\n"})
+    monkeypatch.setenv("INFERATLAS_VLLM_COMMIT", ("d" if mismatch else "a") * 40)
+    monkeypatch.setenv("INFERATLAS_ASCEND_COMMIT", sha)
+    if mismatch:
+        with pytest.raises(ValueError, match="pairing declaration differs"):
+            resolve_version_pair(src=tmp_path)
+    else:
+        actual = resolve_version_pair(src=tmp_path)
+        assert [(r.tag, r.commit) for r in actual] == [("main", "a" * 40), ("main", sha)]
+
+
+def test_dispatch_pins_fetch_ascend_declaration_without_main_ref(tmp_path, monkeypatch):
+    remote = init_repo(tmp_path / "remote")
+    sha = commit(remote, {".github/vllm-main-verified.commit": "a" * 40})
+    monkeypatch.setenv("INFERATLAS_VLLM_COMMIT", "a" * 40)
+    monkeypatch.setenv("INFERATLAS_ASCEND_COMMIT", sha)
+    monkeypatch.setitem(resolver.UPSTREAM, "vllm-ascend", str(remote))
+    actual = resolve_version_pair(src=tmp_path / "missing", cache=tmp_path / "cache")
+    assert actual[1].commit == sha
+    assert (tmp_path / "cache/vllm-ascend" / sha / ".github/vllm-main-verified.commit").is_file()
+
+
+def test_dispatch_pins_cannot_be_labelled_as_catalog_release(monkeypatch):
     monkeypatch.setenv("INFERATLAS_VLLM_COMMIT", "a" * 40)
     monkeypatch.setenv("INFERATLAS_ASCEND_COMMIT", "b" * 40)
-    monkeypatch.setattr(resolver, "_revision", lambda *args: pytest.fail("must not resolve main"))
-    actual = resolve_version_pair(src=tmp_path)
-    assert [(r.tag, r.commit) for r in actual] == [("main", "a" * 40), ("main", "b" * 40)]
+    monkeypatch.setattr(
+        resolver, "_revision", lambda *args: pytest.fail("must reject before fetching")
+    )
+    with pytest.raises(ValueError, match="only supported for main-verified"):
+        resolve_version_pair("v0.32.0")
 
 
 @pytest.mark.parametrize("vllm,ascend", [("a" * 40, None), (None, "b" * 40), ("main", "b" * 40)])
