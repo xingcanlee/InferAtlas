@@ -10,11 +10,13 @@
     "build": "pnpm run deps && node scripts/sync-data.mjs && tsc -p tsconfig.json && vite build",
     "build:single": "pnpm run deps && node scripts/sync-data.mjs && tsc -p tsconfig.json && vite build --mode single",
     "build:demo": "pnpm run deps && node scripts/sync-data.mjs --demo && tsc -p tsconfig.json && vite build",
-    "build:single:demo": "pnpm run deps && node scripts/sync-data.mjs --demo && tsc -p tsconfig.json && vite build --mode single",
+    "build:single:demo": "pnpm run deps && node scripts/sync-data.mjs --demo && tsc -p tsconfig.json && INFERATLAS_SINGLE_MODEL=qwen3-30b-a3b INFERATLAS_SINGLE_VERSION=main-verified vite build --mode single",
+    "build:hub": "pnpm run deps && node scripts/sync-data.mjs && tsc -p tsconfig.json && vite build --mode hub",
+    "build:hub:demo": "pnpm run deps && node scripts/sync-data.mjs --demo && tsc -p tsconfig.json && vite build --mode hub",
     "preview": "vite preview",
     "test": "pnpm run deps && vitest run",
     "e2e": "playwright test",
-    "e2e:demo": "pnpm run build:demo && pnpm run build:single:demo && INFERATLAS_DEMO=1 playwright test",
+    "e2e:demo": "pnpm run build:demo && pnpm run build:single:demo && pnpm run build:hub:demo && INFERATLAS_DEMO=1 playwright test",
     "lint": "biome check ."
   },
   "dependencies": {

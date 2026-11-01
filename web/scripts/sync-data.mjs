@@ -10,7 +10,8 @@ import { spawnSync } from "node:child_process";
  * Demo:     node scripts/sync-data.mjs --demo   (dev server, build:demo, e2e)
  *           Copies contract fixtures, lays out views with packages/layout when built, and derives
  *           ONE clearly-labelled synthetic snapshot ("fixture-prev") so the diff page has two
- *           versions. None of this is publication data.
+ *           versions, synthetic H100 status-only cells (one triage-only, like a blocked release
+ *           cell) and a demo hub.json for `build:hub:demo`. None of this is publication data.
  */
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve, sep } from "node:path";
@@ -140,11 +141,38 @@ const prevPath = "data/fixture-prev-A2/qwen3-30b-a3b";
     triage_count: 0,
     version: "fixture-prev",
   });
+  // c) Status-only H100 column: a triage cell without a numeric bundle (like the release's
+  //    blocked DeepSeek cells) exercises the honest triage deep-link message and hub cells.
+  for (const version of ["main-verified", "v0.32.0"]) {
+    for (const model of ["qwen3-30b-a3b", "qwen3-8b"]) {
+      const triage = version === "main-verified" && model === "qwen3-30b-a3b";
+      index.cells.push({
+        data_path: null,
+        device: "H100",
+        model,
+        status: triage ? "triage" : "missing",
+        triage_count: triage ? 3 : 0,
+        version,
+      });
+    }
+  }
   index.cells.sort((a, b) =>
     `${a.version}\0${a.model}\0${a.device}`.localeCompare(`${b.version}\0${b.model}\0${b.device}`),
   );
 }
 writeJson(join(out, "index.json"), index);
+
+// Demo hub manifest: the one export `build:single:demo` produces, under its release file name.
+writeJson(join(out, "hub.json"), {
+  exports: [
+    {
+      version: "main-verified",
+      model: "qwen3-30b-a3b",
+      device: "A2",
+      file: "inferatlas-qwen3-30b-a3b-a2.html",
+    },
+  ],
+});
 
 // 3. Hardware presets (roofline) from catalog.yaml; null peaks stay null.
 const catalog = parse(readFileSync(join(repo, "catalog.yaml"), "utf8"));

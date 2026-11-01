@@ -3,45 +3,27 @@ import {
   AlertTriangle,
   GitCompareArrows,
   LayoutGrid,
+  LayoutList,
   Loader2,
   Moon,
   Search,
   Sun,
 } from "lucide-react";
 import { useEffect } from "react";
+import { HomeLink } from "@/components/HomeLink";
+import { Logo } from "@/components/Logo";
+import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { DataError } from "@/lib/data";
+import { HUB_HREF, SINGLE } from "@/lib/mode";
+import { cellStatusText } from "@/lib/status";
 import { applyTheme, useUi } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
-function Logo() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
-      <rect
-        x="1"
-        y="1"
-        width="7"
-        height="7"
-        rx="1.5"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-      />
-      <rect
-        x="10"
-        y="10"
-        width="7"
-        height="7"
-        rx="1.5"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-      />
-      <path d="M8 4.5h3.5a1 1 0 0 1 1 1V10" fill="none" stroke="var(--focus)" strokeWidth="1.5" />
-    </svg>
-  );
-}
+const navClass =
+  "inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-[13px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground";
 
 function NavLink({
   to,
@@ -55,13 +37,7 @@ function NavLink({
   const path = useRouterState({ select: (s) => s.location.pathname });
   const active = to === "/" ? path === "/" : path.startsWith(to);
   return (
-    <Link
-      to={to}
-      className={cn(
-        "inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-[13px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
-        active && "bg-accent text-foreground",
-      )}
-    >
+    <Link to={to} className={cn(navClass, active && "bg-accent text-foreground")}>
       {icon}
       {children}
     </Link>
@@ -79,18 +55,28 @@ export function AppShell() {
     <TooltipProvider delayDuration={300}>
       <div className="flex h-full min-h-0 flex-col">
         <header className="flex h-11 shrink-0 items-center gap-3 border-b px-3">
-          <Link to="/" className="flex items-center gap-2 font-semibold tracking-tight">
+          <HomeLink className="flex items-center gap-2 font-semibold tracking-tight">
             <Logo />
             <span className="text-[14px]">InferAtlas</span>
-          </Link>
+          </HomeLink>
           <span className="h-4 w-px bg-border" />
           <nav className="flex items-center gap-1">
-            <NavLink to="/" icon={<LayoutGrid className="size-3.5" />}>
-              Matrix
-            </NavLink>
-            <NavLink to="/diff" icon={<GitCompareArrows className="size-3.5" />}>
-              Diff
-            </NavLink>
+            {SINGLE ? (
+              // One embedded model: the overview of every export is the sibling hub page.
+              <a href={HUB_HREF} className={navClass} data-testid="nav-all-models">
+                <LayoutList className="size-3.5" />
+                All models
+              </a>
+            ) : (
+              <>
+                <NavLink to="/" icon={<LayoutGrid className="size-3.5" />}>
+                  Matrix
+                </NavLink>
+                <NavLink to="/diff" icon={<GitCompareArrows className="size-3.5" />}>
+                  Diff
+                </NavLink>
+              </>
+            )}
           </nav>
           <div className="ml-auto flex items-center gap-1.5">
             {onModel ? (
@@ -160,7 +146,25 @@ export function EmptyState({
   );
 }
 
+const backLabel = SINGLE ? "All models" : "Back to the matrix";
+
 export function ErrorState({ error }: ErrorComponentProps) {
+  const cell = error instanceof DataError ? error.cell : undefined;
+  if (error instanceof DataError && cell) {
+    // A deep link to a cell without a numeric bundle: say what its status really is.
+    const text = cellStatusText(cell);
+    return (
+      <EmptyState
+        title={`${text.title}: ${cell.model}`}
+        icon={<StatusBadge status={cell.status} count={cell.triage_count ?? undefined} />}
+      >
+        <p data-testid="cell-unavailable">{error.message}</p>
+        <p className="mt-3">
+          <HomeLink className="underline underline-offset-2">{backLabel}</HomeLink>
+        </p>
+      </EmptyState>
+    );
+  }
   return (
     <EmptyState
       title="Could not load this page"
@@ -168,9 +172,7 @@ export function ErrorState({ error }: ErrorComponentProps) {
     >
       <p className="font-mono">{error instanceof Error ? error.message : String(error)}</p>
       <p className="mt-3">
-        <Link to="/" className="underline underline-offset-2">
-          Back to the matrix
-        </Link>
+        <HomeLink className="underline underline-offset-2">{backLabel}</HomeLink>
       </p>
     </EmptyState>
   );
@@ -179,9 +181,7 @@ export function ErrorState({ error }: ErrorComponentProps) {
 export function NotFoundState() {
   return (
     <EmptyState title="Nothing here">
-      <Link to="/" className="underline underline-offset-2">
-        Back to the matrix
-      </Link>
+      <HomeLink className="underline underline-offset-2">{backLabel}</HomeLink>
     </EmptyState>
   );
 }

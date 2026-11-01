@@ -4,9 +4,11 @@ import {
   createRoute,
   createRouter,
   type RouterHistory,
+  redirect,
 } from "@tanstack/react-router";
 import { AppShell, ErrorState, LoadingState, NotFoundState } from "@/components/AppShell";
-import { loadCellBundle, loadHardware, loadIndex } from "@/lib/data";
+import { inline, loadCellBundle, loadHardware, loadIndex, singleTarget } from "@/lib/data";
+import { SINGLE } from "@/lib/mode";
 import { diffSearchSchema, homeSearchSchema, modelSearchSchema } from "@/lib/search";
 import { DiffPage } from "@/pages/DiffPage";
 import { HomePage } from "@/pages/HomePage";
@@ -21,6 +23,11 @@ export const homeRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
   validateSearch: homeSearchSchema,
+  beforeLoad: () => {
+    // A single-file export opens on its embedded model, not a one-cell matrix (backlog #2).
+    const target = SINGLE ? singleTarget(inline()) : undefined;
+    if (target) throw redirect({ to: "/m/$version/$device/$model", params: target, replace: true });
+  },
   loader: () => loadIndex(),
   component: HomePage,
   pendingComponent: LoadingState,

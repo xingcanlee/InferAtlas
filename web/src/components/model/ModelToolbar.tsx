@@ -1,5 +1,5 @@
-import { Link } from "@tanstack/react-router";
 import { ChevronRight, ExternalLink } from "lucide-react";
+import { HomeLink } from "@/components/HomeLink";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -69,9 +69,7 @@ export function ModelToolbar({ className }: { className?: string }) {
       className={cn("flex flex-wrap items-center gap-x-4 gap-y-2 border-b px-3 py-2", className)}
     >
       <div className="flex min-w-0 items-center gap-2">
-        <Link to="/" className="text-muted-foreground hover:text-foreground">
-          Matrix
-        </Link>
+        <HomeLink className="text-muted-foreground hover:text-foreground" />
         <ChevronRight className="size-3.5 text-muted-foreground" />
         <h1 className="truncate text-[15px] font-semibold tracking-tight" data-testid="model-title">
           {snap.model.hf_id}

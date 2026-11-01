@@ -1,24 +1,28 @@
-import type { Index, IndexCell } from "@inferatlas/contracts";
+import type { IndexCell } from "@inferatlas/contracts";
 import { getRouteApi, Link } from "@tanstack/react-router";
 import { ArrowRight, GitCompareArrows } from "lucide-react";
 import { EmptyState } from "@/components/AppShell";
 import { StatusBadge } from "@/components/StatusBadge";
+import { StatusCounts, StatusLegend } from "@/components/StatusSummary";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { shortSha } from "@/lib/format";
+import { cellStatusText, devicesOf } from "@/lib/status";
 import { cn } from "@/lib/utils";
 
 const route = getRouteApi("/");
-
-export function devicesOf(index: Index): string[] {
-  return [...new Set(index.cells.map((c) => c.device))].sort();
-}
 
 function Cell({ cell }: { cell: IndexCell | undefined }) {
   if (!cell) {
     return <span className="text-[12px] text-muted-foreground">—</span>;
   }
   const badge = <StatusBadge status={cell.status} count={cell.triage_count ?? undefined} />;
-  if (!cell.data_path) return badge;
+  if (!cell.data_path) {
+    return (
+      <span title={cellStatusText(cell).detail} data-testid={`cell-${cell.version}-${cell.model}`}>
+        {badge}
+      </span>
+    );
+  }
   return (
     <Link
       to="/m/$version/$device/$model"
@@ -53,8 +57,6 @@ export function HomePage() {
 
   const cellOf = (v: string, m: string) =>
     index.cells.find((c) => c.version === v && c.model === m && c.device === device);
-  const counts = { ok: 0, triage: 0, missing: 0 };
-  for (const c of index.cells) if (c.device === device) counts[c.status]++;
 
   return (
     <div className="h-full overflow-auto">
@@ -87,16 +89,8 @@ export function HomePage() {
           </div>
         </div>
 
-        <div className="mt-5 flex gap-4 text-[12px] text-muted-foreground">
-          <span>
-            <span className="font-mono text-foreground tabular">{counts.ok}</span> publishable
-          </span>
-          <span>
-            <span className="font-mono text-foreground tabular">{counts.triage}</span> need triage
-          </span>
-          <span>
-            <span className="font-mono text-foreground tabular">{counts.missing}</span> missing
-          </span>
+        <div className="mt-5">
+          <StatusCounts cells={index.cells.filter((c) => c.device === device)} />
         </div>
 
         <div className="mt-3 overflow-x-auto rounded-lg border">
@@ -162,11 +156,7 @@ export function HomePage() {
             </tbody>
           </table>
         </div>
-        <p className="mt-3 text-[11px] text-muted-foreground">
-          <span className="font-medium">ok</span> passed verification and is publishable ·{" "}
-          <span className="font-medium">triage</span> has unresolved items (count) ·{" "}
-          <span className="font-medium">missing</span> has no artifacts for this pair.
-        </p>
+        <StatusLegend className="mt-3 text-[11px] text-muted-foreground" />
       </div>
     </div>
   );

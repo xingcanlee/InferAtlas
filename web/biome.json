@@ -7,6 +7,7 @@
       "**",
       "!!dist",
       "!!dist-single",
+      "!!dist-hub",
       "!!test-results",
       "!!playwright-report",
       "!!public/data"

@@ -13,7 +13,21 @@ const path = "data/main-verified-A2/qwen3-30b-a3b";
 beforeAll(() => {
   // Exercise the single-file data path: everything inlined on window.
   window.__INFERATLAS__ = {
-    index: indexJson as unknown as Index,
+    index: {
+      ...(indexJson as unknown as Index),
+      // A triage cell without a numeric bundle, like the release's blocked DeepSeek cells.
+      cells: [
+        ...(indexJson as unknown as Index).cells,
+        {
+          version: "main-verified",
+          model: "qwen3-8b",
+          device: "H100",
+          status: "triage",
+          triage_count: 3,
+          data_path: null,
+        },
+      ],
+    },
     hardware: [],
     bundles: {
       [path]: {
@@ -58,6 +72,17 @@ describe("app", { timeout: 20_000 }, () => {
 
   it("shows the missing-cell error state", async () => {
     await renderAt("#/m/v0.32.0/A2/qwen3-8b");
-    expect(await screen.findByText(/has no artifacts/)).toBeInTheDocument();
+    expect(await screen.findByTestId("cell-unavailable")).toHaveTextContent(
+      "qwen3-8b @ v0.32.0 on A2: No artifacts were generated for this combination.",
+    );
+    expect(screen.getByText("Missing: qwen3-8b")).toBeInTheDocument();
+  });
+
+  it("says triage, not missing, for a triage-only deep link", async () => {
+    await renderAt("#/m/main-verified/H100/qwen3-8b");
+    const msg = await screen.findByTestId("cell-unavailable");
+    expect(msg).toHaveTextContent("Blocked by 3 unresolved triage items");
+    expect(msg.textContent).not.toMatch(/missing/i);
+    expect(screen.getByText("Needs triage: qwen3-8b")).toBeInTheDocument();
   });
 });

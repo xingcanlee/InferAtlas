@@ -77,10 +77,13 @@ test("release matrix exposes DeepSeek blockers without numeric data or links", a
     await fits(page);
     await screenshot(page, `home-${device.toLowerCase()}`);
   }
-  // This intentional blocked deep link logs its loader error (backlog #3).
-  expectedConsoleErrors.push("deepseek-v3 @ main-verified on A2 has no artifacts (missing)");
+  // This intentional blocked deep link logs its loader error; it says triage, not missing.
+  expectedConsoleErrors.push("deepseek-v3 @ main-verified on A2: Blocked by");
   await page.goto("./#/m/main-verified/A2/deepseek-v3");
-  await expect(page.getByText(/deepseek-v3 .*has no artifacts/)).toBeVisible();
+  await expect(page.getByTestId("cell-unavailable")).toContainText(
+    /deepseek-v3 @ main-verified on A2: Blocked by \d+ unresolved triage items?; no numeric data/,
+  );
+  await expect(page.getByText(/missing/i)).toHaveCount(0);
   await expect(page.getByTestId("model-title")).toHaveCount(0);
 });
 

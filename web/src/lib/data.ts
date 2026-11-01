@@ -1,4 +1,6 @@
 import type { HardwarePreset, Index, IndexCell, IR, Report, View } from "@inferatlas/contracts";
+import type { HubManifest } from "@/lib/hub";
+import { cellUnavailableMessage } from "@/lib/status";
 
 export type Hardware = HardwarePreset;
 
@@ -13,6 +15,8 @@ export interface InlineData {
   index: Index;
   hardware?: Hardware[];
   bundles: Record<string, { ir: IR; view?: View; report?: Report }>;
+  /** Hub build only: the single-file exports that sit beside the hub HTML. */
+  hub?: HubManifest;
 }
 
 declare global {
@@ -25,12 +29,14 @@ export class DataError extends Error {
   constructor(
     message: string,
     readonly kind: "not_found" | "invalid" | "network" = "invalid",
+    /** The matrix cell this error is about, when there is one (e.g. a triage-only deep link). */
+    readonly cell?: IndexCell,
   ) {
     super(message);
   }
 }
 
-const inline = (): InlineData | undefined =>
+export const inline = (): InlineData | undefined =>
   typeof window === "undefined" ? undefined : window.__INFERATLAS__;
 
 async function fetchJson<T>(path: string, optional: true): Promise<T | undefined>;
@@ -119,12 +125,22 @@ export async function loadCellBundle(
   if (!cell)
     throw new DataError(`No matrix cell for ${model} @ ${version} on ${device}`, "not_found");
   if (!cell.data_path) {
-    throw new DataError(
-      `${model} @ ${version} on ${device} has no artifacts (missing)`,
-      "not_found",
-    );
+    throw new DataError(cellUnavailableMessage(cell), "not_found", cell);
   }
   return { index, cell, bundle: await loadBundle(cell.data_path) };
+}
+
+/**
+ * The cell a single-file export opens on: the first inlined cell, preferring `ok` over triage.
+ * Undefined when nothing is inlined (the regular site, or an empty export).
+ */
+export function singleTarget(
+  data: InlineData | undefined,
+): { version: string; model: string; device: string } | undefined {
+  if (!data) return undefined;
+  const inlined = data.index.cells.filter((c) => c.data_path && data.bundles[c.data_path]);
+  const cell = inlined.find((c) => c.status === "ok") ?? inlined[0];
+  return cell && { version: cell.version, model: cell.model, device: cell.device };
 }
 
 export function srcUrl(src: { repo: string; commit: string; file: string; line: number }): string {
