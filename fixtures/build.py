@@ -265,12 +265,14 @@ params = {
         1,
         "Attention tensor parallel degree. Must divide Hq and be compatible with Hkv.",
         choices=["1", "2", "4", "8"],
+        constraint="Hq%tp==0 && (Hkv%tp==0 || tp%Hkv==0) && round_up(V,64)%tp==0",
     ),
     "pp": param(
         "integer",
         1,
         "Pipeline stages. Fixture supports equal partitions only; custom/uneven PP needs explicit rank ledgers.",
         choices=["1", "2", "3", "4", "6", "8", "12", "16", "24", "48"],
+        constraint="L%pp==0",
     ),
     "dp": param(
         "integer",
@@ -279,17 +281,20 @@ params = {
         min="1",
         max="8",
         step="1",
+        constraint="ep>1 || I_moe%(tp*dp)==0",
     ),
     "ep": param(
         "integer",
         1,
         "Expert parallel degree: 1 disables EP, otherwise must equal tp*dp (vLLM flattened expert group).",
         choices=["1", "2", "4", "8", "16", "32", "64", "128"],
+        constraint="ep==1 || (ep==tp*dp && E%ep==0)",
     ),
     "T": param(
         "integer",
         4096,
         "Local attention tokens in one prefill chunk, independent of cache length.",
+        constraint="T%batch==0",
         min="1",
         max="40960",
         step="1",
@@ -1108,6 +1113,10 @@ cases.append(
         },
     }
 )
+for case in cases:
+    case["expected"].update(
+        {f"/params/{key}/constraint": 1 for key in ("T", "dp", "ep", "pp", "tp")}
+    )
 cases.sort(key=lambda c: c["id"])
 write(
     OUT / "qwen3-30b-a3b/eval.json",
@@ -1355,13 +1364,18 @@ for key in ["embed.reduce", "lm_head", "logits.gather", "output"]:
     dense_nodes.append(copy.deepcopy(node_map[key]))
 next(n for n in dense_nodes if n["id"] == "embed")["in"] = [tensor("tokens", ["T"], "dtype_ids")]
 dense_params = params | {
+    "tp": params["tp"] | {"constraint": params["tp"]["constraint"] + " && I%tp==0"},
+    "dp": {k: v for k, v in params["dp"].items() if k != "constraint"},
     "pp": param(
         "integer",
         1,
         "Equal pipeline partitions only.",
         choices=["1", "2", "3", "4", "6", "9", "12", "18", "36"],
+        constraint="L%pp==0",
     ),
-    "ep": param("integer", 1, "Dense model has no expert parallelism.", choices=["1"]),
+    "ep": param(
+        "integer", 1, "Dense model has no expert parallelism.", choices=["1"], constraint="ep==1"
+    ),
 }
 dw = f"({dense_layer})*(L/pp)+(pp==1 ? 2*({vw})+H*bytes(dtype_w) : ({vw})+H*bytes(dtype_w))"
 da = "max(max_num_batched_tokens*(4*H+(Hq/tp+2*max(1,Hkv/tp))*D+3*I/tp)*bytes(dtype_a),max_num_seqs*V*(bytes(dtype_a)+3*bytes(fp32)+bytes(int64)))"

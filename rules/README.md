@@ -58,6 +58,9 @@ preset. Graph capture, fragmentation, backend scratch, non-parameter buffers
 and unconfigured communication workspace remain explicit exclusions. Runtime
 controls require joint validation: TP/head/vocab divisibility, `ep=1` or
 `ep=tp*dp` dividing E, expert-intermediate divisibility, `T%batch=0`, equal PP.
+These are emitted as optional `ParamSpec.constraint` boolean expressions;
+see `docs/expr-dsl.md` for the binding/validation order. Revalidate all predicates
+after any control change, including predicates attached to other controls.
 
 `lower(extract, rules=..., vllm_version=..., ascend_version=..., mro=..., moe_a2a=False)`
 returns `LowerResult(ir, triage, parameter_shapes)`. `coverage_gate(triage)` is
@@ -88,8 +91,7 @@ used. Set `INFERATLAS_LOWER_EXTRACTS` to an additional extract-cache directory
 to run every-parameter shape and total-byte checks on CPU/meta output.
 
 Unsupported non-full `layer_types` and active sliding windows block coverage.
-Unknown development revisions require an explicit base version. Unsupported or
-invalid versions return one `golden_diff` diagnostic prefixed `version_mismatch:`;
-the current wire schema has no dedicated version-mismatch kind. Missing context
-keys include the module path and key name. Contract follow-ups (including the
-unrepresentable joint EP domain) are tracked in `docs/requests/T3.md`.
+Unknown development revisions require an explicit base version. Unsupported,
+invalid or unresolvable versions return one blocking `version_mismatch` diagnostic
+with the resolved/raw version, sorted unique supported rule ranges and an
+explanatory message. Missing context keys include the module path and key name.

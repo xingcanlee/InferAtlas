@@ -540,6 +540,7 @@
       "step": "1"
     },
     "T": {
+      "constraint": "T%batch==0",
       "default": "4096",
       "description": "Local attention tokens in one prefill chunk, independent of cache length.",
       "kind": "integer",
@@ -625,6 +626,7 @@
       "choices": [
         "1"
       ],
+      "constraint": "ep==1",
       "default": "1",
       "description": "Dense model has no expert parallelism.",
       "kind": "integer"
@@ -677,6 +679,7 @@
         "18",
         "36"
       ],
+      "constraint": "L%pp==0",
       "default": "1",
       "description": "Equal pipeline partitions only.",
       "kind": "integer"
@@ -694,6 +697,7 @@
         "4",
         "8"
       ],
+      "constraint": "Hq%tp==0 && (Hkv%tp==0 || tp%Hkv==0) && round_up(V,64)%tp==0 && I%tp==0",
       "default": "1",
       "description": "Attention tensor parallel degree. Must divide Hq and be compatible with Hkv.",
       "kind": "integer"

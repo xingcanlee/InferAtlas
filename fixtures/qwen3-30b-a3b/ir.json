@@ -2410,6 +2410,7 @@
       "step": "1"
     },
     "T": {
+      "constraint": "T%batch==0",
       "default": "4096",
       "description": "Local attention tokens in one prefill chunk, independent of cache length.",
       "kind": "integer",
@@ -2445,6 +2446,7 @@
       "step": "1"
     },
     "dp": {
+      "constraint": "ep>1 || I_moe%(tp*dp)==0",
       "default": "1",
       "description": "Independent attention data parallel replicas; T and S are local to one replica.",
       "kind": "integer",
@@ -2502,6 +2504,7 @@
         "64",
         "128"
       ],
+      "constraint": "ep==1 || (ep==tp*dp && E%ep==0)",
       "default": "1",
       "description": "Expert parallel degree: 1 disables EP, otherwise must equal tp*dp (vLLM flattened expert group).",
       "kind": "integer"
@@ -2555,6 +2558,7 @@
         "24",
         "48"
       ],
+      "constraint": "L%pp==0",
       "default": "1",
       "description": "Pipeline stages. Fixture supports equal partitions only; custom/uneven PP needs explicit rank ledgers.",
       "kind": "integer"
@@ -2572,6 +2576,7 @@
         "4",
         "8"
       ],
+      "constraint": "Hq%tp==0 && (Hkv%tp==0 || tp%Hkv==0) && round_up(V,64)%tp==0",
       "default": "1",
       "description": "Attention tensor parallel degree. Must divide Hq and be compatible with Hkv.",
       "kind": "integer"

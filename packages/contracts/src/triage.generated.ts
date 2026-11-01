@@ -61,9 +61,27 @@ export type Kind3 = "golden_diff";
  */
 export type Model = string;
 /**
+ * Supported vLLM PEP 440 rule ranges, sorted and unique; an empty string means any version.
+ */
+export type ExpectedRanges = string[];
+/**
+ * No rules support the resolved vLLM version, or its version cannot be resolved.
+ */
+export type Kind4 = "version_mismatch";
+/**
+ * Stable explanation of the version failure; blocks publication.
+ */
+export type Message = string;
+/**
+ * Resolved vLLM base version; raw explicit version or snapshot tag when resolution fails.
+ */
+export type VllmVersion = string;
+/**
  * Unresolved items sorted by kind then symbol/id/model. Empty list permits publication subject to verify.
  */
-export type Items = (UnknownLayerClass | ConditionalOverride | StaleAnnotation | GoldenDiffItem)[];
+export type Items = (
+  UnknownLayerClass | ConditionalOverride | StaleAnnotation | GoldenDiffItem | VersionMismatch
+)[];
 /**
  * Full immutable Git commit SHA, never an abbreviated hash.
  */
@@ -115,6 +133,12 @@ export interface GoldenDiffItem {
   diff: Diff;
   kind: Kind3;
   model: Model;
+}
+export interface VersionMismatch {
+  expected_ranges: ExpectedRanges;
+  kind: Kind4;
+  message: Message;
+  vllm_version: VllmVersion;
 }
 /**
  * Same structured identity as extract/IR; not a concatenated display string.

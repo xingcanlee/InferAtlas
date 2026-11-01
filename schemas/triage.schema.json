@@ -235,6 +235,43 @@
       ],
       "title": "UnknownLayerClass",
       "type": "object"
+    },
+    "VersionMismatch": {
+      "additionalProperties": false,
+      "properties": {
+        "expected_ranges": {
+          "description": "Supported vLLM PEP 440 rule ranges, sorted and unique; an empty string means any version.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Expected Ranges",
+          "type": "array"
+        },
+        "kind": {
+          "const": "version_mismatch",
+          "description": "No rules support the resolved vLLM version, or its version cannot be resolved.",
+          "title": "Kind",
+          "type": "string"
+        },
+        "message": {
+          "description": "Stable explanation of the version failure; blocks publication.",
+          "title": "Message",
+          "type": "string"
+        },
+        "vllm_version": {
+          "description": "Resolved vLLM base version; raw explicit version or snapshot tag when resolution fails.",
+          "title": "Vllm Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "vllm_version",
+        "expected_ranges",
+        "message"
+      ],
+      "title": "VersionMismatch",
+      "type": "object"
     }
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -248,7 +285,8 @@
             "conditional_override": "#/$defs/ConditionalOverride",
             "golden_diff": "#/$defs/GoldenDiffItem",
             "stale_annotation": "#/$defs/StaleAnnotation",
-            "unknown_layer_class": "#/$defs/UnknownLayerClass"
+            "unknown_layer_class": "#/$defs/UnknownLayerClass",
+            "version_mismatch": "#/$defs/VersionMismatch"
           },
           "propertyName": "kind"
         },
@@ -264,6 +302,9 @@
           },
           {
             "$ref": "#/$defs/GoldenDiffItem"
+          },
+          {
+            "$ref": "#/$defs/VersionMismatch"
           }
         ]
       },

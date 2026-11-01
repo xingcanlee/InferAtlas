@@ -25,6 +25,7 @@ from inferatlas.schema.models import (
     TensorSpec,
     Triage,
     UnknownLayerClass,
+    VersionMismatch,
     ViewFamily,
 )
 
@@ -70,6 +71,7 @@ def comm_map(value: Comm, bindings: Mapping[str, str]) -> Comm:
 
 def runtime_params(extract: Extract) -> dict[str, ParamSpec]:
     c = extract.config
+    moe = bool(c.get("num_experts", 0))
     hq, hkv, layers = (
         int(c["num_attention_heads"]),
         int(c["num_key_value_heads"]),
@@ -90,6 +92,8 @@ def runtime_params(extract: Extract) -> dict[str, ParamSpec]:
         extract.parallel.tp,
         "Attention tensor parallel degree.",
         choices=tp_choices,
+        constraint="Hq%tp==0 && (Hkv%tp==0 || tp%Hkv==0) && round_up(V,64)%tp==0"
+        + ("" if moe else " && I%tp==0"),
     )
     pp_choices = [str(n) for n in range(1, layers + 1) if layers % n == 0]
     if len(set(extract.layer_types)) > 1:
@@ -100,6 +104,7 @@ def runtime_params(extract: Extract) -> dict[str, ParamSpec]:
         extract.parallel.pp,
         "Equal layer partitions; heaviest stage ledger.",
         choices=pp_choices,
+        constraint="pp==1" if len(set(extract.layer_types)) > 1 else "L%pp==0",
     )
     param(
         "dp",
@@ -108,14 +113,18 @@ def runtime_params(extract: Extract) -> dict[str, ParamSpec]:
         "Attention data replicas; expert TP flattens tp*dp.",
         min="1",
         step="1",
+        constraint="ep>1 || I_moe%(tp*dp)==0" if moe else None,
     )
     param(
         "ep",
         "integer",
         extract.parallel.tp * extract.parallel.dp if extract.parallel.ep else 1,
-        "Expert degree: 1 disables EP; otherwise ep must equal tp*dp and divide E.",
+        "Expert degree: 1 disables EP; otherwise ep must equal tp*dp and divide E."
+        if moe
+        else "Dense model has no expert parallelism.",
         min="1",
         step="1",
+        constraint="ep==1 || (ep==tp*dp && E%ep==0)" if moe else "ep==1",
     )
     for key, default, desc in [
         ("T", 4096, "Local prefill chunk tokens; divisible by batch."),
@@ -126,6 +135,7 @@ def runtime_params(extract: Extract) -> dict[str, ParamSpec]:
         ("max_num_seqs", 256, "Sampler warmup concurrent sequences."),
     ]:
         param(key, "integer", default, desc, min="0" if key == "context" else "1", step="1")
+    values["T"].constraint = "T%batch==0"
     for key in ("dtype_w", "dtype_a", "dtype_kv"):
         param(
             key,
@@ -259,6 +269,7 @@ def lower(
         extract = Extract.model_validate(extract)
     rules = load_rules(rules) if isinstance(rules, str | Path) else rules
     version_error = None
+    version = vllm_version or extract.snapshot.vllm.tag
     try:
         version = _version(extract, vllm_version)
         if not any(SpecifierSet(r.match.vllm).contains(version, prereleases=True) for r in rules):
@@ -280,7 +291,6 @@ def lower(
         "I_moe": str(c.get("moe_intermediate_size", c["intermediate_size"])),
     }
     if version_error:
-        # The wire contract has no version_mismatch variant; retain one blocking diagnostic.
         return LowerResult(
             ir=IR(
                 snapshot=extract.snapshot,
@@ -303,10 +313,11 @@ def lower(
             triage=Triage(
                 snapshot=extract.snapshot,
                 items=[
-                    GoldenDiffItem(
-                        kind="golden_diff",
-                        model=extract.snapshot.model.hf_id,
-                        diff="version_mismatch: " + version_error,
+                    VersionMismatch(
+                        kind="version_mismatch",
+                        vllm_version=version,
+                        expected_ranges=sorted({r.match.vllm for r in rules}),
+                        message=version_error,
                     )
                 ],
             ),

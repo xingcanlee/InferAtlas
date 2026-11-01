@@ -240,6 +240,10 @@ class ParamSpec(Contract):
     choices: list[str] | None = Field(
         default=None, description="Allowed literals for dtype/enum or discrete numeric parameters."
     )
+    constraint: Expr | None = Field(
+        default=None,
+        description="DSL boolean predicate over all bound IR symbols/params; all non-null constraints must hold after any control change.",
+    )
     description: str = Field(
         description="Meaning and units; integer ep is a degree, not enable_expert_parallel."
     )
@@ -587,8 +591,23 @@ class GoldenDiffItem(Contract):
     )
 
 
+class VersionMismatch(Contract):
+    kind: Literal["version_mismatch"] = Field(
+        description="No rules support the resolved vLLM version, or its version cannot be resolved."
+    )
+    vllm_version: str = Field(
+        description="Resolved vLLM base version; raw explicit version or snapshot tag when resolution fails."
+    )
+    expected_ranges: list[str] = Field(
+        description="Supported vLLM PEP 440 rule ranges, sorted and unique; an empty string means any version."
+    )
+    message: str = Field(
+        description="Stable explanation of the version failure; blocks publication."
+    )
+
+
 TriageItem = Annotated[
-    UnknownLayerClass | ConditionalOverride | StaleAnnotation | GoldenDiffItem,
+    UnknownLayerClass | ConditionalOverride | StaleAnnotation | GoldenDiffItem | VersionMismatch,
     Field(discriminator="kind"),
 ]
 

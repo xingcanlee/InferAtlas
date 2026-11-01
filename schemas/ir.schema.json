@@ -455,6 +455,21 @@
           "description": "Allowed literals for dtype/enum or discrete numeric parameters.",
           "title": "Choices"
         },
+        "constraint": {
+          "anyOf": [
+            {
+              "description": "Expression in docs/expr-dsl.md; never a JSON number.",
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "DSL boolean predicate over all bound IR symbols/params; all non-null constraints must hold after any control change.",
+          "title": "Constraint"
+        },
         "default": {
           "description": "Numeric/boolean expression literal, or raw dtype/enum string. Bind into env before evaluating expressions.",
           "title": "Default",

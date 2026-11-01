@@ -375,7 +375,11 @@ def test_unmatched_whole_version_still_returns_triage(data):
     assert not result.ir.nodes
     assert not result.ir.groups
     assert len(result.triage.items) == 1
-    assert result.triage.items[0].diff.startswith("version_mismatch:")
+    item = result.triage.items[0]
+    assert item.kind == "version_mismatch"
+    assert item.vllm_version == "1.0"
+    assert item.expected_ranges == [">=0.32,<0.33"]
+    assert item.message == "No rules support vLLM 1.0"
 
 
 def test_cli_writes_outputs_before_coverage_failure(data, tmp_path):
@@ -502,7 +506,12 @@ def test_unknown_or_stale_version_has_one_diagnostic(data, tag, metadata):
     data["env"]["vllm"] = metadata
     result = lower(data)
     assert len(result.triage.items) == 1
-    assert result.triage.items[0].diff.startswith("version_mismatch:")
+    item = result.triage.items[0]
+    assert item.kind == "version_mismatch"
+    assert item.vllm_version == ("0.31.0" if tag == "v0.31.0" else "main")
+    assert item.expected_ranges == [">=0.32,<0.33"]
+    assert item.message
+    assert not coverage_gate(result.triage)
 
 
 def test_rope_hierarchy_and_dense_gather(catalog, source):

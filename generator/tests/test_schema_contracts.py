@@ -280,8 +280,9 @@ def test_schema_review_communications_and_phase_slots():
         assert any(e.from_node == "embed.reduce" and e.to == "decoder" for e in ir.edges)
         assert any(e.from_node == "logits.gather" and e.to == "output" for e in ir.edges)
     nodes = {n.id: n for n in IR.model_validate(read(MOE / "ir.json")).nodes}
-    for suffix in ["dispatch", "combine"]:
-        assert nodes[f"moe.experts.{suffix}"].comm.when == "ep>1 && dp>1"
+    for suffix, op in [("dispatch", "all_gather"), ("combine", "reduce_scatter")]:
+        collective = nodes[f"moe.experts.{suffix}"].comm
+        assert (collective.op, collective.group, collective.when) == (op, "ep", "dp>1")
     reduce = nodes["moe.experts.reduce"].comm
     assert (reduce.group, reduce.when) == ("tp", "tp>1 || ep>1")
     assert "dp" not in reduce.logical_bytes.prefill

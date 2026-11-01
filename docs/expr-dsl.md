@@ -125,6 +125,40 @@ then validated user overrides. Symbols are immutable and cannot be overridden by
 Bounds may refer to config symbols; choices are raw literals (numeric choices are decimal
 strings). T2 owns the evaluator; consumers own environment binding/domain validation.
 
+`ParamSpec.constraint` is an optional DSL **boolean expression**, defaulting to null.
+Absent/null adds no restriction. It may reference any declared config symbol or runtime
+control, including its own name; it is not an expression-valued `choices` entry. After
+binding the entire candidate environment, validate kinds, literal choices and numeric
+bounds/steps first, then evaluate **every** non-null constraint. All must return true
+(`evaluate` exposes this as 1). A false result or evaluation error rejects the candidate
+before metric evaluation. Recheck all constraints after any control changes, since changing
+`tp` or `dp` can invalidate the constraint attached to `ep`. Never silently clamp a control.
+Python syntax/symbol checks do not evaluate these runtime predicates.
+
+The Qwen3 rules and fixtures emit the following joint predicates; they supplement each
+control's ordinary literal domain:
+
+| Control | Predicate |
+| --- | --- |
+| `tp` (both families) | `Hq%tp==0 && (Hkv%tp==0 || tp%Hkv==0) && round_up(V,64)%tp==0` |
+| `tp` (dense, additional term) | `I%tp==0` |
+| `dp` (MoE) | `ep>1 || I_moe%(tp*dp)==0` |
+| `ep` (MoE) | `ep==1 || (ep==tp*dp && E%ep==0)` |
+| `ep` (dense) | `ep==1` |
+| `pp` | `L%pp==0`; mixed layer bands use `pp==1` |
+| `T` | `T%batch==0` |
+
+EP divides whole experts only when enabled. With EP disabled, the flattened expert TP
+degree `tp*dp` must divide the expert intermediate dimension. Dense intermediate TP uses
+`tp` alone. These predicates enforce shard compatibility; DP never multiplies rank-local
+resident weight memory. Consumer integration belongs to the parameter-binding layer.
+
+Unresolvable/invalid/unsupported vLLM versions emit one blocking `version_mismatch` triage
+item with `vllm_version`, sorted unique `expected_ranges` (PEP 440), and `message`. The
+version is the resolved base version, or the original explicit input/snapshot tag if
+resolution failed; the enclosing snapshot preserves source identity. No metrics are
+available in that case. Version errors do not use `golden_diff`.
+
 The standard config symbols are `H` hidden size, `L` decoder count, `E` routed experts,
 `topk` active experts per token, `Hq` query heads, `Hkv` KV heads, `D` head dimension,
 `V` vocabulary, `I_moe` expert intermediate size (dense models use `I`). They are **not**

@@ -213,6 +213,10 @@ export type Notes2 = string[];
  */
 export type Choices = string[] | null;
 /**
+ * DSL boolean predicate over all bound IR symbols/params; all non-null constraints must hold after any control change.
+ */
+export type Constraint = string | null;
+/**
  * Numeric/boolean expression literal, or raw dtype/enum string. Bind into env before evaluating expressions.
  */
 export type Default = string;
@@ -419,6 +423,7 @@ export interface Params {
 }
 export interface ParamSpec {
   choices?: Choices;
+  constraint?: Constraint;
   default: Default;
   description: Description;
   kind: Kind2;

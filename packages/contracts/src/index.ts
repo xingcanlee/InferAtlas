@@ -30,5 +30,6 @@ export type {
   StaleAnnotation,
   Triage,
   UnknownLayerClass,
+  VersionMismatch,
 } from "./triage.generated.js";
 export type { GraphView, View, ViewEdge, ViewNode } from "./view.generated.js";
