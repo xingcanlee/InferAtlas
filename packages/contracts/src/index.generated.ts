@@ -1,7 +1,7 @@
 /* Generated from schemas; edit generator/inferatlas/schema instead. */
 
 /**
- * Relative directory containing ir.json/view.json/report.json, no leading slash; null for missing.
+ * Relative directory containing ir.json/view.json/report.json, no leading slash; null for missing or triage cells without a numeric bundle.
  */
 export type DataPath = string | null;
 /**

@@ -16,9 +16,7 @@ function inlineData(): Plugin {
   return {
     name: "inferatlas-inline-data",
     writeBundle(options) {
-      const output =
-        process.env.INFERATLAS_SINGLE_OUTPUT ??
-        (onlyModel ? resolve(here, "../dist", `inferatlas-${onlyModel}.html`) : undefined);
+      const output = process.env.INFERATLAS_SINGLE_OUTPUT;
       if (output) {
         mkdirSync(dirname(output), { recursive: true });
         copyFileSync(join(options.dir ?? "dist-single", "index.html"), output);

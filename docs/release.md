@@ -1,10 +1,17 @@
-# H1 release artifacts
+# H2 release artifacts
 
-Generated from integrated main `481b78f` plus H1's status-only publishing fix.
+Regenerated from main `f849934` (F2 graph-fit and review fixes) plus H2's
+small release changes, following the real H1 pipeline.
 The verified pair is vLLM `544f182d9f0c9bfe8bd7645525951d5e3692a542` /
 vllm-ascend `24a76e84394ae3427195e3715fc08e90769d398c`.
 All extraction used Python 3.12, CPU/meta tensors and the upstream Ascend mocks.
 No model weights were downloaded and no accelerator kernels ran.
+
+Since H1, F2 fits graph content on first load, collapses the analysis panel on
+short windows, and prevents header overlap. H2 regenerates that UI with real data,
+uses device-qualified default filenames, documents null triage data paths, and
+fails release tests on console errors as well as page exceptions. H100 standalone
+exports and their offline checks are now included alongside A2.
 
 ## Generated matrix and files
 
@@ -25,21 +32,22 @@ have `data_path: null`: there is no DeepSeek numeric page or data bundle.
 
 | Local output (gitignored) | Bytes |
 | --- | ---: |
-| `web/dist/` — complete Pages site, 27 files | 2,045,914 |
+| `web/dist/` — complete Pages site, 27 files | 2,100,687 |
 | `web/dist/index.html` | 871 |
 | `web/dist/data/index.json` — version/model/device matrix | 6,177 |
-| `dist/inferatlas-qwen3-30b-a3b-a2.html` | 1,772,601 |
-| `dist/inferatlas-qwen3-8b-a2.html` | 1,754,227 |
+| `dist/inferatlas-qwen3-30b-a3b-a2.html` | 1,827,374 |
+| `dist/inferatlas-qwen3-8b-a2.html` | 1,809,000 |
+| `dist/inferatlas-qwen3-30b-a3b-h100.html` | 1,800,924 |
+| `dist/inferatlas-qwen3-8b-h100.html` | 1,786,574 |
 
 The site has home, model and diff pages through the existing hash router
 (`/#/`, `/#/m/main-verified/A2/qwen3-8b`, `/#/diff`). It uses one HTML shell,
 as specified in the development plan, rather than separate HTML files per URL.
 Its 14 data JSON files are index + hardware + four IR/view/report bundles.
 There are no fixture or synthetic previous-version files in the release tree.
-The standalone HTMLs each inline exactly one model and its A2 cell, including
+The four standalone HTMLs each inline exactly one model/device cell, including
 scripts, styles, fonts and data. `web/dist-single/index.html` holds the last
-standalone build (MoE). Default-name copies in `dist/inferatlas-<model>.html`
-were retained for the existing integration smoke tests.
+standalone build (MoE A2). There are no device-less copies in `dist/`.
 
 Exact artifact hashes, config fingerprints and all TP weight-check results are
 in [evidence.json](screenshots/release/evidence.json). Build outputs are local
@@ -57,6 +65,7 @@ export INFERATLAS_SRC=/home/cyberspace/projects/InferAtlas/experiments/a2_qwen3m
 export INFERATLAS_PY=/home/cyberspace/projects/InferAtlas/experiments/a2_qwen3moe/.venv/bin/python
 pnpm install --frozen-lockfile
 uv sync --project generator --python 3.12
+just schemas
 pnpm --filter '@inferatlas/*' -r build
 mkdir -p .cache/release
 
@@ -111,10 +120,12 @@ write_json(root / snapshot_key(snapshot, 'main-verified') / 'deepseek-v3/triage.
 PY
 
 # Each single command exits 0 and performs a fresh real TP 1/4 build.
-uv run --project generator inferatlas single --model Qwen/Qwen3-8B --device A2 \
-  --output dist/inferatlas-qwen3-8b-a2.html
-uv run --project generator inferatlas single --model Qwen/Qwen3-30B-A3B --device A2 \
-  --output dist/inferatlas-qwen3-30b-a3b-a2.html
+# Defaults include device; leave MoE A2 last for the existing smoke test.
+for device in H100 A2; do
+  for model in Qwen/Qwen3-8B Qwen/Qwen3-30B-A3B; do
+    uv run --project generator inferatlas single --model "$model" --device "$device"
+  done
+done
 
 # Restore the full matrix after single-file staging. Expected exit 2 means
 # the site was built successfully with blocked status cells; it is not all-ok.
@@ -125,20 +136,20 @@ uv run --project generator inferatlas site --build-root .cache/release/site-buil
 `site` without `--include-blocked` still refuses a blocked matrix. An IR/report
 with failed verification still causes exit 3, even with that flag. Only the
 explicit triage-only staging above omits failed numeric artifacts; no failed
-report was edited into a pass. H1 adds support for triage-only directories and
-makes all blocked cells non-navigable, using the existing Index/Triage schemas.
-Empty triage-only directories are rejected. No formula, rule, layout or UI
-implementation changed.
+report was edited into a pass. H1's triage-only publishing support keeps blocked
+cells non-navigable. Empty triage-only directories are rejected. H2 changes the
+CLI default export name,
+removes the web plugin's device-less fallback copy, documents nullable triage
+data paths in regenerated contracts, and strengthens browser checks. F2 supplies
+the graph-fit/panel/header implementation; formulas, rules and goldens are unchanged.
 
 ## Verification and screenshot review
 
 ```bash
 just lint
 just test
-cp dist/inferatlas-qwen3-8b-a2.html dist/inferatlas-qwen3-8b.html
-cp dist/inferatlas-qwen3-30b-a3b-a2.html dist/inferatlas-qwen3-30b-a3b.html
-pnpm --filter web exec vite preview --port 4318 --strictPort --host 127.0.0.1
-# In another terminal, with the static server responding:
+pnpm --filter web exec tsc -p tsconfig.json
+# Playwright starts and stops the Vite preview server on port 4318.
 INFERATLAS_RELEASE=1 pnpm --filter web e2e
 ```
 
@@ -148,10 +159,16 @@ navigation, TP recompute, URL state, memory/KV/roofline/rank tabs, offline files
 and the available diff state. Exploratory cases exercised EP/TP coupling,
 inactive dtype annotations, a direct blocked-model URL and a smaller desktop.
 
-- Python: 730 tests, including real CPU/meta tests.
-- Node: contracts 2, expressions 499, layout 25 and web 35 tests.
-- Browser: 19 tests passed in Chromium. The two exact `-a2.html` paths were
-  opened with networking disabled, with no HTTP requests or page exceptions.
+- Python: 732 tests passed, including the real CPU/meta acceptance cases.
+- Node: contracts 2, expressions 499, layout 25 and web 36 tests.
+- Browser: 30 tests passed in Chromium. All four device-qualified exports were
+  opened with networking disabled, with no HTTP requests, console errors or page
+  exceptions. Published model, matrix and diff cases reject console errors too.
+  The intentional DeepSeek deep link asserts its one known loader console error
+  (`deepseek-v3 @ main-verified on A2 has no artifacts (missing)`); all page
+  exceptions and additional console errors still fail the test.
+  Every A2 view fits before any Fit click at 1280×800, 1440×900, 1600×1000 and
+  1920×1080, at zoom ≥0.6. Header boxes do not overlap at 1280×800.
   Normal TP-button input changed `attn.o` resident bytes from 16 to 4 MiB (MoE)
   and 32 to 8 MiB (dense); the corresponding memory ledgers also updated.
 - All four published reports have empty golden/source-link failures and no
@@ -161,30 +178,30 @@ inactive dtype annotations, a direct blocked-model URL and a smaller desktop.
   standalone renderer was also rebuilt from each file's original inline inputs
   and compared byte-for-byte.
 
-All ten committed PNGs were opened and visually inspected, including initial
-viewports and the post-interaction states. The home matrix is readable and
-unclipped, themes have readable contrast, and the selected A2 comparison card
-shows both implementations. No broken images, missing fonts or overlapping
-primary toolbar controls were found. The graph-fit defect below remains visible;
-passing document scroll measurements did not override that visual finding.
+All twelve committed PNGs were opened and visually inspected, including initial
+viewports and post-interaction states. The home matrix is readable and unclipped,
+themes remain usable, and the selected A2 comparison card shows both
+implementations. At **1280×800 the whole graph, including routed edges and the
+decoder, is visible on first load without clicking Fit**, with the analysis panel
+collapsed to its tabs. Header/breadcrumb/layer controls do not overlap. No broken
+images or missing fonts were found. The widest graphs have small labels at this
+width; zooming remains useful for reading details.
 
 | Evidence | Observation |
 | --- | --- |
 | [Home A2](screenshots/release/home-a2.png), [H100](screenshots/release/home-h100.png) | Two usable Qwen cells and one non-clickable DeepSeek blocker per main row |
-| [Light](screenshots/release/model-light.png), [dark](screenshots/release/model-dark.png) | Theme coverage; lower L0 content is cropped at the default graph zoom |
+| [Light](screenshots/release/model-light.png), [dark](screenshots/release/model-dark.png) | Whole L0 graph and routed edges visible at the default camera |
 | [A2 overlay](screenshots/release/model-overlay-a2.png) | Selected norm, replacement badges and readable Ascend comparison card |
-| [1280×800 initial](screenshots/release/model-1280.png), [after fit view](screenshots/release/model-1280-fit.png) | Initial decoder is below the canvas; fit view brings all node bounds inside it |
+| [1280×800 initial](screenshots/release/model-1280.png), [after fit view](screenshots/release/model-1280-fit.png) | Whole graph visible before Fit; no header overlap; analysis collapsed |
 | [MoE offline TP4](screenshots/release/single-qwen3-30b-a3b-a2-tp4.png), [dense offline TP4](screenshots/release/single-qwen3-8b-a2-tp4.png) | Changed shard sizes, FLOPs and memory after normal input |
+| [MoE H100 offline TP4](screenshots/release/single-qwen3-30b-a3b-h100-tp4.png), [dense H100 offline TP4](screenshots/release/single-qwen3-8b-h100-tp4.png) | Same offline recompute with the H100 preset and no Ascend overlay |
 | [Diff](screenshots/release/diff-unavailable.png) | Honest “Nothing to compare” state |
 
 ## Known limitations
 
-1. **Visual fit is incomplete.** The existing 0.9 minimum auto-fit zoom crops
-   lower graph nodes/edges even at 1600×1000. At 1280×800, L0's decoder starts
-   below the canvas, and the memory warning wraps awkwardly. “Fit view” makes
-   all node bounds visible but shrinks labels. L2 attention views also need
-   panning/zooming. Functional browser checks pass; full visual-fit signoff
-   does not. These screenshots preserve the issue rather than hiding it.
+1. Widest graph labels are small on narrow desktops (about 9px in the
+   1280×800 attention view; see [F2 measurements](progress/F2.md#measurements-real-build-data-main-verified-a2-first-load-nothing-selected)).
+   The whole graph fits before interaction, and users can zoom for details.
 2. DeepSeek is unsupported. A2's upstream mock constructor requests
    `device='npu'` for its rotary cache and raises `NotImplementedError` on CPU.
    H100 has unsupported MLA classes, heterogeneous layer structure, incomplete
@@ -200,7 +217,8 @@ passing document scroll measurements did not override that visual finding.
    `reviewed_by: pending`. Configs are catalog-pinned inline hashes, not freshly
    fetched HF revisions. MoE at TP 1 correctly warns that no KV cache fits the
    default A2 memory budget.
-5. Browser verification used Chromium at 1600×1000 plus a 1280×800 desktop pass.
+5. Browser verification used Chromium screenshots at 1600×1000 and 1280×800,
+   plus fit assertions at 1440×900 and 1920×1080.
    Other browser engines, mobile layout, all parameter combinations, hosted
    Pages deployment and live HTTP fetching of upstream source links were not
    checked. Source file/line targets were validated against the pinned local

@@ -895,7 +895,7 @@ def single(
     directory, code = build_pipeline(model, device, pair, None, [1, 4], ep)
     if code == 3 or (code == 2 and not include_blocked):
         raise typer.Exit(code)
-    output = output or ROOT / "dist" / f"inferatlas-{catalog_model(model).id}.html"
+    output = output or ROOT / "dist" / f"inferatlas-{catalog_model(model).id}-{device.lower()}.html"
     output.parent.mkdir(parents=True, exist_ok=True)
     # A fresh destination prevents stale HTML from masquerading as build success.
     with tempfile.TemporaryDirectory(prefix="inferatlas-single-") as temporary:

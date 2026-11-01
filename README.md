@@ -47,7 +47,7 @@ Generate a single-model offline HTML file and run browser checks against real da
 ```sh
 uv run --project generator inferatlas single --model Qwen/Qwen3-8B --device A2
 uv run --project generator inferatlas single --model Qwen/Qwen3-30B-A3B --device A2
-# dist/inferatlas-{qwen3-8b,qwen3-30b-a3b}.html
+# dist/inferatlas-{qwen3-8b,qwen3-30b-a3b}-a2.html
 # The last single command also stages web/dist-single/index.html.
 uv run --project generator inferatlas site   # restore the full matrix after single
 pnpm --filter web exec playwright install chromium

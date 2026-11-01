@@ -402,6 +402,26 @@ def test_single_blocked_gate_and_handoff(tmp_path, monkeypatch):
     assert len(calls) == 1
 
 
+@pytest.mark.parametrize("device", ["A2", "H100"])
+def test_single_default_filename_includes_device(tmp_path, monkeypatch, device):
+    directory = tmp_path / "model-build"
+    for name in ("ir", "view", "report", "triage"):
+        write_json(directory / f"{name}.json", read_json(FIXTURE / f"{name}.json"))
+    catalog = cli.catalog()
+    monkeypatch.setattr(cli, "catalog", lambda: catalog)
+    monkeypatch.setattr(cli, "ROOT", tmp_path)
+    monkeypatch.setattr(cli, "build_pipeline", lambda *args: (directory, 0))
+
+    def run(command, **kwargs):
+        Path(kwargs["env"]["INFERATLAS_SINGLE_OUTPUT"]).write_text("<!doctype html>")
+
+    monkeypatch.setattr(cli.subprocess, "run", run)
+    result = invoke("single", "--device", device)
+    output = tmp_path / "dist" / f"inferatlas-qwen3-30b-a3b-{device.lower()}.html"
+    assert result.output.strip() == str(output)
+    assert list(output.parent.iterdir()) == [output]
+
+
 def test_golden_missing_runtime_is_skipped_and_update_refuses(tmp_path, monkeypatch):
     monkeypatch.delenv("INFERATLAS_ALLOW_FIXTURES")
     monkeypatch.setattr(cli, "Evaluator", lambda *args: Evaluator(tmp_path, cli.warning))

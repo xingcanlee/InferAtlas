@@ -160,7 +160,7 @@ for (const device of demo ? ["A2"] : ["A2", "H100"]) {
 
 if (!demo) {
   test("dense single-file export works offline", async ({ page }) => {
-    const file = join(here, "..", "..", "dist", "inferatlas-qwen3-8b.html");
+    const file = join(here, "..", "..", "dist", "inferatlas-qwen3-8b-a2.html");
     expect(existsSync(file), "build the dense single-file export first").toBe(true);
     await page.context().setOffline(true);
     await page.goto(`file://${file}#/m/main-verified/A2/qwen3-8b?view=L2%3Amlp`);

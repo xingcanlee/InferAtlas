@@ -1,12 +1,30 @@
 import { mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { expect, type Page, test } from "@playwright/test";
+import { test as base, expect, type Page } from "@playwright/test";
 import { graphFit } from "./fit";
 
 const repo = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const shots = join(repo, "docs/screenshots/release");
 const route = "#/m/main-verified/A2/qwen3-30b-a3b";
+
+const test = base.extend<{ expectedConsoleErrors: string[] }>({
+  expectedConsoleErrors: [
+    async ({ page }, use) => {
+      const pageErrors: string[] = [];
+      const consoleErrors: string[] = [];
+      const expected: string[] = [];
+      page.on("pageerror", (error) => pageErrors.push(error.message));
+      page.on("console", (message) => {
+        if (message.type() === "error") consoleErrors.push(message.text());
+      });
+      await use(expected);
+      expect(pageErrors).toEqual([]);
+      expect(consoleErrors).toEqual(expected.map((message) => expect.stringContaining(message)));
+    },
+    { auto: true },
+  ],
+});
 
 test.skip(
   process.env.INFERATLAS_RELEASE !== "1",
@@ -33,7 +51,10 @@ async function fits(page: Page) {
   expect((await graphFit(page)).zoom).toBeGreaterThanOrEqual(0.6);
 }
 
-test("release matrix exposes DeepSeek blockers without numeric data or links", async ({ page }) => {
+test("release matrix exposes DeepSeek blockers without numeric data or links", async ({
+  page,
+  expectedConsoleErrors,
+}) => {
   const index = await (await page.request.get("./data/index.json")).json();
   expect(index.cells.filter((c: { status: string }) => c.status === "ok")).toHaveLength(4);
   const blocked = index.cells.filter(
@@ -56,14 +77,14 @@ test("release matrix exposes DeepSeek blockers without numeric data or links", a
     await fits(page);
     await screenshot(page, `home-${device.toLowerCase()}`);
   }
+  // This intentional blocked deep link logs its loader error (backlog #3).
+  expectedConsoleErrors.push("deepseek-v3 @ main-verified on A2 has no artifacts (missing)");
   await page.goto("./#/m/main-verified/A2/deepseek-v3");
   await expect(page.getByText(/deepseek-v3 .*has no artifacts/)).toBeVisible();
   await expect(page.getByTestId("model-title")).toHaveCount(0);
 });
 
 test("release model captures light, dark, overlay and smaller desktop", async ({ page }) => {
-  const errors: string[] = [];
-  page.on("pageerror", (error) => errors.push(error.message));
   await page.emulateMedia({ colorScheme: "light" });
   await page.goto(`./${route}`);
   await expect(page.getByTestId("node-decoder")).toBeVisible();
@@ -92,7 +113,6 @@ test("release model captures light, dark, overlay and smaller desktop", async ({
   await page.locator(".react-flow__controls-fitview").click();
   await screenshot(page, "model-1280-fit");
   expect((await graphFit(page)).outside).toEqual([]);
-  expect(errors).toEqual([]);
 });
 
 test("release diff needs two real snapshots", async ({ page }) => {
@@ -101,31 +121,32 @@ test("release diff needs two real snapshots", async ({ page }) => {
   await screenshot(page, "diff-unavailable");
 });
 
-for (const [model, before, after] of [
-  ["qwen3-30b-a3b", "16 MiB", "4 MiB"],
-  ["qwen3-8b", "32 MiB", "8 MiB"],
-] as const) {
-  test(`release ${model} recomputes from file:// with networking disabled`, async ({ page }) => {
-    const errors: string[] = [];
-    const network: string[] = [];
-    page.on("pageerror", (error) => errors.push(error.message));
-    page.on("request", (request) => {
-      if (/^https?:/.test(request.url())) network.push(request.url());
+for (const device of ["A2", "H100"]) {
+  for (const [model, before, after] of [
+    ["qwen3-30b-a3b", "16 MiB", "4 MiB"],
+    ["qwen3-8b", "32 MiB", "8 MiB"],
+  ] as const) {
+    test(`release ${model} ${device} recomputes from file:// with networking disabled`, async ({
+      page,
+    }) => {
+      const network: string[] = [];
+      page.on("request", (request) => {
+        if (/^https?:/.test(request.url())) network.push(request.url());
+      });
+      await page.context().setOffline(true);
+      await page.goto(
+        `file://${join(repo, `dist/inferatlas-${model}-${device.toLowerCase()}.html`)}#/m/main-verified/${device}/${model}?view=L2%3Aattn&node=attn.o`,
+      );
+      const resident = page
+        .getByTestId("node-detail")
+        .getByText("Resident on this rank")
+        .locator("..");
+      await expect(resident).toContainText(before);
+      await page.getByTestId("param-tp").getByText("4", { exact: true }).click();
+      await expect(page).toHaveURL(/tp=4/);
+      await expect(resident).toContainText(after);
+      await screenshot(page, `single-${model}-${device.toLowerCase()}-tp4`);
+      expect(network).toEqual([]);
     });
-    await page.context().setOffline(true);
-    await page.goto(
-      `file://${join(repo, `dist/inferatlas-${model}-a2.html`)}#/m/main-verified/A2/${model}?view=L2%3Aattn&node=attn.o`,
-    );
-    const resident = page
-      .getByTestId("node-detail")
-      .getByText("Resident on this rank")
-      .locator("..");
-    await expect(resident).toContainText(before);
-    await page.getByTestId("param-tp").getByText("4", { exact: true }).click();
-    await expect(page).toHaveURL(/tp=4/);
-    await expect(resident).toContainText(after);
-    await screenshot(page, `single-${model}-a2-tp4`);
-    expect(errors).toEqual([]);
-    expect(network).toEqual([]);
-  });
+  }
 }

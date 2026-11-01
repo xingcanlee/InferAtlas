@@ -854,7 +854,7 @@ class IndexCell(Contract):
     )
     data_path: str | None = Field(
         default=None,
-        description="Relative directory containing ir.json/view.json/report.json, no leading slash; null for missing.",
+        description="Relative directory containing ir.json/view.json/report.json, no leading slash; null for missing or triage cells without a numeric bundle.",
     )
     triage_count: int = Field(
         default=0,

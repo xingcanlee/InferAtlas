@@ -29,6 +29,8 @@ with the real build-time `packages/layout` CLI, and derives one clearly labelled
 snapshot (`fixture-prev`, "synthetic · diff demo") so the diff page has two versions.
 In single-file mode the Vite plugin inlines index + every bundle + hardware as
 `window.__INFERATLAS__`; `INFERATLAS_SINGLE_MODEL=<model-id>` restricts it to one model.
+The output is `dist-single/index.html`; `INFERATLAS_SINGLE_OUTPUT` requests an additional copy.
+The generator CLI sets that path and defaults to `dist/inferatlas-<model>-<device>.html`.
 
 URL state (all shareable): `#/m/<version>/<device>/<model>?view=L2:attn&node=attn.o&phase=decode&overlay=true&side=roofline&shapes=sym&heat=weight&hw=<preset>&tp=4&T=8192…`.
 Any non-UI search key is a runtime-parameter override validated against `ir.params`; defaults are

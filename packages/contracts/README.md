@@ -48,7 +48,8 @@ layer_types and ordered execution data retain semantic order. JSON object keys a
 no timestamps or absolute host paths. Index cells sort by `(version, model, device)`.
 Version pairs are explicit, never a Cartesian product of upstream releases. Index `data_path`
 is relative to the site's public root and names the directory containing `ir.json`,
-`view.json`, `report.json`. Missing cells have null paths. Paths in fixtures/index.json are
+`view.json`, `report.json`. Missing cells and triage cells without a numeric bundle have null
+paths. Paths in fixtures/index.json are
 synthetic matrix examples, not directories guaranteed to exist in this fixture tree.
 
 The structured Snapshot identity is reused in triage/report (the older string example in
