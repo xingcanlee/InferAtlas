@@ -85,3 +85,30 @@ All lists are deterministically ordered; no timestamps.
   (e.g. redirect NPU-only constructor allocations to meta).
 - **U1 (Claude)** — `packages/arch-ui` component library + the architecture page (whole-model
   dataflow and per-layer I/O), built against fixtures that follow this contract.
+
+## Contract decisions v1.1 (reconciling S1 emitter and U1 UI)
+1. `residual_add` sublayers: `component: null`, `module: null`; emitted for every residual style
+   (pre_norm, post_norm, sandwich), in dataflow order.
+2. Sublayer ids are **band-relative and layer-independent** (e.g. `input_layernorm`, `self_attn`,
+   `residual_1`, `post_attention_layernorm`, `mlp`, `residual_2`); the layer-specific path lives in
+   `module.path` (path of the band's first layer; UI substitutes the selected layer index).
+3. Note `target`: `"<band_id>/<sublayer_id>"` for sublayers (applies to the whole band),
+   `"<stage_id>"` for stages, `null` for model-level. `text` is human-readable prose, never raw
+   JSON; `triage_kind` carries the machine kind.
+4. Periodic stacks: consecutive bands that form a repeating period share the same non-null
+   `pattern` label (e.g. `"3× linear + 1× full"`). The UI additionally folds by structural
+   signature (role + component kind/variant + class), ignoring ids/paths/sources.
+5. Stages: containers (`model`, root) and `LogitsProcessor` are not stages. `other` stages carry
+   `placement: "spine" | "aside"` (MTP / draft heads = aside).
+6. `moe.router.groups`: `{ "n_group": int, "topk_group": int } | null`.
+7. Attention `extras` keys (all optional): MLA `q_lora_rank`, `kv_lora_rank`, `qk_nope_head_dim`,
+   `qk_rope_head_dim`, `v_head_dim`; sparse `index_topk`; sliding `sliding_window`; linear
+   attention `kind` (e.g. `"gated_deltanet"`), `num_k_heads`, `num_v_heads`, `head_k_dim`,
+   `head_v_dim`, `conv_kernel`, `output_gate`. For linear attention, `heads_q/heads_kv/head_dim`
+   describe the linear mixer itself, not the full-attention config.
+8. `rope`: `{ kind, theta?, scaling?, partial_rotary_factor? }` (partial factor read from the
+   top-level config when present).
+9. Symbols include runtime `T` and `tp` (and `dp`/`ep` when relevant); IO and param shapes that are
+   TP-sharded are written with `/tp` (e.g. `Hq*D/tp`), so the UI can recompute them.
+10. `class_name` is fully qualified; UI shows the last segment in figures and the full name in detail.
+11. TS type names are those exported by `@inferatlas/contracts` (S1); the UI adapts to them.
