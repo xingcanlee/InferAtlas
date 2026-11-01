@@ -43,7 +43,7 @@ def fetch(hf_id: str, revision: str) -> tuple[bytes, str, str]:
             if not isinstance(config, dict) or not config.get("model_type"):
                 raise ValueError("expected a model configuration object")
             return raw, commit, f"{host}/{hf_id}/resolve/{commit}/config.json"
-        except (HTTPError, URLError, TimeoutError) as error:
+        except (HTTPError, URLError, TimeoutError, ValueError) as error:
             errors.append(f"{url}: {error}")
     raise RuntimeError("\n".join(errors))
 
@@ -110,9 +110,9 @@ def main():
     if args.check:
         source = json.loads(provenance_path.read_text())
         raw, revision, _ = fetch(source["hf_id"], source["revision"])
-        assert revision == source["revision"]
-        assert hashlib.sha256(raw).hexdigest() == source["sha256"]
-        assert raw == (directory / "config.json").read_bytes()
+        if (revision != source["revision"] or hashlib.sha256(raw).hexdigest() != source["sha256"]
+                or raw != (directory / "config.json").read_bytes()):
+            raise ValueError("Pinned config verification failed")
         print(f"{args.slug}: pinned config verified")
         return
     if not args.hf_id or not args.family:

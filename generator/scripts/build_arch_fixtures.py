@@ -90,6 +90,7 @@ def main():
     ir, triage = lower_stage([facts])
     arch = emit_arch(facts, ir, triage, model_id="synthetic-heterogeneous", family="hybrid")
     write_json(ROOT / "generator/tests/fixtures_arch/synthetic-heterogeneous.json", arch)
+    write_json(ROOT / "fixtures/arch/synthetic-heterogeneous.json", arch)
     for slug in ("qwen3-8b", "qwen3-30b-a3b"):
         model = get_model(slug)
         for device in ("A2", "H100"):
@@ -116,13 +117,22 @@ def main():
             write_json(ROOT / "golden" / slug / device / "arch.json", arch)
             if device == "A2":
                 write_json(ROOT / "generator/tests/fixtures_arch" / f"{slug}.json", arch)
+                write_json(ROOT / "fixtures/arch" / f"{slug}.json", arch)
             print(
                 f"{slug}/{device}: {len(facts.modules)} modules, {len(arch.notes)} notes",
                 flush=True,
             )
 
     subprocess.run(
-        ["pnpm", "exec", "biome", "format", "--write", "generator/tests/fixtures_arch"],
+        [
+            "pnpm",
+            "exec",
+            "biome",
+            "format",
+            "--write",
+            "generator/tests/fixtures_arch",
+            "fixtures/arch",
+        ],
         cwd=ROOT,
         check=True,
     )

@@ -10,6 +10,10 @@ export type JsonValue = unknown;
  */
 export type Fixture = boolean;
 /**
+ * Machine-readable extraction limitations and source representation.
+ */
+export type Flags = string[];
+/**
  * One layer type per decoder layer in original execution order.
  */
 export type LayerTypes = string[];
@@ -41,6 +45,10 @@ export type Symbol = string;
  * Baseline fully qualified class; keep even when Ascend replacement is present.
  */
 export type Class1 = string;
+/**
+ * Observed Ascend additions or parameter changes.
+ */
+export type Flags1 = string[];
 /**
  * Observed torch dtype normalized without torch. prefix, e.g. bfloat16.
  */
@@ -122,6 +130,7 @@ export interface Extract {
   config: Config;
   env: Env;
   fixture?: Fixture;
+  flags?: Flags;
   layer_types: LayerTypes;
   modules: Modules;
   notes?: Notes;
@@ -171,6 +180,7 @@ export interface ExtractModule {
   ascend?: ExtractOverride | null;
   attrs?: Attrs1;
   class: Class1;
+  flags?: Flags1;
   params?: Params;
   path: Path;
   /**

@@ -1,5 +1,6 @@
 {
   "device": "H100",
+  "flags": [],
   "input": {
     "dtype": "int64",
     "name": "input_ids",
@@ -13,14 +14,7 @@
     "hf_id": "Qwen/Qwen3-8B",
     "id": "qwen3-8b"
   },
-  "notes": [
-    {
-      "severity": "info",
-      "target": "logits_processor",
-      "text": "Generic component: vllm.model_executor.layers.logits_processor.LogitsProcessor; I/O is derived only from parameter/constructor or sequential-child boundaries.",
-      "triage_kind": null
-    }
-  ],
+  "notes": [],
   "output": {
     "dtype": "bfloat16",
     "name": "logits",
@@ -64,12 +58,13 @@
       "label": "Token embedding",
       "module": {
         "class_name": "vllm.model_executor.layers.vocab_parallel_embedding.VocabParallelEmbedding",
+        "flags": [],
         "params": [
           {
             "dtype": "bfloat16",
             "name": "weight",
             "shape": [
-              "151936",
+              "151936/tp",
               "4096"
             ]
           }
@@ -82,7 +77,8 @@
           "url": "https://github.com/vllm-project/vllm/blob/544f182d9f0c9bfe8bd7645525951d5e3692a542/vllm/model_executor/layers/vocab_parallel_embedding.py#L206"
         },
         "status": "ruled"
-      }
+      },
+      "placement": "spine"
     },
     {
       "bands": [
@@ -97,7 +93,7 @@
                   "kind": "norm",
                   "variant": "rmsnorm"
                 },
-                "id": "model.layers.0.input_layernorm",
+                "id": "input_layernorm",
                 "io": {
                   "inputs": [
                     {
@@ -122,6 +118,7 @@
                 },
                 "module": {
                   "class_name": "vllm.model_executor.layers.layernorm.RMSNorm",
+                  "flags": [],
                   "params": [
                     {
                       "dtype": "bfloat16",
@@ -152,12 +149,13 @@
                   "qk_norm": true,
                   "rope": {
                     "kind": "default",
+                    "partial_rotary_factor": null,
                     "scaling": null,
                     "theta": 1000000.0
                   },
                   "variant": "gqa"
                 },
-                "id": "model.layers.0.self_attn",
+                "id": "self_attn",
                 "io": {
                   "inputs": [
                     {
@@ -177,11 +175,44 @@
                         "T",
                         "H"
                       ]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "q",
+                      "shape": [
+                        "T",
+                        "Hq*D/tp"
+                      ]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "k",
+                      "shape": [
+                        "T",
+                        "max(1,Hkv/tp)*D"
+                      ]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "v",
+                      "shape": [
+                        "T",
+                        "max(1,Hkv/tp)*D"
+                      ]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "o",
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ]
                 },
                 "module": {
                   "class_name": "vllm.model_executor.models.qwen3.Qwen3Attention",
+                  "flags": [],
                   "params": [
                     {
                       "dtype": "bfloat16",
@@ -194,8 +225,8 @@
                       "dtype": "bfloat16",
                       "name": "o_proj.weight",
                       "shape": [
-                        "4096",
-                        "4096"
+                        "H",
+                        "Hq*D/tp"
                       ]
                     },
                     {
@@ -209,8 +240,8 @@
                       "dtype": "bfloat16",
                       "name": "qkv_proj.weight",
                       "shape": [
-                        "6144",
-                        "4096"
+                        "(Hq/tp+2*max(1,Hkv/tp))*D",
+                        "H"
                       ]
                     }
                   ],
@@ -226,12 +257,8 @@
                 "role": "mixer"
               },
               {
-                "component": {
-                  "children": [],
-                  "class_name": "ResidualAdd",
-                  "kind": "generic"
-                },
-                "id": "model.layers.0.self_attn:residual",
+                "component": null,
+                "id": "residual_1",
                 "io": {
                   "inputs": [
                     {
@@ -271,7 +298,7 @@
                   "kind": "norm",
                   "variant": "rmsnorm"
                 },
-                "id": "model.layers.0.post_attention_layernorm",
+                "id": "post_attention_layernorm",
                 "io": {
                   "inputs": [
                     {
@@ -296,6 +323,7 @@
                 },
                 "module": {
                   "class_name": "vllm.model_executor.layers.layernorm.RMSNorm",
+                  "flags": [],
                   "params": [
                     {
                       "dtype": "bfloat16",
@@ -322,7 +350,7 @@
                   "kind": "mlp",
                   "variant": "swiglu"
                 },
-                "id": "model.layers.0.mlp",
+                "id": "mlp",
                 "io": {
                   "inputs": [
                     {
@@ -342,25 +370,50 @@
                         "T",
                         "H"
                       ]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "gate",
+                      "shape": [
+                        "T",
+                        "12288/tp"
+                      ]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "up",
+                      "shape": [
+                        "T",
+                        "12288/tp"
+                      ]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "down",
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ]
                 },
                 "module": {
                   "class_name": "vllm.model_executor.models.qwen2.Qwen2MLP",
+                  "flags": [],
                   "params": [
                     {
                       "dtype": "bfloat16",
                       "name": "down_proj.weight",
                       "shape": [
                         "4096",
-                        "12288"
+                        "12288/tp"
                       ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "gate_up_proj.weight",
                       "shape": [
-                        "24576",
+                        "24576/tp",
                         "4096"
                       ]
                     }
@@ -377,12 +430,8 @@
                 "role": "ffn"
               },
               {
-                "component": {
-                  "children": [],
-                  "class_name": "ResidualAdd",
-                  "kind": "generic"
-                },
-                "id": "model.layers.0.mlp:residual",
+                "component": null,
+                "id": "residual_2",
                 "io": {
                   "inputs": [
                     {
@@ -464,6 +513,7 @@
       "label": "Final norm",
       "module": {
         "class_name": "vllm.model_executor.layers.layernorm.RMSNorm",
+        "flags": [],
         "params": [
           {
             "dtype": "bfloat16",
@@ -481,7 +531,8 @@
           "url": "https://github.com/vllm-project/vllm/blob/544f182d9f0c9bfe8bd7645525951d5e3692a542/vllm/model_executor/layers/layernorm.py#L39"
         },
         "status": "ruled"
-      }
+      },
+      "placement": "spine"
     },
     {
       "component": {
@@ -517,12 +568,13 @@
       "label": "LM head",
       "module": {
         "class_name": "vllm.model_executor.layers.vocab_parallel_embedding.ParallelLMHead",
+        "flags": [],
         "params": [
           {
             "dtype": "bfloat16",
             "name": "weight",
             "shape": [
-              "151936",
+              "151936/tp",
               "4096"
             ]
           }
@@ -535,33 +587,8 @@
           "url": "https://github.com/vllm-project/vllm/blob/544f182d9f0c9bfe8bd7645525951d5e3692a542/vllm/model_executor/layers/vocab_parallel_embedding.py#L578"
         },
         "status": "ruled"
-      }
-    },
-    {
-      "component": {
-        "children": [],
-        "class_name": "vllm.model_executor.layers.logits_processor.LogitsProcessor",
-        "kind": "generic"
       },
-      "id": "logits_processor",
-      "io": {
-        "inputs": [],
-        "outputs": []
-      },
-      "kind": "other",
-      "label": "logits_processor",
-      "module": {
-        "class_name": "vllm.model_executor.layers.logits_processor.LogitsProcessor",
-        "params": [],
-        "path": "logits_processor",
-        "replaced": null,
-        "source": {
-          "file": "vllm/model_executor/layers/logits_processor.py",
-          "line": 58,
-          "url": "https://github.com/vllm-project/vllm/blob/544f182d9f0c9bfe8bd7645525951d5e3692a542/vllm/model_executor/layers/logits_processor.py#L58"
-        },
-        "status": "generic"
-      }
+      "placement": "spine"
     }
   ],
   "symbols": {
@@ -581,10 +608,6 @@
       "description": "query heads",
       "value": 32
     },
-    "I": {
-      "description": "dense intermediate width",
-      "value": 12288
-    },
     "T": {
       "description": "tokens in the batch",
       "value": 4096
@@ -592,6 +615,10 @@
     "V": {
       "description": "vocabulary size",
       "value": 151936
+    },
+    "tp": {
+      "description": "Tensor parallel degree",
+      "value": 1
     }
   }
 }

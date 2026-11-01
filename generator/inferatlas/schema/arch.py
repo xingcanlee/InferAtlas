@@ -47,6 +47,7 @@ class ArchReplacement(Contract):
 
 
 class ArchModule(Contract):
+    flags: list[str] = Field(default_factory=list, description="Observed structural changes.")
     path: str = Field(description="Extracted named_modules path.")
     class_name: str = Field(description="Qualified baseline class name.")
     source: ArchSource | None = Field(
@@ -81,6 +82,7 @@ class ArchNorm(Contract):
 
 
 class ArchRope(Contract):
+    partial_rotary_factor: float | None = Field(default=None, description="Rotated head fraction.")
     kind: str = Field(description="RoPE type, e.g. default, yarn or linear.")
     theta: float | None = Field(default=None, description="RoPE base frequency.")
     scaling: dict[str, JsonValue] | None = Field(
@@ -107,11 +109,16 @@ class ArchMLP(Contract):
     intermediate: int = Field(ge=0, description="Global intermediate width; zero when unavailable.")
 
 
+class ArchRouterGroups(Contract):
+    n_group: int = Field(ge=1, description="Routing group count.")
+    topk_group: int = Field(ge=1, description="Selected routing groups.")
+
+
 class ArchRouter(Contract):
     scoring: str = Field(description="Router scoring function, or unknown.")
     norm_topk: bool | None = Field(default=None, description="Whether selected weights normalize.")
-    groups: int | None = Field(
-        default=None, ge=1, description="Expert routing groups, if specified."
+    groups: ArchRouterGroups | None = Field(
+        default=None, description="Expert routing groups, if specified."
     )
 
 
@@ -150,9 +157,20 @@ class ArchSublayer(Contract):
     role: Literal["norm", "mixer", "ffn", "residual_add", "other"] = Field(
         description="Dataflow role."
     )
-    component: ArchComponent = Field(description="Semantic component or generic fallback.")
+    component: ArchComponent | None = Field(description="Semantic component or generic fallback.")
     io: ArchIO = Field(description="Symbolic dataflow boundary.")
     module: ArchModule | None = Field(description="Observed module; null for residual junctions.")
+
+    @model_validator(mode="after")
+    def residual_and_id(self) -> "ArchSublayer":
+        if "/" in self.id or "." in self.id:
+            raise ValueError("sublayer id must be band-relative")
+        if self.role == "residual_add":
+            if self.component is not None or self.module is not None:
+                raise ValueError("residual junction must have null component and module")
+        elif self.component is None:
+            raise ValueError("observed sublayer requires a component")
+        return self
 
 
 class ArchBlock(Contract):
@@ -187,6 +205,7 @@ class ArchStackStage(Contract):
 
 
 class ArchModuleStage(Contract):
+    placement: Literal["spine", "aside"] = Field(default="spine", description="Dataflow placement.")
     id: str = Field(description="Stable stage target id.")
     kind: Literal["embedding", "norm", "lm_head", "other"] = Field(description="Stage role.")
     label: str = Field(description="Human-readable stage label.")
@@ -210,6 +229,9 @@ class ArchNote(Contract):
 
 
 class Arch(Contract):
+    flags: list[str] = Field(
+        default_factory=list, description="Source representation and extraction limitations."
+    )
     schema_version: Literal[1] = Field(default=1, description="Structure contract version.")
     model: ArchModel = Field(description="Catalog identity and extracted architecture.")
     device: Device = Field(description="Extraction hardware profile.")
@@ -234,7 +256,7 @@ class Arch(Contract):
                     last = band.layers[1]
                     ids.append(band.id)
                     for sublayer in band.block.sublayers:
-                        ids.append(sublayer.id)
+                        ids.append(f"{band.id}/{sublayer.id}")
                         tensors.extend([*sublayer.io.inputs, *sublayer.io.outputs])
                         if sublayer.module:
                             tensors.extend(sublayer.module.params)
@@ -244,8 +266,12 @@ class Arch(Contract):
             raise ValueError("duplicate architecture target id")
         if any(note.target is not None and note.target not in ids for note in self.notes):
             raise ValueError("architecture note target missing")
+        used = set()
         for tensor in tensors:
             for dim in tensor.shape:
+                used.update(validate(dim))
                 if set(validate(dim)) - self.symbols.keys():
                     raise ValueError("unbound architecture shape symbol")
+        if self.symbols.keys() - used:
+            raise ValueError("unused architecture shape symbol")
         return self

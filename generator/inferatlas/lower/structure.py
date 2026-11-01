@@ -49,12 +49,40 @@ def structure_ir(extract: Extract):
         views=ViewFamily(family="hybrid"),
         notes=["Compatibility IR; numeric fields are unavailable placeholders, not estimates."],
     )
+    from inferatlas.arch import structure_rules
+
+    ruled = structure_rules()
     items = [
         UnknownLayerClass(
             kind="unknown_layer_class", symbol=symbol, used_by=[extract.snapshot.model.hf_id]
         )
-        for symbol in sorted({m.class_name for m in extract.modules})
+        for symbol in sorted({m.class_name for m in extract.modules} - ruled.keys())
     ]
+    from inferatlas.schema.models import ConfigFieldsUnavailable
+
+    config = {**extract.config, **(extract.config.get("text_config") or {})}
+    missing = sorted(
+        k
+        for k in (
+            "hidden_size",
+            "num_hidden_layers",
+            "num_attention_heads",
+            "intermediate_size",
+            "vocab_size",
+        )
+        if config.get(k) is None
+    )
+    if missing:
+        items.append(
+            ConfigFieldsUnavailable(
+                kind="missing_config",
+                model=extract.snapshot.model.hf_id,
+                fields=missing,
+                message="Numeric config fields unavailable: "
+                + ", ".join(missing)
+                + "; structure uses observed module facts.",
+            )
+        )
     if issue := hardware_profile_triage(extract):
         items.append(issue)
     return LowerResult(ir=ir, triage=Triage(snapshot=ir.snapshot, items=items), parameter_shapes={})

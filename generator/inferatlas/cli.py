@@ -34,7 +34,12 @@ from inferatlas.schema import (
     View,
 )
 from inferatlas.schema.arch import ArchNote
-from inferatlas.schema.models import Check, ConditionalOverride, ExtractionFailure, GoldenDiffItem
+from inferatlas.schema.models import (
+    Check,
+    ConditionalOverride,
+    ExtractionFailure,
+    TPCoverageUnavailable,
+)
 from inferatlas.verify import (
     Evaluator,
     exit_code,
@@ -381,14 +386,19 @@ def annotate_stage(ir: IR, extracts: list[Extract], triage: Triage) -> tuple[IR,
         pending = list(stale)
         bindings = {}
         contexts_by_node = {}
+        facts_by_class = {}
+        facts_by_path = {}
+        for extract in sorted(extracts, key=lambda item: item.parallel.tp):
+            for fact in extract.modules:
+                facts_by_class.setdefault(fact.class_name, []).append((extract, fact))
+                facts_by_path.setdefault(fact.path or "root", []).append((extract, fact))
         for node in ir.nodes:
             observed = set()
-            facts = [
-                (extract, fact)
-                for extract in sorted(extracts, key=lambda item: item.parallel.tp)
-                for fact in extract.modules
-                if fact.class_name == node.class_name
-            ]
+            facts = (
+                facts_by_path.get(node.id, [])
+                if node.rule == "generic"
+                else facts_by_class.get(node.class_name, [])
+            )
             # The same Linear class implements both attention and MLP projections.
             for label, suffix in (
                 ("attn.o", "o_proj"),
@@ -665,10 +675,11 @@ def build_pipeline(
                         directory, snapshot, model, device, pair, "extract", error
                     )
                 extraction_notes.append(
-                    GoldenDiffItem(
-                        kind="golden_diff",
+                    TPCoverageUnavailable(
+                        kind="tp_extraction_failed",
                         model=snapshot.model.hf_id,
-                        diff=f"Numeric TP coverage unavailable at tp={degree}: {failure_message(error)}",
+                        tp=degree,
+                        message=f"Numeric TP coverage unavailable at tp={degree}: {failure_message(error)}",
                     )
                 )
         for extract in extracts:

@@ -468,6 +468,14 @@
           "title": "Class Name",
           "type": "string"
         },
+        "flags": {
+          "description": "Observed structural changes.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Flags",
+          "type": "array"
+        },
         "params": {
           "description": "Component subtree parameters in stable relative-name order.",
           "items": {
@@ -516,6 +524,7 @@
         }
       },
       "required": [
+        "flags",
         "path",
         "class_name",
         "source",
@@ -601,9 +610,20 @@
         "module": {
           "$ref": "#/$defs/ArchModule",
           "description": "Extracted module provenance and parameters."
+        },
+        "placement": {
+          "default": "spine",
+          "description": "Dataflow placement.",
+          "enum": [
+            "spine",
+            "aside"
+          ],
+          "title": "Placement",
+          "type": "string"
         }
       },
       "required": [
+        "placement",
         "id",
         "kind",
         "label",
@@ -737,6 +757,19 @@
           "title": "Kind",
           "type": "string"
         },
+        "partial_rotary_factor": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Rotated head fraction.",
+          "title": "Partial Rotary Factor"
+        },
         "scaling": {
           "anyOf": [
             {
@@ -768,6 +801,7 @@
         }
       },
       "required": [
+        "partial_rotary_factor",
         "kind",
         "theta",
         "scaling"
@@ -781,16 +815,14 @@
         "groups": {
           "anyOf": [
             {
-              "minimum": 1,
-              "type": "integer"
+              "$ref": "#/$defs/ArchRouterGroups"
             },
             {
               "type": "null"
             }
           ],
           "default": null,
-          "description": "Expert routing groups, if specified.",
-          "title": "Groups"
+          "description": "Expert routing groups, if specified."
         },
         "norm_topk": {
           "anyOf": [
@@ -817,6 +849,29 @@
         "groups"
       ],
       "title": "ArchRouter",
+      "type": "object"
+    },
+    "ArchRouterGroups": {
+      "additionalProperties": false,
+      "properties": {
+        "n_group": {
+          "description": "Routing group count.",
+          "minimum": 1,
+          "title": "N Group",
+          "type": "integer"
+        },
+        "topk_group": {
+          "description": "Selected routing groups.",
+          "minimum": 1,
+          "title": "Topk Group",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "n_group",
+        "topk_group"
+      ],
+      "title": "ArchRouterGroups",
       "type": "object"
     },
     "ArchSource": {
@@ -889,39 +944,46 @@
       "additionalProperties": false,
       "properties": {
         "component": {
-          "description": "Semantic component or generic fallback.",
-          "discriminator": {
-            "mapping": {
-              "attention": "#/$defs/ArchAttention",
-              "embedding": "#/$defs/ArchEmbedding",
-              "generic": "#/$defs/ArchGeneric",
-              "lm_head": "#/$defs/ArchEmbedding",
-              "mlp": "#/$defs/ArchMLP",
-              "moe": "#/$defs/ArchMoE",
-              "norm": "#/$defs/ArchNorm"
-            },
-            "propertyName": "kind"
-          },
-          "oneOf": [
+          "anyOf": [
             {
-              "$ref": "#/$defs/ArchNorm"
+              "discriminator": {
+                "mapping": {
+                  "attention": "#/$defs/ArchAttention",
+                  "embedding": "#/$defs/ArchEmbedding",
+                  "generic": "#/$defs/ArchGeneric",
+                  "lm_head": "#/$defs/ArchEmbedding",
+                  "mlp": "#/$defs/ArchMLP",
+                  "moe": "#/$defs/ArchMoE",
+                  "norm": "#/$defs/ArchNorm"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/ArchNorm"
+                },
+                {
+                  "$ref": "#/$defs/ArchAttention"
+                },
+                {
+                  "$ref": "#/$defs/ArchMLP"
+                },
+                {
+                  "$ref": "#/$defs/ArchMoE"
+                },
+                {
+                  "$ref": "#/$defs/ArchGeneric"
+                },
+                {
+                  "$ref": "#/$defs/ArchEmbedding"
+                }
+              ]
             },
             {
-              "$ref": "#/$defs/ArchAttention"
-            },
-            {
-              "$ref": "#/$defs/ArchMLP"
-            },
-            {
-              "$ref": "#/$defs/ArchMoE"
-            },
-            {
-              "$ref": "#/$defs/ArchGeneric"
-            },
-            {
-              "$ref": "#/$defs/ArchEmbedding"
+              "type": "null"
             }
           ],
+          "description": "Semantic component or generic fallback.",
           "title": "Component"
         },
         "id": {
@@ -1044,6 +1106,14 @@
       "title": "Device",
       "type": "string"
     },
+    "flags": {
+      "description": "Source representation and extraction limitations.",
+      "items": {
+        "type": "string"
+      },
+      "title": "Flags",
+      "type": "array"
+    },
     "input": {
       "$ref": "#/$defs/ArchTensor",
       "description": "Whole-model token input."
@@ -1106,6 +1176,7 @@
     }
   },
   "required": [
+    "flags",
     "schema_version",
     "model",
     "device",

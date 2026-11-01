@@ -5,6 +5,10 @@
  */
 export type Device = "A2" | "A3" | "A5" | "310P" | "H100";
 /**
+ * Source representation and extraction limitations.
+ */
+export type Flags = string[];
+/**
  * Observed scalar dtype, e.g. bfloat16 or int64.
  */
 export type Dtype = string;
@@ -67,7 +71,8 @@ export type Residual = "pre_norm" | "post_norm" | "sandwich" | "unknown";
 /**
  * Semantic component or generic fallback.
  */
-export type Component = ArchNorm | ArchAttention | ArchMLP | ArchMoE | ArchGeneric | ArchEmbedding;
+export type Component =
+  (ArchNorm | ArchAttention | ArchMLP | ArchMoE | ArchGeneric | ArchEmbedding) | null;
 /**
  * Observed/configured epsilon.
  */
@@ -105,6 +110,10 @@ export type QkNorm = boolean;
  * RoPE type, e.g. default, yarn or linear.
  */
 export type Kind3 = string;
+/**
+ * Rotated head fraction.
+ */
+export type PartialRotaryFactor = number | null;
 /**
  * Config scaling metadata.
  */
@@ -149,9 +158,13 @@ export type Experts = number;
  */
 export type Kind5 = "moe";
 /**
- * Expert routing groups, if specified.
+ * Routing group count.
  */
-export type Groups = number | null;
+export type NGroup = number;
+/**
+ * Selected routing groups.
+ */
+export type TopkGroup = number;
 /**
  * Whether selected weights normalize.
  */
@@ -220,6 +233,10 @@ export type Outputs = ArchTensor2[];
  * Qualified baseline class name.
  */
 export type ClassName2 = string;
+/**
+ * Observed structural changes.
+ */
+export type Flags1 = string[];
 /**
  * Component subtree parameters in stable relative-name order.
  */
@@ -313,6 +330,10 @@ export type Kind9 = "embedding" | "norm" | "lm_head" | "other";
  */
 export type Label1 = string;
 /**
+ * Dataflow placement.
+ */
+export type Placement = "spine" | "aside";
+/**
  * Top-level stages in dataflow order.
  */
 export type Stages = (ArchStackStage | ArchModuleStage)[];
@@ -327,6 +348,7 @@ export type Value = number;
 
 export interface Arch {
   device: Device;
+  flags: Flags;
   input: ArchTensor;
   model: ArchModel;
   notes: Notes;
@@ -423,6 +445,7 @@ export interface Extras {
 }
 export interface ArchRope {
   kind: Kind3;
+  partial_rotary_factor: PartialRotaryFactor;
   scaling: Scaling;
   theta: Theta;
 }
@@ -454,9 +477,16 @@ export interface ArchExpert {
  * Router semantics.
  */
 export interface ArchRouter {
-  groups: Groups;
+  /**
+   * Expert routing groups, if specified.
+   */
+  groups: ArchRouterGroups | null;
   norm_topk: NormTopk;
   scoring: Scoring;
+}
+export interface ArchRouterGroups {
+  n_group: NGroup;
+  topk_group: TopkGroup;
 }
 export interface ArchExpert1 {
   intermediate: Intermediate1;
@@ -491,6 +521,7 @@ export interface ArchTensor2 {
 }
 export interface ArchModule {
   class_name: ClassName2;
+  flags: Flags1;
   params: Params;
   path: Path;
   /**
@@ -519,6 +550,7 @@ export interface ArchModuleStage {
   kind: Kind9;
   label: Label1;
   module: ArchModule1;
+  placement: Placement;
 }
 /**
  * Symbolic dataflow boundary.
@@ -532,6 +564,7 @@ export interface ArchIO1 {
  */
 export interface ArchModule1 {
   class_name: ClassName2;
+  flags: Flags1;
   params: Params;
   path: Path;
   /**

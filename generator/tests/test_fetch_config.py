@@ -63,7 +63,7 @@ def test_fetch_uses_mirror_then_hf_and_requires_immutable_revision(monkeypatch):
         return response
 
     monkeypatch.setattr(fetch_config, "urlopen", mutable_url)
-    with pytest.raises(ValueError, match="immutable commit"):
+    with pytest.raises(RuntimeError, match="immutable commit"):
         fetch_config.fetch("org/model", "main")
 
 
@@ -122,3 +122,14 @@ def test_catalog_architectures_exist_in_pinned_registry():
     for model in load_catalog().models:
         assert set(model.config["architectures"]) <= architectures
         assert set(model.config.get("text_config", {}).get("architectures", [])) <= architectures
+
+
+@pytest.mark.parametrize("bad_body", [b"<html>bad gateway</html>", b"[]", b'{"error":"missing"}'])
+def test_bad_mirror_body_falls_back(monkeypatch, bad_body):
+    def open_url(url, timeout):
+        response = BytesIO(bad_body if "hf-mirror" in url else b'{"model_type":"example"}')
+        response.headers = {"x-repo-commit": "a" * 40}
+        return response
+
+    monkeypatch.setattr(fetch_config, "urlopen", open_url)
+    assert fetch_config.fetch("org/model", "main")[0] == b'{"model_type":"example"}'

@@ -101,12 +101,12 @@ def hardware_profile_triage(extract: Extract) -> HardwareProfileIncomplete | Non
 
 
 def runtime_params(extract: Extract) -> dict[str, ParamSpec]:
-    c = extract.config
+    c = {**extract.config, **(extract.config.get("text_config") or {})}
     moe = bool(c.get("num_experts", 0))
     hq, hkv, layers = (
-        int(c["num_attention_heads"]),
-        int(c["num_key_value_heads"]),
-        int(c["num_hidden_layers"]),
+        int(c.get("num_attention_heads") or 1),
+        int(c.get("num_key_value_heads", c.get("num_attention_heads", 1))),
+        int(c.get("num_hidden_layers") or 1),
     )
     dtype = DTYPES.get(str(c.get("torch_dtype", "bfloat16")), str(c.get("torch_dtype")))
     if dtype not in {"bf16", "fp16", "fp32"}:
@@ -316,7 +316,18 @@ def lower(
         extract = Extract.model_validate_json(Path(extract).read_text())
     else:
         extract = Extract.model_validate(extract)
-    if extract.config.get("model_type") not in {"qwen3", "qwen3_moe"}:
+    text_config = {**extract.config, **(extract.config.get("text_config") or {})}
+    required = (
+        "hidden_size",
+        "num_hidden_layers",
+        "num_attention_heads",
+        "num_key_value_heads",
+        "vocab_size",
+        "intermediate_size",
+    )
+    if extract.config.get("model_type") not in {"qwen3", "qwen3_moe"} or any(
+        text_config.get(k) is None for k in required
+    ):
         from .structure import structure_ir
 
         return structure_ir(extract)
@@ -329,19 +340,21 @@ def lower(
             version_error = f"No rules support vLLM {version}"
     except (ValueError, InvalidVersion) as error:
         version_error = str(error)
-    c = extract.config
+    c = {**extract.config, **(extract.config.get("text_config") or {})}
     moe = bool(c.get("num_experts", 0))
     symbols = {
         "H": str(c["hidden_size"]),
         "L": str(c["num_hidden_layers"]),
         "Hq": str(c["num_attention_heads"]),
         "Hkv": str(c["num_key_value_heads"]),
-        "D": str(c.get("head_dim", int(c["hidden_size"]) // int(c["num_attention_heads"]))),
+        "D": str(
+            c.get("head_dim", int(c["hidden_size"]) // int(c.get("num_attention_heads") or 1))
+        ),
         "V": str(c["vocab_size"]),
         "E": str(c.get("num_experts", 0)),
         "topk": str(c.get("num_experts_per_tok", 1)),
-        "I": str(c["intermediate_size"]),
-        "I_moe": str(c.get("moe_intermediate_size", c["intermediate_size"])),
+        "I": str(c.get("intermediate_size", 0)),
+        "I_moe": str(c.get("moe_intermediate_size", c.get("intermediate_size", 0))),
     }
     if version_error:
         return LowerResult(
@@ -409,7 +422,7 @@ def lower(
             GoldenDiffItem(kind="golden_diff", model=extract.snapshot.model.hf_id, diff=message)
         )
 
-    if not layer_types or len(layer_types) != int(c["num_hidden_layers"]):
+    if not layer_types or len(layer_types) != int(c.get("num_hidden_layers") or 1):
         problem("layer_types must contain one entry per configured decoder layer")
     if unsupported := sorted(set(layer_types) - {"full_attention"}):
         problem(
@@ -685,7 +698,7 @@ def lower(
             )
     # A partial fixture may repeat its representative layer. Production extracts may not.
     actual_layers = {int(m[1]) for p in modules if (m := LAYER.fullmatch(p))}
-    if not extract.fixture and actual_layers != set(range(int(c["num_hidden_layers"]))):
+    if not extract.fixture and actual_layers != set(range(int(c.get("num_hidden_layers") or 1))):
         problem("Production extract is missing configured decoder layers")
     if not extract.fixture:
 

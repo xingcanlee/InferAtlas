@@ -178,6 +178,9 @@ class ExtractOverride(Contract):
 
 
 class ExtractModule(Contract):
+    flags: list[str] = Field(
+        default_factory=list, description="Observed Ascend additions or parameter changes."
+    )
     path: str = Field(
         description="named_modules path, empty string for root; modules sorted lexically by path."
     )
@@ -217,6 +220,10 @@ class AscendExtract(Contract):
 
 
 class Extract(Contract):
+    flags: list[str] = Field(
+        default_factory=list,
+        description="Machine-readable extraction limitations and source representation.",
+    )
     snapshot: Snapshot = Field(description="Immutable extraction identity.")
     fixture: bool = Field(
         default=False,
@@ -660,6 +667,20 @@ class ExtractionFailure(Contract):
     version: str = Field(description="Requested catalog version-pair id, even if unresolved.")
 
 
+class ConfigFieldsUnavailable(Contract):
+    kind: Literal["missing_config"] = Field(description="Numeric config fields unavailable.")
+    model: str = Field(description="Affected HF model.")
+    fields: list[str] = Field(description="Missing numeric config keys.")
+    message: str = Field(description="Readable impact.")
+
+
+class TPCoverageUnavailable(Contract):
+    kind: Literal["tp_extraction_failed"] = Field(description="Optional TP construction failed.")
+    model: str = Field(description="Affected HF model.")
+    tp: int = Field(ge=2, description="Failed degree.")
+    message: str = Field(description="Readable failure reason.")
+
+
 TriageItem = Annotated[
     UnknownLayerClass
     | ConditionalOverride
@@ -667,7 +688,9 @@ TriageItem = Annotated[
     | GoldenDiffItem
     | VersionMismatch
     | ExtractionFailure
-    | HardwareProfileIncomplete,
+    | HardwareProfileIncomplete
+    | TPCoverageUnavailable
+    | ConfigFieldsUnavailable,
     Field(discriminator="kind"),
 ]
 

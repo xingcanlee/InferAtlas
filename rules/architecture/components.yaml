@@ -1,4 +1,3 @@
-# Structure semantics only; numeric lowering rules remain independently verified.
 torch.nn.modules.normalization.LayerNorm:
   kind: norm
   variant: layernorm
@@ -67,6 +66,25 @@ vllm.model_executor.models.glm4_moe.Glm4MoeMLP:
   kind: mlp
 vllm.model_executor.models.glm4_moe.Glm4MoeModel:
   kind: container
+vllm.model_executor.models.gpt_oss.GptOssForCausalLM:
+  kind: container
+vllm.model_executor.models.gpt_oss.GptOssModel:
+  kind: container
+vllm.model_executor.models.gpt_oss.MLPBlock:
+  kind: moe
+vllm.model_executor.models.gpt_oss.OAIAttention:
+  kind: attention
+  variant: other
+vllm.model_executor.models.gpt_oss.TransformerBlock:
+  kind: decoder
+  residual: pre_norm
+  order:
+  - input_layernorm
+  - self_attn
+  - attn
+  - post_attention_layernorm
+  - mlp
+  - block_sparse_moe
 vllm.model_executor.models.llama.LlamaAttention:
   kind: attention
   variant: other
@@ -121,6 +139,38 @@ vllm.model_executor.models.minimax_m2.MiniMaxM2MoE:
   kind: moe
 vllm.model_executor.models.minimax_m2.MiniMaxM2Model:
   kind: container
+vllm.model_executor.models.mixtral.MixtralAttention:
+  kind: attention
+  variant: other
+vllm.model_executor.models.mixtral.MixtralDecoderLayer:
+  kind: decoder
+  residual: pre_norm
+  order:
+  - input_layernorm
+  - self_attn
+  - attn
+  - post_attention_layernorm
+  - mlp
+  - block_sparse_moe
+vllm.model_executor.models.mixtral.MixtralForCausalLM:
+  kind: container
+vllm.model_executor.models.mixtral.MixtralMoE:
+  kind: moe
+vllm.model_executor.models.mixtral.MixtralModel:
+  kind: container
+vllm.model_executor.models.mllama4.Llama4VisionAttention:
+  kind: attention
+  variant: other
+vllm.model_executor.models.mllama4.Llama4VisionEncoderLayer:
+  kind: decoder
+  residual: pre_norm
+  order:
+  - input_layernorm
+  - self_attn
+  - post_attention_layernorm
+  - mlp
+vllm.model_executor.models.mllama4.Llama4VisionMLP:
+  kind: mlp
 vllm.model_executor.models.qwen2.Qwen2Attention:
   kind: attention
   variant: other
@@ -192,4 +242,30 @@ vllm.model_executor.models.qwen3_next.Qwen3NextForCausalLM:
 vllm.model_executor.models.qwen3_next.Qwen3NextModel:
   kind: container
 vllm.model_executor.models.qwen3_next.Qwen3NextSparseMoeBlock:
+  kind: moe
+vllm.models.deepseek_v4.cpu.cpu_sparse.DeepseekV4CPUAttention:
+  kind: attention
+  variant: sparse
+vllm.models.deepseek_v4.cpu.model.DeepseekV4MoE:
+  kind: moe
+vllm.models.minimax_m3.common.vision_tower.MiniMaxVLAttention:
+  kind: attention
+  variant: other
+vllm.models.minimax_m3.nvidia.model.MiniMAXGemmaRMSNorm:
+  kind: norm
+  variant: rmsnorm
+vllm.models.minimax_m3.nvidia.model.MiniMaxM3Attention:
+  kind: attention
+  variant: other
+vllm.models.minimax_m3.nvidia.model.MiniMaxM3DecoderLayer:
+  kind: decoder
+  residual: pre_norm
+  order:
+  - input_layernorm
+  - self_attn
+  - post_attention_layernorm
+  - mlp
+vllm.models.minimax_m3.nvidia.model.MiniMaxM3MLP:
+  kind: mlp
+vllm.models.minimax_m3.nvidia.model.MiniMaxM3MoE:
   kind: moe

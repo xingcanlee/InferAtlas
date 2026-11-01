@@ -22,6 +22,15 @@ from pathlib import Path
 from unittest.mock import patch
 
 ATTRS = (
+    "num_k_heads",
+    "num_v_heads",
+    "head_k_dim",
+    "head_v_dim",
+    "conv_kernel",
+    "output_gate",
+    "use_qk_norm",
+    "nope",
+    "attention_chunk_size",
     "input_size",
     "output_size",
     "input_size_per_partition",
@@ -82,6 +91,7 @@ ATTRS = (
     "index_n_heads",
     "index_head_dim",
 )
+REDIRECTS = set()
 SCAN_PREFIXES = ("vllm.", "torch.distributed", "torch.accelerator", "xgrammar")
 
 
@@ -145,7 +155,7 @@ def flatten(model, request):
         cls = type(module)
         if cls not in sources:
             sources[cls] = source_ref(cls, request)
-        attrs = {}
+        attrs = {"child_order": list(module._modules)}
         for name in ATTRS:
             try:
                 value = getattr(module, name)
@@ -278,6 +288,7 @@ def constructor_devices():
             "xpu",
             "privateuseone",
         ):
+            REDIRECTS.add("accelerator_to_meta")
             return "meta"
         return value
 
@@ -287,6 +298,7 @@ def constructor_devices():
             if "device" in kwargs:
                 kwargs["device"] = redirect(kwargs["device"])
                 if func.__name__ in ("empty", "empty_like") and str(kwargs["device"]) == "cpu":
+                    REDIRECTS.add("cpu_empty_to_meta")
                     kwargs["device"] = "meta"
             if func.__name__ in ("to", "to_empty"):
                 args = tuple(redirect(arg) for arg in args)
@@ -339,7 +351,9 @@ def decoder_layer_types(config, model):
         (
             module
             for path, module in model.named_modules()
-            if path.endswith("layers") and len(list(module.children())) == text.num_hidden_layers
+            if path.endswith("layers")
+            and not any(k in path for k in ("vision", "visual"))
+            and len(list(module.children())) == text.num_hidden_layers
         ),
         None,
     )
@@ -375,8 +389,14 @@ def merge_overlay(baseline, actual, notes):
         if row is None or row["params"] != replacement["params"]:
             kind = "added module" if row is None else "changed parameter shapes"
             notes.append(f"Ascend {kind}: {path}; emitting actual Ascend structure.")
-            row = replacement
-        elif row["class"] != replacement["class"]:
+            if row is None:
+                row = replacement
+                row["flags"] = ["ascend_added"]
+            else:
+                row["params"] = replacement["params"]
+                row["attrs"] = replacement["attrs"]
+                row["flags"] = ["ascend_params_changed"]
+        if row["class"] != replacement["class"] or "ascend_params_changed" in row.get("flags", []):
             row["ascend"] = {
                 "class": replacement["class"],
                 "src": replacement["src"],
@@ -502,11 +522,7 @@ def run(request):
         "CPU/meta construction only; no weights or forward pass.",
         "TP/EP coordinators expose rank zero shapes over a real one-rank gloo group.",
         "External container sources are null; shared parameters are emitted once.",
-        "Accelerator allocations use meta; CUDA events are inert and attention uses CPU "
-        "backend plumbing, including sparse attention. No backend forward is executed.",
         "Runtime-generated classes link to their nearest declared ancestor when available.",
-        "Uninitialized explicit CPU allocations use meta; unsupported MoE execution "
-        "backends use the upstream CPU expert weight constructor only.",
     ]
     if config.get("quantization_config") or config.get("text_config", {}).get(
         "quantization_config"
@@ -536,6 +552,15 @@ def run(request):
         modules = merge_overlay(modules, actual, notes)
     return {
         "snapshot": request["snapshot"],
+        "flags": sorted(
+            REDIRECTS
+            | (
+                {"quantized_source", "logical_bf16"}
+                if config.get("quantization_config")
+                or (config.get("text_config") or {}).get("quantization_config")
+                else set()
+            )
+        ),
         "fixture": False,
         "config": config,
         "parallel": request["parallel"],

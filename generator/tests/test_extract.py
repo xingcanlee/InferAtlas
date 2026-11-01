@@ -236,6 +236,10 @@ def test_overlay_emits_actual_tree_when_ascend_changes_structure():
     assert [r["path"] for r in merged] == ["added", "changed", "same"]
     assert merged[0] == actual[1]
     assert merged[1]["params"][0]["shape"] == [16]
+    assert merged[1]["class"] == "Baseline"
+    assert merged[1]["ascend"]["class"] == "Ascend"
+    assert merged[1]["flags"] == ["ascend_params_changed"]
+    assert merged[0]["flags"] == ["ascend_added"]
     assert merged[2]["class"] == "Baseline"
     assert merged[2]["ascend"]["class"] == "Ascend"
     assert notes == [

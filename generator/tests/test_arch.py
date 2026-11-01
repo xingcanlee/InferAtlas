@@ -125,7 +125,8 @@ def test_generic_parameter_io_children_and_targeted_notes(facts):
     assert generic.io.inputs[0].shape == ["T", "16"]
     assert generic.io.outputs[0].shape == ["T", "7"]
     assert any(
-        n.target == generic.id and n.triage_kind == "unknown_layer_class" for n in arch.notes
+        n.target == bands(arch)[0].id + "/" + generic.id and n.triage_kind == "unknown_layer_class"
+        for n in arch.notes
     )
 
 
@@ -253,7 +254,7 @@ def test_triage_symbol_maps_to_visible_component(facts):
     )
     arch = emit_arch(facts, result.ir, triage, model_id="synthetic", family="hybrid")
     assert any(
-        n.target == "model.layers.2.mlp" and n.triage_kind == "unknown_layer_class"
+        n.target == "model.layers:band:2/mlp" and n.triage_kind == "unknown_layer_class"
         for n in arch.notes
     )
 
@@ -334,3 +335,114 @@ def test_nullable_config_and_named_sequential_keep_unknown_structure(facts):
     stage = next(s for s in arch.stages if s.id == "adapter")
     assert stage.component.kind == "generic" and stage.io.inputs == stage.io.outputs == []
     assert bands(arch)[0].block.sublayers[1].component.head_dim == 8
+
+
+@pytest.mark.parametrize("slug", ["llama-4-scout", "minimax-m3", "deepseek-v4-flash"])
+def test_nested_and_missing_numeric_config_never_blocks_structure(facts, slug):
+    from inferatlas.resolve import get_model
+
+    facts.config = get_model(slug).config
+    result = lower(facts)
+    arch = emit_arch(facts, result.ir, result.triage, model_id=slug, family="hybrid")
+    assert bands(arch)
+    assert "T" in arch.symbols and "tp" in arch.symbols
+
+
+def test_v11_targets_residuals_and_informative_io(facts):
+    arch = architecture(facts)
+    for band in bands(arch):
+        for sub in band.block.sublayers:
+            assert not sub.id.startswith("model.")
+            if sub.role == "residual_add":
+                assert sub.component is sub.module is None
+    attention = bands(arch)[0].block.sublayers[1]
+    assert next(t for t in attention.io.outputs if t.name == "v").shape == ["T", "4*4/tp"]
+    assert {t.name for t in attention.io.outputs} >= {"q", "k", "v", "o", "kv_lora_latent"}
+    moe = bands(arch)[-1].block.sublayers[4]
+    tensors = {t.name: t for t in moe.io.outputs}
+    assert tensors["router_logits"].shape == ["T", "E"]
+    assert tensors["topk_ids"].shape == ["T", "K"]
+    assert tensors["topk_ids"].dtype == "int64"
+    assert not any(n.text.startswith("{") for n in arch.notes)
+
+
+def test_sliding_none_and_window_layer_direction(facts):
+    facts.config.update(sliding_window=128, use_sliding_window=True, max_window_layers=1)
+    module = next(m for m in facts.modules if m.path == "model.layers.0.self_attn")
+    module.attrs["sliding_window"] = None
+    arch = architecture(facts)
+    assert bands(arch)[0].block.sublayers[1].component.variant == "mla"
+    assert bands(arch)[1].block.sublayers[1].component.variant == "sliding_window"
+
+
+def test_tp_parameter_shapes_match_observed_rank_and_recompute(runtime):
+    facts = Extract.model_validate(read_json(ROOT / "fixtures/qwen3-30b-a3b/extract-tp4.json"))
+    arch = architecture(facts)
+    env = {name: symbol.value for name, symbol in arch.symbols.items()}
+    modules = {m.path: m for m in facts.modules}
+    for stage in arch.stages:
+        refs = (
+            [s.module for b in stage.bands for s in b.block.sublayers]
+            if stage.kind == "stack"
+            else [stage.module]
+        )
+        for ref in filter(None, refs):
+            for param in ref.params:
+                path, _, name = (ref.path + "." + param.name).rpartition(".")
+                observed = next(p for p in modules[path].params if p.name == name)
+                assert runtime.many(param.shape, env) == observed.shape
+
+
+@pytest.mark.parametrize("style", ["post_norm", "sandwich"])
+def test_residual_styles_emit_null_junctions_in_dataflow_order(facts, monkeypatch, style):
+    from inferatlas.arch import structure_rules
+
+    rules = structure_rules()
+    rule = rules["vllm.model_executor.models.deepseek_v2.DeepseekV2DecoderLayer"]
+    rule.residual = style
+    if style == "post_norm":
+        rule.order = ["self_attn", "input_layernorm", "mlp", "post_attention_layernorm"]
+    else:
+        rule.order = [
+            "input_layernorm",
+            "self_attn",
+            "post_attention_layernorm",
+            "pre_mlp_norm",
+            "mlp",
+            "post_mlp_norm",
+        ]
+        for name in ("pre_mlp_norm", "post_mlp_norm"):
+            facts.modules.append(
+                ExtractModule(
+                    path="model.layers.0." + name,
+                    class_name="vllm.model_executor.layers.layernorm.RMSNorm",
+                )
+            )
+    monkeypatch.setattr("inferatlas.arch.structure_rules", lambda: rules)
+    subs = bands(architecture(facts))[0].block.sublayers
+    junctions = [i for i, sub in enumerate(subs) if sub.role == "residual_add"]
+    assert len(junctions) == 2
+    for i in junctions:
+        assert subs[i].component is subs[i].module is None
+        assert subs[i - 1].role == (
+            "norm" if style == "sandwich" else "mixer" if i == junctions[0] else "ffn"
+        )
+
+
+def test_ep_shapes_declare_and_use_parallel_symbols(facts):
+    facts.parallel.ep = True
+    facts.parallel.tp = 4
+    arch = architecture(facts)
+    assert {"tp", "dp", "ep"} <= arch.symbols.keys()
+    moe = bands(arch)[-1].block.sublayers[4]
+    assert next(t for t in moe.io.outputs if t.name == "routed_expert_input").shape == [
+        "T*dp*K/ep",
+        "H",
+    ]
+
+
+def test_shared_parameter_free_leaf_does_not_split_first_band(facts):
+    facts.modules.append(
+        ExtractModule(path="model.layers.0.mlp.act", class_name="vendor.SharedActivation")
+    )
+    assert [b.layers for b in bands(architecture(facts))] == [(0, 1), (2, 4)]

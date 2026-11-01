@@ -52,6 +52,43 @@
       "title": "ConditionalOverride",
       "type": "object"
     },
+    "ConfigFieldsUnavailable": {
+      "additionalProperties": false,
+      "properties": {
+        "fields": {
+          "description": "Missing numeric config keys.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Fields",
+          "type": "array"
+        },
+        "kind": {
+          "const": "missing_config",
+          "description": "Numeric config fields unavailable.",
+          "title": "Kind",
+          "type": "string"
+        },
+        "message": {
+          "description": "Readable impact.",
+          "title": "Message",
+          "type": "string"
+        },
+        "model": {
+          "description": "Affected HF model.",
+          "title": "Model",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "model",
+        "fields",
+        "message"
+      ],
+      "title": "ConfigFieldsUnavailable",
+      "type": "object"
+    },
     "ExtractionFailure": {
       "additionalProperties": false,
       "properties": {
@@ -328,6 +365,41 @@
       "title": "StaleAnnotation",
       "type": "object"
     },
+    "TPCoverageUnavailable": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "tp_extraction_failed",
+          "description": "Optional TP construction failed.",
+          "title": "Kind",
+          "type": "string"
+        },
+        "message": {
+          "description": "Readable failure reason.",
+          "title": "Message",
+          "type": "string"
+        },
+        "model": {
+          "description": "Affected HF model.",
+          "title": "Model",
+          "type": "string"
+        },
+        "tp": {
+          "description": "Failed degree.",
+          "minimum": 2,
+          "title": "Tp",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "model",
+        "tp",
+        "message"
+      ],
+      "title": "TPCoverageUnavailable",
+      "type": "object"
+    },
     "UnknownLayerClass": {
       "additionalProperties": false,
       "properties": {
@@ -409,7 +481,9 @@
             "extraction_failure": "#/$defs/ExtractionFailure",
             "golden_diff": "#/$defs/GoldenDiffItem",
             "hardware_profile_incomplete": "#/$defs/HardwareProfileIncomplete",
+            "missing_config": "#/$defs/ConfigFieldsUnavailable",
             "stale_annotation": "#/$defs/StaleAnnotation",
+            "tp_extraction_failed": "#/$defs/TPCoverageUnavailable",
             "unknown_layer_class": "#/$defs/UnknownLayerClass",
             "version_mismatch": "#/$defs/VersionMismatch"
           },
@@ -436,6 +510,12 @@
           },
           {
             "$ref": "#/$defs/HardwareProfileIncomplete"
+          },
+          {
+            "$ref": "#/$defs/TPCoverageUnavailable"
+          },
+          {
+            "$ref": "#/$defs/ConfigFieldsUnavailable"
           }
         ]
       },

@@ -77,6 +77,14 @@
           "title": "Class",
           "type": "string"
         },
+        "flags": {
+          "description": "Observed Ascend additions or parameter changes.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Flags",
+          "type": "array"
+        },
         "params": {
           "description": "Direct parameters only, sorted by local name; do not recursively double count.",
           "items": {
@@ -380,6 +388,14 @@
       "description": "True for curated partial examples; false for production extraction.",
       "title": "Fixture",
       "type": "boolean"
+    },
+    "flags": {
+      "description": "Machine-readable extraction limitations and source representation.",
+      "items": {
+        "type": "string"
+      },
+      "title": "Flags",
+      "type": "array"
     },
     "layer_types": {
       "description": "One layer type per decoder layer in original execution order.",

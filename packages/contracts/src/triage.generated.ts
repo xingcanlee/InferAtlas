@@ -125,6 +125,38 @@ export type Message2 = string;
  */
 export type Preset = string | null;
 /**
+ * Optional TP construction failed.
+ */
+export type Kind7 = "tp_extraction_failed";
+/**
+ * Readable failure reason.
+ */
+export type Message3 = string;
+/**
+ * Affected HF model.
+ */
+export type Model2 = string;
+/**
+ * Failed degree.
+ */
+export type Tp = number;
+/**
+ * Missing numeric config keys.
+ */
+export type Fields = string[];
+/**
+ * Numeric config fields unavailable.
+ */
+export type Kind8 = "missing_config";
+/**
+ * Readable impact.
+ */
+export type Message4 = string;
+/**
+ * Affected HF model.
+ */
+export type Model3 = string;
+/**
  * Unresolved items sorted by kind then symbol/id/model. Items become architecture notes; source integrity and provenance remain hard errors.
  */
 export type Items = (
@@ -135,6 +167,8 @@ export type Items = (
   | VersionMismatch
   | ExtractionFailure
   | HardwareProfileIncomplete
+  | TPCoverageUnavailable
+  | ConfigFieldsUnavailable
 )[];
 /**
  * Full immutable Git commit SHA, never an abbreviated hash.
@@ -212,6 +246,18 @@ export interface HardwareProfileIncomplete {
   kind: Kind6;
   message: Message2;
   preset: Preset;
+}
+export interface TPCoverageUnavailable {
+  kind: Kind7;
+  message: Message3;
+  model: Model2;
+  tp: Tp;
+}
+export interface ConfigFieldsUnavailable {
+  fields: Fields;
+  kind: Kind8;
+  message: Message4;
+  model: Model3;
 }
 export interface Snapshot {
   ascend: Revision;
