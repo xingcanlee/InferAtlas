@@ -52,6 +52,71 @@
       "title": "ConditionalOverride",
       "type": "object"
     },
+    "ExtractionFailure": {
+      "additionalProperties": false,
+      "properties": {
+        "device": {
+          "description": "Requested extraction device.",
+          "enum": [
+            "A2",
+            "A3",
+            "A5",
+            "310P",
+            "H100"
+          ],
+          "title": "Device",
+          "type": "string"
+        },
+        "exception_type": {
+          "description": "Exception class name, without traceback.",
+          "minLength": 1,
+          "title": "Exception Type",
+          "type": "string"
+        },
+        "kind": {
+          "const": "extraction_failure",
+          "description": "Resolve or CPU/meta extraction failed; blocks publication.",
+          "title": "Kind",
+          "type": "string"
+        },
+        "message": {
+          "description": "Deterministic exception message, normalized and truncated to 1000 characters.",
+          "maxLength": 1000,
+          "title": "Message",
+          "type": "string"
+        },
+        "model": {
+          "description": "Affected HF model id.",
+          "title": "Model",
+          "type": "string"
+        },
+        "stage": {
+          "description": "Failed pipeline stage.",
+          "enum": [
+            "resolve",
+            "extract"
+          ],
+          "title": "Stage",
+          "type": "string"
+        },
+        "version": {
+          "description": "Requested catalog version-pair id, even if unresolved.",
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "stage",
+        "exception_type",
+        "message",
+        "model",
+        "device",
+        "version"
+      ],
+      "title": "ExtractionFailure",
+      "type": "object"
+    },
     "GoldenDiffItem": {
       "additionalProperties": false,
       "properties": {
@@ -293,6 +358,7 @@
         "discriminator": {
           "mapping": {
             "conditional_override": "#/$defs/ConditionalOverride",
+            "extraction_failure": "#/$defs/ExtractionFailure",
             "golden_diff": "#/$defs/GoldenDiffItem",
             "stale_annotation": "#/$defs/StaleAnnotation",
             "unknown_layer_class": "#/$defs/UnknownLayerClass",
@@ -315,6 +381,9 @@
           },
           {
             "$ref": "#/$defs/VersionMismatch"
+          },
+          {
+            "$ref": "#/$defs/ExtractionFailure"
           }
         ]
       },
@@ -322,8 +391,15 @@
       "type": "array"
     },
     "snapshot": {
-      "$ref": "#/$defs/Snapshot",
-      "description": "Same structured identity as extract/IR; not a concatenated display string."
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Snapshot"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Same structured identity as extract/IR; null only when resolution failed before a snapshot existed."
     }
   },
   "required": [

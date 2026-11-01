@@ -390,5 +390,15 @@ def run(request):
 
 if __name__ == "__main__":
     request_path, response_path = map(Path, sys.argv[1:])
-    result = run(json.loads(request_path.read_text()))
+    try:
+        result = run(json.loads(request_path.read_text()))
+    except Exception as error:
+        response_path.write_text(
+            json.dumps(
+                {"error": {"exception_type": type(error).__name__, "message": str(error)}},
+                sort_keys=True,
+            )
+            + "\n"
+        )
+        raise
     response_path.write_text(json.dumps(result, sort_keys=True, indent=2, allow_nan=False) + "\n")

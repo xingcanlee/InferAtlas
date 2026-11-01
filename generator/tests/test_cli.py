@@ -71,6 +71,8 @@ def test_command_help_and_version():
         "build",
         "site",
         "single",
+        "hub",
+        "release",
         "golden",
     ):
         assert name in invoke("--help").output
@@ -145,11 +147,11 @@ def test_build_complete_deterministic_and_removes_stale_outputs(tmp_path, monkey
     )
 
 
-def test_failed_early_build_preserves_previous_generation(tmp_path):
+def test_failed_extraction_replaces_previous_numeric_generation_with_triage(tmp_path):
     invoke("build", "--output", tmp_path, code=3)
-    first = {p.name: p.read_bytes() for p in tmp_path.iterdir()}
-    invoke("build", "--output", tmp_path, "--tp", 8, code=3)
-    assert first == {p.name: p.read_bytes() for p in tmp_path.iterdir()}
+    invoke("build", "--output", tmp_path, "--tp", 8, code=2)
+    assert {p.name for p in tmp_path.iterdir()} == {"snapshot.json", "triage.json"}
+    assert read_json(tmp_path / "triage.json")["items"][0]["kind"] == "extraction_failure"
 
 
 def test_resolve_and_extract_exact_apis(monkeypatch):
@@ -407,6 +409,7 @@ def test_single_default_filename_includes_device(tmp_path, monkeypatch, device):
     directory = tmp_path / "model-build"
     for name in ("ir", "view", "report", "triage"):
         write_json(directory / f"{name}.json", read_json(FIXTURE / f"{name}.json"))
+    write_json(directory / "triage.json", {"items": []})
     catalog = cli.catalog()
     monkeypatch.setattr(cli, "catalog", lambda: catalog)
     monkeypatch.setattr(cli, "ROOT", tmp_path)
@@ -419,7 +422,8 @@ def test_single_default_filename_includes_device(tmp_path, monkeypatch, device):
     result = invoke("single", "--device", device)
     output = tmp_path / "dist" / f"inferatlas-qwen3-30b-a3b-{device.lower()}.html"
     assert result.output.strip() == str(output)
-    assert list(output.parent.iterdir()) == [output]
+    assert sorted(p.name for p in output.parent.iterdir()) == [".inferatlas", output.name]
+    assert read_json(output.parent / ".inferatlas" / f"{output.name}.json")["status"] == "ok"
 
 
 def test_golden_missing_runtime_is_skipped_and_update_refuses(tmp_path, monkeypatch):

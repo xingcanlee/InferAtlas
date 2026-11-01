@@ -22,6 +22,10 @@ from inferatlas.schema.models import CatalogModel, Device, ExtractParallel
 class ExtractionError(RuntimeError):
     """A CPU/meta worker failed; no successful output was published."""
 
+    def __init__(self, message: str, exception_type: str = "ExtractionError"):
+        super().__init__(message)
+        self.exception_type = exception_type
+
 
 def extract(
     snapshot: Snapshot,
@@ -82,11 +86,16 @@ def extract(
                 timeout=300,
             )
         except subprocess.TimeoutExpired as error:
-            raise ExtractionError("CPU/meta worker exceeded 300 seconds") from error
-        if result.returncode:
             raise ExtractionError(
-                f"CPU/meta worker exited {result.returncode}\n"
-                + (result.stderr + "\n" + result.stdout)[-16000:]
+                "CPU/meta worker exceeded 300 seconds", "TimeoutExpired"
+            ) from error
+        if result.returncode:
+            if response_path.is_file():
+                failure = json.loads(response_path.read_text()).get("error")
+                if failure:
+                    raise ExtractionError(failure["message"], failure["exception_type"])
+            raise ExtractionError(
+                f"CPU/meta worker exited {result.returncode} without a structured error"
             )
         value = Extract.model_validate_json(response_path.read_text())
     if value.snapshot != snapshot or value.parallel != parallel or value.config != entry.config:

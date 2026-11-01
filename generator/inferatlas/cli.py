@@ -3,6 +3,7 @@
 import hashlib
 import importlib
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -13,11 +14,13 @@ from typing import Annotated
 
 import typer
 from ruamel.yaml import YAML
+from typer.core import TyperCommand
 
 from inferatlas import __version__
+from inferatlas.exports import ExportManifest
 from inferatlas.expr import validate
 from inferatlas.schema import IR, Catalog, Eval, Extract, Index, Report, Snapshot, Triage, View
-from inferatlas.schema.models import Check, ConditionalOverride
+from inferatlas.schema.models import Check, ConditionalOverride, ExtractionFailure
 from inferatlas.verify import Evaluator, exit_code, parse_vllm_logs, verify_ir
 from inferatlas.verify.golden import (
     check_golden,
@@ -533,12 +536,66 @@ def snapshot_key(snapshot: Snapshot, pair: str) -> str:
     )
 
 
+def extraction_failure(
+    directory: Path,
+    snapshot: Snapshot | None,
+    model: str,
+    device: str,
+    pair: str,
+    stage: str,
+    error: Exception,
+) -> tuple[Path, int]:
+    # Worker logs contain process ids, timestamps and scratch paths; keep only the exception.
+    message = re.sub(r"0x[0-9a-fA-F]+", "<address>", str(error))
+    message = re.sub(
+        r"\b\d{4}-\d\d-\d\d[ T]\d\d:\d\d:\d\d(?:[.,]\d+)?(?:Z|[+-]\d\d:\d\d)?", "<time>", message
+    )
+    message = re.sub(r"(?<![\w:/])/(?:[^\s'\"<>:;,()\[\]{}]+)", "<path>", message)
+    message = " ".join(message.split())
+    if len(message) > 1000:
+        message = message[:997] + "..."
+    triage = Triage(
+        snapshot=snapshot,
+        items=[
+            ExtractionFailure(
+                kind="extraction_failure",
+                stage=stage,
+                exception_type=getattr(error, "exception_type", type(error).__name__),
+                message=message,
+                model=catalog_model(model).hf_id,
+                device=device,
+                version=pair,
+            )
+        ],
+    )
+    directory.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(
+        prefix=".inferatlas-failure-", dir=directory.parent
+    ) as scratch:
+        pending = Path(scratch) / "artifacts"
+        write_json(pending / "triage.json", triage)
+        if snapshot is not None:
+            write_json(pending / "snapshot.json", snapshot)
+        publish_directory(pending, directory)
+    warning(f"{stage} failed: {triage.items[0].exception_type}: {message}")
+    typer.echo(str(directory))
+    return directory, 2
+
+
 def build_pipeline(
     model: str, device: str, pair: str, output: Path | None, tp: list[int], ep: bool = False
 ) -> tuple[Path, int]:
     if not tp:
         raise ValueError("build needs at least one TP point")
-    snapshot = resolve_stage(model, device, pair)
+    selected = catalog_model(model)
+    data = catalog()
+    if device not in {d.id for d in data.devices} or pair not in {p.id for p in data.version_pairs}:
+        raise ValueError("unknown catalog device or version pair")
+    try:
+        snapshot = resolve_stage(model, device, pair)
+    except Exception as error:
+        directory = output or ROOT / ".cache/build" / f"{pair}-{device}-unresolved" / selected.id
+        return extraction_failure(directory, None, model, device, pair, "resolve", error)
     directory = (
         output or ROOT / ".cache/build" / snapshot_key(snapshot, pair) / catalog_model(model).id
     )
@@ -546,7 +603,10 @@ def build_pipeline(
     with tempfile.TemporaryDirectory(prefix=".inferatlas-build-", dir=directory.parent) as scratch:
         pending = Path(scratch) / "artifacts"
         write_json(pending / "snapshot.json", snapshot)
-        extracts = [extract_stage(snapshot, degree, ep) for degree in sorted(set(tp))]
+        try:
+            extracts = [extract_stage(snapshot, degree, ep) for degree in sorted(set(tp))]
+        except Exception as error:
+            return extraction_failure(directory, snapshot, model, device, pair, "extract", error)
         for extract in extracts:
             name = (
                 "extract.json"
@@ -780,23 +840,29 @@ def site(
     for directory in sorted(directories):
         triage = Triage.model_validate(read_json(directory / "triage.json"))
         snapshot = triage.snapshot
-        model = catalog_model(snapshot.model.hf_id)
+        failure = triage.items[0] if snapshot is None else None
+        model = catalog_model(failure.model if failure else snapshot.model.hf_id)
         pairs = [
             p
             for p in data.version_pairs
             if (
-                p.vllm in (snapshot.vllm.tag, snapshot.vllm.commit)
+                p.id == failure.version
+                if failure
+                else p.vllm in (snapshot.vllm.tag, snapshot.vllm.commit)
                 and p.ascend in (snapshot.ascend.tag, snapshot.ascend.commit)
             )
         ]
         if len(pairs) != 1:
             raise ValueError("build snapshot does not identify a unique catalog pair")
         pair = pairs[0]
-        key = (pair.id, model.id, snapshot.device)
+        device = failure.device if failure else snapshot.device
+        key = (pair.id, model.id, device)
         if key in cells:
             raise ValueError("multiple builds occupy the same version/model/device cell")
         status = 2
         if (directory / "ir.json").is_file():
+            if snapshot is None:
+                raise ValueError("unresolved triage cannot have a numeric bundle")
             ir = IR.model_validate(read_json(directory / "ir.json"))
             report = Report.model_validate(read_json(directory / "report.json"))
             if not (ir.snapshot == report.snapshot == snapshot):
@@ -819,7 +885,7 @@ def site(
         cells[key] = dict(
             version=pair.id,
             model=model.id,
-            device=snapshot.device,
+            device=device,
             status="ok" if status == 0 else "triage",
             data_path=f"data/{relative.as_posix()}" if status == 0 else None,
             triage_count=len(triage.items),
@@ -892,58 +958,265 @@ def single(
     allow_fixtures: AllowFixtures = False,
 ) -> None:
     """Build a model and ask the web single-file plugin to inline its artifacts."""
-    directory, code = build_pipeline(model, device, pair, None, [1, 4], ep)
-    if code == 3 or (code == 2 and not include_blocked):
-        raise typer.Exit(code)
-    output = output or ROOT / "dist" / f"inferatlas-{catalog_model(model).id}-{device.lower()}.html"
+    selected = catalog_model(model)
+    output = output or ROOT / "dist" / f"inferatlas-{selected.id}-{device.lower()}.html"
     output.parent.mkdir(parents=True, exist_ok=True)
-    # A fresh destination prevents stale HTML from masquerading as build success.
-    with tempfile.TemporaryDirectory(prefix="inferatlas-single-") as temporary:
-        selected = catalog_model(model)
-        data = Path(temporary) / "data"
-        relative = Path(f"{pair}-{device}") / selected.id
-        for name in ("ir", "view", "report"):
-            write_json(data / relative / f"{name}.json", read_json(directory / f"{name}.json"))
-        write_json(
-            data / "hardware.json", [p.model_dump(mode="json") for p in catalog().hardware_presets]
+    output.unlink(missing_ok=True)
+    code, status, triage_count = 3, "missing", 0
+    try:
+        directory, build_code = build_pipeline(model, device, pair, None, [1, 4], ep)
+        triage_count = len(read_json(directory / "triage.json")["items"])
+        status = "triage" if build_code == 2 or triage_count else "missing"
+        bundle_exists = all(
+            (directory / f"{name}.json").is_file() for name in ("ir", "view", "report")
         )
-        version = next(p for p in catalog().version_pairs if p.id == pair)
+        if build_code == 3 or (build_code == 2 and (not include_blocked or not bundle_exists)):
+            code = build_code
+        else:
+            with tempfile.TemporaryDirectory(prefix="inferatlas-single-") as temporary:
+                selected = catalog_model(model)
+                data = Path(temporary) / "data"
+                relative = Path(f"{pair}-{device}") / selected.id
+                for name in ("ir", "view", "report"):
+                    write_json(
+                        data / relative / f"{name}.json", read_json(directory / f"{name}.json")
+                    )
+                write_json(
+                    data / "hardware.json",
+                    [p.model_dump(mode="json") for p in catalog().hardware_presets],
+                )
+                version = next(p for p in catalog().version_pairs if p.id == pair)
+                write_json(
+                    data / "index.json",
+                    Index(
+                        versions=[
+                            dict(id=pair, label=pair, vllm=version.vllm, ascend=version.ascend)
+                        ],
+                        models=[
+                            dict(
+                                id=selected.id,
+                                hf_id=selected.hf_id,
+                                label=selected.hf_id.split("/")[-1],
+                                family=selected.family,
+                            )
+                        ],
+                        cells=[
+                            dict(
+                                version=pair,
+                                model=selected.id,
+                                device=device,
+                                status="ok" if build_code == 0 else "triage",
+                                data_path=f"data/{relative.as_posix()}",
+                                triage_count=triage_count,
+                            )
+                        ],
+                    ),
+                )
+                env = {
+                    **os.environ,
+                    "INFERATLAS_DATA_DIR": str(data),
+                    "INFERATLAS_SINGLE_MODEL": selected.id,
+                }
+                generated = Path(temporary) / "index.html"
+                env["INFERATLAS_SINGLE_OUTPUT"] = str(generated)
+                subprocess.run(
+                    ["pnpm", "--filter", "web", "build:single"],
+                    cwd=ROOT,
+                    env=env,
+                    check=True,
+                    timeout=300,
+                )
+                if not generated.is_file():
+                    raise ValueError("web build:single did not produce INFERATLAS_SINGLE_OUTPUT")
+                shutil.copyfile(generated, output)
+            code = build_code
+            status = "ok" if code == 0 else "triage"
+            typer.echo(str(output))
+    finally:
+        metadata = output.parent / ".inferatlas"
+        metadata.mkdir(parents=True, exist_ok=True)
+        (metadata / ".gitignore").write_text("*\n", encoding="utf-8")
         write_json(
-            data / "index.json",
-            Index(
-                versions=[dict(id=pair, label=pair, vllm=version.vllm, ascend=version.ascend)],
-                models=[
-                    dict(
-                        id=selected.id,
-                        hf_id=selected.hf_id,
-                        label=selected.hf_id.split("/")[-1],
-                        family=selected.family,
-                    )
-                ],
-                cells=[
-                    dict(
-                        version=pair,
-                        model=selected.id,
-                        device=device,
-                        status="ok" if code == 0 else "triage",
-                        data_path=f"data/{relative.as_posix()}",
-                        triage_count=len(read_json(directory / "triage.json")["items"]),
-                    )
-                ],
+            metadata / f"{output.name}.json",
+            ExportManifest(
+                version=pair,
+                model=selected.id,
+                device=device,
+                file=output.name,
+                status=status,
+                triage_count=triage_count,
+                exit_code=code,
             ),
         )
-        env = {
-            **os.environ,
-            "INFERATLAS_DATA_DIR": str(data),
-            "INFERATLAS_SINGLE_MODEL": selected.id,
-        }
-        generated = Path(temporary) / "index.html"
-        env["INFERATLAS_SINGLE_OUTPUT"] = str(generated)
+    raise typer.Exit(code)
+
+
+def hub_export(directory: Path, output: Path) -> int:
+    data = catalog()
+    manifests = [
+        ExportManifest.model_validate(read_json(path))
+        for path in sorted((directory / ".inferatlas").glob("*.json"))
+    ]
+    versions = {item.version for item in manifests}
+    if len(versions) > 1:
+        raise ValueError("hub requires exports from one version pair")
+    pair = next(iter(versions), "main-verified")
+    version = next((p for p in data.version_pairs if p.id == pair), None)
+    if version is None:
+        raise ValueError(f"unknown catalog version pair: {pair}")
+    models = {model.id for model in data.models}
+    devices = {device.id for device in data.devices}
+    cells, exports = {}, []
+    for item in manifests:
+        key = (item.version, item.model, item.device)
+        if item.model not in models or item.device not in devices:
+            raise ValueError("export manifest has unknown model or device")
+        if key in cells:
+            raise ValueError("multiple exports occupy the same version/model/device cell")
+        exists = (directory / item.file).is_file()
+        status = "missing" if item.status == "ok" and not exists else item.status
+        cells[key] = dict(
+            version=pair,
+            model=item.model,
+            device=item.device,
+            status=status,
+            triage_count=item.triage_count,
+            data_path=None,
+        )
+        if exists and item.status != "missing":
+            exports.append(
+                dict(
+                    version=pair,
+                    model=item.model,
+                    device=item.device,
+                    file=Path(os.path.relpath(directory / item.file, output.parent)).as_posix(),
+                )
+            )
+    for model in sorted(models):
+        for device in sorted(devices):
+            cells.setdefault(
+                (pair, model, device),
+                dict(
+                    version=pair,
+                    model=model,
+                    device=device,
+                    status="missing",
+                    triage_count=0,
+                    data_path=None,
+                ),
+            )
+    index = Index(
+        versions=[dict(id=pair, label=pair, vllm=version.vllm, ascend=version.ascend)],
+        models=[
+            dict(id=m.id, hf_id=m.hf_id, label=m.hf_id.split("/")[-1], family=m.family)
+            for m in sorted(data.models, key=lambda m: m.id)
+        ],
+        cells=[cells[key] for key in sorted(cells)],
+    )
+    with tempfile.TemporaryDirectory(prefix="inferatlas-hub-") as temporary:
+        scratch = Path(temporary)
+        fresh_data = scratch / "data"
+        write_json(fresh_data / "index.json", index)
+        write_json(
+            fresh_data / "hardware.json",
+            [p.model_dump(mode="json") for p in sorted(data.hardware_presets, key=lambda p: p.id)],
+        )
+        write_json(
+            fresh_data / "hub.json",
+            {
+                "exports": sorted(
+                    exports,
+                    key=lambda item: (item["version"], item["model"], item["device"], item["file"]),
+                )
+            },
+        )
+        generated = scratch / "index.html"
         subprocess.run(
-            ["pnpm", "--filter", "web", "build:single"], cwd=ROOT, env=env, check=True, timeout=300
+            ["pnpm", "--filter", "web", "build:hub"],
+            cwd=ROOT,
+            env={
+                **os.environ,
+                "INFERATLAS_DATA_DIR": str(fresh_data),
+                "INFERATLAS_HUB_OUTPUT": str(generated),
+            },
+            check=True,
+            timeout=300,
         )
         if not generated.is_file():
-            raise ValueError("web build:single did not produce INFERATLAS_SINGLE_OUTPUT")
+            raise ValueError("web build:hub did not produce INFERATLAS_HUB_OUTPUT")
+        output.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(generated, output)
     typer.echo(str(output))
+    return max((item.exit_code for item in manifests), default=0)
+
+
+@app.command()
+@guarded
+def hub(
+    directory: Annotated[Path, typer.Option("--dir")] = Path("dist"),
+    output: Path | None = None,
+) -> None:
+    """Build the offline HTML hub from single-export manifests (one version pair)."""
+    raise typer.Exit(hub_export(directory, output or directory / "index.html"))
+
+
+class ReleaseCommand(TyperCommand):
+    def parse_args(self, ctx, args):
+        # Click's repeatable options also accept the requested --devices A2 H100 spelling.
+        expanded, position = [], 0
+        while position < len(args):
+            arg = args[position]
+            position += 1
+            if arg not in ("--models", "--devices"):
+                expanded.append(arg)
+                continue
+            start = position
+            while position < len(args) and not args[position].startswith("-"):
+                expanded.extend((arg, args[position]))
+                position += 1
+            if position == start:
+                expanded.append(arg)
+        return super().parse_args(ctx, expanded)
+
+
+@app.command(cls=ReleaseCommand)
+@guarded
+def release(
+    models: Annotated[
+        list[str] | None, typer.Option(help="Catalog slugs or HF ids; repeatable.")
+    ] = None,
+    devices: Annotated[
+        list[str] | None, typer.Option(help="Device ids; defaults to A2 H100.")
+    ] = None,
+    out: Path = Path("dist"),
+) -> None:
+    """Export every selected model × device, continue past failures, then build the hub."""
+    selected = (
+        sorted({catalog_model(name).id for name in models})
+        if models
+        else sorted(model.id for model in catalog().models)
+    )
+    targets = sorted(set(devices or ["A2", "H100"]))
+    if set(targets) - {device.id for device in catalog().devices}:
+        raise ValueError("unknown catalog device")
+    code = 0
+    for model in selected:
+        for device in targets:
+            try:
+                single(
+                    model=model,
+                    device=device,
+                    output=out / f"inferatlas-{model}-{device.lower()}.html",
+                    include_blocked=True,
+                )
+            except typer.Exit as error:
+                code = max(code, error.exit_code)
+            except Exception as error:
+                warning(f"{model}/{device} failed: {error}")
+                code = max(code, 3)
+    try:
+        code = max(code, hub_export(out, out / "index.html"))
+    except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
+        warning(f"Hub failed: {error}")
+        code = max(code, 3)
     raise typer.Exit(code)

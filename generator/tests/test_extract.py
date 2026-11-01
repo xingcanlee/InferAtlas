@@ -113,6 +113,21 @@ def test_host_rejects_inconsistent_identity_and_device(sample):
         host.extract(sample.snapshot, "qwen3-30b-a3b", tp=0)
 
 
+def test_worker_failure_preserves_original_exception_class(monkeypatch, tmp_path, sample):
+    mock_worker(
+        monkeypatch,
+        tmp_path,
+        sample,
+        response={
+            "error": {"exception_type": "NotImplementedError", "message": "rotary cache needs NPU"}
+        },
+        returncode=1,
+    )
+    with pytest.raises(ExtractionError, match="rotary cache needs NPU") as caught:
+        host.extract(sample.snapshot, "qwen3-30b-a3b", 4, False, "A2")
+    assert caught.value.exception_type == "NotImplementedError"
+
+
 def test_source_ref_points_at_declaration_after_decorator(tmp_path):
     path = tmp_path / "decorated.py"
     path.write_text("def decorate(cls): return cls\n\n@decorate\nclass Example:\n    pass\n")

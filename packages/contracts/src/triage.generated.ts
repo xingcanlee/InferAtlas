@@ -81,10 +81,43 @@ export type Message = string;
  */
 export type VllmVersion = string;
 /**
+ * Requested extraction device.
+ */
+export type Device = "A2" | "A3" | "A5" | "310P" | "H100";
+/**
+ * Exception class name, without traceback.
+ */
+export type ExceptionType = string;
+/**
+ * Resolve or CPU/meta extraction failed; blocks publication.
+ */
+export type Kind5 = "extraction_failure";
+/**
+ * Deterministic exception message, normalized and truncated to 1000 characters.
+ */
+export type Message1 = string;
+/**
+ * Affected HF model id.
+ */
+export type Model1 = string;
+/**
+ * Failed pipeline stage.
+ */
+export type Stage = "resolve" | "extract";
+/**
+ * Requested catalog version-pair id, even if unresolved.
+ */
+export type Version = string;
+/**
  * Unresolved items sorted by kind then symbol/id/model. Empty list permits publication subject to verify.
  */
 export type Items = (
-  UnknownLayerClass | ConditionalOverride | StaleAnnotation | GoldenDiffItem | VersionMismatch
+  | UnknownLayerClass
+  | ConditionalOverride
+  | StaleAnnotation
+  | GoldenDiffItem
+  | VersionMismatch
+  | ExtractionFailure
 )[];
 /**
  * Full immutable Git commit SHA, never an abbreviated hash.
@@ -97,7 +130,7 @@ export type Tag = string;
 /**
  * Selected hardware profile; H100 is a reference profile.
  */
-export type Device = "A2" | "A3" | "A5" | "310P" | "H100";
+export type Device1 = "A2" | "A3" | "A5" | "310P" | "H100";
 /**
  * Generator package version; no generation timestamp.
  */
@@ -113,7 +146,10 @@ export type HfId = string;
 
 export interface Triage {
   items: Items;
-  snapshot: Snapshot;
+  /**
+   * Same structured identity as extract/IR; null only when resolution failed before a snapshot existed.
+   */
+  snapshot: Snapshot | null;
 }
 export interface UnknownLayerClass {
   kind: Kind;
@@ -145,12 +181,18 @@ export interface VersionMismatch {
   message: Message;
   vllm_version: VllmVersion;
 }
-/**
- * Same structured identity as extract/IR; not a concatenated display string.
- */
+export interface ExtractionFailure {
+  device: Device;
+  exception_type: ExceptionType;
+  kind: Kind5;
+  message: Message1;
+  model: Model1;
+  stage: Stage;
+  version: Version;
+}
 export interface Snapshot {
   ascend: Revision;
-  device: Device;
+  device: Device1;
   generator_version: GeneratorVersion;
   model: ModelRef;
   vllm: Revision1;

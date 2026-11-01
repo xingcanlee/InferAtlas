@@ -196,7 +196,7 @@ def test_ep_overlay_initializes_mc2_but_needs_an_npu_process_group(tmp_path):
         ExtractionError, match="No backend type associated with device type npu"
     ) as exc:
         extract(snapshot, "qwen3-30b-a3b", 4, True, "A2", output)
-    assert "TokenDispatcherWithAll2AllV" in str(exc.value)
+    assert exc.value.exception_type == "RuntimeError"
     assert "mc2 group is not initialized" not in str(exc.value)
     assert output.read_text() == "previous output"
 

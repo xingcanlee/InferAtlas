@@ -634,19 +634,53 @@ class VersionMismatch(Contract):
     )
 
 
+class ExtractionFailure(Contract):
+    kind: Literal["extraction_failure"] = Field(
+        description="Resolve or CPU/meta extraction failed; blocks publication."
+    )
+    stage: Literal["resolve", "extract"] = Field(description="Failed pipeline stage.")
+    exception_type: str = Field(
+        min_length=1, description="Exception class name, without traceback."
+    )
+    message: str = Field(
+        max_length=1000,
+        description="Deterministic exception message, normalized and truncated to 1000 characters.",
+    )
+    model: str = Field(description="Affected HF model id.")
+    device: Device = Field(description="Requested extraction device.")
+    version: str = Field(description="Requested catalog version-pair id, even if unresolved.")
+
+
 TriageItem = Annotated[
-    UnknownLayerClass | ConditionalOverride | StaleAnnotation | GoldenDiffItem | VersionMismatch,
+    UnknownLayerClass
+    | ConditionalOverride
+    | StaleAnnotation
+    | GoldenDiffItem
+    | VersionMismatch
+    | ExtractionFailure,
     Field(discriminator="kind"),
 ]
 
 
 class Triage(Contract):
-    snapshot: Snapshot = Field(
-        description="Same structured identity as extract/IR; not a concatenated display string."
+    snapshot: Snapshot | None = Field(
+        description="Same structured identity as extract/IR; null only when resolution failed before a snapshot existed."
     )
     items: list[TriageItem] = Field(
         description="Unresolved items sorted by kind then symbol/id/model. Empty list permits publication subject to verify."
     )
+
+    @model_validator(mode="after")
+    def unresolved_identity(self) -> "Triage":
+        if self.snapshot is None and (
+            not self.items
+            or any(
+                not isinstance(item, ExtractionFailure) or item.stage != "resolve"
+                for item in self.items
+            )
+        ):
+            raise ValueError("unresolved triage requires resolve extraction_failure items")
+        return self
 
 
 class AnnotationAnchor(Contract):

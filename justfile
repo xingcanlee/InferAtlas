@@ -46,6 +46,12 @@ site:
 single:
     uv run --project generator inferatlas single --model "{{MODEL}}" --device "{{DEVICE}}"
 
+hub *args:
+    uv run --project generator inferatlas hub "$@"
+
+release *args:
+    uv run --project generator inferatlas release "$@"
+
 # Real CPU/meta acceptance tests (external experiment venv required).
 extract-all:
     uv run --project generator pytest -c generator/pyproject.toml -m extract
