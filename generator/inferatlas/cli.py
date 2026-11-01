@@ -23,6 +23,7 @@ from inferatlas.extract import ExtractionError
 from inferatlas.schema import IR, Catalog, Eval, Extract, Index, Report, Snapshot, Triage, View
 from inferatlas.schema.models import Check, ConditionalOverride, ExtractionFailure
 from inferatlas.verify import Evaluator, exit_code, parse_vllm_logs, verify_ir
+from inferatlas.verify.defaults import select_default_tp
 from inferatlas.verify.golden import (
     check_golden,
     default_grid,
@@ -625,9 +626,14 @@ def build_pipeline(
             write_json(pending / name, extract)
         ir, triage = lower_stage(extracts)
         ir, triage = annotate_stage(ir, extracts, triage)
+        default_check = (
+            select_default_tp(ir, Evaluator(ROOT, warning)) if not triage.items else None
+        )
         write_json(pending / "ir.json", ir)
         write_json(pending / "triage.json", triage)
         report = report_stage(ir, extracts, triage)
+        if default_check is not None:
+            report.checks.append(default_check)
         try:
             layout_stage(pending / "ir.json", pending / "view.json")
             report.checks.append(

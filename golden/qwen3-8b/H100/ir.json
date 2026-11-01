@@ -2132,7 +2132,7 @@
       ],
       "constraint": "Hq%tp==0 && (Hkv%tp==0 || tp%Hkv==0) && round_up(V,64)%tp==0 && I%tp==0",
       "default": "1",
-      "description": "Attention tensor parallel degree.",
+      "description": "Attention tensor parallel degree. Build default: smallest valid TP choice with memory.kv_tokens > 0 on the snapshot device, keeping all other defaults; if none fits, use the smallest valid TP and retain the zero-capacity warning.",
       "kind": "integer",
       "max": null,
       "min": null,

@@ -124,6 +124,58 @@ test("release diff needs two real snapshots", async ({ page }) => {
   await screenshot(page, "diff-unavailable");
 });
 
+test("real release hub links every export and returns offline", async ({ page }) => {
+  const network: string[] = [];
+  page.on("request", (request) => {
+    if (/^https?:/.test(request.url())) network.push(request.url());
+  });
+  await page.context().setOffline(true);
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.emulateMedia({ colorScheme: "light" });
+  const hub = `file://${join(repo, "dist/index.html")}`;
+  await page.goto(hub);
+  await expect(page).toHaveTitle("InferAtlas · All models");
+  await expect(page.locator("main a")).toHaveCount(4);
+  for (const device of ["A2", "H100"]) {
+    const blocked = page.getByTestId(`hub-main-verified-deepseek-v3-${device}`);
+    await expect(blocked).toContainText(/Blocked by \d+ unresolved triage items?/);
+    await expect(blocked.locator('[data-status="triage"]')).toBeVisible();
+    await expect(blocked).not.toHaveAttribute("href");
+  }
+  await fits(page);
+  await screenshot(page, "hub-1280");
+  await page.getByTestId("theme-toggle").click();
+  await expect(page.locator("html")).toHaveClass(/dark/);
+  await screenshot(page, "hub-dark-1280");
+  await page.getByTestId("theme-toggle").click();
+
+  for (const device of ["A2", "H100"]) {
+    for (const model of ["qwen3-30b-a3b", "qwen3-8b"]) {
+      const filename = `inferatlas-${model}-${device.toLowerCase()}.html`;
+      const link = page.getByTestId(`hub-main-verified-${model}-${device}`);
+      await expect(link).toHaveAttribute("href", `./${filename}`);
+      await link.click();
+      await expect(page.getByTestId("model-title")).toHaveText(
+        model === "qwen3-30b-a3b" ? "Qwen/Qwen3-30B-A3B" : "Qwen/Qwen3-8B",
+      );
+      await expect(page).toHaveURL(
+        new RegExp(`${filename}#\\/m\\/main-verified\\/${device}\\/${model}`),
+      );
+      await expect(page.getByTestId("node-decoder")).toBeVisible();
+      const tp = device === "A2" && model === "qwen3-30b-a3b" ? "2" : "1";
+      await expect(
+        page.getByTestId("param-tp").getByRole("radio", { name: tp, exact: true }),
+      ).toHaveAttribute("aria-checked", "true");
+      await expect(page.getByText(/no KV cache fits/i)).toHaveCount(0);
+      await page.getByTestId("nav-all-models").click();
+      await expect(page).toHaveURL(hub);
+      await expect(page.getByRole("heading", { name: "All models" })).toBeVisible();
+      await expect(page.locator("main a")).toHaveCount(4);
+    }
+  }
+  expect(network).toEqual([]);
+});
+
 for (const device of ["A2", "H100"]) {
   for (const [model, before, after] of [
     ["qwen3-30b-a3b", "16 MiB", "4 MiB"],
@@ -138,7 +190,7 @@ for (const device of ["A2", "H100"]) {
       });
       await page.context().setOffline(true);
       await page.goto(
-        `file://${join(repo, `dist/inferatlas-${model}-${device.toLowerCase()}.html`)}#/m/main-verified/${device}/${model}?view=L2%3Aattn&node=attn.o`,
+        `file://${join(repo, `dist/inferatlas-${model}-${device.toLowerCase()}.html`)}#/m/main-verified/${device}/${model}?tp=1&view=L2%3Aattn&node=attn.o`,
       );
       const resident = page
         .getByTestId("node-detail")

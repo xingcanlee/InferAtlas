@@ -26,7 +26,7 @@ test("home matrix lists cells and opens a model", async ({ page }) => {
 
 test("model page: drill down, select, recompute, overlay", async ({ page }) => {
   await page.emulateMedia({ colorScheme: "light" });
-  await page.goto(`./${MODEL}`);
+  await page.goto(`./${MODEL}?tp=1`);
   await expect(page.getByTestId("node-decoder")).toBeVisible();
   await expect(page.getByTestId("edge-label").first()).toBeVisible();
   await shot(page, "model-light");
@@ -132,7 +132,10 @@ test("ep choices are limited to 1 or tp×dp", async ({ page }) => {
 });
 
 test("single-file build works from file://", async ({ page }) => {
-  const file = join(here, "..", "dist-single", "index.html");
+  const file =
+    process.env.INFERATLAS_RELEASE === "1"
+      ? join(here, "../../dist/inferatlas-qwen3-30b-a3b-a2.html")
+      : join(here, "..", "dist-single", "index.html");
   expect(existsSync(file), "run inferatlas single before e2e").toBe(true);
   await page.context().setOffline(true);
   await page.goto(`file://${file}#/m/main-verified/A2/qwen3-30b-a3b?view=L1%3Adecoder`);

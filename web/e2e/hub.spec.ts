@@ -8,7 +8,10 @@ const here = dirname(fileURLToPath(import.meta.url));
 const web = join(here, "..");
 const shots = join(web, "test-results", "screenshots");
 const demo = process.env.INFERATLAS_DEMO === "1";
-const single = join(web, "dist-single", "index.html");
+const single =
+  process.env.INFERATLAS_RELEASE === "1"
+    ? join(web, "../dist/inferatlas-qwen3-30b-a3b-a2.html")
+    : join(web, "dist-single", "index.html");
 const hub = join(web, "dist-hub", "index.html");
 
 /** Fail on page exceptions, console errors and any HTTP(S) request (offline pages). */

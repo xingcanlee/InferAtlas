@@ -1,20 +1,24 @@
 {
   "artifacts": {
+    "dist/index.html": {
+      "bytes": 709082,
+      "sha256": "347b9f66875d4f71f1f920db6faef6c88eea8ca1b8b52451be300f3e607a32eb"
+    },
     "dist/inferatlas-qwen3-30b-a3b-a2.html": {
-      "bytes": 1827374,
-      "sha256": "d6cf75b9f4ee03cb906109a8c68a6ef9c296ad782b020b90370c0ec183bcefa8"
+      "bytes": 1829969,
+      "sha256": "5d52ccb80cf53011db0e263f542c10db9292826d3f741972f2de164bb8f4b702"
     },
     "dist/inferatlas-qwen3-30b-a3b-h100.html": {
-      "bytes": 1800924,
-      "sha256": "ea7e5cfbb6b692366bc3796d594a8840e31591d27e1fe394542827a73d632145"
+      "bytes": 1803520,
+      "sha256": "f6011703f11c28c4e1111dc5b980efa0773cf765159d04a510c03b21bb28284d"
     },
     "dist/inferatlas-qwen3-8b-a2.html": {
-      "bytes": 1809000,
-      "sha256": "aaba5c8c8b820e6f8bbe16a92d18f63257fd0e408f78b8c942cc5d3f66035050"
+      "bytes": 1811595,
+      "sha256": "7f947d98a2a5bcfc7e632c96ec2014d5e32c66a6ec8ec3dadb79f891f852248d"
     },
     "dist/inferatlas-qwen3-8b-h100.html": {
-      "bytes": 1786574,
-      "sha256": "cebd41ee54bce428a16b14ece45700ace0904f3092a95f2da6740a8667ad8152"
+      "bytes": 1789171,
+      "sha256": "4262ea1128dfb32ec0bf66b450a5149770186629548bf41d4e33084b34484d52"
     },
     "web/dist/data/index.json": {
       "bytes": 6177,
@@ -22,11 +26,13 @@
     },
     "web/dist/index.html": {
       "bytes": 871,
-      "sha256": "51758d5176a693e96cc2ecd241c65703a665881fb32eedccf1bbfe94454ab655"
+      "sha256": "c85d71ef8b2d496e109cdaca43422ba79ca8d1ec3a5582a9252f68cd635c99b9"
     }
   },
   "browser": {
-    "expected_console_errors": ["deepseek-v3 @ main-verified on A2 has no artifacts (missing)"],
+    "expected_console_errors": [
+      "deepseek-v3 @ main-verified on A2: Blocked by 1 unresolved triage item; no numeric data was published."
+    ],
     "fit_minimum_zoom": 0.6,
     "fit_viewports": [
       {
@@ -67,16 +73,54 @@
       }
     },
     "offline_console_errors": 0,
+    "offline_hub_round_trips": 4,
     "offline_network_requests": 0,
     "offline_page_errors": 0,
-    "tests_passed": 30,
+    "tests_passed": 32,
     "unexpected_console_errors": 0
+  },
+  "command_exit_codes": {
+    "hub_refresh": 3,
+    "release": 3,
+    "site_include_blocked": 2
   },
   "data_files": 14,
   "determinism": {
+    "hub_files_compared": 1,
     "result": "byte-identical",
     "site_files_compared": 27,
     "standalone_files_compared": 4
+  },
+  "hub_exports": [
+    {
+      "device": "A2",
+      "file": "inferatlas-qwen3-30b-a3b-a2.html",
+      "model": "qwen3-30b-a3b",
+      "version": "main-verified"
+    },
+    {
+      "device": "H100",
+      "file": "inferatlas-qwen3-30b-a3b-h100.html",
+      "model": "qwen3-30b-a3b",
+      "version": "main-verified"
+    },
+    {
+      "device": "A2",
+      "file": "inferatlas-qwen3-8b-a2.html",
+      "model": "qwen3-8b",
+      "version": "main-verified"
+    },
+    {
+      "device": "H100",
+      "file": "inferatlas-qwen3-8b-h100.html",
+      "model": "qwen3-8b",
+      "version": "main-verified"
+    }
+  ],
+  "hub_matrix": {
+    "missing": 9,
+    "ok": 4,
+    "triage": 2
   },
   "matrix": {
     "missing": 24,
@@ -86,85 +130,126 @@
   "models": {
     "qwen3-30b-a3b/A2": {
       "ascend_commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+      "calibration": "skip",
       "config_rev": "inline:sha256:ded54c732e9f874de266dfae8d98d409abbbb82cbecaeb1c0efe974cdd02262b",
+      "default_kv_capacity_tokens": 471936,
+      "default_parameters": "Build default: smallest valid TP choice with memory.kv_tokens > 0 on the snapshot device, keeping all other defaults; if none fits, use the smallest valid TP and retain the zero-capacity warning. Selected A2: tp=2, KV capacity=471936 tokens.",
+      "default_tp": 2,
+      "extracted_tp": [1, 4],
+      "failed_checks": [],
+      "fixtures": false,
       "vllm_commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
       "weight_bytes": {
         "weights.tp1": "IR 61064245248 bytes; extracted rank-zero parameters 61064245248 bytes.",
-        "weights.tp2": "IR 30544916480 bytes; extracted rank-zero parameters 30544916480 bytes.",
-        "weights.tp4": "IR 15285252096 bytes; extracted rank-zero parameters 15285252096 bytes.",
-        "weights.tp8": "IR 7680585728 bytes; extracted rank-zero parameters 7680585728 bytes."
+        "weights.tp4": "IR 15285252096 bytes; extracted rank-zero parameters 15285252096 bytes."
       }
     },
     "qwen3-30b-a3b/H100": {
       "ascend_commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+      "calibration": "skip",
       "config_rev": "inline:sha256:ded54c732e9f874de266dfae8d98d409abbbb82cbecaeb1c0efe974cdd02262b",
+      "default_kv_capacity_tokens": 80128,
+      "default_parameters": "Build default: smallest valid TP choice with memory.kv_tokens > 0 on the snapshot device, keeping all other defaults; if none fits, use the smallest valid TP and retain the zero-capacity warning. Selected H100: tp=1, KV capacity=80128 tokens.",
+      "default_tp": 1,
+      "extracted_tp": [1, 4],
+      "failed_checks": [],
+      "fixtures": false,
       "vllm_commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
       "weight_bytes": {
         "weights.tp1": "IR 61064245248 bytes; extracted rank-zero parameters 61064245248 bytes.",
-        "weights.tp2": "IR 30544916480 bytes; extracted rank-zero parameters 30544916480 bytes.",
-        "weights.tp4": "IR 15285252096 bytes; extracted rank-zero parameters 15285252096 bytes.",
-        "weights.tp8": "IR 7680585728 bytes; extracted rank-zero parameters 7680585728 bytes."
+        "weights.tp4": "IR 15285252096 bytes; extracted rank-zero parameters 15285252096 bytes."
       }
     },
     "qwen3-8b/A2": {
       "ascend_commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+      "calibration": "skip",
       "config_rev": "inline:sha256:d4e9a115241526b8e427513a2bbbff545bb324875df0f0a158d25bf0b007fe49",
+      "default_kv_capacity_tokens": 253312,
+      "default_parameters": "Build default: smallest valid TP choice with memory.kv_tokens > 0 on the snapshot device, keeping all other defaults; if none fits, use the smallest valid TP and retain the zero-capacity warning. Selected A2: tp=1, KV capacity=253312 tokens.",
+      "default_tp": 1,
+      "extracted_tp": [1, 4],
+      "failed_checks": [],
+      "fixtures": false,
       "vllm_commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
       "weight_bytes": {
         "weights.tp1": "IR 16381470720 bytes; extracted rank-zero parameters 16381470720 bytes.",
-        "weights.tp2": "IR 8191043584 bytes; extracted rank-zero parameters 8191043584 bytes.",
-        "weights.tp4": "IR 4095830016 bytes; extracted rank-zero parameters 4095830016 bytes.",
-        "weights.tp8": "IR 2048223232 bytes; extracted rank-zero parameters 2048223232 bytes."
+        "weights.tp4": "IR 4095830016 bytes; extracted rank-zero parameters 4095830016 bytes."
       }
     },
     "qwen3-8b/H100": {
       "ascend_commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+      "calibration": "skip",
       "config_rev": "inline:sha256:d4e9a115241526b8e427513a2bbbff545bb324875df0f0a158d25bf0b007fe49",
+      "default_kv_capacity_tokens": 356352,
+      "default_parameters": "Build default: smallest valid TP choice with memory.kv_tokens > 0 on the snapshot device, keeping all other defaults; if none fits, use the smallest valid TP and retain the zero-capacity warning. Selected H100: tp=1, KV capacity=356352 tokens.",
+      "default_tp": 1,
+      "extracted_tp": [1, 4],
+      "failed_checks": [],
+      "fixtures": false,
       "vllm_commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
       "weight_bytes": {
         "weights.tp1": "IR 16381470720 bytes; extracted rank-zero parameters 16381470720 bytes.",
-        "weights.tp2": "IR 8191043584 bytes; extracted rank-zero parameters 8191043584 bytes.",
-        "weights.tp4": "IR 4095830016 bytes; extracted rank-zero parameters 4095830016 bytes.",
-        "weights.tp8": "IR 2048223232 bytes; extracted rank-zero parameters 2048223232 bytes."
+        "weights.tp4": "IR 4095830016 bytes; extracted rank-zero parameters 4095830016 bytes."
       }
     }
   },
-  "release_task": "H2",
+  "release_task": "H3",
   "site_files": 27,
-  "site_total_bytes": 2100687,
-  "source_base": "f849934",
+  "site_total_bytes": 2103567,
+  "source_base": "dadc9d4",
   "tests": {
-    "browser_passed": 30,
+    "browser_demo_only_skipped": 2,
+    "browser_passed": 32,
     "contracts_passed": 2,
     "expressions_passed": 499,
     "layout_passed": 25,
     "lint": "ruff and Biome passed",
-    "python_passed": 732,
+    "python_passed": 793,
     "typescript": "passed",
-    "web_passed": 36
+    "web_passed": 45
   },
   "triage": {
     "deepseek-v3/A2": {
-      "origin": "Curated baseline MLA rule blocker observed on H100; A2 Ascend extraction failed before output.",
+      "extraction_failures": [
+        {
+          "device": "A2",
+          "exception_type": "NotImplementedError",
+          "kind": "extraction_failure",
+          "message": "Could not run 'aten::empty.memory_format' with arguments from the 'npu' backend. This could be because the operator doesn't exist for this backend, or was omitted during the selective/custom build process (if using custom build). If you are a Facebook employee using PyTorch on mobile, please visit https://fburl.com/ptmfixes for possible resolutions. 'aten::empty.memory_format' is only available for these backends: [CPU, Meta, QuantizedCPU, QuantizedMeta, MkldnnCPU, SparseCPU, SparseMeta, SparseCsrCPU, SparseCsrMeta, BackendSelect, Python, FuncTorchDynamicLayerBackMode, Functionalize, Named, Conjugate, Negative, ZeroTensor, ADInplaceOrView, AutogradOther, AutogradCPU, AutogradCUDA, AutogradHIP, AutogradXLA, AutogradMPS, AutogradIPU, AutogradXPU, AutogradHPU, AutogradVE, AutogradLazy, AutogradMTIA, AutogradMAIA, AutogradPrivateUse1, AutogradPrivateUse2, AutogradPrivateUse3, AutogradMeta, AutogradNestedTensor, Tracer, AutocastCPU, AutocastMTIA, AutocastMAIA, AutocastXPU, AutocastMPS, A...",
+          "model": "deepseek-ai/DeepSeek-V3",
+          "stage": "extract",
+          "version": "main-verified"
+        }
+      ],
+      "failed_checks": [],
+      "kinds": {
+        "extraction_failure": 1
+      },
+      "numeric_data_published": false,
       "recorded_items": 1
     },
     "deepseek-v3/H100": {
-      "origin": "Actual TP 1/2/4/8 lowering output; raw build also fails weights and layout.",
+      "extraction_failures": [],
+      "failed_checks": ["coverage", "layout", "weights.tp1", "weights.tp4"],
+      "kinds": {
+        "golden_diff": 655,
+        "unknown_layer_class": 13
+      },
+      "numeric_data_published": false,
       "recorded_items": 668
     }
   },
   "visual_review": {
-    "first_load_1280x800": "Whole graph including decoder and routed edges visible before Fit; analysis collapsed; no header overlap.",
+    "first_load_1280x800": "Graph and routed edges fit before Fit; analysis collapsed; no header overlap; MoE A2 TP=2 and 471,936 KV tokens.",
     "full_visual_fit_signoff": true,
-    "known_issues": [
-      "Wide graph views have small labels at narrow desktop widths; zoom for details.",
-      "Direct blocked-model routes describe absent artifacts as missing and log one expected loader console error.",
-      "Standalone files still open on a one-cell matrix without an explicit model hash route."
-    ],
+    "hub_1280x800": "Four links and two unlinked DeepSeek triage cells readable in both themes.",
+    "known_issues": ["Wide subgraph labels remain small on narrow desktops; zoom for detail."],
     "screenshots_opened": [
       "diff-unavailable.png",
       "home-a2.png",
       "home-h100.png",
+      "hub-1280.png",
+      "hub-dark-1280.png",
       "model-1280-fit.png",
       "model-1280.png",
       "model-dark.png",
