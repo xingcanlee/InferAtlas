@@ -411,6 +411,8 @@ export function normalizeAttention(c: Attn): Attn {
           ? "mha"
           : "gqa";
   const extras = { ...c.extras };
+  // `true` = "windowed, size unknown": a UI-only placeholder on this in-memory view. The
+  // normalised arch is never serialised or exported; source data is left untouched.
   if (c.variant === "sliding_window" && extras.sliding_window === undefined)
     extras.sliding_window = true;
   return { ...c, variant, extras };

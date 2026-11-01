@@ -1,11 +1,10 @@
 /**
  * Real emitter output (S1). 1) A trimmed copy of S1's DeepSeek-V4-Flash arch.json is a committed
- * fixture (fixtures/arch-ui/s1). 2) When the S1 worktree's release data is present (or
- * INFERATLAS_S1_DATA points at it), every arch.json under it goes through the UI helpers.
+ * fixture (fixtures/arch-ui/s1). 2) When INFERATLAS_S1_DATA points at a release-data directory,
+ * every arch.json under it goes through the UI helpers (skipped otherwise).
  */
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
-import { dirname, join, relative, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join, relative, resolve } from "node:path";
 import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { ArchFigure } from "@/components/arch/ArchFigure";
@@ -24,8 +23,6 @@ import {
 } from "@/lib/arch";
 import type { Arch, ArchTensor } from "@/lib/arch-types";
 import v4TrimmedJson from "../../fixtures/arch-ui/s1/deepseek-v4-flash.trimmed.json";
-
-const here = dirname(fileURLToPath(import.meta.url));
 
 describe("S1 DeepSeek-V4-Flash (trimmed real output)", () => {
   const arch = normalizeArch(v4TrimmedJson as unknown as Arch);
@@ -93,10 +90,16 @@ describe("S1 DeepSeek-V4-Flash (trimmed real output)", () => {
 
 // ------------------------------------------------------------------- full release-data sweep
 
-const dataDir = process.env.INFERATLAS_S1_DATA ?? resolve(here, "../../../S1/.release-data");
+/**
+ * Opt-in only: another worktree's release data may be uncommitted or half-written, so the sweep
+ * runs only when INFERATLAS_S1_DATA names a directory (e.g. `.worktrees/S1/.release-data`).
+ */
+const dataDir = process.env.INFERATLAS_S1_DATA
+  ? resolve(process.env.INIT_CWD ?? process.cwd(), process.env.INFERATLAS_S1_DATA)
+  : undefined;
 
-function archFiles(dir: string): string[] {
-  if (!existsSync(dir)) return [];
+function archFiles(dir: string | undefined): string[] {
+  if (!dir || !existsSync(dir)) return [];
   const out: string[] = [];
   for (const name of readdirSync(dir)) {
     const p = join(dir, name);
@@ -110,7 +113,7 @@ const files = archFiles(dataDir);
 
 describe.skipIf(files.length === 0)("S1 release data (all arch.json)", () => {
   for (const file of files) {
-    it(relative(dataDir, file), () => {
+    it(relative(dataDir ?? "", file), () => {
       const arch = normalizeArch(JSON.parse(readFileSync(file, "utf8")) as Arch);
       const ev = evaluator(archEnv(arch, {}).env);
       const shapes: { where: string; t: ArchTensor }[] = [];
