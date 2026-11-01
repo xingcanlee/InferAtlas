@@ -269,3 +269,14 @@ vllm.models.minimax_m3.nvidia.model.MiniMaxM3MLP:
   kind: mlp
 vllm.models.minimax_m3.nvidia.model.MiniMaxM3MoE:
   kind: moe
+vllm.models.deepseek_v4.cpu.model.DeepseekV4DecoderLayer:
+  kind: decoder
+  residual: hyper_connection
+  order:
+  - mhc_pre
+  - attn_norm
+  - attn
+  - mhc_fused_post_pre
+  - ffn_norm
+  - ffn
+  - mhc_post

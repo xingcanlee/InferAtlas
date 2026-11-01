@@ -1,6 +1,8 @@
 {
   "device": "H100",
-  "flags": [],
+  "flags": [
+    "cpu_constructor_adapters"
+  ],
   "input": {
     "dtype": "int64",
     "name": "input_ids",
@@ -43,6 +45,7 @@
             ]
           }
         ],
+        "internals": [],
         "outputs": [
           {
             "dtype": "bfloat16",
@@ -105,6 +108,7 @@
                       ]
                     }
                   ],
+                  "internals": [],
                   "outputs": [
                     {
                       "dtype": "bfloat16",
@@ -167,15 +171,7 @@
                       ]
                     }
                   ],
-                  "outputs": [
-                    {
-                      "dtype": "bfloat16",
-                      "name": "hidden_states",
-                      "shape": [
-                        "T",
-                        "H"
-                      ]
-                    },
+                  "internals": [
                     {
                       "dtype": "bfloat16",
                       "name": "q",
@@ -203,6 +199,16 @@
                     {
                       "dtype": "bfloat16",
                       "name": "o",
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
+                    }
+                  ],
+                  "outputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
                       "shape": [
                         "T",
                         "H"
@@ -278,6 +284,7 @@
                       ]
                     }
                   ],
+                  "internals": [],
                   "outputs": [
                     {
                       "dtype": "bfloat16",
@@ -310,6 +317,7 @@
                       ]
                     }
                   ],
+                  "internals": [],
                   "outputs": [
                     {
                       "dtype": "bfloat16",
@@ -373,15 +381,7 @@
                       ]
                     }
                   ],
-                  "outputs": [
-                    {
-                      "dtype": "bfloat16",
-                      "name": "hidden_states",
-                      "shape": [
-                        "T",
-                        "H"
-                      ]
-                    },
+                  "internals": [
                     {
                       "dtype": "bfloat16",
                       "name": "router_logits",
@@ -448,6 +448,16 @@
                         "H"
                       ]
                     }
+                  ],
+                  "outputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
+                    }
                   ]
                 },
                 "module": {
@@ -458,7 +468,7 @@
                       "dtype": "bfloat16",
                       "name": "experts.routed_experts.w13_weight",
                       "shape": [
-                        "128",
+                        "E",
                         "1536/tp",
                         "2048"
                       ]
@@ -467,7 +477,7 @@
                       "dtype": "bfloat16",
                       "name": "experts.routed_experts.w2_weight",
                       "shape": [
-                        "128",
+                        "E",
                         "2048",
                         "768/tp"
                       ]
@@ -476,7 +486,7 @@
                       "dtype": "bfloat16",
                       "name": "gate.weight",
                       "shape": [
-                        "128",
+                        "E",
                         "2048"
                       ]
                     }
@@ -514,6 +524,7 @@
                       ]
                     }
                   ],
+                  "internals": [],
                   "outputs": [
                     {
                       "dtype": "bfloat16",
@@ -561,6 +572,7 @@
             ]
           }
         ],
+        "internals": [],
         "outputs": [
           {
             "dtype": "bfloat16",
@@ -616,6 +628,7 @@
             ]
           }
         ],
+        "internals": [],
         "outputs": [
           {
             "dtype": "bfloat16",

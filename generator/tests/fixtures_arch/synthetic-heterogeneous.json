@@ -12,26 +12,7 @@
     "hf_id": "synthetic/heterogeneous-mla",
     "id": "synthetic-heterogeneous"
   },
-  "notes": [
-    {
-      "severity": "warn",
-      "target": null,
-      "text": "Unknown layer class: synthetic.Model",
-      "triage_kind": "unknown_layer_class"
-    },
-    {
-      "severity": "warn",
-      "target": null,
-      "text": "Unknown layer class: synthetic.SyntheticHeterogeneousForCausalLM",
-      "triage_kind": "unknown_layer_class"
-    },
-    {
-      "severity": "warn",
-      "target": null,
-      "text": "Unknown layer class: torch.nn.modules.container.ModuleList",
-      "triage_kind": "unknown_layer_class"
-    }
-  ],
+  "notes": [],
   "output": {
     "dtype": "bfloat16",
     "name": "logits",
@@ -39,49 +20,6 @@
   },
   "schema_version": 1,
   "stages": [
-    {
-      "component": {
-        "hidden": 16,
-        "kind": "lm_head",
-        "tied": false,
-        "vocab": 32
-      },
-      "id": "lm_head",
-      "io": {
-        "inputs": [
-          {
-            "dtype": "bfloat16",
-            "name": "hidden_states",
-            "shape": ["T", "H"]
-          }
-        ],
-        "outputs": [
-          {
-            "dtype": "bfloat16",
-            "name": "logits",
-            "shape": ["T", "V"]
-          }
-        ]
-      },
-      "kind": "lm_head",
-      "label": "LM head",
-      "module": {
-        "class_name": "vllm.model_executor.layers.vocab_parallel_embedding.ParallelLMHead",
-        "flags": [],
-        "params": [
-          {
-            "dtype": "bfloat16",
-            "name": "weight",
-            "shape": ["32/tp", "16"]
-          }
-        ],
-        "path": "lm_head",
-        "replaced": null,
-        "source": null,
-        "status": "ruled"
-      },
-      "placement": "spine"
-    },
     {
       "component": {
         "hidden": 16,
@@ -98,6 +36,7 @@
             "shape": ["T"]
           }
         ],
+        "internals": [],
         "outputs": [
           {
             "dtype": "bfloat16",
@@ -147,6 +86,7 @@
                       "shape": ["T", "H"]
                     }
                   ],
+                  "internals": [],
                   "outputs": [
                     {
                       "dtype": "bfloat16",
@@ -203,12 +143,7 @@
                       "shape": ["T", "H"]
                     }
                   ],
-                  "outputs": [
-                    {
-                      "dtype": "bfloat16",
-                      "name": "hidden_states",
-                      "shape": ["T", "H"]
-                    },
+                  "internals": [
                     {
                       "dtype": "bfloat16",
                       "name": "q",
@@ -244,6 +179,13 @@
                       "name": "o",
                       "shape": ["T", "H"]
                     }
+                  ],
+                  "outputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "H"]
+                    }
                   ]
                 },
                 "module": {
@@ -273,6 +215,7 @@
                       "shape": ["T", "H"]
                     }
                   ],
+                  "internals": [],
                   "outputs": [
                     {
                       "dtype": "bfloat16",
@@ -299,6 +242,7 @@
                       "shape": ["T", "H"]
                     }
                   ],
+                  "internals": [],
                   "outputs": [
                     {
                       "dtype": "bfloat16",
@@ -339,12 +283,7 @@
                       "shape": ["T", "H"]
                     }
                   ],
-                  "outputs": [
-                    {
-                      "dtype": "bfloat16",
-                      "name": "hidden_states",
-                      "shape": ["T", "H"]
-                    },
+                  "internals": [
                     {
                       "dtype": "bfloat16",
                       "name": "gate",
@@ -358,6 +297,13 @@
                     {
                       "dtype": "bfloat16",
                       "name": "down",
+                      "shape": ["T", "H"]
+                    }
+                  ],
+                  "outputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
                       "shape": ["T", "H"]
                     }
                   ]
@@ -389,6 +335,7 @@
                       "shape": ["T", "H"]
                     }
                   ],
+                  "internals": [],
                   "outputs": [
                     {
                       "dtype": "bfloat16",
@@ -427,6 +374,7 @@
                       "shape": ["T", "H"]
                     }
                   ],
+                  "internals": [],
                   "outputs": [
                     {
                       "dtype": "bfloat16",
@@ -483,12 +431,7 @@
                       "shape": ["T", "H"]
                     }
                   ],
-                  "outputs": [
-                    {
-                      "dtype": "bfloat16",
-                      "name": "hidden_states",
-                      "shape": ["T", "H"]
-                    },
+                  "internals": [
                     {
                       "dtype": "bfloat16",
                       "name": "q",
@@ -524,6 +467,13 @@
                       "name": "o",
                       "shape": ["T", "H"]
                     }
+                  ],
+                  "outputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "H"]
+                    }
                   ]
                 },
                 "module": {
@@ -553,6 +503,7 @@
                       "shape": ["T", "H"]
                     }
                   ],
+                  "internals": [],
                   "outputs": [
                     {
                       "dtype": "bfloat16",
@@ -579,6 +530,7 @@
                       "shape": ["T", "H"]
                     }
                   ],
+                  "internals": [],
                   "outputs": [
                     {
                       "dtype": "bfloat16",
@@ -633,12 +585,7 @@
                       "shape": ["T", "H"]
                     }
                   ],
-                  "outputs": [
-                    {
-                      "dtype": "bfloat16",
-                      "name": "hidden_states",
-                      "shape": ["T", "H"]
-                    },
+                  "internals": [
                     {
                       "dtype": "bfloat16",
                       "name": "router_logits",
@@ -679,6 +626,13 @@
                       "name": "down",
                       "shape": ["T", "H"]
                     }
+                  ],
+                  "outputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "H"]
+                    }
                   ]
                 },
                 "module": {
@@ -708,6 +662,7 @@
                       "shape": ["T", "H"]
                     }
                   ],
+                  "internals": [],
                   "outputs": [
                     {
                       "dtype": "bfloat16",
@@ -746,6 +701,7 @@
             "shape": ["T", "H"]
           }
         ],
+        "internals": [],
         "outputs": [
           {
             "dtype": "bfloat16",
@@ -767,6 +723,50 @@
           }
         ],
         "path": "model.norm",
+        "replaced": null,
+        "source": null,
+        "status": "ruled"
+      },
+      "placement": "spine"
+    },
+    {
+      "component": {
+        "hidden": 16,
+        "kind": "lm_head",
+        "tied": false,
+        "vocab": 32
+      },
+      "id": "lm_head",
+      "io": {
+        "inputs": [
+          {
+            "dtype": "bfloat16",
+            "name": "hidden_states",
+            "shape": ["T", "H"]
+          }
+        ],
+        "internals": [],
+        "outputs": [
+          {
+            "dtype": "bfloat16",
+            "name": "logits",
+            "shape": ["T", "V"]
+          }
+        ]
+      },
+      "kind": "lm_head",
+      "label": "LM head",
+      "module": {
+        "class_name": "vllm.model_executor.layers.vocab_parallel_embedding.ParallelLMHead",
+        "flags": [],
+        "params": [
+          {
+            "dtype": "bfloat16",
+            "name": "weight",
+            "shape": ["32/tp", "16"]
+          }
+        ],
+        "path": "lm_head",
         "replaced": null,
         "source": null,
         "status": "ruled"

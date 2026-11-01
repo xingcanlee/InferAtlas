@@ -33,6 +33,9 @@ class ArchTensor(Contract):
 class ArchIO(Contract):
     inputs: list[ArchTensor] = Field(description="Dataflow inputs; empty when unknown.")
     outputs: list[ArchTensor] = Field(description="Dataflow outputs; empty when unknown.")
+    internals: list[ArchTensor] = Field(
+        default_factory=list, description="Tensors local to the component."
+    )
 
 
 class ArchSource(Contract):
@@ -175,7 +178,7 @@ class ArchSublayer(Contract):
 
 class ArchBlock(Contract):
     kind: Literal["decoder"] = Field(default="decoder", description="Decoder block.")
-    residual: Literal["pre_norm", "post_norm", "sandwich", "unknown"] = Field(
+    residual: Literal["pre_norm", "post_norm", "sandwich", "hyper_connection", "unknown"] = Field(
         description="Residual topology; unknown when class has no reviewed block rule."
     )
     sublayers: list[ArchSublayer] = Field(description="Sublayers in dataflow order.")
@@ -257,11 +260,15 @@ class Arch(Contract):
                     ids.append(band.id)
                     for sublayer in band.block.sublayers:
                         ids.append(f"{band.id}/{sublayer.id}")
-                        tensors.extend([*sublayer.io.inputs, *sublayer.io.outputs])
+                        tensors.extend(
+                            [*sublayer.io.inputs, *sublayer.io.outputs, *sublayer.io.internals]
+                        )
                         if sublayer.module:
                             tensors.extend(sublayer.module.params)
             else:
-                tensors.extend([*stage.io.inputs, *stage.io.outputs, *stage.module.params])
+                tensors.extend(
+                    [*stage.io.inputs, *stage.io.outputs, *stage.io.internals, *stage.module.params]
+                )
         if len(ids) != len(set(ids)):
             raise ValueError("duplicate architecture target id")
         if any(note.target is not None and note.target not in ids for note in self.notes):

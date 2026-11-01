@@ -122,6 +122,9 @@ def emit_arch(
         )
     notes = []
     targets = defaultdict(set)
+    visible = {}
+    generic_seen = set()
+    residual_seen = set()
 
     def descendants(module):
         return [
@@ -272,6 +275,13 @@ def emit_arch(
                 )
                 if k in cfg
             }
+            if "compress_ratio" in attrs:
+                extras["compress_ratio"] = attrs["compress_ratio"]
+                extras["indexer"] = any(
+                    m.path == module.path + ".indexer"
+                    or m.path.startswith(module.path + ".indexer.")
+                    for m in subtree
+                )
             if variant == "mla" and extras.get("index_topk"):
                 variant = "sparse"
             if variant == "linear":
@@ -338,6 +348,19 @@ def emit_arch(
         raise ValueError(f"unsupported architecture rule kind: {rule.kind}")
 
     def boundary(module, comp):
+        if module.path.rsplit(".", 1)[-1].startswith("mhc_"):
+            symbols["HC"] = ArchSymbol(
+                value=int(config.get("hc_mult", 1)), description="Hyper-connection streams"
+            )
+            stream = tensor("residual", ["T", "HC", "H"])
+            post = tensor("post_mix", ["T", "HC"])
+            mix = tensor("res_mix", ["T", "HC", "HC"])
+            name = module.path.rsplit(".", 1)[-1]
+            if name == "mhc_pre":
+                return ArchIO(inputs=[stream], outputs=[post, mix, tensor()])
+            inputs = [tensor(), stream, post, mix]
+            outputs = [stream] if name == "mhc_post" else [stream, post, mix, tensor()]
+            return ArchIO(inputs=inputs, outputs=outputs)
         if comp.kind == "embedding":
             return ArchIO(
                 inputs=[ArchTensor(name="input_ids", shape=["T"], dtype="int64")],
@@ -362,20 +385,33 @@ def emit_arch(
                     (
                         m
                         for m in subtree
-                        if m.path.endswith(("qkv_proj", "q_proj", "gate_up_proj", "gate_proj"))
+                        if m.path.endswith(
+                            ("qkv_proj", "q_proj", "gate_up_proj", "gate_proj", "fc1")
+                        )
                     ),
                     None,
                 )
                 width = projection.attrs.get("input_size") if projection else None
-                width = width or (norm.shape[0] if norm else hidden)
+                vision = any(k in module.path for k in ("vision", "visual"))
+                cfg = (extract.config.get("vision_config") or {}) if vision else config
+                down = next((m for m in subtree if m.path.endswith(".fc2")), None)
+                width = width or (down.attrs.get("output_size") if down else None)
+                width = width or (norm.shape[0] if norm else cfg.get("hidden_size", 0))
             h = "H" if width == hidden else str(width)
-            inputs, outputs = [tensor(shape=["T", h])], [tensor(shape=["T", h])]
+            vision = any(k in module.path for k in ("vision", "visual"))
+            token = "P" if vision else "T"
+            if vision:
+                symbols["P"] = ArchSymbol(
+                    value=1024, description="Vision patch tokens in the batch"
+                )
+            inputs, outputs = [tensor(shape=[token, h])], [tensor(shape=[token, h])]
+            internals = []
 
             def out(name, dim, scalar_dtype=None):
-                t = tensor(name, ["T", dim])
+                t = tensor(name, [token, dim])
                 if scalar_dtype:
                     t.dtype = scalar_dtype
-                outputs.append(t)
+                internals.append(t)
 
             if comp.kind == "attention":
                 if comp.variant == "linear":
@@ -392,7 +428,7 @@ def emit_arch(
                     out("k", f"max(1,{comp.heads_kv}/tp)*{comp.head_dim}")
                     out("v", f"max(1,{comp.heads_kv}/tp)*{comp.head_dim}")
                 if comp.extras.get("v_head_dim") and comp.variant in {"mla", "sparse"}:
-                    v = next(t for t in outputs if t.name == "v")
+                    v = next(t for t in internals if t.name == "v")
                     v.shape = ["T", f"{comp.heads_q}*{comp.extras['v_head_dim']}/tp"]
                 if comp.extras.get("qk_rope_head_dim") and comp.variant in {"mla", "sparse"}:
                     out("k_rope", str(comp.extras["qk_rope_head_dim"]))
@@ -415,15 +451,15 @@ def emit_arch(
                     out("router_logits", e)
                     out("topk_ids", k, "int64")
                     out("topk_weights", k)
-                    outputs.append(tensor("expert_input", ["T", k, h]))
-                    outputs.append(tensor("expert_output", ["T", k, h]))
+                    internals.append(tensor("expert_input", ["T", k, h]))
+                    internals.append(tensor("expert_output", ["T", k, h]))
                     if "dp" in symbols:
-                        outputs.append(tensor("routed_expert_input", [f"T*dp*{k}/ep", h]))
-                        outputs.append(tensor("routed_expert_output", [f"T*dp*{k}/ep", h]))
+                        internals.append(tensor("routed_expert_input", [f"T*dp*{k}/ep", h]))
+                        internals.append(tensor("routed_expert_output", [f"T*dp*{k}/ep", h]))
                 out("gate", f"{inter}/tp")
                 out("up", f"{inter}/tp")
                 out("down", h)
-            return ArchIO(inputs=inputs, outputs=outputs)
+            return ArchIO(inputs=inputs, outputs=outputs, internals=internals)
         # Weight orientation is PyTorch Linear's [out, in]; never run unknown forwards.
         weight = next((p for p in module.params if p.name == "weight" and len(p.shape) == 2), None)
         if weight:
@@ -492,6 +528,20 @@ def emit_arch(
                         if extract.parallel.dp > 1
                         else f"{p.shape[axis] * tp}/tp"
                     )
+        if p.name == "w13_bias" and len(shape) == 2 and not extract.parallel.ep:
+            degree = tp * extract.parallel.dp
+            shape[1] = (
+                f"{p.shape[1] * degree}/(tp*dp)"
+                if extract.parallel.dp > 1
+                else f"{p.shape[1] * tp}/tp"
+            )
+        if (
+            shape
+            and "E" in symbols
+            and str(symbols["E"].value) == shape[0]
+            and ("expert" in m.path or local in {"gate", "router"})
+        ):
+            shape[0] = "E"
         return shape
 
     def module_ref(module, comp, target):
@@ -544,7 +594,9 @@ def emit_arch(
             for m in subtree
             for p in sorted(m.params, key=lambda p: p.name)
         ]
-        if comp.kind == "generic":
+        visible[target] = (module, comp, status)
+        if comp.kind == "generic" and module.class_name not in generic_seen:
+            generic_seen.add(module.class_name)
             notes.append(
                 ArchNote(
                     severity="info",
@@ -563,17 +615,24 @@ def emit_arch(
             params=sorted(params, key=lambda p: p.name),
         )
 
-    def sublayer(module, band_id):
+    def sublayer(module, band_id, local_id=None):
+        local_id = local_id or module.path.rsplit(".", 1)[-1]
         comp = component(module)
         role = {"norm": "norm", "attention": "mixer", "mlp": "ffn", "moe": "ffn"}.get(
-            comp.kind, "other"
+            comp.kind,
+            "mixer"
+            if module.path.rsplit(".", 1)[-1] in {"self_attn", "attn", "linear_attn"}
+            else "ffn"
+            if module.path.rsplit(".", 1)[-1]
+            in {"mlp", "moe", "ffn", "feed_forward", "block_sparse_moe"}
+            else "other",
         )
         return ArchSublayer(
-            id=module.path.rsplit(".", 1)[-1],
+            id=local_id,
             role=role,
             component=comp,
             io=boundary(module, comp),
-            module=module_ref(module, comp, band_id + "/" + module.path.rsplit(".", 1)[-1]),
+            module=module_ref(module, comp, band_id + "/" + local_id),
         )
 
     def block(module, band_id):
@@ -603,6 +662,27 @@ def emit_arch(
             direct, key=lambda m: (ranked.get(m.path.rsplit(".", 1)[-1], len(order)), m.path)
         )
         residual = rule.residual if rule and rule.kind == "decoder" else "unknown"
+        if residual == "hyper_connection":
+            # Emit the equivalent unfused forward, reusing each pre/post module twice.
+            by_name = {m.path.rsplit(".", 1)[-1]: m for m in direct}
+            operations = (
+                ("mhc_pre", "mhc_pre_attn"),
+                ("attn_norm", "attn_norm"),
+                ("attn", "attn"),
+                ("mhc_post", "mhc_post_attn"),
+                ("mhc_pre", "mhc_pre_ffn"),
+                ("ffn_norm", "ffn_norm"),
+                ("ffn", "ffn"),
+                ("mhc_post", "mhc_post_ffn"),
+            )
+            return ArchBlock(
+                residual=residual,
+                sublayers=[
+                    sublayer(by_name[name], band_id, local_id)
+                    for name, local_id in operations
+                    if name in by_name
+                ],
+            )
         subs = []
         for child in ordered:
             sub = sublayer(child, band_id)
@@ -636,12 +716,13 @@ def emit_arch(
                 )
         if not subs:
             subs = [sublayer(module, band_id)]
-        if residual == "unknown":
+        if residual == "unknown" and module.class_name not in residual_seen:
+            residual_seen.add(module.class_name)
             notes.append(
                 ArchNote(
                     severity="warn",
                     target=band_id + "/" + subs[0].id,
-                    text="Execution order and residual topology are unknown; children are listed by module path.",
+                    text=f"Residual topology for {module.class_name} is unknown; children follow the decoder-slot heuristic.",
                     triage_kind=None,
                 )
             )
@@ -723,13 +804,30 @@ def emit_arch(
                     (
                         "chunked"
                         if s.component.extras.get("kind") == "chunked_local"
-                        else s.component.variant
+                        else {
+                            "gqa": "GQA attn",
+                            "mha": "MHA attn",
+                            "mqa": "MQA attn",
+                            "mla": "MLA attn",
+                        }.get(s.component.variant, s.component.variant)
+                    )
+                    + (
+                        f" (compress {s.component.extras['compress_ratio']}, indexer {'on' if s.component.extras.get('indexer') else 'off'})"
+                        if "compress_ratio" in s.component.extras
+                        else ""
                     )
                     for s in band.block.sublayers
                     if s.component and s.component.kind == "attention"
                 )
                 or "other"
             )
+            if any(
+                s.component
+                and s.component.kind == "attention"
+                and "compress_ratio" in s.component.extras
+                for s in band.block.sublayers
+            ):
+                band.pattern = label
             sequence.extend([label] * band.count)
         for period in range(2, len(sequence) // 2 + 1):
             if len(set(sequence[:period])) > 1 and all(
@@ -767,14 +865,29 @@ def emit_arch(
 
             def stage_order(child):
                 name = child.path.rsplit(".", 1)[-1]
-                if registration:
-                    return (registration.get(name, len(registration)), child.path)
                 rule = rule_for(child)
-                kind = "stack" if child.path in stacks else rule.kind if rule else "other"
+                kind = (
+                    "container"
+                    if any(p == child.path or p.startswith(child.path + ".") for p in stacks)
+                    else rule.kind
+                    if rule
+                    else "other"
+                )
+                if name in {"patch_embedding", "embeddings"}:
+                    rank = 0
+                elif "norm" in name and any(k in name for k in ("pre", "before")):
+                    rank = 0
+                else:
+                    rank = {
+                        "embedding": 0,
+                        "stack": 1,
+                        "container": 1,
+                        "norm": 2,
+                        "lm_head": 3,
+                    }.get(kind, 4)
                 return (
-                    {"embedding": 0, "stack": 1, "container": 1, "norm": 2, "lm_head": 3}.get(
-                        kind, 4
-                    ),
+                    rank,
+                    registration.get(name, len(registration)),
                     child.path,
                 )
 
@@ -783,6 +896,10 @@ def emit_arch(
             return
         comp = component(module)
         kind = comp.kind if comp.kind in {"embedding", "norm", "lm_head"} else "other"
+        if any(k in module.path for k in ("vision", "visual")) and module.path.rsplit(".", 1)[
+            -1
+        ] in {"patch_embedding", "embeddings"}:
+            kind = "embedding"
         label = {"embedding": "Token embedding", "norm": "Final norm", "lm_head": "LM head"}.get(
             kind, module.path or module.class_name.rsplit(".", 1)[-1]
         )
@@ -808,18 +925,51 @@ def emit_arch(
     ]
     for root in roots:
         top(root)
+    # Aside branches follow the complete spine regardless of registration order.
+    stages.sort(
+        key=lambda stage: (getattr(stage, "placement", "spine") == "aside", stage.kind == "other")
+    )
+    seen = set()
     for item in triage.items:
         symbol = getattr(item, "symbol", getattr(item, "target", None))
-        affected = sorted(targets.get(symbol, ())) or [None]
+        key = (symbol, item.kind)
+        if key in seen:
+            continue
+        seen.add(key)
+        affected = sorted(targets.get(symbol, ()))
+        direct = [t for t in affected if t in visible and visible[t][0].class_name == symbol]
+        if item.kind in {"unknown_layer_class", "conditional_override"}:
+            direct = [
+                t
+                for t in direct
+                if visible[t][1].kind == "generic" or visible[t][2] == "unannotated_override"
+            ]
+            if not direct:
+                continue
+        target = direct[0] if direct else None
         data = item.model_dump(mode="json")
-        text = str(
-            data.get("message")
-            or data.get("diff")
-            or data.get("reason")
-            or (item.kind.replace("_", " ").capitalize() + (f": {symbol}" if symbol else "."))
+        if item.kind == "conditional_override":
+            candidates = ", ".join(data.get("candidates", [])) or "an unresolved implementation"
+            text = f"Ascend replaces {symbol} with {candidates}; not yet annotated."
+        elif item.kind == "unknown_layer_class":
+            text = f"No architecture rule describes {symbol}; shown as a generic component."
+        else:
+            detail = data.get("message") or data.get("diff")
+            detail = detail if isinstance(detail, str) else None
+            text = (
+                item.kind.replace("_", " ").capitalize()
+                + (f" for {symbol}" if symbol else "")
+                + (f": {detail}" if detail else ".")
+            )
+        changes_figure = target is not None and visible[target][1].kind == "generic"
+        notes.append(
+            ArchNote(
+                severity="warn" if changes_figure else "info",
+                target=target,
+                text=text,
+                triage_kind=item.kind,
+            )
         )
-        for target in affected:
-            notes.append(ArchNote(severity="warn", target=target, text=text, triage_kind=item.kind))
     from inferatlas.expr import validate
 
     used = set()
@@ -830,7 +980,12 @@ def emit_arch(
             else [stage]
         )
         for ref in refs:
-            for t in [*ref.io.inputs, *ref.io.outputs, *(ref.module.params if ref.module else [])]:
+            for t in [
+                *ref.io.inputs,
+                *ref.io.outputs,
+                *ref.io.internals,
+                *(ref.module.params if ref.module else []),
+            ]:
                 for d in t.shape:
                     used.update(validate(d))
     used.update({"T", "V"})

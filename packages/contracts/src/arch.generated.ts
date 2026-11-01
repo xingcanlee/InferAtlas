@@ -67,7 +67,7 @@ export type Kind = "decoder";
 /**
  * Residual topology; unknown when class has no reviewed block rule.
  */
-export type Residual = "pre_norm" | "post_norm" | "sandwich" | "unknown";
+export type Residual = "pre_norm" | "post_norm" | "sandwich" | "hyper_connection" | "unknown";
 /**
  * Semantic component or generic fallback.
  */
@@ -225,6 +225,10 @@ export type Id1 = string;
  * Dataflow inputs; empty when unknown.
  */
 export type Inputs = ArchTensor2[];
+/**
+ * Tensors local to the component.
+ */
+export type Internals = ArchTensor2[];
 /**
  * Dataflow outputs; empty when unknown.
  */
@@ -512,6 +516,7 @@ export interface ArchEmbedding {
  */
 export interface ArchIO {
   inputs: Inputs;
+  internals: Internals;
   outputs: Outputs;
 }
 export interface ArchTensor2 {
@@ -557,6 +562,7 @@ export interface ArchModuleStage {
  */
 export interface ArchIO1 {
   inputs: Inputs;
+  internals: Internals;
   outputs: Outputs;
 }
 /**

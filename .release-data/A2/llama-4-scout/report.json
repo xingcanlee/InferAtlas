@@ -1,0 +1,83 @@
+{
+  "checks": [
+    {
+      "id": "arch_golden",
+      "message": "No architecture golden supplied.",
+      "node": null,
+      "status": "skip"
+    },
+    {
+      "id": "calibration",
+      "message": "Blocked by triage; resolve it first.",
+      "node": null,
+      "status": "skip"
+    },
+    {
+      "id": "coverage",
+      "message": "76 numeric review items; structure is available.",
+      "node": null,
+      "status": "fail"
+    },
+    {
+      "id": "evaluation",
+      "message": "Blocked by triage; resolve it first.",
+      "node": null,
+      "status": "skip"
+    },
+    {
+      "id": "golden",
+      "message": "Blocked by triage; resolve it first.",
+      "node": null,
+      "status": "skip"
+    },
+    {
+      "id": "layout",
+      "message": "View validates against IR.",
+      "node": null,
+      "status": "pass"
+    },
+    {
+      "id": "provenance",
+      "message": "All stages used production backends.",
+      "node": null,
+      "status": "pass"
+    },
+    {
+      "id": "schema",
+      "message": "Input contracts validate.",
+      "node": null,
+      "status": "pass"
+    },
+    {
+      "id": "source_links",
+      "message": "0 invalid immutable source links.",
+      "node": null,
+      "status": "pass"
+    },
+    {
+      "id": "weights.tp1",
+      "message": "Blocked by triage; resolve it first.",
+      "node": null,
+      "status": "skip"
+    }
+  ],
+  "golden_diff": [],
+  "numeric_verified": false,
+  "snapshot": {
+    "ascend": {
+      "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+      "tag": "main"
+    },
+    "device": "A2",
+    "generator_version": "0.1.0",
+    "model": {
+      "config_rev": "inline:sha256:f246bb66cea9c7b32ce23688db3377ba702b95cc74de517b022e3633f08202ab",
+      "hf_id": "unsloth/Llama-4-Scout-17B-16E-Instruct"
+    },
+    "vllm": {
+      "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+      "tag": "main"
+    }
+  },
+  "source_link_failures": []
+}

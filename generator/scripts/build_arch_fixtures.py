@@ -95,7 +95,9 @@ def main():
         model = get_model(slug)
         for device in ("A2", "H100"):
             snapshot = resolve(slug, device=device)
-            cache = ROOT / ".cache/S1" / slug / device / "extract.json"
+            from build_catalog_arch import extractor_hash
+
+            cache = ROOT / ".cache/S1" / slug / device / f"extract-tp1-{extractor_hash()}.json"
             if cache.is_file():
                 facts = Extract.model_validate(read_json(cache))
             else:

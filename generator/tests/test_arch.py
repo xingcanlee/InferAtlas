@@ -182,7 +182,7 @@ def test_shapes_use_shared_node_evaluator(facts, runtime):
     tensors = [arch.input, arch.output]
     for band in bands(arch):
         for sub in band.block.sublayers:
-            tensors.extend([*sub.io.inputs, *sub.io.outputs])
+            tensors.extend([*sub.io.inputs, *sub.io.outputs, *sub.io.internals])
     env = {k: s.value for k, s in arch.symbols.items()} | {"T": 23}
     assert runtime.many(arch.output.shape, env) == [23, 32]
     for tensor in tensors:
@@ -240,7 +240,7 @@ def test_unknown_root_tree_needs_no_model_specific_config(facts):
     assert arch.stages[0].io.outputs[0].shape == ["T", "9"]
 
 
-def test_triage_symbol_maps_to_visible_component(facts):
+def test_ruled_component_suppresses_obsolete_unknown_class_triage(facts):
     result = lower(facts)
     triage = Triage(
         snapshot=facts.snapshot,
@@ -253,10 +253,7 @@ def test_triage_symbol_maps_to_visible_component(facts):
         ],
     )
     arch = emit_arch(facts, result.ir, triage, model_id="synthetic", family="hybrid")
-    assert any(
-        n.target == "model.layers:band:2/mlp" and n.triage_kind == "unknown_layer_class"
-        for n in arch.notes
-    )
+    assert not any(n.triage_kind == "unknown_layer_class" for n in arch.notes)
 
 
 @pytest.mark.parametrize("partial_extraction", [False, True])
@@ -356,10 +353,10 @@ def test_v11_targets_residuals_and_informative_io(facts):
             if sub.role == "residual_add":
                 assert sub.component is sub.module is None
     attention = bands(arch)[0].block.sublayers[1]
-    assert next(t for t in attention.io.outputs if t.name == "v").shape == ["T", "4*4/tp"]
-    assert {t.name for t in attention.io.outputs} >= {"q", "k", "v", "o", "kv_lora_latent"}
+    assert next(t for t in attention.io.internals if t.name == "v").shape == ["T", "4*4/tp"]
+    assert {t.name for t in attention.io.internals} >= {"q", "k", "v", "o", "kv_lora_latent"}
     moe = bands(arch)[-1].block.sublayers[4]
-    tensors = {t.name: t for t in moe.io.outputs}
+    tensors = {t.name: t for t in moe.io.internals}
     assert tensors["router_logits"].shape == ["T", "E"]
     assert tensors["topk_ids"].shape == ["T", "K"]
     assert tensors["topk_ids"].dtype == "int64"
@@ -435,7 +432,7 @@ def test_ep_shapes_declare_and_use_parallel_symbols(facts):
     arch = architecture(facts)
     assert {"tp", "dp", "ep"} <= arch.symbols.keys()
     moe = bands(arch)[-1].block.sublayers[4]
-    assert next(t for t in moe.io.outputs if t.name == "routed_expert_input").shape == [
+    assert next(t for t in moe.io.internals if t.name == "routed_expert_input").shape == [
         "T*dp*K/ep",
         "H",
     ]
@@ -446,3 +443,142 @@ def test_shared_parameter_free_leaf_does_not_split_first_band(facts):
         ExtractModule(path="model.layers.0.mlp.act", class_name="vendor.SharedActivation")
     )
     assert [b.layers for b in bands(architecture(facts))] == [(0, 1), (2, 4)]
+
+
+def test_v12_boundaries_generic_slots_and_note_deduplication(facts):
+    for m in facts.modules:
+        if m.path.endswith("self_attn"):
+            m.class_name = "vendor.UnknownAttention"
+    arch = architecture(facts)
+    for band in bands(arch):
+        assert [s.role for s in band.block.sublayers].count("residual_add") == 2
+        assert band.block.sublayers[1].role == "mixer"
+        ffn = band.block.sublayers[4]
+        assert [t.name for t in ffn.io.outputs] == ["hidden_states"]
+        assert {t.name for t in ffn.io.internals} >= {"gate", "up", "down"}
+    generic = [n for n in arch.notes if n.text.startswith("Generic component")]
+    assert len(generic) == 1
+    unknown = [n for n in arch.notes if n.triage_kind == "unknown_layer_class"]
+    assert len(unknown) == 1 and "vendor.UnknownAttention" in unknown[0].text
+
+
+def test_stage_order_ignores_head_first_registration_and_sorts_stack_norms(facts):
+    root = next(m for m in facts.modules if m.path == "")
+    root.attrs["child_order"] = ["lm_head", "model"]
+    parent = next(m for m in facts.modules if m.path == "model")
+    parent.attrs["child_order"] = ["norm", "layers", "embed_tokens"]
+    facts.modules.append(ExtractModule(path="model.extra", class_name="vendor.Extra"))
+    assert [s.kind for s in architecture(facts).stages] == [
+        "embedding",
+        "stack",
+        "norm",
+        "lm_head",
+        "other",
+    ]
+
+
+def test_vision_mlp_uses_fc_width_and_patch_tokens(facts):
+    facts.config["vision_config"] = {"hidden_size": 1408, "intermediate_size": 5632}
+    facts.modules.extend(
+        [
+            ExtractModule(path="vision", class_name="vendor.Vision"),
+            ExtractModule(path="vision.layers", class_name="torch.nn.modules.container.ModuleList"),
+            ExtractModule(
+                path="vision.layers.0",
+                class_name="vllm.model_executor.models.mllama4.Llama4VisionEncoderLayer",
+            ),
+            ExtractModule(
+                path="vision.layers.0.mlp",
+                class_name="vllm.model_executor.models.mllama4.Llama4VisionMLP",
+            ),
+            ExtractModule(
+                path="vision.layers.0.mlp.fc1",
+                class_name="vendor.Linear",
+                attrs={"input_size": 1408, "output_size": 5632},
+            ),
+            ExtractModule(
+                path="vision.layers.0.mlp.fc2",
+                class_name="vendor.Linear",
+                attrs={"input_size": 5632, "output_size": 1408},
+            ),
+        ]
+    )
+    arch = architecture(facts)
+    stage = next(s for s in arch.stages if s.id == "vision.layers")
+    mlp = stage.bands[0].block.sublayers[0]
+    assert mlp.io.inputs[0].shape == mlp.io.outputs[0].shape == ["P", "1408"]
+    assert arch.symbols["P"].description.startswith("Vision")
+
+
+def test_deepseek_v4_hyper_connection_io_and_compression(facts):
+    facts.config["hc_mult"] = 4
+    for m in facts.modules:
+        if m.path == "model.layers.0":
+            m.class_name = "vllm.models.deepseek_v4.cpu.model.DeepseekV4DecoderLayer"
+        if m.path == "model.layers.0.self_attn":
+            m.path = "model.layers.0.attn"
+            m.class_name = "vllm.models.deepseek_v4.cpu.cpu_sparse.DeepseekV4CPUAttention"
+            m.attrs["compress_ratio"] = 4
+        if m.path == "model.layers.0.mlp":
+            m.path = "model.layers.0.ffn"
+    facts.modules.append(
+        ExtractModule(path="model.layers.0.attn.indexer_rotary_emb", class_name="vendor.Rope")
+    )
+    for name in ("mhc_pre", "mhc_post", "mhc_fused_post_pre"):
+        facts.modules.append(
+            ExtractModule(path="model.layers.0." + name, class_name="vllm.mhc." + name)
+        )
+    arch = architecture(facts)
+    block = bands(arch)[0].block
+    assert block.residual == "hyper_connection"
+    names = [s.id for s in block.sublayers]
+    assert names.index("mhc_pre_attn") < names.index("attn") < names.index("mhc_post_attn")
+    assert names.index("mhc_pre_ffn") < names.index("ffn") < names.index("mhc_post_ffn")
+    assert all(s.io.inputs and s.io.outputs for s in block.sublayers if s.id.startswith("mhc_"))
+    attn = next(s for s in block.sublayers if s.id == "attn")
+    assert attn.component.extras["compress_ratio"] == 4
+    assert attn.component.extras["indexer"] is False
+    assert [t.name for t in attn.io.outputs] == ["hidden_states"]
+
+
+def test_ruled_component_hides_building_block_warnings(facts):
+    facts.modules.append(
+        ExtractModule(
+            path="model.layers.0.self_attn.linear",
+            class_name="vllm.model_executor.layers.linear.ColumnParallelLinear",
+        )
+    )
+    arch = architecture(facts)
+    assert not any(n.severity == "warn" for n in arch.notes)
+
+
+def test_extractor_cache_key_tracks_worker_source(tmp_path, monkeypatch):
+    namespace = runpy.run_path(ROOT / "generator/scripts/build_catalog_arch.py")
+    key = namespace["extractor_hash"]
+    monkeypatch.setitem(key.__globals__, "ROOT", tmp_path)
+    source = tmp_path / "generator/inferatlas/extract/worker.py"
+    source.parent.mkdir(parents=True)
+    source.write_text("first")
+    before = key()
+    assert key() == before
+    source.write_text("second")
+    assert key() != before
+
+
+def test_expert_bias_uses_same_tp_axis_and_expert_symbol_as_weight(facts):
+    facts.modules.append(
+        ExtractModule(
+            path="model.layers.2.mlp.experts",
+            class_name="vllm.model_executor.models.gpt_oss.GptOssRoutedExperts",
+            params=[
+                ExtractParam(name="w13_weight", shape=[8, 24, 16], dtype="bfloat16"),
+                ExtractParam(name="w13_bias", shape=[8, 24], dtype="bfloat16"),
+                ExtractParam(name="w2_bias", shape=[8, 16], dtype="bfloat16"),
+            ],
+        )
+    )
+    band = next(b for b in bands(architecture(facts)) if b.layers[0] == 2)
+    ref = next(s.module for s in band.block.sublayers if s.id == "mlp")
+    params = {p.name: p.shape for p in ref.params}
+    assert params["experts.w13_bias"] == params["experts.w13_weight"][:2] == ["E", "24/tp"]
+    assert params["experts.w2_bias"] == ["E", "16"]

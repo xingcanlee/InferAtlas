@@ -554,6 +554,7 @@ def run(request):
         "snapshot": request["snapshot"],
         "flags": sorted(
             REDIRECTS
+            | {"cpu_constructor_adapters"}
             | (
                 {"quantized_source", "logical_bf16"}
                 if config.get("quantization_config")

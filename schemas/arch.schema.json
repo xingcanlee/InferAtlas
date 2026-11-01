@@ -155,6 +155,7 @@
             "pre_norm",
             "post_norm",
             "sandwich",
+            "hyper_connection",
             "unknown"
           ],
           "title": "Residual",
@@ -308,6 +309,14 @@
           "title": "Inputs",
           "type": "array"
         },
+        "internals": {
+          "description": "Tensors local to the component.",
+          "items": {
+            "$ref": "#/$defs/ArchTensor"
+          },
+          "title": "Internals",
+          "type": "array"
+        },
         "outputs": {
           "description": "Dataflow outputs; empty when unknown.",
           "items": {
@@ -319,7 +328,8 @@
       },
       "required": [
         "inputs",
-        "outputs"
+        "outputs",
+        "internals"
       ],
       "title": "ArchIO",
       "type": "object"

@@ -1,5 +1,6 @@
 """Build the catalog's real CPU/meta structure bundles, reusing validated extraction caches."""
 
+import hashlib
 import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor
@@ -11,16 +12,26 @@ from inferatlas.schema import Extract
 from inferatlas.verify.io import ROOT, read_json, write_json
 
 
+def extractor_hash():
+    digest = hashlib.sha256()
+    for path in sorted((ROOT / "generator/inferatlas/extract").glob("*.py")):
+        digest.update(path.name.encode())
+        digest.update(path.read_bytes())
+    return digest.hexdigest()[:16]
+
+
 def cell(slug, device):
     def cached(snapshot, tp, ep=False):
         model = get_model(slug)
-        path = ROOT / ".cache/S1" / slug / device / f"extract-tp{tp}-v11.json"
+        path = ROOT / ".cache/S1" / slug / device / f"extract-tp{tp}-{extractor_hash()}.json"
         if path.is_file():
             facts = Extract.model_validate(read_json(path))
             if (
                 facts.snapshot != snapshot
                 or facts.config != model.config
                 or facts.parallel.tp != tp
+                or facts.parallel.ep != ep
+                or any("child_order" not in m.attrs for m in facts.modules)
             ):
                 raise ValueError("Cached extraction identity mismatch")
             return facts

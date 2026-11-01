@@ -1,6 +1,8 @@
 {
   "device": "A2",
-  "flags": [],
+  "flags": [
+    "cpu_constructor_adapters"
+  ],
   "input": {
     "dtype": "int64",
     "name": "input_ids",
@@ -43,6 +45,7 @@
             ]
           }
         ],
+        "internals": [],
         "outputs": [
           {
             "dtype": "bfloat16",
@@ -108,6 +111,7 @@
                       ]
                     }
                   ],
+                  "internals": [],
                   "outputs": [
                     {
                       "dtype": "bfloat16",
@@ -173,15 +177,7 @@
                       ]
                     }
                   ],
-                  "outputs": [
-                    {
-                      "dtype": "bfloat16",
-                      "name": "hidden_states",
-                      "shape": [
-                        "T",
-                        "H"
-                      ]
-                    },
+                  "internals": [
                     {
                       "dtype": "bfloat16",
                       "name": "q",
@@ -209,6 +205,16 @@
                     {
                       "dtype": "bfloat16",
                       "name": "o",
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
+                    }
+                  ],
+                  "outputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
                       "shape": [
                         "T",
                         "H"
@@ -284,6 +290,7 @@
                       ]
                     }
                   ],
+                  "internals": [],
                   "outputs": [
                     {
                       "dtype": "bfloat16",
@@ -316,6 +323,7 @@
                       ]
                     }
                   ],
+                  "internals": [],
                   "outputs": [
                     {
                       "dtype": "bfloat16",
@@ -371,15 +379,7 @@
                       ]
                     }
                   ],
-                  "outputs": [
-                    {
-                      "dtype": "bfloat16",
-                      "name": "hidden_states",
-                      "shape": [
-                        "T",
-                        "H"
-                      ]
-                    },
+                  "internals": [
                     {
                       "dtype": "bfloat16",
                       "name": "gate",
@@ -399,6 +399,16 @@
                     {
                       "dtype": "bfloat16",
                       "name": "down",
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
+                    }
+                  ],
+                  "outputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
                       "shape": [
                         "T",
                         "H"
@@ -460,6 +470,7 @@
                       ]
                     }
                   ],
+                  "internals": [],
                   "outputs": [
                     {
                       "dtype": "bfloat16",
@@ -507,6 +518,7 @@
             ]
           }
         ],
+        "internals": [],
         "outputs": [
           {
             "dtype": "bfloat16",
@@ -565,6 +577,7 @@
             ]
           }
         ],
+        "internals": [],
         "outputs": [
           {
             "dtype": "bfloat16",

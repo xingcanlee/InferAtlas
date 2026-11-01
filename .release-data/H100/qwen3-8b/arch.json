@@ -1,0 +1,519 @@
+{
+  "device": "H100",
+  "flags": ["cpu_constructor_adapters"],
+  "input": {
+    "dtype": "int64",
+    "name": "input_ids",
+    "shape": ["T"]
+  },
+  "model": {
+    "architecture": "Qwen3ForCausalLM",
+    "family": "dense",
+    "hf_id": "Qwen/Qwen3-8B",
+    "id": "qwen3-8b"
+  },
+  "notes": [],
+  "output": {
+    "dtype": "bfloat16",
+    "name": "logits",
+    "shape": ["T", "V"]
+  },
+  "schema_version": 1,
+  "stages": [
+    {
+      "component": {
+        "hidden": 4096,
+        "kind": "embedding",
+        "tied": false,
+        "vocab": 151936
+      },
+      "id": "model.embed_tokens",
+      "io": {
+        "inputs": [
+          {
+            "dtype": "int64",
+            "name": "input_ids",
+            "shape": ["T"]
+          }
+        ],
+        "internals": [],
+        "outputs": [
+          {
+            "dtype": "bfloat16",
+            "name": "hidden_states",
+            "shape": ["T", "H"]
+          }
+        ]
+      },
+      "kind": "embedding",
+      "label": "Token embedding",
+      "module": {
+        "class_name": "vllm.model_executor.layers.vocab_parallel_embedding.VocabParallelEmbedding",
+        "flags": [],
+        "params": [
+          {
+            "dtype": "bfloat16",
+            "name": "weight",
+            "shape": ["151936/tp", "4096"]
+          }
+        ],
+        "path": "model.embed_tokens",
+        "replaced": null,
+        "source": {
+          "file": "vllm/model_executor/layers/vocab_parallel_embedding.py",
+          "line": 206,
+          "url": "https://github.com/vllm-project/vllm/blob/544f182d9f0c9bfe8bd7645525951d5e3692a542/vllm/model_executor/layers/vocab_parallel_embedding.py#L206"
+        },
+        "status": "ruled"
+      },
+      "placement": "spine"
+    },
+    {
+      "bands": [
+        {
+          "block": {
+            "kind": "decoder",
+            "residual": "pre_norm",
+            "sublayers": [
+              {
+                "component": {
+                  "eps": 1e-6,
+                  "kind": "norm",
+                  "variant": "rmsnorm"
+                },
+                "id": "input_layernorm",
+                "io": {
+                  "inputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "H"]
+                    }
+                  ],
+                  "internals": [],
+                  "outputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "H"]
+                    }
+                  ]
+                },
+                "module": {
+                  "class_name": "vllm.model_executor.layers.layernorm.RMSNorm",
+                  "flags": [],
+                  "params": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "weight",
+                      "shape": ["4096"]
+                    }
+                  ],
+                  "path": "model.layers.0.input_layernorm",
+                  "replaced": null,
+                  "source": {
+                    "file": "vllm/model_executor/layers/layernorm.py",
+                    "line": 39,
+                    "url": "https://github.com/vllm-project/vllm/blob/544f182d9f0c9bfe8bd7645525951d5e3692a542/vllm/model_executor/layers/layernorm.py#L39"
+                  },
+                  "status": "ruled"
+                },
+                "role": "norm"
+              },
+              {
+                "component": {
+                  "extras": {},
+                  "head_dim": 128,
+                  "heads_kv": 8,
+                  "heads_q": 32,
+                  "kind": "attention",
+                  "qk_norm": true,
+                  "rope": {
+                    "kind": "default",
+                    "partial_rotary_factor": null,
+                    "scaling": null,
+                    "theta": 1000000.0
+                  },
+                  "variant": "gqa"
+                },
+                "id": "self_attn",
+                "io": {
+                  "inputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "H"]
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "q",
+                      "shape": ["T", "Hq*D/tp"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "k",
+                      "shape": ["T", "max(1,Hkv/tp)*D"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "v",
+                      "shape": ["T", "max(1,Hkv/tp)*D"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "o",
+                      "shape": ["T", "H"]
+                    }
+                  ],
+                  "outputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "H"]
+                    }
+                  ]
+                },
+                "module": {
+                  "class_name": "vllm.model_executor.models.qwen3.Qwen3Attention",
+                  "flags": [],
+                  "params": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "k_norm.weight",
+                      "shape": ["128"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "o_proj.weight",
+                      "shape": ["H", "Hq*D/tp"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "q_norm.weight",
+                      "shape": ["128"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "qkv_proj.weight",
+                      "shape": ["(Hq/tp+2*max(1,Hkv/tp))*D", "H"]
+                    }
+                  ],
+                  "path": "model.layers.0.self_attn",
+                  "replaced": null,
+                  "source": {
+                    "file": "vllm/model_executor/models/qwen3.py",
+                    "line": 65,
+                    "url": "https://github.com/vllm-project/vllm/blob/544f182d9f0c9bfe8bd7645525951d5e3692a542/vllm/model_executor/models/qwen3.py#L65"
+                  },
+                  "status": "ruled"
+                },
+                "role": "mixer"
+              },
+              {
+                "component": null,
+                "id": "residual_1",
+                "io": {
+                  "inputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "branch",
+                      "shape": ["T", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "residual",
+                      "shape": ["T", "H"]
+                    }
+                  ],
+                  "internals": [],
+                  "outputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "H"]
+                    }
+                  ]
+                },
+                "module": null,
+                "role": "residual_add"
+              },
+              {
+                "component": {
+                  "eps": 1e-6,
+                  "kind": "norm",
+                  "variant": "rmsnorm"
+                },
+                "id": "post_attention_layernorm",
+                "io": {
+                  "inputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "H"]
+                    }
+                  ],
+                  "internals": [],
+                  "outputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "H"]
+                    }
+                  ]
+                },
+                "module": {
+                  "class_name": "vllm.model_executor.layers.layernorm.RMSNorm",
+                  "flags": [],
+                  "params": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "weight",
+                      "shape": ["4096"]
+                    }
+                  ],
+                  "path": "model.layers.0.post_attention_layernorm",
+                  "replaced": null,
+                  "source": {
+                    "file": "vllm/model_executor/layers/layernorm.py",
+                    "line": 39,
+                    "url": "https://github.com/vllm-project/vllm/blob/544f182d9f0c9bfe8bd7645525951d5e3692a542/vllm/model_executor/layers/layernorm.py#L39"
+                  },
+                  "status": "ruled"
+                },
+                "role": "norm"
+              },
+              {
+                "component": {
+                  "intermediate": 12288,
+                  "kind": "mlp",
+                  "variant": "swiglu"
+                },
+                "id": "mlp",
+                "io": {
+                  "inputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "H"]
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "gate",
+                      "shape": ["T", "12288/tp"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "up",
+                      "shape": ["T", "12288/tp"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "down",
+                      "shape": ["T", "H"]
+                    }
+                  ],
+                  "outputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "H"]
+                    }
+                  ]
+                },
+                "module": {
+                  "class_name": "vllm.model_executor.models.qwen2.Qwen2MLP",
+                  "flags": [],
+                  "params": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "down_proj.weight",
+                      "shape": ["4096", "12288/tp"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "gate_up_proj.weight",
+                      "shape": ["24576/tp", "4096"]
+                    }
+                  ],
+                  "path": "model.layers.0.mlp",
+                  "replaced": null,
+                  "source": {
+                    "file": "vllm/model_executor/models/qwen2.py",
+                    "line": 81,
+                    "url": "https://github.com/vllm-project/vllm/blob/544f182d9f0c9bfe8bd7645525951d5e3692a542/vllm/model_executor/models/qwen2.py#L81"
+                  },
+                  "status": "ruled"
+                },
+                "role": "ffn"
+              },
+              {
+                "component": null,
+                "id": "residual_2",
+                "io": {
+                  "inputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "branch",
+                      "shape": ["T", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "residual",
+                      "shape": ["T", "H"]
+                    }
+                  ],
+                  "internals": [],
+                  "outputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "H"]
+                    }
+                  ]
+                },
+                "module": null,
+                "role": "residual_add"
+              }
+            ]
+          },
+          "count": 36,
+          "id": "model.layers:band:0",
+          "layers": [0, 35],
+          "pattern": null
+        }
+      ],
+      "id": "model.layers",
+      "kind": "stack",
+      "label": "Decoder layers"
+    },
+    {
+      "component": {
+        "eps": 1e-6,
+        "kind": "norm",
+        "variant": "rmsnorm"
+      },
+      "id": "model.norm",
+      "io": {
+        "inputs": [
+          {
+            "dtype": "bfloat16",
+            "name": "hidden_states",
+            "shape": ["T", "H"]
+          }
+        ],
+        "internals": [],
+        "outputs": [
+          {
+            "dtype": "bfloat16",
+            "name": "hidden_states",
+            "shape": ["T", "H"]
+          }
+        ]
+      },
+      "kind": "norm",
+      "label": "Final norm",
+      "module": {
+        "class_name": "vllm.model_executor.layers.layernorm.RMSNorm",
+        "flags": [],
+        "params": [
+          {
+            "dtype": "bfloat16",
+            "name": "weight",
+            "shape": ["4096"]
+          }
+        ],
+        "path": "model.norm",
+        "replaced": null,
+        "source": {
+          "file": "vllm/model_executor/layers/layernorm.py",
+          "line": 39,
+          "url": "https://github.com/vllm-project/vllm/blob/544f182d9f0c9bfe8bd7645525951d5e3692a542/vllm/model_executor/layers/layernorm.py#L39"
+        },
+        "status": "ruled"
+      },
+      "placement": "spine"
+    },
+    {
+      "component": {
+        "hidden": 4096,
+        "kind": "lm_head",
+        "tied": false,
+        "vocab": 151936
+      },
+      "id": "lm_head",
+      "io": {
+        "inputs": [
+          {
+            "dtype": "bfloat16",
+            "name": "hidden_states",
+            "shape": ["T", "H"]
+          }
+        ],
+        "internals": [],
+        "outputs": [
+          {
+            "dtype": "bfloat16",
+            "name": "logits",
+            "shape": ["T", "V"]
+          }
+        ]
+      },
+      "kind": "lm_head",
+      "label": "LM head",
+      "module": {
+        "class_name": "vllm.model_executor.layers.vocab_parallel_embedding.ParallelLMHead",
+        "flags": [],
+        "params": [
+          {
+            "dtype": "bfloat16",
+            "name": "weight",
+            "shape": ["151936/tp", "4096"]
+          }
+        ],
+        "path": "lm_head",
+        "replaced": null,
+        "source": {
+          "file": "vllm/model_executor/layers/vocab_parallel_embedding.py",
+          "line": 578,
+          "url": "https://github.com/vllm-project/vllm/blob/544f182d9f0c9bfe8bd7645525951d5e3692a542/vllm/model_executor/layers/vocab_parallel_embedding.py#L578"
+        },
+        "status": "ruled"
+      },
+      "placement": "spine"
+    }
+  ],
+  "symbols": {
+    "D": {
+      "description": "head width",
+      "value": 128
+    },
+    "H": {
+      "description": "hidden size",
+      "value": 4096
+    },
+    "Hkv": {
+      "description": "KV heads",
+      "value": 8
+    },
+    "Hq": {
+      "description": "query heads",
+      "value": 32
+    },
+    "T": {
+      "description": "tokens in the batch",
+      "value": 4096
+    },
+    "V": {
+      "description": "vocabulary size",
+      "value": 151936
+    },
+    "tp": {
+      "description": "Tensor parallel degree",
+      "value": 1
+    }
+  }
+}
