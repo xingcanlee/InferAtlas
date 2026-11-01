@@ -270,7 +270,7 @@ def collect_cells(cells: Path, bundle: Path, expected: list[dict]) -> tuple[int,
         {
             "clean": clean,
             "errors": sorted(errors),
-            "blocked_models": sorted({model for model, _ in blocked}),
+            "models_with_blocked_cells": sorted({model for model, _ in blocked}),
             "blocked_cells": [
                 {"model": model, "device": device} for model, device in sorted(blocked)
             ],
@@ -492,7 +492,7 @@ def publish() -> None:
     state["pairs"][pair_key(pins())] = {
         "snapshot": snapshot,
         "generator": os.environ["GITHUB_SHA"],
-        "blocked_models": summary["blocked_models"],
+        "models_with_blocked_cells": summary["models_with_blocked_cells"],
         "blocked_cells": summary["blocked_cells"],
     }
     save_state(state, f"chore(ci): retain {snapshot}")

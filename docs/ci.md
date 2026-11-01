@@ -53,8 +53,9 @@ baseline triage blocks all Ascend cells of the same model. Clean Qwen A2/H100
 cells remain eligible beside triaged 310P/A3/A5 cells. Verified collection is
 **clean=4, errors=[], 11 blocked_cells**. A missing/error cell prevents the whole
 publication. Bundle summary and publication state retain sorted `blocked_cells`
-objects (`model` catalog slug and `device`); `blocked_models` remains the aggregate
-for maintenance retry detection. `publish=false` still prevents deployment and
+objects (`model` catalog slug and `device`); `models_with_blocked_cells` lists
+models with at least one blocked cell for maintenance retry detection.
+`publish=false` still prevents deployment and
 state writes. The C2 progress record links the final fix validation run.
 
 The first dispatch exposed three setup defects, now fixed: dispatched source

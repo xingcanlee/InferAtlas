@@ -168,7 +168,7 @@ async function poll({ github, context, core }) {
     if (Object.hasOwn(state.failures?.[key] ?? {}, head.sha)) continue;
     const entry = state.pairs[key];
     if (entry) {
-      if (!entry.blocked_models?.length || entry.generator === head.sha) continue;
+      if (!entry.models_with_blocked_cells?.length || entry.generator === head.sha) continue;
       if ((await maintenanceTrees(entry.generator)) === (await maintenanceTrees(head.sha)))
         continue;
     }

@@ -219,7 +219,7 @@ for (const status of ["queued", "in_progress", "waiting", "pending", "requested"
 }
 
 for (const changed of ["docs", "generator", "rules", "annotations"]) {
-  test(`blocked models retry only for maintenance trees: ${changed}`, async () => {
+  test(`models with blocked cells retry only for maintenance trees: ${changed}`, async () => {
     const { github, dispatched } = fake();
     ledger(github, {
       pairs: Object.fromEntries(
@@ -227,7 +227,7 @@ for (const changed of ["docs", "generator", "rules", "annotations"]) {
           pairKey(pair),
           {
             generator: previous,
-            blocked_models: ["moe"],
+            models_with_blocked_cells: ["moe"],
           },
         ]),
       ),
@@ -253,7 +253,7 @@ test("a failure at the new revision also suppresses maintenance retries", async 
         pairKey(pair),
         {
           generator: previous,
-          blocked_models: ["moe"],
+          models_with_blocked_cells: ["moe"],
         },
       ]),
     ),

@@ -171,6 +171,12 @@ def resolve_stage(model: str, device: str, pair: str) -> Snapshot:
             or (version.ascend == "main" and snapshot.vllm.tag != "main")
             or (version.ascend != "main" and snapshot.vllm.tag != version.vllm)
             or snapshot.ascend.tag != version.ascend
+            or (
+                os.environ.get("INFERATLAS_VLLM_COMMIT") is None
+                and os.environ.get("INFERATLAS_ASCEND_COMMIT") is None
+                and re.fullmatch(r"[0-9a-f]{40}", version.vllm)
+                and snapshot.vllm.commit != version.vllm
+            )
             or any(
                 pin is not None and pin != revision.commit
                 for pin, revision in (

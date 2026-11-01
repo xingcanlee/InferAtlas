@@ -818,3 +818,29 @@ def test_resolve_checks_tags_even_when_commit_pins_match(monkeypatch):
     monkeypatch.setattr(inferatlas.resolve, "resolve", lambda **kwargs: snapshot)
     with pytest.raises(ValueError, match="catalog identity"):
         cli.resolve_stage(cli.DEFAULT_MODEL, "A2", "v0.32.0")
+
+
+@pytest.mark.parametrize("command", ["resolve", "build"])
+def test_resolve_rejects_no_pin_catalog_commit_drift_before_extraction(
+    monkeypatch, tmp_path, command
+):
+    monkeypatch.delenv("INFERATLAS_VLLM_COMMIT", raising=False)
+    monkeypatch.delenv("INFERATLAS_ASCEND_COMMIT", raising=False)
+    snapshot = Snapshot.model_validate(read_json(FIXTURE / "snapshot.json"))
+    snapshot.vllm.tag = "main"
+    snapshot.vllm.commit = "a" * 40
+    monkeypatch.setattr(inferatlas.resolve, "resolve", lambda **kwargs: snapshot)
+    monkeypatch.setattr(cli, "extract_stage", lambda *args: pytest.fail("extraction ran"))
+    output = tmp_path / "output"
+    assert "catalog identity" in invoke(command, "--output", output, code=3).output
+    assert not output.exists()
+
+
+def test_resolve_allows_explicit_pins_different_from_catalog_commit(monkeypatch):
+    snapshot = Snapshot.model_validate(read_json(FIXTURE / "snapshot.json"))
+    snapshot.vllm.tag = "main"
+    snapshot.vllm.commit = "a" * 40
+    monkeypatch.setenv("INFERATLAS_VLLM_COMMIT", snapshot.vllm.commit)
+    monkeypatch.setenv("INFERATLAS_ASCEND_COMMIT", snapshot.ascend.commit)
+    monkeypatch.setattr(inferatlas.resolve, "resolve", lambda **kwargs: snapshot)
+    assert cli.resolve_stage(cli.DEFAULT_MODEL, "A2", "main-verified") == snapshot

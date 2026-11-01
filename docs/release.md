@@ -129,8 +129,9 @@ H100 baseline triage also blocks all Ascend cells of that model. Missing or erro
 cells block the whole publication. The full audit yields `clean=4`, `errors=[]`
 and 11 `blocked_cells`, matching the four local Qwen A2/H100 exports.
 `blocked_cells` is retained in both bundle summary and publication state;
-`blocked_models` remains an aggregate for maintenance retries. `publish=false`
-prevents deployment and state updates. Publication and scheduled automation remain disabled.
+`models_with_blocked_cells` lists models with at least one blocked cell for
+maintenance retries. `publish=false` prevents deployment and state updates.
+Publication and scheduled automation remain disabled.
 
 Remaining gaps are MLA, 310P rules/annotations and dtype validation, A3 annotations,
 a confirmed A5 profile, calibration, and a second real version pair. Null dtype

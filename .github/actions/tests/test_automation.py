@@ -98,7 +98,7 @@ def test_triaged_310p_retains_clean_a2_and_h100_cells(tmp_path):
     assert (tmp_path / "bundle/triage/moe/310P/triage.json").exists()
     summary = json.loads((tmp_path / "bundle/summary.json").read_text())
     assert summary == {
-        "blocked_models": ["moe"],
+        "models_with_blocked_cells": ["moe"],
         "blocked_cells": [{"model": "moe", "device": "310P"}],
         "clean": 5,
         "errors": [],
@@ -423,7 +423,7 @@ def test_state_roundtrip_preserves_history_and_rejects_snapshot_overwrites(
             {
                 "errors": [],
                 "clean": 1,
-                "blocked_models": ["moe"],
+                "models_with_blocked_cells": ["moe"],
                 "blocked_cells": [{"model": "moe", "device": "310P"}],
             },
         )
@@ -434,6 +434,7 @@ def test_state_roundtrip_preserves_history_and_rejects_snapshot_overwrites(
     assert json.loads((retained / "new/ir.json").read_text()) == {"version": "new"}
     state = json.loads((tmp_path / "new/state/state.json").read_text())
     assert state["pairs"][pipeline.pair_key(PAIR)]["snapshot"] == SNAPSHOT
+    assert state["pairs"][pipeline.pair_key(PAIR)]["models_with_blocked_cells"] == ["moe"]
     assert state["pairs"][pipeline.pair_key(PAIR)]["blocked_cells"] == [
         {"model": "moe", "device": "310P"}
     ]
