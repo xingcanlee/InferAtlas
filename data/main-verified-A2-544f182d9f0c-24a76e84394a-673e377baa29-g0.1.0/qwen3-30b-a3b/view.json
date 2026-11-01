@@ -1,0 +1,1337 @@
+{
+  "views": [
+    {
+      "collapsed_of": [
+        "attn",
+        "attn.core",
+        "attn.k_norm",
+        "attn.o",
+        "attn.o.reduce",
+        "attn.q_norm",
+        "attn.qkv",
+        "attn.rope",
+        "attn.rope.apply",
+        "decoder",
+        "embed",
+        "embed.reduce",
+        "final_norm",
+        "kv_cache",
+        "lm_head",
+        "logits",
+        "logits.gather",
+        "moe",
+        "moe.act",
+        "moe.experts",
+        "moe.experts.combine",
+        "moe.experts.dispatch",
+        "moe.experts.method",
+        "moe.experts.reduce",
+        "moe.experts.weights",
+        "moe.gate",
+        "moe.w13",
+        "moe.w2",
+        "norm.input",
+        "norm.post",
+        "output"
+      ],
+      "edges": [
+        {
+          "from": "decoder",
+          "id": "decoder->final_norm:data",
+          "ir_edges": [
+            "decoder->final_norm:data"
+          ],
+          "kind": "data",
+          "label": [
+            "T",
+            "H"
+          ],
+          "label_pos": [
+            92,
+            604
+          ],
+          "points": [
+            [
+              92,
+              544
+            ],
+            [
+              92,
+              684
+            ],
+            [
+              192,
+              684
+            ],
+            [
+              192,
+              24
+            ],
+            [
+              348,
+              24
+            ],
+            [
+              348,
+              96
+            ]
+          ],
+          "to": "final_norm"
+        },
+        {
+          "from": "embed",
+          "id": "embed->embed.reduce:data",
+          "ir_edges": [
+            "embed->embed.reduce:data"
+          ],
+          "kind": "data",
+          "label": [
+            "T",
+            "H"
+          ],
+          "label_pos": [
+            92,
+            212
+          ],
+          "points": [
+            [
+              92,
+              140
+            ],
+            [
+              92,
+              280
+            ]
+          ],
+          "to": "embed.reduce"
+        },
+        {
+          "from": "embed.reduce",
+          "id": "embed.reduce->decoder:data",
+          "ir_edges": [
+            "embed.reduce->decoder:data"
+          ],
+          "kind": "data",
+          "label": [
+            "T",
+            "H"
+          ],
+          "label_pos": [
+            92,
+            404
+          ],
+          "points": [
+            [
+              92,
+              324
+            ],
+            [
+              92,
+              480
+            ]
+          ],
+          "to": "decoder"
+        },
+        {
+          "from": "final_norm",
+          "id": "final_norm->lm_head:data",
+          "ir_edges": [
+            "final_norm->lm_head:data"
+          ],
+          "kind": "data",
+          "label": [
+            "T",
+            "H*1"
+          ],
+          "label_pos": [
+            348,
+            212
+          ],
+          "points": [
+            [
+              348,
+              140
+            ],
+            [
+              348,
+              280
+            ]
+          ],
+          "to": "lm_head"
+        },
+        {
+          "from": "lm_head",
+          "id": "lm_head->logits.gather:data",
+          "ir_edges": [
+            "lm_head->logits.gather:data"
+          ],
+          "kind": "data",
+          "label": {
+            "decode": [
+              "S",
+              "round_up(V,64)/tp"
+            ],
+            "prefill": [
+              "batch",
+              "round_up(V,64)/tp"
+            ]
+          },
+          "label_pos": [
+            348,
+            404
+          ],
+          "points": [
+            [
+              348,
+              324
+            ],
+            [
+              348,
+              492
+            ]
+          ],
+          "to": "logits.gather"
+        },
+        {
+          "from": "logits",
+          "id": "logits->output:data",
+          "ir_edges": [
+            "logits->output:data"
+          ],
+          "kind": "data",
+          "label": {
+            "decode": [
+              "S",
+              "V"
+            ],
+            "prefill": [
+              "batch",
+              "V"
+            ]
+          },
+          "label_pos": [
+            676,
+            304
+          ],
+          "points": [
+            [
+              676,
+              232
+            ],
+            [
+              676,
+              372
+            ]
+          ],
+          "to": "output"
+        },
+        {
+          "from": "logits.gather",
+          "id": "logits.gather->logits:data",
+          "ir_edges": [
+            "logits.gather->logits:data"
+          ],
+          "kind": "data",
+          "label": {
+            "decode": [
+              "S",
+              "round_up(V,64)"
+            ],
+            "prefill": [
+              "batch",
+              "round_up(V,64)"
+            ]
+          },
+          "label_pos": [
+            676,
+            120
+          ],
+          "points": [
+            [
+              348,
+              536
+            ],
+            [
+              348,
+              636
+            ],
+            [
+              508,
+              636
+            ],
+            [
+              508,
+              24
+            ],
+            [
+              676,
+              24
+            ],
+            [
+              676,
+              188
+            ]
+          ],
+          "to": "logits"
+        }
+      ],
+      "height": 708,
+      "id": "L0",
+      "nodes": [
+        {
+          "h": 64,
+          "id": "decoder",
+          "ir_node": "decoder",
+          "label": "decoder\nLayers 0…47",
+          "w": 132,
+          "x": 24,
+          "y": 480
+        },
+        {
+          "h": 44,
+          "id": "embed",
+          "ir_node": "embed",
+          "label": "embed",
+          "w": 96,
+          "x": 44,
+          "y": 96
+        },
+        {
+          "h": 44,
+          "id": "embed.reduce",
+          "ir_node": "embed.reduce",
+          "label": "all_reduce",
+          "w": 112,
+          "x": 36,
+          "y": 280
+        },
+        {
+          "h": 44,
+          "id": "final_norm",
+          "ir_node": "final_norm",
+          "label": "final_norm",
+          "w": 112,
+          "x": 292,
+          "y": 96
+        },
+        {
+          "h": 44,
+          "id": "lm_head",
+          "ir_node": "lm_head",
+          "label": "lm_head",
+          "w": 96,
+          "x": 300,
+          "y": 280
+        },
+        {
+          "h": 44,
+          "id": "logits",
+          "ir_node": "logits",
+          "label": "logits",
+          "w": 96,
+          "x": 628,
+          "y": 188
+        },
+        {
+          "h": 44,
+          "id": "logits.gather",
+          "ir_node": "logits.gather",
+          "label": "gather",
+          "w": 96,
+          "x": 300,
+          "y": 492
+        },
+        {
+          "h": 44,
+          "id": "output",
+          "ir_node": "output",
+          "label": "Logits / sampling",
+          "w": 160,
+          "x": 596,
+          "y": 372
+        }
+      ],
+      "width": 832
+    },
+    {
+      "collapsed_of": [
+        "attn",
+        "attn.core",
+        "attn.k_norm",
+        "attn.o",
+        "attn.o.reduce",
+        "attn.q_norm",
+        "attn.qkv",
+        "attn.rope",
+        "attn.rope.apply",
+        "kv_cache",
+        "moe",
+        "moe.act",
+        "moe.experts",
+        "moe.experts.combine",
+        "moe.experts.dispatch",
+        "moe.experts.method",
+        "moe.experts.reduce",
+        "moe.experts.weights",
+        "moe.gate",
+        "moe.w13",
+        "moe.w2",
+        "norm.input",
+        "norm.post"
+      ],
+      "edges": [
+        {
+          "from": "attn",
+          "id": "attn.o.reduce->norm.post:data",
+          "ir_edges": [
+            "attn.core->attn.o:data",
+            "attn.k_norm->attn.rope:data",
+            "attn.o->attn.o.reduce:data",
+            "attn.o.reduce->norm.post:data",
+            "attn.q_norm->attn.rope:data",
+            "attn.qkv->attn.k_norm:data",
+            "attn.qkv->attn.q_norm:data",
+            "attn.qkv->attn.rope:data",
+            "attn.rope->attn.core:data"
+          ],
+          "kind": "data",
+          "label": [
+            "T",
+            "H"
+          ],
+          "label_pos": [
+            72,
+            288
+          ],
+          "points": [
+            [
+              72,
+              228
+            ],
+            [
+              72,
+              320
+            ],
+            [
+              124,
+              320
+            ],
+            [
+              124,
+              344
+            ]
+          ],
+          "to": "norm.post"
+        },
+        {
+          "from": "norm.input",
+          "id": "norm.input->attn.qkv:data",
+          "ir_edges": [
+            "attn.core->attn.o:data",
+            "attn.k_norm->attn.rope:data",
+            "attn.o->attn.o.reduce:data",
+            "attn.q_norm->attn.rope:data",
+            "attn.qkv->attn.k_norm:data",
+            "attn.qkv->attn.q_norm:data",
+            "attn.qkv->attn.rope:data",
+            "attn.rope->attn.core:data",
+            "norm.input->attn.qkv:data"
+          ],
+          "kind": "data",
+          "label": [
+            "T",
+            "H*1"
+          ],
+          "label_pos": [
+            72,
+            128
+          ],
+          "points": [
+            [
+              120,
+              68
+            ],
+            [
+              120,
+              92
+            ],
+            [
+              72,
+              92
+            ],
+            [
+              72,
+              184
+            ]
+          ],
+          "to": "attn"
+        },
+        {
+          "from": "norm.input",
+          "id": "norm.input->norm.post:residual",
+          "ir_edges": [
+            "norm.input->norm.post:residual"
+          ],
+          "kind": "residual",
+          "label": [
+            "T",
+            "H*1"
+          ],
+          "label_pos": [
+            208,
+            208
+          ],
+          "points": [
+            [
+              160,
+              68
+            ],
+            [
+              160,
+              92
+            ],
+            [
+              208,
+              92
+            ],
+            [
+              208,
+              320
+            ],
+            [
+              160,
+              320
+            ],
+            [
+              160,
+              344
+            ]
+          ],
+          "to": "norm.post"
+        },
+        {
+          "from": "norm.post",
+          "id": "norm.post->moe.experts.reduce:residual",
+          "ir_edges": [
+            "norm.post->moe.experts.reduce:residual"
+          ],
+          "kind": "residual",
+          "label": [
+            "T",
+            "H*1"
+          ],
+          "label_pos": [
+            92,
+            448
+          ],
+          "points": [
+            [
+              124,
+              388
+            ],
+            [
+              124,
+              412
+            ],
+            [
+              92,
+              412
+            ],
+            [
+              92,
+              480
+            ],
+            [
+              124,
+              480
+            ],
+            [
+              124,
+              504
+            ]
+          ],
+          "to": "moe"
+        },
+        {
+          "from": "norm.post",
+          "id": "norm.post->moe.gate:data",
+          "ir_edges": [
+            "moe.act->moe.w2:data",
+            "moe.experts.combine->moe.experts.reduce:data",
+            "moe.experts.dispatch->moe.w13:data",
+            "moe.gate->moe.experts.dispatch:data",
+            "moe.w13->moe.act:data",
+            "moe.w2->moe.experts.combine:data",
+            "norm.post->moe.gate:data"
+          ],
+          "kind": "data",
+          "label": [
+            "T",
+            "H*1"
+          ],
+          "label_pos": [
+            188,
+            448
+          ],
+          "points": [
+            [
+              160,
+              388
+            ],
+            [
+              160,
+              412
+            ],
+            [
+              188,
+              412
+            ],
+            [
+              188,
+              480
+            ],
+            [
+              156,
+              480
+            ],
+            [
+              156,
+              504
+            ]
+          ],
+          "to": "moe"
+        }
+      ],
+      "height": 572,
+      "id": "L1:decoder",
+      "nodes": [
+        {
+          "h": 44,
+          "id": "attn",
+          "ir_node": "attn",
+          "label": "attn",
+          "w": 96,
+          "x": 24,
+          "y": 184
+        },
+        {
+          "h": 44,
+          "id": "moe",
+          "ir_node": "moe",
+          "label": "moe",
+          "w": 96,
+          "x": 92,
+          "y": 504
+        },
+        {
+          "h": 44,
+          "id": "norm.input",
+          "ir_node": "norm.input",
+          "label": "norm.input",
+          "w": 112,
+          "x": 84,
+          "y": 24
+        },
+        {
+          "h": 44,
+          "id": "norm.post",
+          "ir_node": "norm.post",
+          "label": "norm.post",
+          "w": 108,
+          "x": 88,
+          "y": 344
+        }
+      ],
+      "width": 272
+    },
+    {
+      "collapsed_of": [
+        "attn.core",
+        "attn.k_norm",
+        "attn.o",
+        "attn.o.reduce",
+        "attn.q_norm",
+        "attn.qkv",
+        "attn.rope",
+        "attn.rope.apply",
+        "kv_cache"
+      ],
+      "edges": [
+        {
+          "from": "attn.core",
+          "id": "attn.core->attn.o:data",
+          "ir_edges": [
+            "attn.core->attn.o:data"
+          ],
+          "kind": "data",
+          "label": [
+            "T",
+            "Hq/tp*D"
+          ],
+          "label_pos": [
+            872,
+            228
+          ],
+          "points": [
+            [
+              872,
+              152
+            ],
+            [
+              872,
+              296
+            ]
+          ],
+          "to": "attn.o"
+        },
+        {
+          "from": "attn.k_norm",
+          "id": "attn.k_norm->attn.rope:data",
+          "ir_edges": [
+            "attn.k_norm->attn.rope:data"
+          ],
+          "kind": "data",
+          "label": [
+            "T",
+            "D*max(1,Hkv/tp)"
+          ],
+          "label_pos": [
+            140,
+            400
+          ],
+          "points": [
+            [
+              140,
+              340
+            ],
+            [
+              140,
+              432
+            ],
+            [
+              364,
+              432
+            ],
+            [
+              364,
+              456
+            ]
+          ],
+          "to": "attn.rope"
+        },
+        {
+          "from": "attn.o",
+          "id": "attn.o->attn.o.reduce:data",
+          "ir_edges": [
+            "attn.o->attn.o.reduce:data"
+          ],
+          "kind": "data",
+          "label": [
+            "T",
+            "H"
+          ],
+          "label_pos": [
+            872,
+            400
+          ],
+          "points": [
+            [
+              872,
+              340
+            ],
+            [
+              872,
+              456
+            ]
+          ],
+          "to": "attn.o.reduce"
+        },
+        {
+          "from": "attn.q_norm",
+          "id": "attn.q_norm->attn.rope:data",
+          "ir_edges": [
+            "attn.q_norm->attn.rope:data"
+          ],
+          "kind": "data",
+          "label": [
+            "T",
+            "D*Hq/tp"
+          ],
+          "label_pos": [
+            388,
+            400
+          ],
+          "points": [
+            [
+              388,
+              340
+            ],
+            [
+              388,
+              456
+            ]
+          ],
+          "to": "attn.rope"
+        },
+        {
+          "from": "attn.qkv",
+          "id": "attn.qkv->attn.k_norm:data",
+          "ir_edges": [
+            "attn.qkv->attn.k_norm:data"
+          ],
+          "kind": "data",
+          "label": [
+            "T",
+            "(Hq/tp+2*max(1,Hkv/tp))*D"
+          ],
+          "label_pos": [
+            140,
+            228
+          ],
+          "points": [
+            [
+              324,
+              152
+            ],
+            [
+              324,
+              176
+            ],
+            [
+              140,
+              176
+            ],
+            [
+              140,
+              296
+            ]
+          ],
+          "to": "attn.k_norm"
+        },
+        {
+          "from": "attn.qkv",
+          "id": "attn.qkv->attn.q_norm:data",
+          "ir_edges": [
+            "attn.qkv->attn.q_norm:data"
+          ],
+          "kind": "data",
+          "label": [
+            "T",
+            "(Hq/tp+2*max(1,Hkv/tp))*D"
+          ],
+          "label_pos": [
+            388,
+            228
+          ],
+          "points": [
+            [
+              348,
+              152
+            ],
+            [
+              348,
+              184
+            ],
+            [
+              388,
+              184
+            ],
+            [
+              388,
+              296
+            ]
+          ],
+          "to": "attn.q_norm"
+        },
+        {
+          "from": "attn.qkv",
+          "id": "attn.qkv->attn.rope:data",
+          "ir_edges": [
+            "attn.qkv->attn.rope:data"
+          ],
+          "kind": "data",
+          "label": [
+            "T",
+            "(Hq/tp+2*max(1,Hkv/tp))*D"
+          ],
+          "label_pos": [
+            612,
+            320
+          ],
+          "points": [
+            [
+              372,
+              152
+            ],
+            [
+              372,
+              176
+            ],
+            [
+              612,
+              176
+            ],
+            [
+              612,
+              432
+            ],
+            [
+              412,
+              432
+            ],
+            [
+              412,
+              456
+            ]
+          ],
+          "to": "attn.rope"
+        },
+        {
+          "from": "attn.rope",
+          "id": "attn.rope->attn.core:data",
+          "ir_edges": [
+            "attn.rope->attn.core:data"
+          ],
+          "kind": "data",
+          "label": [
+            "T",
+            "Hq/tp",
+            "D"
+          ],
+          "label_pos": [
+            388,
+            600
+          ],
+          "points": [
+            [
+              388,
+              500
+            ],
+            [
+              388,
+              732
+            ],
+            [
+              780,
+              732
+            ],
+            [
+              780,
+              36
+            ],
+            [
+              852,
+              36
+            ],
+            [
+              852,
+              108
+            ]
+          ],
+          "to": "attn.core"
+        },
+        {
+          "from": "kv_cache",
+          "id": "kv_cache->attn.core:kv",
+          "ir_edges": [
+            "kv_cache->attn.core:kv"
+          ],
+          "kind": "kv",
+          "label": [
+            "2",
+            "S",
+            "context",
+            "max(1,Hkv/tp)",
+            "D"
+          ],
+          "label_pos": [
+            600,
+            600
+          ],
+          "points": [
+            [
+              600,
+              500
+            ],
+            [
+              600,
+              720
+            ],
+            [
+              764,
+              720
+            ],
+            [
+              764,
+              24
+            ],
+            [
+              888,
+              24
+            ],
+            [
+              888,
+              108
+            ]
+          ],
+          "to": "attn.core"
+        }
+      ],
+      "height": 756,
+      "id": "L2:attn",
+      "nodes": [
+        {
+          "h": 44,
+          "id": "attn.core",
+          "ir_node": "attn.core",
+          "label": "attn.core",
+          "w": 100,
+          "x": 820,
+          "y": 108
+        },
+        {
+          "h": 44,
+          "id": "attn.k_norm",
+          "ir_node": "attn.k_norm",
+          "label": "attn.k_norm",
+          "w": 120,
+          "x": 80,
+          "y": 296
+        },
+        {
+          "h": 44,
+          "id": "attn.o",
+          "ir_node": "attn.o",
+          "label": "attn.o",
+          "w": 96,
+          "x": 824,
+          "y": 296
+        },
+        {
+          "h": 44,
+          "id": "attn.o.reduce",
+          "ir_node": "attn.o.reduce",
+          "label": "all_reduce",
+          "w": 112,
+          "x": 816,
+          "y": 456
+        },
+        {
+          "h": 44,
+          "id": "attn.q_norm",
+          "ir_node": "attn.q_norm",
+          "label": "attn.q_norm",
+          "w": 120,
+          "x": 328,
+          "y": 296
+        },
+        {
+          "h": 44,
+          "id": "attn.qkv",
+          "ir_node": "attn.qkv",
+          "label": "attn.qkv",
+          "w": 96,
+          "x": 300,
+          "y": 108
+        },
+        {
+          "h": 44,
+          "id": "attn.rope",
+          "ir_node": "attn.rope",
+          "label": "attn.rope",
+          "w": 100,
+          "x": 340,
+          "y": 456
+        },
+        {
+          "h": 44,
+          "id": "kv_cache",
+          "ir_node": "kv_cache",
+          "label": "KV cache",
+          "w": 104,
+          "x": 548,
+          "y": 456
+        }
+      ],
+      "width": 952
+    },
+    {
+      "collapsed_of": [
+        "moe.act",
+        "moe.experts",
+        "moe.experts.combine",
+        "moe.experts.dispatch",
+        "moe.experts.method",
+        "moe.experts.reduce",
+        "moe.experts.weights",
+        "moe.gate",
+        "moe.w13",
+        "moe.w2"
+      ],
+      "edges": [
+        {
+          "from": "moe.act",
+          "id": "moe.act->moe.w2:data",
+          "ir_edges": [
+            "moe.act->moe.w2:data"
+          ],
+          "kind": "data",
+          "label": [
+            "T*dp*topk/(ep>1 ? ep : 1)",
+            "I_moe/(ep>1 ? 1 : tp*dp)"
+          ],
+          "label_pos": [
+            320,
+            304
+          ],
+          "points": [
+            [
+              320,
+              232
+            ],
+            [
+              320,
+              372
+            ]
+          ],
+          "to": "moe.w2"
+        },
+        {
+          "from": "moe.experts.combine",
+          "id": "moe.experts.combine->moe.experts.reduce:data",
+          "ir_edges": [
+            "moe.experts.combine->moe.experts.reduce:data"
+          ],
+          "kind": "data",
+          "label": [
+            "T",
+            "H"
+          ],
+          "label_pos": [
+            580,
+            212
+          ],
+          "points": [
+            [
+              580,
+              140
+            ],
+            [
+              580,
+              280
+            ]
+          ],
+          "to": "moe.experts.reduce"
+        },
+        {
+          "from": "moe.experts.dispatch",
+          "id": "moe.experts.dispatch->moe.w13:data",
+          "ir_edges": [
+            "moe.experts.dispatch->moe.w13:data"
+          ],
+          "kind": "data",
+          "label": [
+            "T",
+            "H"
+          ],
+          "label_pos": [
+            80,
+            396
+          ],
+          "points": [
+            [
+              80,
+              324
+            ],
+            [
+              80,
+              464
+            ]
+          ],
+          "to": "moe.w13"
+        },
+        {
+          "from": "moe.gate",
+          "id": "moe.gate->moe.experts.dispatch:data",
+          "ir_edges": [
+            "moe.gate->moe.experts.dispatch:data"
+          ],
+          "kind": "data",
+          "label": [
+            "T",
+            "128"
+          ],
+          "label_pos": [
+            80,
+            212
+          ],
+          "points": [
+            [
+              80,
+              140
+            ],
+            [
+              80,
+              280
+            ]
+          ],
+          "to": "moe.experts.dispatch"
+        },
+        {
+          "from": "moe.w13",
+          "id": "moe.w13->moe.act:data",
+          "ir_edges": [
+            "moe.w13->moe.act:data"
+          ],
+          "kind": "data",
+          "label": [
+            "T*dp*topk/(ep>1 ? ep : 1)",
+            "2*I_moe/(ep>1 ? 1 : tp*dp)"
+          ],
+          "label_pos": [
+            320,
+            120
+          ],
+          "points": [
+            [
+              80,
+              508
+            ],
+            [
+              80,
+              580
+            ],
+            [
+              168,
+              580
+            ],
+            [
+              168,
+              24
+            ],
+            [
+              320,
+              24
+            ],
+            [
+              320,
+              188
+            ]
+          ],
+          "to": "moe.act"
+        },
+        {
+          "from": "moe.w2",
+          "id": "moe.w2->moe.experts.combine:data",
+          "ir_edges": [
+            "moe.w2->moe.experts.combine:data"
+          ],
+          "kind": "data",
+          "label": [
+            "T*dp*topk/(ep>1 ? ep : 1)",
+            "H"
+          ],
+          "label_pos": [
+            320,
+            488
+          ],
+          "points": [
+            [
+              320,
+              416
+            ],
+            [
+              320,
+              580
+            ],
+            [
+              476,
+              580
+            ],
+            [
+              476,
+              24
+            ],
+            [
+              580,
+              24
+            ],
+            [
+              580,
+              96
+            ]
+          ],
+          "to": "moe.experts.combine"
+        }
+      ],
+      "height": 604,
+      "id": "L2:moe",
+      "nodes": [
+        {
+          "h": 44,
+          "id": "moe.act",
+          "ir_node": "moe.act",
+          "label": "act",
+          "w": 96,
+          "x": 272,
+          "y": 188
+        },
+        {
+          "h": 44,
+          "id": "moe.experts.combine",
+          "ir_node": "moe.experts.combine",
+          "label": "reduce_scatter",
+          "w": 140,
+          "x": 512,
+          "y": 96
+        },
+        {
+          "h": 44,
+          "id": "moe.experts.dispatch",
+          "ir_node": "moe.experts.dispatch",
+          "label": "all_gather",
+          "w": 108,
+          "x": 24,
+          "y": 280
+        },
+        {
+          "h": 44,
+          "id": "moe.experts.reduce",
+          "ir_node": "moe.experts.reduce",
+          "label": "all_reduce",
+          "w": 112,
+          "x": 524,
+          "y": 280
+        },
+        {
+          "h": 44,
+          "id": "moe.gate",
+          "ir_node": "moe.gate",
+          "label": "moe.gate",
+          "w": 104,
+          "x": 28,
+          "y": 96
+        },
+        {
+          "h": 44,
+          "id": "moe.w13",
+          "ir_node": "moe.w13",
+          "label": "w13",
+          "w": 96,
+          "x": 32,
+          "y": 464
+        },
+        {
+          "h": 44,
+          "id": "moe.w2",
+          "ir_node": "moe.w2",
+          "label": "w2",
+          "w": 96,
+          "x": 272,
+          "y": 372
+        }
+      ],
+      "width": 676
+    }
+  ]
+}

@@ -1,0 +1,278 @@
+{
+  "cells": [
+    {
+      "data_path": null,
+      "device": "310P",
+      "model": "deepseek-v3",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": null,
+      "device": "A2",
+      "model": "deepseek-v3",
+      "status": "triage",
+      "triage_count": 1,
+      "version": "main-verified"
+    },
+    {
+      "data_path": null,
+      "device": "A3",
+      "model": "deepseek-v3",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": null,
+      "device": "A5",
+      "model": "deepseek-v3",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": null,
+      "device": "H100",
+      "model": "deepseek-v3",
+      "status": "triage",
+      "triage_count": 668,
+      "version": "main-verified"
+    },
+    {
+      "data_path": null,
+      "device": "310P",
+      "model": "qwen3-30b-a3b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": "data/main-verified-A2-544f182d9f0c-24a76e84394a-673e377baa29-g0.1.0/qwen3-30b-a3b",
+      "device": "A2",
+      "model": "qwen3-30b-a3b",
+      "status": "ok",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": null,
+      "device": "A3",
+      "model": "qwen3-30b-a3b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": null,
+      "device": "A5",
+      "model": "qwen3-30b-a3b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": "data/main-verified-H100-544f182d9f0c-24a76e84394a-673e377baa29-g0.1.0/qwen3-30b-a3b",
+      "device": "H100",
+      "model": "qwen3-30b-a3b",
+      "status": "ok",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": null,
+      "device": "310P",
+      "model": "qwen3-8b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": "data/main-verified-A2-544f182d9f0c-24a76e84394a-669a073a2521-g0.1.0/qwen3-8b",
+      "device": "A2",
+      "model": "qwen3-8b",
+      "status": "ok",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": null,
+      "device": "A3",
+      "model": "qwen3-8b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": null,
+      "device": "A5",
+      "model": "qwen3-8b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": "data/main-verified-H100-544f182d9f0c-24a76e84394a-669a073a2521-g0.1.0/qwen3-8b",
+      "device": "H100",
+      "model": "qwen3-8b",
+      "status": "ok",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": null,
+      "device": "310P",
+      "model": "deepseek-v3",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "A2",
+      "model": "deepseek-v3",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "A3",
+      "model": "deepseek-v3",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "A5",
+      "model": "deepseek-v3",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "H100",
+      "model": "deepseek-v3",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "310P",
+      "model": "qwen3-30b-a3b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "A2",
+      "model": "qwen3-30b-a3b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "A3",
+      "model": "qwen3-30b-a3b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "A5",
+      "model": "qwen3-30b-a3b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "H100",
+      "model": "qwen3-30b-a3b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "310P",
+      "model": "qwen3-8b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "A2",
+      "model": "qwen3-8b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "A3",
+      "model": "qwen3-8b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "A5",
+      "model": "qwen3-8b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "H100",
+      "model": "qwen3-8b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    }
+  ],
+  "models": [
+    {
+      "family": "mla",
+      "hf_id": "deepseek-ai/DeepSeek-V3",
+      "id": "deepseek-v3",
+      "label": "DeepSeek-V3"
+    },
+    {
+      "family": "moe",
+      "hf_id": "Qwen/Qwen3-30B-A3B",
+      "id": "qwen3-30b-a3b",
+      "label": "Qwen3-30B-A3B"
+    },
+    {
+      "family": "dense",
+      "hf_id": "Qwen/Qwen3-8B",
+      "id": "qwen3-8b",
+      "label": "Qwen3-8B"
+    }
+  ],
+  "versions": [
+    {
+      "ascend": "main",
+      "id": "main-verified",
+      "label": "main-verified",
+      "vllm": "544f182d9f0c9bfe8bd7645525951d5e3692a542"
+    },
+    {
+      "ascend": "v0.32.0",
+      "id": "v0.32.0",
+      "label": "v0.32.0",
+      "vllm": "v0.32.0"
+    }
+  ]
+}
