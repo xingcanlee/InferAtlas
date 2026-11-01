@@ -1,0 +1,134 @@
+{
+  "artifacts": {
+    "dist/inferatlas-qwen3-30b-a3b-a2.html": {
+      "bytes": 1772601,
+      "sha256": "622bde821ee1280ed8a464c1d7bde1bf6f4ac6c93541745f31a0e4fdd3043145"
+    },
+    "dist/inferatlas-qwen3-8b-a2.html": {
+      "bytes": 1754227,
+      "sha256": "42cc10a34d1e92e813ecad793e52852071a0dab42564aa14da51428b333dfbf1"
+    },
+    "web/dist/data/index.json": {
+      "bytes": 6177,
+      "sha256": "951a0c16accbf72593b22a843a0e5b45426a946dd38330985d727e563c14d8f1"
+    },
+    "web/dist/index.html": {
+      "bytes": 871,
+      "sha256": "bdf50cd5e546df8f658a069aa23ffa5c64a6892c8fc1f6097b0ed588b22cf34f"
+    }
+  },
+  "browser": {
+    "offline_attn_o_MiB": {
+      "qwen3-30b-a3b": {
+        "tp1": 16,
+        "tp4": 4
+      },
+      "qwen3-8b": {
+        "tp1": 32,
+        "tp4": 8
+      }
+    },
+    "offline_network_requests": 0,
+    "offline_page_errors": 0,
+    "tests_passed": 19
+  },
+  "data_files": 14,
+  "determinism": {
+    "result": "byte-identical",
+    "site_files_compared": 27,
+    "standalone_files_compared": 2
+  },
+  "matrix": {
+    "missing": 24,
+    "ok": 4,
+    "triage": 2
+  },
+  "models": {
+    "qwen3-30b-a3b/A2": {
+      "ascend_commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+      "config_rev": "inline:sha256:ded54c732e9f874de266dfae8d98d409abbbb82cbecaeb1c0efe974cdd02262b",
+      "vllm_commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+      "weight_bytes": {
+        "weights.tp1": "IR 61064245248 bytes; extracted rank-zero parameters 61064245248 bytes.",
+        "weights.tp2": "IR 30544916480 bytes; extracted rank-zero parameters 30544916480 bytes.",
+        "weights.tp4": "IR 15285252096 bytes; extracted rank-zero parameters 15285252096 bytes.",
+        "weights.tp8": "IR 7680585728 bytes; extracted rank-zero parameters 7680585728 bytes."
+      }
+    },
+    "qwen3-30b-a3b/H100": {
+      "ascend_commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+      "config_rev": "inline:sha256:ded54c732e9f874de266dfae8d98d409abbbb82cbecaeb1c0efe974cdd02262b",
+      "vllm_commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+      "weight_bytes": {
+        "weights.tp1": "IR 61064245248 bytes; extracted rank-zero parameters 61064245248 bytes.",
+        "weights.tp2": "IR 30544916480 bytes; extracted rank-zero parameters 30544916480 bytes.",
+        "weights.tp4": "IR 15285252096 bytes; extracted rank-zero parameters 15285252096 bytes.",
+        "weights.tp8": "IR 7680585728 bytes; extracted rank-zero parameters 7680585728 bytes."
+      }
+    },
+    "qwen3-8b/A2": {
+      "ascend_commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+      "config_rev": "inline:sha256:d4e9a115241526b8e427513a2bbbff545bb324875df0f0a158d25bf0b007fe49",
+      "vllm_commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+      "weight_bytes": {
+        "weights.tp1": "IR 16381470720 bytes; extracted rank-zero parameters 16381470720 bytes.",
+        "weights.tp2": "IR 8191043584 bytes; extracted rank-zero parameters 8191043584 bytes.",
+        "weights.tp4": "IR 4095830016 bytes; extracted rank-zero parameters 4095830016 bytes.",
+        "weights.tp8": "IR 2048223232 bytes; extracted rank-zero parameters 2048223232 bytes."
+      }
+    },
+    "qwen3-8b/H100": {
+      "ascend_commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+      "config_rev": "inline:sha256:d4e9a115241526b8e427513a2bbbff545bb324875df0f0a158d25bf0b007fe49",
+      "vllm_commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+      "weight_bytes": {
+        "weights.tp1": "IR 16381470720 bytes; extracted rank-zero parameters 16381470720 bytes.",
+        "weights.tp2": "IR 8191043584 bytes; extracted rank-zero parameters 8191043584 bytes.",
+        "weights.tp4": "IR 4095830016 bytes; extracted rank-zero parameters 4095830016 bytes.",
+        "weights.tp8": "IR 2048223232 bytes; extracted rank-zero parameters 2048223232 bytes."
+      }
+    }
+  },
+  "site_files": 27,
+  "site_total_bytes": 2045914,
+  "tests": {
+    "browser_passed": 19,
+    "contracts_passed": 2,
+    "expressions_passed": 499,
+    "layout_passed": 25,
+    "lint": "ruff and Biome passed",
+    "python_passed": 730,
+    "web_passed": 35
+  },
+  "triage": {
+    "deepseek-v3/A2": {
+      "origin": "Curated baseline MLA rule blocker observed on H100; A2 Ascend extraction failed before output.",
+      "recorded_items": 1
+    },
+    "deepseek-v3/H100": {
+      "origin": "Actual TP 1/2/4/8 lowering output; raw build also fails weights and layout.",
+      "recorded_items": 668
+    }
+  },
+  "visual_review": {
+    "full_visual_fit_signoff": false,
+    "known_issues": [
+      "Default graph minimum zoom crops content; decoder is below canvas at 1280x800.",
+      "Fit view exposes all nodes but makes graph labels small.",
+      "Memory warning wraps awkwardly at 1280x800.",
+      "Direct blocked-model routes describe absent artifacts as missing."
+    ],
+    "screenshots_opened": [
+      "diff-unavailable.png",
+      "home-a2.png",
+      "home-h100.png",
+      "model-1280-fit.png",
+      "model-1280.png",
+      "model-dark.png",
+      "model-light.png",
+      "model-overlay-a2.png",
+      "single-qwen3-30b-a3b-a2-tp4.png",
+      "single-qwen3-8b-a2-tp4.png"
+    ]
+  }
+}

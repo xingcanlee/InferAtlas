@@ -323,6 +323,39 @@ def test_site_gates_before_web_or_data_write(tmp_path, monkeypatch, status, incl
     if allowed:
         index = Index.model_validate(read_json(tmp_path / "data/index.json"))
         assert any(c.status == ("triage" if status == 2 else "ok") for c in index.cells)
+        if status == 2:
+            assert all(c.data_path is None for c in index.cells)
+            assert not list((tmp_path / "data").rglob("ir.json"))
+
+
+@pytest.mark.parametrize("empty", [False, True])
+def test_site_triage_only_cell_never_publishes_numeric_artifacts(tmp_path, monkeypatch, empty):
+    directory = site_build(tmp_path, 0 if empty else 2)
+    for name in ("ir", "view", "report"):
+        (directory / f"{name}.json").unlink()
+    calls = []
+    monkeypatch.setattr(cli.subprocess, "run", lambda command, **kwargs: calls.append(command))
+    result = invoke(
+        "site",
+        "--build-root",
+        tmp_path / "build",
+        "--data-dir",
+        tmp_path / "data",
+        "--include-blocked",
+        code=3 if empty else 2,
+    )
+    assert bool(calls) == (not empty)
+    if empty:
+        assert "must have blocking items" in result.output
+    else:
+        index = Index.model_validate(read_json(tmp_path / "data/index.json"))
+        cell = next(c for c in index.cells if c.status == "triage")
+        assert cell.data_path is None
+        assert cell.triage_count == len(read_json(directory / "triage.json")["items"])
+        assert sorted(p.name for p in (tmp_path / "data").iterdir()) == [
+            "hardware.json",
+            "index.json",
+        ]
 
 
 def test_site_always_refuses_fixture_provenance(tmp_path, monkeypatch):

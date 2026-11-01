@@ -766,52 +766,62 @@ def parse_logs(log: Path, output: Path = Path("calibration.json")) -> None:
 def site(
     build_root: Path | None = None, data_dir: Path | None = None, include_blocked: bool = False
 ) -> None:
-    """Copy build outputs, generate the version/model index and build the web app."""
+    """Publish verified outputs; --include-blocked adds status-only triage cells."""
     build_root = build_root or ROOT / ".cache/build"
     data = catalog()
     cells = {}
     artifacts = []
     code = 0
-    for path in sorted(build_root.glob("*/*/ir.json")):
-        directory = path.parent
-        ir = IR.model_validate(read_json(path))
-        report = Report.model_validate(read_json(directory / "report.json"))
+    directories = {
+        path.parent
+        for name in ("ir.json", "triage.json")
+        for path in build_root.glob(f"*/*/{name}")
+    }
+    for directory in sorted(directories):
         triage = Triage.model_validate(read_json(directory / "triage.json"))
-        if not (ir.snapshot == report.snapshot == triage.snapshot):
-            raise ValueError("build artifacts have inconsistent snapshot identities")
-        model = catalog_model(ir.snapshot.model.hf_id)
+        snapshot = triage.snapshot
+        model = catalog_model(snapshot.model.hf_id)
         pairs = [
             p
             for p in data.version_pairs
             if (
-                p.vllm in (ir.snapshot.vllm.tag, ir.snapshot.vllm.commit)
-                and p.ascend in (ir.snapshot.ascend.tag, ir.snapshot.ascend.commit)
+                p.vllm in (snapshot.vllm.tag, snapshot.vllm.commit)
+                and p.ascend in (snapshot.ascend.tag, snapshot.ascend.commit)
             )
         ]
         if len(pairs) != 1:
             raise ValueError("build snapshot does not identify a unique catalog pair")
         pair = pairs[0]
-        key = (pair.id, model.id, ir.snapshot.device)
+        key = (pair.id, model.id, snapshot.device)
         if key in cells:
             raise ValueError("multiple builds occupy the same version/model/device cell")
-        status = exit_code(report, triage)
-        provenance = [check for check in report.checks if check.id == "provenance"]
-        if not provenance or any(c.status != "pass" for c in provenance):
-            raise ValueError(f"site refuses fixture or unverified provenance: {directory}")
-        if status == 3:
-            raise ValueError(f"site refuses failed verification: {directory}")
-        view = View.model_validate(read_json(directory / "view.json"))
-        validate_view(ir, view)
+        status = 2
+        if (directory / "ir.json").is_file():
+            ir = IR.model_validate(read_json(directory / "ir.json"))
+            report = Report.model_validate(read_json(directory / "report.json"))
+            if not (ir.snapshot == report.snapshot == snapshot):
+                raise ValueError("build artifacts have inconsistent snapshot identities")
+            status = exit_code(report, triage)
+            provenance = [check for check in report.checks if check.id == "provenance"]
+            if not provenance or any(c.status != "pass" for c in provenance):
+                raise ValueError(f"site refuses fixture or unverified provenance: {directory}")
+            if status == 3:
+                raise ValueError(f"site refuses failed verification: {directory}")
+        elif not triage.items:
+            raise ValueError(f"triage-only cell must have blocking items: {directory}")
         code = max(code, status)
         relative = Path(directory.parent.name) / model.id
-        for name, value in (("ir", ir), ("view", view), ("report", report)):
-            artifacts.append((relative / f"{name}.json", value))
+        if status == 0:
+            view = View.model_validate(read_json(directory / "view.json"))
+            validate_view(ir, view)
+            for name, value in (("ir", ir), ("view", view), ("report", report)):
+                artifacts.append((relative / f"{name}.json", value))
         cells[key] = dict(
             version=pair.id,
             model=model.id,
-            device=ir.snapshot.device,
+            device=snapshot.device,
             status="ok" if status == 0 else "triage",
-            data_path=f"data/{relative.as_posix()}",
+            data_path=f"data/{relative.as_posix()}" if status == 0 else None,
             triage_count=len(triage.items),
         )
     if not cells:
