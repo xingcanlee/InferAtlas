@@ -21,7 +21,7 @@ export const figureNode = cva(
       },
       size: {
         sm: "min-h-6 gap-0.5 px-2 py-1 text-[11px]",
-        md: "min-h-8 gap-1 px-2.5 py-1.5 text-[12px]",
+        md: "min-h-8 gap-0.5 px-2.5 py-1 text-[12px]",
       },
       interactive: {
         true: "cursor-pointer hover:border-foreground/45 focus-visible:ring-2 focus-visible:ring-ring/70 focus-visible:ring-offset-1 focus-visible:ring-offset-background",
@@ -176,7 +176,7 @@ export function Chip({
       data-slot="chip"
       data-tone={tone}
       className={cn(
-        "inline-flex h-[18px] shrink-0 items-center justify-center rounded-[3px] border px-1 font-mono text-[9.5px] leading-none whitespace-nowrap text-foreground",
+        "inline-flex h-[19px] shrink-0 items-center justify-center rounded-[3px] border px-1 font-mono text-[10px] leading-none whitespace-nowrap text-foreground",
         chipTone[tone],
         className,
       )}

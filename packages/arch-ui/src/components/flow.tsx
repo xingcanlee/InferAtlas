@@ -8,7 +8,7 @@ const arrow = cva("relative flex w-full shrink-0 justify-center text-arch-wire",
     length: {
       sm: "h-3",
       md: "h-4",
-      lg: "h-6",
+      lg: "h-5",
     },
   },
   defaultVariants: { length: "md" },

@@ -9,6 +9,8 @@
  */
 :root {
   --arch-col: 15.5rem;
+  /* Surface the figure sits on (frame legends punch through borders with it). */
+  --arch-surface: var(--canvas, var(--background));
   --arch-rail: 1.75rem;
 
   --arch-norm: oklch(0.975 0.04 96);
@@ -114,4 +116,5 @@
   --color-arch-frame: var(--arch-frame);
   --color-arch-frame-border: var(--arch-frame-border);
   --color-arch-wire: var(--arch-wire);
+  --color-arch-surface: var(--arch-surface);
 }

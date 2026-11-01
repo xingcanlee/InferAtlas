@@ -119,17 +119,20 @@ export function findCell(
 
 const archCache = new Map<string, Promise<Arch | undefined>>();
 /** `arch.json` of a data path, or undefined when the snapshot has none yet. */
+function checkArch(a: Arch | undefined, where: string): Arch | undefined {
+  if (a && (typeof a !== "object" || !Array.isArray(a.stages) || !a.model || !a.symbols))
+    throw new DataError(`${where}/arch.json is malformed`);
+  return a;
+}
+
+/** Rejects when arch.json exists but cannot be used; callers keep the rest of the page alive. */
 export function loadArch(dataPath: string): Promise<Arch | undefined> {
   const data = inline();
-  if (data) return Promise.resolve(data.bundles[dataPath]?.arch);
+  const base = dataPath.replace(/\/+$/, "");
+  if (data) return Promise.resolve().then(() => checkArch(data.bundles[dataPath]?.arch, base));
   let p = archCache.get(dataPath);
   if (!p) {
-    const base = dataPath.replace(/\/+$/, "");
-    p = fetchJson<Arch>(`${base}/arch.json`, true).then((a) => {
-      if (a && (!Array.isArray(a.stages) || !a.model))
-        throw new DataError(`${base}/arch.json is malformed`);
-      return a;
-    });
+    p = fetchJson<Arch>(`${base}/arch.json`, true).then((a) => checkArch(a, base));
     p.catch(() => archCache.delete(dataPath));
     archCache.set(dataPath, p);
   }
@@ -145,7 +148,14 @@ export async function loadCellBundle(
   version: string,
   model: string,
   device: string,
-): Promise<{ index: Index; cell: IndexCell; bundle: Bundle | undefined; arch: Arch | undefined }> {
+): Promise<{
+  index: Index;
+  cell: IndexCell;
+  bundle: Bundle | undefined;
+  arch: Arch | undefined;
+  /** Why arch.json could not be used (malformed / failed fetch); shown in the arch tab only. */
+  archError: string | undefined;
+}> {
   const index = await loadIndex();
   const cell = findCell(index, version, model, device);
   if (!cell)
@@ -159,11 +169,14 @@ export async function loadCellBundle(
       if (e instanceof DataError && e.kind === "not_found") return undefined;
       throw e;
     }),
-    loadArch(path),
+    loadArch(path).then(
+      (a) => ({ arch: a, error: undefined }),
+      (e: unknown) => ({ arch: undefined, error: e instanceof Error ? e.message : String(e) }),
+    ),
   ]);
-  if (!bundle && !arch)
+  if (!bundle && !arch.arch && !arch.error)
     throw new DataError(`${path} has neither ir.json nor arch.json`, "not_found");
-  return { index, cell, bundle, arch };
+  return { index, cell, bundle, arch: arch.arch, archError: arch.error };
 }
 
 /**

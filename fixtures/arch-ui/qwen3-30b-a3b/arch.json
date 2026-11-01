@@ -81,7 +81,7 @@
       },
       "module": {
         "path": "model.embed_tokens",
-        "class_name": "VocabParallelEmbedding",
+        "class_name": "vllm.model_executor.layers.vocab_parallel_embedding.VocabParallelEmbedding",
         "source": {
           "file": "vllm/model_executor/layers/vocab_parallel_embedding.py",
           "line": 206,
@@ -171,7 +171,7 @@
                 },
                 "module": {
                   "path": "model.layers.0.input_layernorm",
-                  "class_name": "RMSNorm",
+                  "class_name": "vllm.model_executor.layers.layernorm.RMSNorm",
                   "source": {
                     "file": "vllm/model_executor/layers/layernorm.py",
                     "line": 39,
@@ -238,7 +238,7 @@
                 },
                 "module": {
                   "path": "model.layers.0.self_attn",
-                  "class_name": "Qwen3MoeAttention",
+                  "class_name": "vllm.model_executor.models.qwen3_moe.Qwen3MoeAttention",
                   "source": {
                     "file": "vllm/model_executor/models/qwen3_moe.py",
                     "line": 244,
@@ -281,7 +281,7 @@
                 }
               },
               {
-                "id": "attn_residual",
+                "id": "residual_1",
                 "role": "residual_add",
                 "component": null,
                 "io": {
@@ -348,7 +348,7 @@
                 },
                 "module": {
                   "path": "model.layers.0.post_attention_layernorm",
-                  "class_name": "RMSNorm",
+                  "class_name": "vllm.model_executor.layers.layernorm.RMSNorm",
                   "source": {
                     "file": "vllm/model_executor/layers/layernorm.py",
                     "line": 39,
@@ -410,7 +410,7 @@
                 },
                 "module": {
                   "path": "model.layers.0.mlp",
-                  "class_name": "Qwen3MoeSparseMoeBlock",
+                  "class_name": "vllm.model_executor.models.qwen3_moe.Qwen3MoeSparseMoeBlock",
                   "source": {
                     "file": "vllm/model_executor/models/qwen3_moe.py",
                     "line": 133,
@@ -452,7 +452,7 @@
                 }
               },
               {
-                "id": "mlp_residual",
+                "id": "residual_2",
                 "role": "residual_add",
                 "component": null,
                 "io": {
@@ -503,7 +503,7 @@
       },
       "module": {
         "path": "model.norm",
-        "class_name": "RMSNorm",
+        "class_name": "vllm.model_executor.layers.layernorm.RMSNorm",
         "source": {
           "file": "vllm/model_executor/layers/layernorm.py",
           "line": 39,
@@ -564,7 +564,7 @@
       },
       "module": {
         "path": "lm_head",
-        "class_name": "ParallelLMHead",
+        "class_name": "vllm.model_executor.layers.vocab_parallel_embedding.ParallelLMHead",
         "source": {
           "file": "vllm/model_executor/layers/vocab_parallel_embedding.py",
           "line": 578,

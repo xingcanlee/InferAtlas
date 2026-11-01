@@ -16,7 +16,7 @@ const route = getRouteApi("/m/$version/$device/$model");
  * shown as a badge and never hides either.
  */
 export function ModelPage() {
-  const { bundle, arch, cell, index, hardware } = route.useLoaderData();
+  const { bundle, arch, archError, cell, index, hardware } = route.useLoaderData();
   const search = route.useSearch();
   const navigate = route.useNavigate();
   const tab = modelTab(search);
@@ -77,6 +77,21 @@ export function ModelPage() {
       <TabsContent value="arch" className="min-h-0 flex-1">
         {arch ? (
           <ArchitectureView arch={arch} />
+        ) : archError ? (
+          <EmptyState title="Could not read the architecture data" icon={<Workflow />}>
+            <p data-testid="arch-error" className="font-mono">
+              {archError}
+            </p>
+            <p className="mt-3">
+              <button
+                type="button"
+                className="underline underline-offset-2"
+                onClick={() => setTab("graph")}
+              >
+                Open graph &amp; analysis
+              </button>
+            </p>
+          </EmptyState>
         ) : (
           <EmptyState title="No architecture data for this snapshot yet" icon={<Workflow />}>
             <p data-testid="arch-empty">

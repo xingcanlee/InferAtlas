@@ -18,6 +18,7 @@ import { Kbd } from "@/components/ui/kbd";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DataError } from "@/lib/data";
 import { HUB_HREF, SINGLE } from "@/lib/mode";
+import { type ModelSearch, modelTab } from "@/lib/search";
 import { cellStatusText } from "@/lib/status";
 import { applyTheme, useUi } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -48,7 +49,12 @@ export function AppShell() {
   const theme = useUi((s) => s.theme);
   const setTheme = useUi((s) => s.setTheme);
   const setSearchOpen = useUi((s) => s.setSearchOpen);
-  const onModel = useRouterState({ select: (s) => s.location.pathname.startsWith("/m/") });
+  // Node search belongs to the graph workspace; hide it on the Architecture tab.
+  const onModel = useRouterState({
+    select: (s) =>
+      s.location.pathname.startsWith("/m/") &&
+      modelTab(s.location.search as ModelSearch) === "graph",
+  });
   useEffect(() => applyTheme(theme), [theme]);
 
   return (

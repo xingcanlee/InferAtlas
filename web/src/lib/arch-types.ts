@@ -1,15 +1,19 @@
 /**
- * TEMPORARY mirror of the `arch.json` contract (docs/arch-contract.md, schema_version 1).
+ * TEMPORARY mirror of the `arch.json` contract (docs/arch-contract.md, schema_version 1 with
+ * the "Contract decisions v1.1").
  *
  * TO BE REPLACED by the generated `Arch*` types from `@inferatlas/contracts` once S1 lands:
  * delete this file and re-export from the contract, e.g.
  *   export type { Arch, ArchStage, ArchBand, … } from "@inferatlas/contracts";
  * Every UI module imports these names from here only, so the swap is one file.
  *
- * Interpretations the contract leaves open (recorded in docs/requests/U1.md):
- * - `Sublayer.component` may be `null` for `residual_add` sublayers (no Component kind exists).
- * - A periodic pattern is a run of consecutive bands sharing the same `pattern` label.
- * - `Note.target` names a stage id, a band id, or `<band id>/<sublayer id>`.
+ * v1.1 decisions mirrored here:
+ * - `residual_add` sublayers have `component: null` and `module: null`.
+ * - Sublayer ids are band-relative; `module.path` is the band's first layer (UI substitutes).
+ * - `Note.target` is `<band id>/<sublayer id>`, a stage id, or `null` (model-level).
+ * - Periodic runs share a `pattern` label; the UI also folds by structural signature.
+ * - `other` stages carry `placement: "spine" | "aside"`.
+ * - `class_name` is fully qualified (figures show the last segment).
  */
 
 /** Expression string in the expr DSL (docs/expr-dsl.md). */
@@ -59,7 +63,15 @@ export interface ArchRope {
   kind: string;
   theta?: number | null;
   scaling?: Record<string, unknown> | null;
+  partial_rotary_factor?: number | null;
 }
+
+/**
+ * Optional attention extras (v1.1 §7): MLA `q_lora_rank`, `kv_lora_rank`, `qk_nope_head_dim`,
+ * `qk_rope_head_dim`, `v_head_dim`; sparse `index_topk`; sliding `sliding_window`; linear
+ * `kind`, `num_k_heads`, `num_v_heads`, `head_k_dim`, `head_v_dim`, `conv_kernel`, `output_gate`.
+ */
+export type ArchAttentionExtras = Record<string, unknown>;
 
 export interface ArchAttentionComponent {
   kind: "attention";
@@ -69,7 +81,7 @@ export interface ArchAttentionComponent {
   head_dim: number;
   rope: ArchRope | null;
   qk_norm: boolean;
-  extras: Record<string, unknown>;
+  extras: ArchAttentionExtras;
 }
 
 export type ArchMlpVariant = "swiglu" | "geglu" | "gelu" | "other";
@@ -151,6 +163,8 @@ export interface ArchModuleStage {
   module: ArchModule | null;
   io: ArchIO;
   component?: ArchComponent | null;
+  /** `other` stages only: drawn on the main spine or as a side branch (MTP / draft heads). */
+  placement?: "spine" | "aside" | null;
 }
 
 export interface ArchStackStage {

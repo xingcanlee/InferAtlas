@@ -97,7 +97,7 @@
       },
       "module": {
         "path": "model.embed_tokens",
-        "class_name": "VocabParallelEmbedding",
+        "class_name": "vllm.model_executor.layers.vocab_parallel_embedding.VocabParallelEmbedding",
         "source": {
           "file": "vllm/model_executor/layers/vocab_parallel_embedding.py",
           "line": 206,
@@ -187,7 +187,7 @@
                 },
                 "module": {
                   "path": "model.layers.0.input_layernorm",
-                  "class_name": "RMSNorm",
+                  "class_name": "vllm.model_executor.layers.layernorm.RMSNorm",
                   "source": {
                     "file": "vllm/model_executor/layers/layernorm.py",
                     "line": 39,
@@ -265,7 +265,7 @@
                 },
                 "module": {
                   "path": "model.layers.0.self_attn",
-                  "class_name": "DeepseekV2MLAAttention",
+                  "class_name": "vllm.model_executor.models.deepseek_v2.DeepseekV2MLAAttention",
                   "source": {
                     "file": "vllm/model_executor/models/deepseek_v2.py",
                     "line": 1000,
@@ -327,7 +327,7 @@
                 }
               },
               {
-                "id": "attn_residual",
+                "id": "residual_1",
                 "role": "residual_add",
                 "component": null,
                 "io": {
@@ -394,7 +394,7 @@
                 },
                 "module": {
                   "path": "model.layers.0.post_attention_layernorm",
-                  "class_name": "RMSNorm",
+                  "class_name": "vllm.model_executor.layers.layernorm.RMSNorm",
                   "source": {
                     "file": "vllm/model_executor/layers/layernorm.py",
                     "line": 39,
@@ -445,7 +445,7 @@
                 },
                 "module": {
                   "path": "model.layers.0.mlp",
-                  "class_name": "DeepseekV2MLP",
+                  "class_name": "vllm.model_executor.models.deepseek_v2.DeepseekV2MLP",
                   "source": {
                     "file": "vllm/model_executor/models/deepseek_v2.py",
                     "line": 244,
@@ -474,7 +474,7 @@
                 }
               },
               {
-                "id": "mlp_residual",
+                "id": "residual_2",
                 "role": "residual_add",
                 "component": null,
                 "io": {
@@ -556,7 +556,7 @@
                 },
                 "module": {
                   "path": "model.layers.3.input_layernorm",
-                  "class_name": "RMSNorm",
+                  "class_name": "vllm.model_executor.layers.layernorm.RMSNorm",
                   "source": {
                     "file": "vllm/model_executor/layers/layernorm.py",
                     "line": 39,
@@ -634,7 +634,7 @@
                 },
                 "module": {
                   "path": "model.layers.3.self_attn",
-                  "class_name": "DeepseekV2MLAAttention",
+                  "class_name": "vllm.model_executor.models.deepseek_v2.DeepseekV2MLAAttention",
                   "source": {
                     "file": "vllm/model_executor/models/deepseek_v2.py",
                     "line": 1000,
@@ -696,7 +696,7 @@
                 }
               },
               {
-                "id": "attn_residual",
+                "id": "residual_1",
                 "role": "residual_add",
                 "component": null,
                 "io": {
@@ -763,7 +763,7 @@
                 },
                 "module": {
                   "path": "model.layers.3.post_attention_layernorm",
-                  "class_name": "RMSNorm",
+                  "class_name": "vllm.model_executor.layers.layernorm.RMSNorm",
                   "source": {
                     "file": "vllm/model_executor/layers/layernorm.py",
                     "line": 39,
@@ -831,7 +831,7 @@
                 },
                 "module": {
                   "path": "model.layers.3.mlp",
-                  "class_name": "DeepseekV2MoE",
+                  "class_name": "vllm.model_executor.models.deepseek_v2.DeepseekV2MoE",
                   "source": {
                     "file": "vllm/model_executor/models/deepseek_v2.py",
                     "line": 291,
@@ -896,7 +896,7 @@
                 }
               },
               {
-                "id": "mlp_residual",
+                "id": "residual_2",
                 "role": "residual_add",
                 "component": null,
                 "io": {
@@ -947,7 +947,7 @@
       },
       "module": {
         "path": "model.norm",
-        "class_name": "RMSNorm",
+        "class_name": "vllm.model_executor.layers.layernorm.RMSNorm",
         "source": {
           "file": "vllm/model_executor/layers/layernorm.py",
           "line": 39,
@@ -1008,7 +1008,7 @@
       },
       "module": {
         "path": "lm_head",
-        "class_name": "ParallelLMHead",
+        "class_name": "vllm.model_executor.layers.vocab_parallel_embedding.ParallelLMHead",
         "source": {
           "file": "vllm/model_executor/layers/vocab_parallel_embedding.py",
           "line": 578,
@@ -1053,10 +1053,11 @@
     {
       "id": "mtp",
       "kind": "other",
+      "placement": "aside",
       "label": "Multi-token prediction",
       "component": {
         "kind": "generic",
-        "class_name": "DeepSeekMultiTokenPredictorLayer",
+        "class_name": "vllm.model_executor.models.deepseek_mtp.DeepSeekMultiTokenPredictorLayer",
         "children": [
           {
             "name": "enorm",
@@ -1082,7 +1083,7 @@
       },
       "module": {
         "path": "model.layers.61",
-        "class_name": "DeepSeekMultiTokenPredictorLayer",
+        "class_name": "vllm.model_executor.models.deepseek_mtp.DeepSeekMultiTokenPredictorLayer",
         "source": {
           "file": "vllm/model_executor/models/deepseek_mtp.py",
           "line": 76,

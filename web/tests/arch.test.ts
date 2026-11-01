@@ -4,18 +4,23 @@ import {
   allBands,
   archEnv,
   bandForLayer,
+  bandOrdinal,
   blockSegments,
   evaluator,
   layerCount,
   layerPath,
+  MAX_STACK_COLUMNS,
   noteMarker,
   notesFor,
   representative,
   represented,
+  shortClass,
+  slotAt,
+  stackColumns,
   stackItems,
   stacks,
 } from "@/lib/arch";
-import type { Arch, ArchBlock } from "@/lib/arch-types";
+import type { Arch, ArchBand, ArchBlock, ArchStackStage } from "@/lib/arch-types";
 import deepseekJson from "../../fixtures/arch-ui/deepseek-v3/arch.json";
 import denseJson from "../../fixtures/arch-ui/qwen3-8b/arch.json";
 import moeJson from "../../fixtures/arch-ui/qwen3-30b-a3b/arch.json";
@@ -92,6 +97,50 @@ describe("stack folding", () => {
     expect(represented(items, g.period[0] as never)).toHaveLength(12);
   });
 
+  it("folds unlabelled alternating bands by structure, ignoring ids and paths", () => {
+    const bands = (stacks(next)[0]?.bands ?? []).map((b, i) => ({
+      ...b,
+      pattern: null,
+      // Emitter-style differences that must not break folding.
+      block: {
+        ...b.block,
+        sublayers: b.block.sublayers.map((s) => ({
+          ...s,
+          id: `${s.id}_${i}`,
+          module: s.module && { ...s.module, path: `x.${i}`, source: null },
+        })),
+      },
+    }));
+    const items = stackItems(bands);
+    expect(items).toHaveLength(1);
+    const g = items[0];
+    if (g?.kind !== "pattern") throw new Error("expected a pattern group");
+    expect(g.repeats).toBe(12);
+    expect(g.label).toBe("3× linear attn + 1× GQA attn");
+    expect(stackColumns(items)).toBe(2);
+  });
+
+  it("non-periodic heterogeneous stacks switch to the compact list", () => {
+    const base = stacks(deepseek)[0]?.bands ?? [];
+    const dense = base[0] as ArchBand;
+    const moeBand = base[1] as ArchBand;
+    const counts = [1, 2, 3, 4, 5, 6];
+    let start = 0;
+    const bands = counts.map((c, i) => {
+      const b = {
+        ...(i % 2 ? moeBand : dense),
+        id: `b${i}`,
+        count: c,
+        layers: [start, start + c - 1] as [number, number],
+      };
+      start += c;
+      return b;
+    });
+    const items = stackItems(bands);
+    expect(items.every((it) => it.kind === "band")).toBe(true);
+    expect(stackColumns(items)).toBeGreaterThan(MAX_STACK_COLUMNS);
+  });
+
   it("does not fold a pattern whose members differ", () => {
     const bands = (stacks(next)[0]?.bands ?? []).slice(0, 3);
     const items = stackItems(bands);
@@ -137,9 +186,42 @@ describe("block segments", () => {
   });
 });
 
+describe("layer slots", () => {
+  it("map ordinals to bands across several stacks and handle no stack", () => {
+    const stack = stacks(dense)[0] as ArchStackStage;
+    const twoStacks: Arch = {
+      ...dense,
+      stages: [
+        { ...stack, id: "encoder", label: "Encoder" },
+        {
+          ...stack,
+          id: "decoder",
+          label: "Decoder",
+          bands: stack.bands.map((b) => ({ ...b, id: "d" })),
+        },
+      ],
+    };
+    expect(layerCount(twoStacks)).toBe(72);
+    const s = slotAt(twoStacks, 40);
+    expect(s?.stack.label).toBe("Decoder");
+    expect(s?.layer).toBe(4);
+    expect(bandOrdinal(twoStacks, s?.band as ArchBand)).toBe(36);
+    const none: Arch = { ...dense, stages: dense.stages.filter((x) => x.kind !== "stack") };
+    expect(layerCount(none)).toBe(0);
+    expect(bandForLayer(none, 0)).toBeUndefined();
+  });
+
+  it("short class names for figures, full names in the data (v1.1 §10)", () => {
+    const m = bandForLayer(moe, 0)?.block.sublayers.find((x) => x.id === "mlp")?.module;
+    expect(m?.class_name).toBe("vllm.model_executor.models.qwen3_moe.Qwen3MoeSparseMoeBlock");
+    expect(shortClass(m?.class_name)).toBe("Qwen3MoeSparseMoeBlock");
+  });
+});
+
 describe("symbols, paths and notes", () => {
-  it("evaluates shapes with URL overrides", () => {
-    const { env, overridden } = archEnv(moe, { T: 8192, tp: 4, bogus: 3, H: "x" });
+  it("evaluates shapes with URL overrides of runtime symbols only", () => {
+    const { env, overridden } = archEnv(moe, { T: 8192, tp: 4, bogus: 3, H: 999, E: 64 });
+    expect(env.H).toBe(2048);
     expect([...overridden].sort()).toEqual(["T", "tp"]);
     const ev = evaluator(env);
     expect(ev("(Hq+2*Hkv)*D/tp")).toBe(1280);

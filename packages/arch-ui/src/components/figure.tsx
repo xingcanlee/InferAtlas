@@ -9,8 +9,6 @@ export interface ModelFigureProps
     ArchFigureContextValue {
   /** Caption under the figure. */
   caption?: React.ReactNode;
-  /** Side branch drawn to the right of the lower spine (e.g. an MTP head). */
-  aside?: React.ReactNode;
   /** Column width of spine nodes (CSS length); default `--arch-col` from the theme. */
   columnWidth?: string | undefined;
 }
@@ -18,11 +16,10 @@ export interface ModelFigureProps
 /**
  * Whole-model vertical dataflow (Input → Embedding → Stack → Norm → LM head → Output). Children
  * are stacked on one spine with arrows inserted between them (use TensorEdge to annotate a
- * connector with its tensor shape).
+ * connector with its tensor shape, FigureBranch for a side head attached to a spine node).
  */
 export function ModelFigure({
   caption,
-  aside,
   evaluate,
   columnWidth,
   className,
@@ -38,11 +35,7 @@ export function ModelFigure({
         style={{ ...(columnWidth ? { "--arch-col": columnWidth } : {}), ...style }}
         {...props}
       >
-        {/* The aside only takes space on its own side, so a wide stack is not shrunk twice. */}
-        <div className="flex items-end">
-          <Flow className="*:data-[slot=figure-node]:w-[var(--arch-col)]">{children}</Flow>
-          {aside ? <div className="shrink-0">{aside}</div> : null}
-        </div>
+        <Flow className="*:data-[slot=figure-node]:w-[var(--arch-col)]">{children}</Flow>
         {caption ? (
           <figcaption className="max-w-xl text-center text-[11.5px] text-muted-foreground">
             {caption}
@@ -76,29 +69,62 @@ export function FigureTerminal({ name, shape, dtype, className, ...props }: Figu
   );
 }
 
-export interface FigureAsideProps extends React.ComponentProps<"div"> {
-  /** Text on the dashed connector from the spine. */
+export interface FigureBranchProps extends Omit<React.ComponentProps<"div">, "children"> {
+  /** The spine node the branch leaves from (stays centred on the spine). */
+  node: React.ReactNode;
+  /** The side head(s), drawn to the right. */
+  branch: React.ReactNode;
+  /** Text on the dashed connector. */
   label?: React.ReactNode;
 }
 
-/** A side branch: dashed connector from the spine + its content. */
-export function FigureAside({ label, className, children, ...props }: FigureAsideProps) {
+/**
+ * A side branch (MTP / draft head) attached to a spine node: a dashed connector leaves the spine
+ * at a junction dot on the node's edge and points at the branch. The row reserves the same width
+ * on the left so the spine stays centred.
+ */
+export function FigureBranch({ node, branch, label, className, ...props }: FigureBranchProps) {
   return (
-    <div data-slot="figure-aside" className={cn("flex items-center pb-1", className)} {...props}>
-      <div className="flex w-20 flex-col items-center gap-0.5 text-arch-wire">
-        {label ? (
-          <span className="text-center text-[10px] leading-tight text-muted-foreground">
-            {label}
-          </span>
-        ) : null}
-        <span className="flex w-full items-center">
-          <span className="h-0 flex-1 border-t border-dashed border-current" />
-          <svg viewBox="0 0 7 9" aria-hidden="true" className="h-[9px] w-[7px]">
-            <path d="M0 0 L7 4.5 L0 9 Z" fill="currentColor" />
-          </svg>
-        </span>
+    <div
+      data-slot="figure-branch"
+      className={cn(
+        "grid grid-cols-[calc(var(--arch-col)+6rem)_var(--arch-col)_calc(var(--arch-col)+6rem)] items-center",
+        className,
+      )}
+      {...props}
+    >
+      <div aria-hidden="true" />
+      <div className="relative flex w-[var(--arch-col)] flex-col items-center">
+        {node}
+        <span
+          aria-hidden="true"
+          className="absolute top-1/2 -right-[3px] z-[2] size-[6px] -translate-y-1/2 rounded-full bg-arch-wire"
+        />
       </div>
-      <div className="w-[var(--arch-col)]">{children}</div>
+      {/* Out of flow vertically: the branch never changes the spine row's height. */}
+      <div className="relative h-full">
+        <div className="absolute top-1/2 left-0 flex -translate-y-1/2 items-center">
+          <div className="flex w-24 shrink-0 flex-col items-stretch gap-0.5 text-arch-wire">
+            {label ? (
+              <span className="px-1 text-center text-[10px] leading-tight text-muted-foreground">
+                {label}
+              </span>
+            ) : null}
+            <span className="flex items-center">
+              <span className="h-0 flex-1 border-t border-dashed border-current" />
+              <svg viewBox="0 0 7 9" aria-hidden="true" className="h-[9px] w-[7px]">
+                <path d="M0 0 L7 4.5 L0 9 Z" fill="currentColor" />
+              </svg>
+            </span>
+          </div>
+          <div
+            data-slot="figure-branch-content"
+            className="flex w-[var(--arch-col)] flex-col gap-2"
+          >
+            {branch}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

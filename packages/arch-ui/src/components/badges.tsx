@@ -34,7 +34,7 @@ const badge = cva(
     variants: {
       size: {
         /** Icon-only marker for figure nodes (label in title/aria-label). */
-        dot: "size-4 justify-center p-0 text-[9px] leading-none",
+        dot: "size-4 justify-center p-0 text-[10px] leading-none",
         sm: "h-[18px] px-1.5 text-[10px]",
         md: "h-5 px-2 text-[11px]",
       },
@@ -105,7 +105,7 @@ export function NoteBadge({ severity, count = 1, size, className, ...props }: No
 }
 
 const variantBadge = cva(
-  "inline-flex h-4 shrink-0 items-center rounded-sm px-1 font-mono text-[9.5px] font-semibold tracking-wide uppercase",
+  "inline-flex h-[17px] shrink-0 items-center rounded-sm px-1 font-mono text-[10px] font-semibold tracking-wide uppercase",
   {
     variants: {
       tone: {

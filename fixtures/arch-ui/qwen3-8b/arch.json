@@ -73,7 +73,7 @@
       },
       "module": {
         "path": "model.embed_tokens",
-        "class_name": "VocabParallelEmbedding",
+        "class_name": "vllm.model_executor.layers.vocab_parallel_embedding.VocabParallelEmbedding",
         "source": {
           "file": "vllm/model_executor/layers/vocab_parallel_embedding.py",
           "line": 206,
@@ -163,7 +163,7 @@
                 },
                 "module": {
                   "path": "model.layers.0.input_layernorm",
-                  "class_name": "RMSNorm",
+                  "class_name": "vllm.model_executor.layers.layernorm.RMSNorm",
                   "source": {
                     "file": "vllm/model_executor/layers/layernorm.py",
                     "line": 39,
@@ -233,7 +233,7 @@
                 },
                 "module": {
                   "path": "model.layers.0.self_attn",
-                  "class_name": "Qwen3Attention",
+                  "class_name": "vllm.model_executor.models.qwen3.Qwen3Attention",
                   "source": {
                     "file": "vllm/model_executor/models/qwen3.py",
                     "line": 65,
@@ -276,7 +276,7 @@
                 }
               },
               {
-                "id": "attn_residual",
+                "id": "residual_1",
                 "role": "residual_add",
                 "component": null,
                 "io": {
@@ -343,7 +343,7 @@
                 },
                 "module": {
                   "path": "model.layers.0.post_attention_layernorm",
-                  "class_name": "RMSNorm",
+                  "class_name": "vllm.model_executor.layers.layernorm.RMSNorm",
                   "source": {
                     "file": "vllm/model_executor/layers/layernorm.py",
                     "line": 39,
@@ -394,7 +394,7 @@
                 },
                 "module": {
                   "path": "model.layers.0.mlp",
-                  "class_name": "Qwen2MLP",
+                  "class_name": "vllm.model_executor.models.qwen2.Qwen2MLP",
                   "source": {
                     "file": "vllm/model_executor/models/qwen2.py",
                     "line": 81,
@@ -423,7 +423,7 @@
                 }
               },
               {
-                "id": "mlp_residual",
+                "id": "residual_2",
                 "role": "residual_add",
                 "component": null,
                 "io": {
@@ -474,7 +474,7 @@
       },
       "module": {
         "path": "model.norm",
-        "class_name": "RMSNorm",
+        "class_name": "vllm.model_executor.layers.layernorm.RMSNorm",
         "source": {
           "file": "vllm/model_executor/layers/layernorm.py",
           "line": 39,
@@ -535,7 +535,7 @@
       },
       "module": {
         "path": "lm_head",
-        "class_name": "ParallelLMHead",
+        "class_name": "vllm.model_executor.layers.vocab_parallel_embedding.ParallelLMHead",
         "source": {
           "file": "vllm/model_executor/layers/vocab_parallel_embedding.py",
           "line": 578,

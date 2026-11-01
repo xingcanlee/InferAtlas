@@ -25,6 +25,20 @@ function watchErrors(page: Page) {
   return errors;
 }
 
+/**
+ * The app persists its theme in localStorage ("inferatlas-ui") and ignores the media query once
+ * set, so emulateMedia alone is not enough: seed the stored theme and assert it took effect.
+ */
+async function applyStoredTheme(page: Page, theme: "light" | "dark") {
+  await page.evaluate((t) => {
+    localStorage.setItem("inferatlas-ui", JSON.stringify({ state: { theme: t }, version: 0 }));
+  }, theme);
+  await page.emulateMedia({ colorScheme: theme });
+  await page.reload();
+  if (theme === "dark") await expect(page.locator("html")).toHaveClass(/\bdark\b/);
+  else await expect(page.locator("html")).not.toHaveClass(/\bdark\b/);
+}
+
 async function settle(page: Page) {
   await page.evaluate(() => document.fonts.ready);
   await page.waitForTimeout(250);
@@ -45,9 +59,9 @@ for (const model of MODELS) {
     const errors = watchErrors(page);
     mkdirSync(shots, { recursive: true });
     await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(url(model));
     for (const scheme of ["light", "dark"] as const) {
-      await page.emulateMedia({ colorScheme: scheme });
-      await page.goto(url(model));
+      await applyStoredTheme(page, scheme);
       const fig = page.getByTestId("arch-figure");
       await expect(fig).toBeVisible();
       await expect(page.getByTestId("tab-arch")).toHaveAttribute("data-state", "active");
@@ -67,7 +81,8 @@ for (const model of MODELS) {
         })
         .toBe(true);
       const scale = Number(await page.locator("[data-scale]").first().getAttribute("data-scale"));
-      expect(scale).toBeGreaterThanOrEqual(0.8);
+      // FitBox floor: smallest figure text (10px) stays ≥ 9px.
+      expect(scale).toBeGreaterThanOrEqual(0.9);
       await settle(page);
       await page.screenshot({ path: join(shots, `${model}-${scheme}.png`) });
     }
@@ -77,8 +92,8 @@ for (const model of MODELS) {
 
 test("expand a band: per-layer tensor I/O with numeric shapes", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.emulateMedia({ colorScheme: "light" });
   await page.goto(url("deepseek-v3"));
+  await applyStoredTheme(page, "light");
   const header = page.getByTestId("band-moe").getByRole("button", { name: /^layers 3–60/ });
   await expect(header).toHaveAttribute("aria-expanded", "false");
   await header.click();
@@ -120,6 +135,7 @@ test("layer selector resolves any layer to its band", async ({ page }) => {
   await input.press("Enter");
   await expect(page).toHaveURL(/layer=23/);
   await expect(page.getByTestId("layer-band")).toContainText("layer 23");
+  await expect(page.getByTestId("layer-total")).toHaveText("of 48 layers");
   await expect(page.getByTestId("band-full_3")).toHaveAttribute("data-selected", "true");
   await expect(page.getByTestId("layer-detail")).toContainText("model.layers.23.self_attn");
   // ArrowDown steps to the previous layer: a linear-attention band.
@@ -128,8 +144,8 @@ test("layer selector resolves any layer to its band", async ({ page }) => {
   await expect(page.getByTestId("band-linear_0_2")).toHaveAttribute("data-selected", "true");
   await expect(page.getByTestId("layer-detail")).toContainText("Gated DeltaNet");
   await expect(page.getByTestId("layer-detail")).toContainText("model.layers.22.linear_attn");
-  await settle(page);
-  await page.emulateMedia({ colorScheme: "dark" });
+  await applyStoredTheme(page, "dark");
+  await expect(page.getByTestId("layer-detail")).toContainText("model.layers.22.linear_attn");
   await settle(page);
   await page.screenshot({ path: join(shots, "qwen3-next-layer22-dark.png") });
 });

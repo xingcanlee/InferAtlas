@@ -217,6 +217,10 @@ export interface AttentionProps extends ComponentNodeProps {
   /** Sigmoid output gate (gated attention). */
   gated?: boolean | undefined;
   latent?: LatentPath | undefined;
+  /** Sliding-window size in tokens (sliding / hybrid attention). */
+  window?: number | undefined;
+  /** Sparse attention: tokens kept by the indexer (e.g. DeepSeek-V3.2 `index_topk`). */
+  indexTopk?: number | undefined;
   /** Extra one-line description (e.g. `Gated DeltaNet · conv 4`). */
   detail?: React.ReactNode;
 }
@@ -224,7 +228,7 @@ export interface AttentionProps extends ComponentNodeProps {
 function Lane({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <span className="contents">
-      <span className="text-right font-mono text-[9.5px] text-muted-foreground">{label}</span>
+      <span className="text-right font-mono text-[10px] text-muted-foreground">{label}</span>
       <span className="flex items-center gap-1">{children}</span>
     </span>
   );
@@ -241,7 +245,7 @@ export function LatentPathDiagram({ qRank, kvRank, ropeDim }: LatentPath) {
   return (
     <span
       data-slot="latent-path"
-      className="mt-1 grid grid-cols-[auto_auto] items-center justify-center gap-x-1.5 gap-y-1"
+      className="mt-0.5 grid grid-cols-[auto_auto] items-center justify-center gap-x-1.5 gap-y-0.5"
     >
       {qRank ? (
         <Lane label="q">
@@ -284,6 +288,8 @@ export function Attention({
   qkNorm,
   gated,
   latent,
+  window,
+  indexTopk,
   detail,
   ...props
 }: AttentionProps) {
@@ -297,9 +303,13 @@ export function Attention({
           .filter(Boolean)
           .join(" · ")
       : undefined;
-  const tags = [rope, qkNorm ? "QK-Norm" : undefined, gated ? "out gate" : undefined].filter(
-    Boolean,
-  ) as string[];
+  const tags = [
+    window !== undefined ? `window ${fmt(window)}` : undefined,
+    indexTopk !== undefined ? `index top-${fmt(indexTopk)}` : undefined,
+    rope,
+    qkNorm ? "QK-Norm" : undefined,
+    gated ? "out gate" : undefined,
+  ].filter(Boolean) as string[];
   return (
     <FigureNode
       kind="attention"
@@ -369,7 +379,7 @@ export function MLP({
           {gated ? (
             <>
               <Chip tone="mlp">gate</Chip>
-              <span className="font-mono text-[9.5px] text-muted-foreground">{act}</span>
+              <span className="font-mono text-[10px] text-muted-foreground">{act}</span>
               <span aria-hidden="true" className="text-[11px] text-foreground/70">
                 ⊙
               </span>
@@ -378,7 +388,7 @@ export function MLP({
           ) : (
             <>
               <Chip tone="mlp">up</Chip>
-              <span className="font-mono text-[9.5px] text-muted-foreground">{act}</span>
+              <span className="font-mono text-[10px] text-muted-foreground">{act}</span>
             </>
           )}
           <To />
@@ -450,12 +460,17 @@ export function MoE({
         title={normTopk ? "top-k weights renormalised" : undefined}
       >
         <span className="font-semibold text-arch-router-ink">Router</span>
-        <span className="font-mono text-[9.5px] text-muted-foreground">{router}</span>
+        <span className="font-mono text-[10px] text-muted-foreground">{router}</span>
       </span>
       <span aria-hidden="true" className="-my-0.5 text-[10px] leading-none text-arch-wire">
         ↓
       </span>
-      <span data-slot="moe-experts" className="flex items-center gap-1">
+      <span
+        data-slot="moe-experts"
+        data-illustrative="true"
+        className="flex items-center gap-1"
+        title="Highlighted experts illustrate top-k routing; the real selection is per token"
+      >
         {sharedExperts > 0 ? (
           <>
             <Chip tone="shared" title={`${sharedExperts} shared expert(s), always active`}>
@@ -464,6 +479,7 @@ export function MoE({
             <span aria-hidden="true" className="h-4 w-px bg-border" />
           </>
         ) : null}
+        <span className="mr-0.5 text-[10px] text-muted-foreground italic">e.g.</span>
         {ids.map((i) => (
           <Chip
             key={i}

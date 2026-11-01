@@ -17,6 +17,9 @@ export {
 } from "./components/badges";
 export {
   Band,
+  BandCard,
+  type BandCardProps,
+  BandList,
   type BandProps,
   BlockStack,
   type BlockStackProps,
@@ -31,8 +34,8 @@ export {
   type ResidualStyle,
 } from "./components/block";
 export {
-  FigureAside,
-  type FigureAsideProps,
+  FigureBranch,
+  type FigureBranchProps,
   FigureTerminal,
   type FigureTerminalProps,
   ModelFigure,

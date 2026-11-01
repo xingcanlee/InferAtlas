@@ -17,6 +17,8 @@ import {
   layerPath,
   layerRange,
   notesFor,
+  RUNTIME_SYMBOLS,
+  shortClass,
   subTarget,
   uniqueNotes,
 } from "@/lib/arch";
@@ -204,7 +206,9 @@ function ModuleCard({
               {path ?? module.path}
             </div>
             <div className="flex flex-wrap items-center gap-x-2 text-muted-foreground">
-              <span className="font-mono">{module.class_name}</span>
+              <span className="w-full font-mono break-all" data-testid="class-name">
+                {module.class_name}
+              </span>
               {module.source ? (
                 <a
                   href={module.source.url}
@@ -254,14 +258,20 @@ function ModuleCard({
 
 // ------------------------------------------------------------------------ layer select
 
+/**
+ * Jump to any decoder layer. `layer` is the ordinal over all stacks (== layer index for one
+ * stack); with several stacks the current stack's label is shown. Hidden without a stack.
+ */
 export function LayerSelector({
   total,
   layer,
   onLayer,
+  stackLabel,
 }: {
   total: number;
   layer: number | undefined;
   onLayer: (layer: number | undefined) => void;
+  stackLabel?: string | null | undefined;
 }) {
   const [text, setText] = useState(layer === undefined ? "" : String(layer));
   useEffect(() => setText(layer === undefined ? "" : String(layer)), [layer]);
@@ -272,6 +282,12 @@ export function LayerSelector({
   };
   const step = (d: number) =>
     onLayer(Math.min(Math.max((layer ?? (d > 0 ? -1 : total)) + d, 0), total - 1));
+  if (total === 0)
+    return (
+      <span className="text-[12px] text-muted-foreground" data-testid="layer-selector">
+        No decoder layers
+      </span>
+    );
   return (
     <div className="flex items-center gap-1" data-testid="layer-selector">
       <label htmlFor="arch-layer" className="mr-1 text-[12px] text-muted-foreground">
@@ -317,7 +333,12 @@ export function LayerSelector({
       >
         <ChevronRight className="size-3.5" />
       </Button>
-      <span className="ml-1 font-mono text-[11px] text-muted-foreground">/ {total - 1}</span>
+      <span
+        className="ml-1 text-[11px] whitespace-nowrap text-muted-foreground"
+        data-testid="layer-total"
+      >
+        of {total} layers{stackLabel ? ` · ${stackLabel}` : ""}
+      </span>
     </div>
   );
 }
@@ -335,19 +356,47 @@ export function SymbolsEditor({
   overridden: Set<string>;
   onSymbol: (name: string, value: number | undefined) => void;
 }) {
+  /** Config-derived dimensions are shown read-only; only runtime symbols are editable. */
+  const fixed = Object.entries(arch.symbols).filter(([k]) => !RUNTIME_SYMBOLS.has(k));
   return (
     <div className="grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-1" data-testid="symbols">
-      {Object.entries(arch.symbols).map(([k, s]) => (
-        <SymbolRow
-          key={k}
-          name={k}
-          description={s.description ?? undefined}
-          value={Number(env[k])}
-          dflt={s.value}
-          changed={overridden.has(k)}
-          onChange={(v) => onSymbol(k, v === s.value ? undefined : v)}
-        />
-      ))}
+      {Object.entries(arch.symbols)
+        .filter(([k]) => RUNTIME_SYMBOLS.has(k))
+        .map(([k, s]) => (
+          <SymbolRow
+            key={k}
+            name={k}
+            description={s.description ?? undefined}
+            value={Number(env[k])}
+            dflt={s.value}
+            changed={overridden.has(k)}
+            onChange={(v) => onSymbol(k, v === s.value ? undefined : v)}
+          />
+        ))}
+      {fixed.length ? (
+        <>
+          <div className="col-span-2 mt-2 text-[10.5px] font-medium text-muted-foreground uppercase">
+            Model dimensions
+          </div>
+          <dl
+            className="col-span-2 grid grid-cols-[auto_1fr_auto] gap-x-3 gap-y-0.5 text-[12px]"
+            data-testid="model-dims"
+          >
+            {fixed.map(([k, s]) => (
+              <div key={k} className="contents">
+                <dt className="font-mono">{k}</dt>
+                <dd
+                  className="truncate text-[11px] text-muted-foreground"
+                  title={s.description ?? ""}
+                >
+                  {s.description}
+                </dd>
+                <dd className="text-right font-mono tabular">{s.value.toLocaleString("en-US")}</dd>
+              </div>
+            ))}
+          </dl>
+        </>
+      ) : null}
     </div>
   );
 }
@@ -418,12 +467,14 @@ export function LayerDetail({
   arch,
   band,
   layer,
+  stackLabel,
   sub,
   evaluate,
 }: {
   arch: Arch;
   band: ArchBand;
   layer: number;
+  stackLabel?: string | undefined;
   sub: string | undefined;
   evaluate: Evaluate;
 }) {
@@ -434,7 +485,7 @@ export function LayerDetail({
     <div data-testid="layer-detail">
       <div className="border-b px-4 py-3">
         <div className="text-[15px] font-semibold tracking-tight" data-testid="layer-title">
-          Layer {layer}
+          {stackLabel ? `${stackLabel} · ` : ""}Layer {layer}
         </div>
         <div className="text-[12px] text-muted-foreground">
           {layerRange(band.layers)} · {band.count}× · {bandSummary(band)} ·{" "}
@@ -493,11 +544,11 @@ export function StageDetail({
 
 export function Overview({
   arch,
-  onLayer,
+  onBand,
   onStage,
 }: {
   arch: Arch;
-  onLayer: (layer: number) => void;
+  onBand: (band: ArchBand) => void;
   onStage: (id: string) => void;
 }) {
   const warn = uniqueNotes(arch.notes).filter((n) => n.severity === "warn").length;
@@ -534,7 +585,7 @@ export function Overview({
                           <button
                             type="button"
                             className="text-left hover:underline"
-                            onClick={() => onLayer(b.layers[0])}
+                            onClick={() => onBand(b)}
                           >
                             {layerRange(b.layers)}{" "}
                             <span className="text-muted-foreground">· {bandSummary(b)}</span>
@@ -552,7 +603,7 @@ export function Overview({
                 >
                   <span className="font-medium">{s.label ?? s.id}</span>{" "}
                   <span className="font-mono text-[11px] text-muted-foreground">
-                    {s.module?.class_name}
+                    <span title={s.module?.class_name}>{shortClass(s.module?.class_name)}</span>
                   </span>
                 </button>
               )}

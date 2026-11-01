@@ -1,9 +1,12 @@
 import { type ReactNode, useLayoutEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
-/** Below this the figure text gets too small to read; scroll instead. */
-export const MIN_FIT_SCALE = 0.6;
-const PAD = 32;
+/**
+ * Below this the figure text gets too small to read; scroll instead. The smallest figure text is
+ * 10px (chips, badges), so 0.9 keeps every label at ≥ 9px effective.
+ */
+export const MIN_FIT_SCALE = 0.9;
+const PAD = 24;
 
 /**
  * Scrollable canvas that scales its content down (never up) to fit the available box when
@@ -56,7 +59,7 @@ export function FitBox({
 
   return (
     <div ref={outer} className={cn("min-h-0 overflow-auto", className)} {...props}>
-      <div className="flex min-h-full min-w-fit items-start justify-center p-4">
+      <div className="flex min-h-full min-w-fit items-start justify-center p-3">
         <div
           style={
             state.w ? { width: state.w * state.scale, height: state.h * state.scale } : undefined

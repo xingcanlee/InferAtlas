@@ -5,11 +5,13 @@
 import {
   Attention,
   Band,
+  BandCard,
+  BandList,
   BlockStack,
   BlockStep,
   DecoderBlock,
   Embedding,
-  FigureAside,
+  FigureBranch,
   FigureTerminal,
   FlowArrow,
   Generic,
@@ -28,10 +30,13 @@ import {
   bandSummary,
   blockSegments,
   layerRange,
+  MAX_STACK_COLUMNS,
   noteMarker,
   notesFor,
   represented,
   type StackItem,
+  shortClass,
+  stackColumns,
   stackItems,
   subTarget,
 } from "@/lib/arch";
@@ -64,6 +69,8 @@ export interface ArchFigureProps {
   detailId?: string;
 }
 
+const num = (v: unknown): number | undefined => (typeof v === "number" ? v : undefined);
+
 const sci = (n: number) =>
   n >= 1e4 && /^10*$/.test(String(n)) ? `1e${String(n).length - 1}` : String(n);
 
@@ -71,14 +78,11 @@ export function ropeTag(rope: ArchRope | null): string | undefined {
   if (!rope) return undefined;
   const s = rope.scaling ?? {};
   if (rope.kind === "yarn") return `YaRN ×${String(s.factor ?? "?")}`;
-  const partial =
-    typeof s.partial_rotary_factor === "number"
-      ? ` · ${Math.round(s.partial_rotary_factor * 100)}%`
-      : "";
+  // v1.1 §8: top-level partial_rotary_factor (scaling.partial_rotary_factor kept as fallback).
+  const factor = rope.partial_rotary_factor ?? num(s.partial_rotary_factor);
+  const partial = typeof factor === "number" && factor < 1 ? ` · ${Math.round(factor * 100)}%` : "";
   return `RoPE${rope.theta ? ` θ ${sci(rope.theta)}` : ""}${partial}`;
 }
-
-const num = (v: unknown): number | undefined => (typeof v === "number" ? v : undefined);
 
 type GlyphProps = NodeMarkers & {
   onSelect?: () => void;
@@ -93,14 +97,29 @@ export function ComponentGlyph({
   fallbackClass,
   ...common
 }: { component: ArchComponent | null; fallbackClass?: string | undefined } & GlyphProps) {
-  if (!component) return <Generic moduleClass={fallbackClass ?? "module"} {...common} />;
+  if (!component)
+    return <Generic moduleClass={shortClass(fallbackClass) || "module"} {...common} />;
   switch (component.kind) {
     case "norm":
       return <Norm variant={component.variant} {...common} />;
     case "attention": {
       const x = component.extras;
       const mla = component.variant === "mla";
+      const linear = component.variant === "linear";
       const gdn = x.kind === "gated_deltanet";
+      // Linear-attention fields (v1.1 §7): describe the linear mixer itself.
+      const linearDetail = linear
+        ? [
+            num(x.num_k_heads) !== undefined ? `${num(x.num_k_heads)} k-heads` : undefined,
+            num(x.num_v_heads) !== undefined ? `${num(x.num_v_heads)} v-heads` : undefined,
+            num(x.head_k_dim) !== undefined && num(x.head_v_dim) !== undefined
+              ? `d ${num(x.head_k_dim)}/${num(x.head_v_dim)}`
+              : undefined,
+            num(x.conv_kernel) !== undefined ? `conv ${num(x.conv_kernel)}` : undefined,
+          ]
+            .filter(Boolean)
+            .join(" · ")
+        : "";
       return (
         <Attention
           variant={component.variant}
@@ -119,12 +138,10 @@ export function ComponentGlyph({
                 }
               : undefined
           }
+          window={num(x.sliding_window)}
+          indexTopk={num(x.index_topk)}
           name={gdn ? "Gated DeltaNet" : undefined}
-          detail={
-            gdn
-              ? `${String(x.num_v_heads ?? "?")} v-heads · conv ${String(x.conv_kernel ?? "?")}`
-              : undefined
-          }
+          detail={linearDetail || undefined}
           {...common}
         />
       );
@@ -154,7 +171,11 @@ export function ComponentGlyph({
       );
     case "generic":
       return (
-        <Generic moduleClass={component.class_name} members={component.children} {...common} />
+        <Generic
+          moduleClass={shortClass(component.class_name)}
+          members={component.children.map((c) => ({ ...c, class_name: shortClass(c.class_name) }))}
+          {...common}
+        />
       );
     case "embedding":
       return (
@@ -191,8 +212,11 @@ export function ArchFigure({
   onSelectStage,
   detailId,
 }: ArchFigureProps) {
-  const main = arch.stages.filter((s) => s.kind !== "other");
-  const others = arch.stages.filter((s): s is ArchModuleStage => s.kind === "other");
+  // v1.1 §5: `other` stages go on the spine unless `placement: "aside"` (legacy: aside).
+  const isAside = (s: ArchStage) => s.kind === "other" && (s.placement ?? "aside") === "aside";
+  const main = arch.stages.filter((s) => !isAside(s));
+  const others = arch.stages.filter((s): s is ArchModuleStage => isAside(s));
+  const branchAt = [...main].reverse().find((s) => s.kind !== "stack")?.id;
 
   const stageGlyph = (s: ArchModuleStage) => (
     <ComponentGlyph
@@ -269,6 +293,37 @@ export function ArchFigure({
   const stackView = (stage: Extract<ArchStage, { kind: "stack" }>) => {
     const items = stackItems(stage.bands);
     const total = stage.bands.reduce((n, b) => n + b.count, 0);
+    if (stackColumns(items) > MAX_STACK_COLUMNS) {
+      // Too heterogeneous to draw side by side: a wrapping band list + the selected block.
+      const shown =
+        selection.band && stage.bands.includes(selection.band)
+          ? selection.band
+          : (stage.bands[0] as ArchBand);
+      return (
+        <BlockStack
+          key={stage.id}
+          title={stage.label ?? "Decoder layers"}
+          layers={total}
+          layout="column"
+          data-testid={`stage-${stage.id}`}
+        >
+          <BandList data-testid="band-list">
+            {stage.bands.map((b) => (
+              <BandCard
+                key={b.id}
+                title={layerRange(b.layers)}
+                subtitle={bandSummary(b)}
+                count={b.count}
+                selected={selection.band === b}
+                onClick={() => onSelectBand(b)}
+                data-testid={`band-card-${b.id}`}
+              />
+            ))}
+          </BandList>
+          {bandView(items, shown, false)}
+        </BlockStack>
+      );
+    }
     return (
       <BlockStack
         key={stage.id}
@@ -308,7 +363,19 @@ export function ArchFigure({
     const t = prev ? firstOut(prev) : undefined;
     spine.push(
       t ? <TensorEdge key={`e-${s.id}`} shape={t.shape} name={t.name} /> : null,
-      s.kind === "stack" ? stackView(s) : stageGlyph(s),
+      s.kind === "stack" ? (
+        stackView(s)
+      ) : s.id === branchAt && others.length ? (
+        <FigureBranch
+          key={`branch-${s.id}`}
+          node={stageGlyph(s)}
+          label={others.map((o) => o.label ?? o.id).join(" · ")}
+          branch={others.map(stageGlyph)}
+          data-testid="figure-branch"
+        />
+      ) : (
+        stageGlyph(s)
+      ),
     );
   });
   spine.push(
@@ -326,13 +393,6 @@ export function ArchFigure({
       evaluate={evaluate}
       data-testid="arch-figure"
       aria-label={`${arch.model.hf_id} architecture`}
-      aside={
-        others.length ? (
-          <FigureAside label={others.map((s) => s.label ?? s.id).join(" · ")}>
-            <div className="flex flex-col gap-2">{others.map(stageGlyph)}</div>
-          </FigureAside>
-        ) : null
-      }
     >
       {spine}
     </ModelFigure>

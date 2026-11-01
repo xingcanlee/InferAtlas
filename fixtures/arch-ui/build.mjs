@@ -42,9 +42,12 @@ const BF16 = "bfloat16";
 const t = (name, shape, dtype = BF16) => ({ name, shape, dtype });
 const p = (name, shape, dtype = BF16) => ({ name, shape, dtype });
 const io = (inputs, outputs) => ({ inputs, outputs });
-const mod = (path, class_name, source, params, status = "ruled", replaced = null) => ({
+/** Fully qualified class name (contract v1.1 §10) from the defining source file. */
+const qualify = (cls, source) =>
+  source ? `${source.file.replace(/\.py$/, "").replaceAll("/", ".")}.${cls}` : cls;
+const mod = (path, cls, source, params, status = "ruled", replaced = null) => ({
   path,
-  class_name,
+  class_name: qualify(cls, source),
   source,
   status,
   replaced,
@@ -190,10 +193,10 @@ function qwen3_8b() {
                   p("k_norm.weight", ["D"]),
                 ]),
               },
-              addSub("attn_residual"),
+              addSub("residual_1"),
               normSub("post_attention_layernorm", `${lp}.post_attention_layernorm`),
               swigluSub(`${lp}.mlp`, "Qwen2MLP", SRC.qwen2Mlp, { sym: "I", value: 12288 }),
-              addSub("mlp_residual"),
+              addSub("residual_2"),
             ],
           }),
         ],
@@ -285,7 +288,7 @@ function qwen3_30b() {
                   p("k_norm.weight", ["D"]),
                 ]),
               },
-              addSub("attn_residual"),
+              addSub("residual_1"),
               normSub("post_attention_layernorm", `${lp}.post_attention_layernorm`),
               {
                 id: "mlp",
@@ -313,7 +316,7 @@ function qwen3_30b() {
                   { baseline_class: "FusedMoE", ascend_class: "AscendFusedMoE" },
                 ),
               },
-              addSub("mlp_residual"),
+              addSub("residual_2"),
             ],
           }),
         ],
@@ -384,10 +387,10 @@ function deepseek_v3() {
     sublayers: [
       normSub("input_layernorm", `model.layers.${L}.input_layernorm`),
       mla(L),
-      addSub("attn_residual"),
+      addSub("residual_1"),
       normSub("post_attention_layernorm", `model.layers.${L}.post_attention_layernorm`),
       ffn,
-      addSub("mlp_residual"),
+      addSub("residual_2"),
     ],
   });
   const moe = {
@@ -473,10 +476,11 @@ function deepseek_v3() {
       {
         id: "mtp",
         kind: "other",
+        placement: "aside",
         label: "Multi-token prediction",
         component: {
           kind: "generic",
-          class_name: "DeepSeekMultiTokenPredictorLayer",
+          class_name: qualify("DeepSeekMultiTokenPredictorLayer", SRC.dsMtp),
           children: [
             { name: "enorm", class_name: "RMSNorm" },
             { name: "hnorm", class_name: "RMSNorm" },
@@ -532,7 +536,7 @@ function deepseek_v3() {
 // --------------------------------------------------------------------- Qwen3-Next-80B-A3B
 
 function qwen3_next() {
-  const PATTERN = "3 × linear attention + 1 × full attention";
+  const PATTERN = "3× linear + 1× full";
   const norm = (id, L) =>
     normSub(id, `model.layers.${L}.${id}`, { cls: "GemmaRMSNorm", source: SRC.gemmaRms });
   const moe = (L) => ({
@@ -587,6 +591,7 @@ function qwen3_next() {
             head_k_dim: 128,
             head_v_dim: 128,
             conv_kernel: 4,
+            output_gate: true,
           },
         },
         io: io([hidden()], [hidden()]),
@@ -607,10 +612,10 @@ function qwen3_next() {
           null,
         ),
       },
-      addSub("attn_residual"),
+      addSub("residual_1"),
       norm("post_attention_layernorm", L),
       moe(L),
-      addSub("mlp_residual"),
+      addSub("residual_2"),
     ],
   });
   const full = (L) => ({
@@ -627,7 +632,7 @@ function qwen3_next() {
           heads_q: 16,
           heads_kv: 2,
           head_dim: 256,
-          rope: { kind: "rope", theta: 10000000, scaling: { partial_rotary_factor: 0.25 } },
+          rope: { kind: "rope", theta: 10000000, scaling: null, partial_rotary_factor: 0.25 },
           qk_norm: true,
           extras: { output_gate: true },
         },
@@ -639,10 +644,10 @@ function qwen3_next() {
           p("k_norm.weight", ["D"]),
         ]),
       },
-      addSub("attn_residual"),
+      addSub("residual_1"),
       norm("post_attention_layernorm", L),
       moe(L),
-      addSub("mlp_residual"),
+      addSub("residual_2"),
     ],
   });
   const bands = [];

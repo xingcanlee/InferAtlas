@@ -13,22 +13,24 @@ import { FitBox } from "@/components/arch/FitBox";
 import { Button } from "@/components/ui/button";
 import {
   archEnv,
-  bandForLayer,
+  bandOrdinal,
   bandSummary,
+  drawnBand,
   evaluator,
   layerCount,
   layerRange,
   moduleStages,
-  representative,
-  stackItems,
+  slotAt,
   stacks,
 } from "@/lib/arch";
 import type { Arch, ArchBand } from "@/lib/arch-types";
 import { type ModelSearch, paramOverrides } from "@/lib/search";
+import { useUi } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 const route = getRouteApi("/m/$version/$device/$model");
 const DETAIL_ID = "arch-detail";
+const OVERLAY_SELECTOR = '[role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"]';
 
 function isTyping(e: KeyboardEvent): boolean {
   const t = e.target as HTMLElement | null;
@@ -51,11 +53,13 @@ export function ArchitectureView({ arch }: { arch: Arch }) {
   const { env, overridden } = useMemo(() => archEnv(arch, overrides), [arch, overridesKey]);
   const evaluate = useMemo(() => evaluator(env), [env]);
 
+  // `layer` in the URL is the ordinal over all stacks (== layer index for one stack).
   const total = layerCount(arch);
-  const items = useMemo(() => stacks(arch).flatMap((s) => stackItems(s.bands)), [arch]);
+  const multiStack = stacks(arch).length > 1;
   const layer = search.layer !== undefined && search.layer < total ? search.layer : undefined;
-  const band = layer !== undefined ? bandForLayer(arch, layer) : undefined;
-  const drawn = band ? representative(items, band) : undefined;
+  const slot = layer !== undefined ? slotAt(arch, layer) : undefined;
+  const band = slot?.band;
+  const drawn = band ? drawnBand(arch, band) : undefined;
   const stage =
     !band && search.stage ? moduleStages(arch).find((s) => s.id === search.stage) : undefined;
   const sub =
@@ -70,15 +74,22 @@ export function ArchitectureView({ arch }: { arch: Arch }) {
   const onSelectBand = (b: ArchBand) =>
     drawn === b && sub === undefined
       ? clear()
-      : patch({ layer: drawn === b ? layer : b.layers[0], sub: undefined, stage: undefined });
+      : patch({
+          layer: drawn === b ? layer : bandOrdinal(arch, b),
+          sub: undefined,
+          stage: undefined,
+        });
   const onSelectSub = (b: ArchBand, id: string) =>
-    patch({ layer: drawn === b ? layer : b.layers[0], sub: id, stage: undefined });
+    patch({ layer: drawn === b ? layer : bandOrdinal(arch, b), sub: id, stage: undefined });
   const onSelectStage = (id: string) =>
     stage?.id === id ? clear() : patch({ stage: id, layer: undefined, sub: undefined });
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !isTyping(e)) clear();
+      if (e.key !== "Escape" || e.defaultPrevented || isTyping(e)) return;
+      // Leave Esc to the command palette / dialogs / menus while they are open.
+      if (useUi.getState().searchOpen || document.querySelector(OVERLAY_SELECTOR)) return;
+      clear();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -89,18 +100,21 @@ export function ArchitectureView({ arch }: { arch: Arch }) {
   const [scale, setScale] = useState(1);
 
   return (
-    <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)_400px]">
+    <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)_360px] min-[1440px]:grid-cols-[minmax(0,1fr)_400px]">
       <div className="flex min-h-0 min-w-0 flex-col">
         <div className="flex h-10 shrink-0 items-center gap-3 border-b px-3">
           <LayerSelector
             total={total}
             layer={layer}
+            stackLabel={multiStack ? slot?.stack.label : undefined}
             onLayer={(n) => patch({ layer: n, stage: undefined, sub: undefined })}
           />
           <span className="truncate text-[12px] text-muted-foreground" data-testid="layer-band">
             {band
-              ? `→ ${layerRange(band.layers)} · ${bandSummary(band)}`
-              : "Click a block or pick a layer to see its tensors"}
+              ? `→ ${multiStack ? `${slot?.stack.label ?? slot?.stack.id} · ` : ""}${layerRange(band.layers)} · ${bandSummary(band)}`
+              : total
+                ? "Click a block or pick a layer to see its tensors"
+                : "No decoder stack in this model"}
           </span>
           <span className="ml-auto hidden shrink-0 text-[11px] text-muted-foreground xl:inline">
             Hover or focus a shape for its value
@@ -148,14 +162,21 @@ export function ArchitectureView({ arch }: { arch: Arch }) {
             </Button>
           </div>
         ) : null}
-        {band && layer !== undefined ? (
-          <LayerDetail arch={arch} band={band} layer={layer} sub={sub} evaluate={evaluate} />
+        {band && slot ? (
+          <LayerDetail
+            arch={arch}
+            band={band}
+            layer={slot.layer}
+            stackLabel={multiStack ? (slot.stack.label ?? slot.stack.id) : undefined}
+            sub={sub}
+            evaluate={evaluate}
+          />
         ) : stage ? (
           <StageDetail arch={arch} stage={stage} evaluate={evaluate} />
         ) : (
           <Overview
             arch={arch}
-            onLayer={(n) => patch({ layer: n })}
+            onBand={(b) => patch({ layer: bandOrdinal(arch, b) })}
             onStage={(id) => patch({ stage: id })}
           />
         )}

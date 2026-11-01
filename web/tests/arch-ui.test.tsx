@@ -6,6 +6,7 @@ import {
   BlockStack,
   DecoderBlock,
   evaluateShape,
+  FigureBranch,
   FigureNode,
   formatNumeric,
   formatSymbolic,
@@ -84,6 +85,10 @@ describe("components", () => {
     expect(screen.getByText("c_Q 1,536")).toBeInTheDocument();
     // MHA-equal kv heads are not repeated.
     expect(screen.getByText("heads 128 q")).toBeInTheDocument();
+    rerender(<Attention variant="sliding_window" window={4096} />);
+    expect(screen.getByText("window 4,096")).toBeInTheDocument();
+    rerender(<Attention variant="sparse" indexTopk={2048} />);
+    expect(screen.getByText("index top-2,048")).toBeInTheDocument();
     rerender(<Attention variant="linear" detail="Gated DeltaNet" />);
     expect(screen.getByText("Linear")).toBeInTheDocument();
     expect(screen.getByText("Linear attention")).toBeInTheDocument();
@@ -115,6 +120,9 @@ describe("components", () => {
     expect(screen.getByText("S")).toHaveAttribute("data-tone", "shared");
     expect(screen.getByText("256")).toBeInTheDocument();
     expect(container.querySelectorAll("[data-active]").length).toBeGreaterThan(0);
+    // The highlighted routing is marked as illustrative.
+    expect(slot(container, "moe-experts")[0]).toHaveAttribute("data-illustrative", "true");
+    expect(screen.getByText("e.g.")).toBeInTheDocument();
     expect(screen.getByText(/256 routed · 1 shared · SwiGLU · 2,048/)).toBeInTheDocument();
   });
 
@@ -195,6 +203,17 @@ describe("figure layout", () => {
     expect(slot(container, "flow-arrow")).toHaveLength(1);
     expect(slot(container, "tensor-edge")).toHaveLength(1);
     expect(screen.getByRole("button", { name: /hidden \[T, H\] = \[4, 8\]/ })).toBeInTheDocument();
+  });
+
+  it("FigureBranch keeps the spine node and attaches the side head", () => {
+    const { container } = render(
+      <ModelFigure>
+        <FigureBranch node={<Norm />} branch={<Generic moduleClass="MTP" />} label="side" />
+      </ModelFigure>,
+    );
+    expect(slot(container, "figure-branch")).toHaveLength(1);
+    expect(slot(container, "figure-branch-content")[0]).toHaveTextContent("MTP");
+    expect(screen.getByText("side")).toBeInTheDocument();
   });
 
   it("bands show N×, a disclosure header and pattern groups their period", async () => {

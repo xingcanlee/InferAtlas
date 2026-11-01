@@ -17,6 +17,34 @@ const MOE = "data/main-verified-A2/qwen3-30b-a3b";
 const DENSE = "data/main-verified-A2/qwen3-8b";
 const DS = "data/main-verified-A2/deepseek-v3";
 const NEXT = "data/main-verified-A2/qwen3-next-80b-a3b";
+const BAD = "data/main-verified-H100/qwen3-30b-a3b";
+const MIXED = "data/main-verified-H100/qwen3-8b";
+
+/** A non-periodic, heterogeneous stack (6 bands alternating dense / MoE with varying counts). */
+function mixedArch(): Arch {
+  const ds = deepseekJson as unknown as Arch;
+  const stack = ds.stages.find((x) => x.kind === "stack") as Extract<
+    Arch["stages"][number],
+    { kind: "stack" }
+  >;
+  const [dense, moe] = stack.bands;
+  let start = 0;
+  const bands = [1, 2, 3, 4, 5, 6].map((c, i) => {
+    const b = {
+      ...(i % 2 ? moe : dense),
+      id: `mix${i}`,
+      count: c,
+      pattern: null,
+      layers: [start, start + c - 1],
+    };
+    start += c;
+    return b;
+  });
+  return {
+    ...ds,
+    stages: ds.stages.map((x) => (x.kind === "stack" ? { ...x, bands } : x)),
+  } as Arch;
+}
 
 beforeAll(() => {
   const index = indexJson as unknown as Index;
@@ -40,6 +68,22 @@ beforeAll(() => {
       ],
       cells: [
         ...index.cells,
+        {
+          version: "main-verified",
+          model: "qwen3-30b-a3b",
+          device: "H100",
+          status: "ok",
+          triage_count: 0,
+          data_path: BAD,
+        },
+        {
+          version: "main-verified",
+          model: "qwen3-8b",
+          device: "H100",
+          status: "triage",
+          triage_count: 1,
+          data_path: MIXED,
+        },
         // Structure-only triage cells: still linked and rendered (triage never blocks).
         {
           version: "main-verified",
@@ -71,6 +115,13 @@ beforeAll(() => {
       [DENSE]: { ir: irJson as unknown as IR, view: viewJson as unknown as View },
       [DS]: { arch: deepseekJson as unknown as Arch },
       [NEXT]: { arch: nextJson as unknown as Arch },
+      // Malformed arch.json next to a good numeric bundle.
+      [BAD]: {
+        ir: irJson as unknown as IR,
+        view: viewJson as unknown as View,
+        arch: { schema_version: 1, oops: true } as unknown as Arch,
+      },
+      [MIXED]: { arch: mixedArch() },
     },
   };
 });
@@ -163,6 +214,35 @@ describe("architecture page", { timeout: 20_000 }, () => {
     expect(await screen.findByTestId("arch-empty")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Open graph & analysis" }));
     expect(await screen.findByTestId("tab-graph")).toHaveAttribute("data-state", "active");
+  });
+
+  it("a malformed arch.json only affects the architecture tab", async () => {
+    await renderAt("/m/main-verified/H100/qwen3-30b-a3b");
+    expect(await screen.findByTestId("arch-error")).toHaveTextContent("arch.json is malformed");
+    await userEvent.click(screen.getByRole("button", { name: "Open graph & analysis" }));
+    expect(await screen.findByTestId("graph")).toBeInTheDocument();
+  });
+
+  it("a heterogeneous non-periodic stack uses the compact band list", async () => {
+    const router = await renderAt("/m/main-verified/H100/qwen3-8b");
+    const list = await screen.findByTestId("band-list");
+    expect(within(list).getAllByRole("button")).toHaveLength(6);
+    // Only one full block is drawn (the first band until one is selected).
+    expect(screen.getAllByTestId(/^band-mix\d$/)).toHaveLength(1);
+    await userEvent.click(screen.getByTestId("band-card-mix3"));
+    expect(router.state.location.search).toMatchObject({ layer: 6 });
+    expect(screen.getByTestId("band-card-mix3")).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByTestId("band-mix3")).toBeInTheDocument();
+    expect(screen.getByTestId("layer-total")).toHaveTextContent("of 21 layers");
+  });
+
+  it("only runtime symbols are editable; model dimensions are read-only", async () => {
+    await renderAt("/m/main-verified/A2/deepseek-v3?H=1");
+    await userEvent.click(await screen.findByTestId("symbols-toggle"));
+    expect(screen.getByTestId("sym-T")).toBeInTheDocument();
+    expect(screen.getByTestId("sym-tp")).toBeInTheDocument();
+    expect(screen.queryByTestId("sym-H")).toBeNull();
+    expect(screen.getByTestId("model-dims")).toHaveTextContent("7,168");
   });
 
   it("home links every cell with data, including triage-only structure cells", async () => {

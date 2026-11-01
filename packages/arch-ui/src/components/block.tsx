@@ -320,6 +320,11 @@ export interface BlockStackProps extends Omit<React.ComponentProps<"section">, "
   title?: React.ReactNode;
   /** Total layers (shown in the header). */
   layers?: number | undefined;
+  /**
+   * `row` (default): bands left → right in execution order with "then" connectors.
+   * `column`: children stacked vertically (compact band list + one expanded block).
+   */
+  layout?: "row" | "column";
 }
 
 /**
@@ -329,6 +334,7 @@ export interface BlockStackProps extends Omit<React.ComponentProps<"section">, "
 export function BlockStack({
   title = "Decoder layers",
   layers,
+  layout = "row",
   className,
   children,
   ...props
@@ -337,17 +343,64 @@ export function BlockStack({
     <section
       data-slot="block-stack"
       className={cn(
-        "relative flex flex-col items-center rounded-2xl border border-dashed border-arch-frame-border px-4 pt-2 pb-3",
+        "relative flex flex-col items-center rounded-2xl border border-dashed border-arch-frame-border px-4 pt-3 pb-3",
         className,
       )}
       {...props}
     >
-      <header className="mb-1 flex items-baseline gap-1.5 text-[11px] text-muted-foreground">
+      {/* Legend on the frame border, left of the spine so it never meets edge labels. */}
+      <header className="absolute -top-2 left-5 flex items-baseline gap-1.5 bg-arch-surface px-2 text-[11px] leading-4 whitespace-nowrap text-muted-foreground">
         <span className="font-medium tracking-wide uppercase">{title}</span>
         {layers !== undefined ? <span className="font-mono tabular-nums">· {layers}</span> : null}
       </header>
-      <div className="flex items-start justify-center gap-3">{withThen(children)}</div>
+      {layout === "column" ? (
+        <div className="flex flex-col items-center gap-3">{children}</div>
+      ) : (
+        <div className="flex items-start justify-center gap-3">{withThen(children)}</div>
+      )}
     </section>
+  );
+}
+
+export interface BandCardProps extends Omit<React.ComponentProps<"button">, "title"> {
+  title: React.ReactNode;
+  subtitle?: React.ReactNode;
+  count: number;
+  selected?: boolean | undefined;
+}
+
+/**
+ * Compact one-line band for stacks too heterogeneous to draw side by side: `N×`, layer range,
+ * summary. A toggle button (`aria-pressed`); the selected band is drawn in full elsewhere.
+ */
+export function BandCard({ title, subtitle, count, selected, className, ...props }: BandCardProps) {
+  return (
+    <button
+      type="button"
+      data-slot="band-card"
+      aria-pressed={!!selected}
+      className={cn(
+        "inline-flex h-7 items-center gap-2 rounded-md border bg-arch-frame px-2 text-[11.5px] outline-none transition-colors hover:border-foreground/40 focus-visible:ring-2 focus-visible:ring-ring/70",
+        selected ? "border-focus/70 bg-focus-soft" : "border-arch-frame-border",
+        className,
+      )}
+      {...props}
+    >
+      <span className="font-semibold tabular-nums text-foreground/85">{count}×</span>
+      <span className="font-medium">{title}</span>
+      {subtitle ? <span className="text-muted-foreground">{subtitle}</span> : null}
+    </button>
+  );
+}
+
+/** Wrapping list of BandCards in execution order. */
+export function BandList({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="band-list"
+      className={cn("flex max-w-[46rem] flex-wrap justify-center gap-1.5", className)}
+      {...props}
+    />
   );
 }
 
