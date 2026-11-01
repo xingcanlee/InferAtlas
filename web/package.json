@@ -4,15 +4,17 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "sync-data": "node scripts/sync-fixtures.mjs",
-    "dev": "pnpm run deps && node scripts/sync-fixtures.mjs && vite",
-    "build": "pnpm run deps && node scripts/sync-fixtures.mjs && tsc -p tsconfig.json && vite build",
-    "build:single": "pnpm run deps && node scripts/sync-fixtures.mjs && tsc -p tsconfig.json && vite build --mode single",
+    "sync-data": "node scripts/sync-data.mjs",
+    "deps": "pnpm --filter @inferatlas/contracts --filter @inferatlas/expr --filter @inferatlas/layout build",
+    "dev": "pnpm run deps && node scripts/sync-data.mjs --demo && vite",
+    "build": "pnpm run deps && node scripts/sync-data.mjs && tsc -p tsconfig.json && vite build",
+    "build:single": "pnpm run deps && node scripts/sync-data.mjs && tsc -p tsconfig.json && vite build --mode single",
+    "build:demo": "pnpm run deps && node scripts/sync-data.mjs --demo && tsc -p tsconfig.json && vite build",
+    "build:single:demo": "pnpm run deps && node scripts/sync-data.mjs --demo && tsc -p tsconfig.json && vite build --mode single",
     "preview": "vite preview",
     "test": "pnpm run deps && vitest run",
-    "e2e": "playwright test",
-    "lint": "biome check .",
-    "deps": "pnpm --filter @inferatlas/contracts --filter @inferatlas/expr build"
+    "e2e": "pnpm run build:demo && pnpm run build:single:demo && playwright test",
+    "lint": "biome check ."
   },
   "dependencies": {
     "@fontsource/inter": "^5.3.0",

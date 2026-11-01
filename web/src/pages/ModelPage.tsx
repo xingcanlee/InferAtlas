@@ -12,7 +12,7 @@ import { ViewNav } from "@/components/model/ViewNav";
 import { buildEnv, computeAll, memoryLedger, type ParamValue } from "@/lib/model";
 import { paramOverrides } from "@/lib/search";
 import { useUi } from "@/lib/store";
-import { descendants, drillTarget, getView, L0, parentView } from "@/lib/views";
+import { bandAnchor, descendants, drillTarget, getView, L0, parentView } from "@/lib/views";
 import { ModelContext, type ModelCtx } from "./model/context";
 
 const route = getRouteApi("/m/$version/$device/$model");
@@ -52,17 +52,35 @@ export function ModelPage() {
   );
   const setParam = useCallback<ModelCtx["setParam"]>(
     (name, value) => {
-      const def = envState.defaults[name];
-      const v: ParamValue | undefined = value === def ? undefined : value;
-      patch({ [name]: v }, true);
+      const norm = (k: string, x: ParamValue | undefined) =>
+        x === envState.defaults[k] ? undefined : x;
+      const next: Record<string, ParamValue | undefined> = { [name]: norm(name, value) };
+      // Keep enabled EP on the flattened tp×dp group when tp/dp change (vLLM rule).
+      const ep = envState.params.ep;
+      if ((name === "tp" || name === "dp") && typeof ep === "number" && ep > 1) {
+        const tp =
+          name === "tp" ? Number(value ?? envState.defaults.tp) : Number(envState.params.tp);
+        const dp =
+          name === "dp" ? Number(value ?? envState.defaults.dp) : Number(envState.params.dp);
+        const choices = ir.params.ep?.choices;
+        const want = tp * dp;
+        next.ep = norm("ep", !choices || choices.includes(String(want)) ? want : 1);
+      }
+      patch(next, true);
     },
-    [envState.defaults, patch],
+    [envState.defaults, envState.params, ir.params, patch],
   );
   const select = useCallback((id: string | undefined) => patch({ node: id }), [patch]);
   const goView = useCallback(
     (v: string, node?: string) => patch({ view: v === L0 ? undefined : v, node }),
     [patch],
   );
+
+  // Fidelity ledger: represented scope minus what is drawn.
+  const merged = useMemo(() => {
+    const drawn = new Set(graph?.nodes.map((n) => n.ir_node));
+    return (graph?.collapsed_of ?? []).filter((id) => !drawn.has(id));
+  }, [graph]);
 
   // Highlight the node itself, or the visible node that contains it.
   const highlight = useMemo(() => {
@@ -83,7 +101,9 @@ export function ModelPage() {
         // Going up keeps focus on the node we came out of.
         const from = viewId.startsWith("L2:")
           ? viewId.slice(3)
-          : ir.groups.find((g) => `L1:${g.id}` === viewId)?.template;
+          : viewId.startsWith("L1:")
+            ? bandAnchor(ir, view, viewId.slice(3))
+            : undefined;
         if (up) goView(up, from);
         else if (selected) select(undefined);
       } else if (e.key === "Enter" && selected) {
@@ -95,30 +115,60 @@ export function ModelPage() {
     return () => window.removeEventListener("keydown", onKey);
   }, [goView, ir, searchOpen, select, selected, setSearchOpen, view, viewId]);
 
-  const ctx: ModelCtx = {
-    ir,
-    view,
-    report,
-    cell,
-    hardware,
-    hw,
-    envState,
-    metrics,
-    ledger,
-    phase,
-    viewId,
-    graph,
-    selected,
-    overlay: search.overlay ?? false,
-    shapes: search.shapes ?? "num",
-    heat: search.heat ?? "flops",
-    side: search.side ?? "memory",
-    search,
-    patch,
-    setParam,
-    select,
-    goView,
-  };
+  const overlay = search.overlay ?? false;
+  const shapes = search.shapes ?? "num";
+  const heat = search.heat ?? "flops";
+  const side = search.side ?? "memory";
+  const ctx = useMemo<ModelCtx>(
+    () => ({
+      ir,
+      view,
+      report,
+      cell,
+      hardware,
+      hw,
+      envState,
+      metrics,
+      ledger,
+      phase,
+      viewId,
+      graph,
+      selected,
+      overlay,
+      shapes,
+      heat,
+      side,
+      search,
+      patch,
+      setParam,
+      select,
+      goView,
+    }),
+    [
+      ir,
+      view,
+      report,
+      cell,
+      hardware,
+      hw,
+      envState,
+      metrics,
+      ledger,
+      phase,
+      viewId,
+      graph,
+      selected,
+      overlay,
+      shapes,
+      heat,
+      side,
+      search,
+      patch,
+      setParam,
+      select,
+      goView,
+    ],
+  );
 
   return (
     <ModelContext.Provider value={ctx}>
@@ -127,7 +177,7 @@ export function ModelPage() {
         <ParamsPanel className="min-h-0 overflow-y-auto border-r" />
         <section className="flex min-h-0 min-w-0 flex-col">
           <ViewNav />
-          <div className="h-[272px] shrink-0 bg-canvas">
+          <div className="min-h-[280px] flex-1 bg-canvas">
             {graph ? (
               <GraphCanvas
                 ir={ir}
@@ -153,8 +203,8 @@ export function ModelPage() {
               </EmptyState>
             )}
           </div>
-          <Legend heat={ctx.heat} overlay={ctx.overlay} collapsed={graph?.collapsed_of ?? []} />
-          <AnalysisTabs className="min-h-0 flex-1 border-t" />
+          <Legend heat={heat} overlay={overlay} collapsed={merged} />
+          <AnalysisTabs className="h-[300px] shrink-0 border-t" />
         </section>
         <DetailPanel className="min-h-0 overflow-y-auto border-l" />
       </div>

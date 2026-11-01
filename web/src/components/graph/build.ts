@@ -85,8 +85,10 @@ export function buildGraph(o: BuildOptions): { nodes: GraphNode[]; edges: GraphE
       const hi = tryEvaluate(String(b), env);
       if (lo.ok && hi.ok) repeat = `×${hi.value - lo.value + 1}`;
     }
-    let kv = kvFor.get(vn.ir_node);
-    if (!kv && n) {
+    // Views that draw the KV loop explicitly don't need the chip.
+    const drawsKv = graph.edges.some((e) => e.kind === "kv" && e.to === vn.id);
+    let kv = drawsKv ? undefined : kvFor.get(vn.ir_node);
+    if (!kv && !drawsKv && n) {
       for (const d of desc) {
         if (kvFor.has(d.id)) {
           kv = kvFor.get(d.id);

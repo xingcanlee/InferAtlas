@@ -1,4 +1,4 @@
-import type { ParamSpec } from "@inferatlas/contracts";
+import type { ExprEnv, ParamSpec } from "@inferatlas/contracts";
 import { AlertTriangle, Info, RotateCcw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { tryEvaluate } from "@/lib/expr";
 import { fmtNum } from "@/lib/format";
 import { type ParamValue, paramBounds } from "@/lib/model";
 import { cn } from "@/lib/utils";
@@ -131,6 +132,30 @@ function NumberControl({
   );
 }
 
+/**
+ * Why a choice is not allowed at the current parameters, or undefined if it is.
+ * Uses an IR-declared `constraint` expression when present (T3), otherwise the vLLM rule
+ * that EP is either disabled (1) or spans the flattened tp×dp group.
+ */
+function choiceBlocked(
+  name: string,
+  spec: ParamSpec,
+  choice: string,
+  env: ExprEnv,
+): string | undefined {
+  const constraint = (spec as ParamSpec & { constraint?: string | null }).constraint;
+  if (constraint) {
+    const r = tryEvaluate(constraint, { ...env, [name]: Number(choice) });
+    return r.ok && r.value === 0 ? `violates ${constraint}` : undefined;
+  }
+  if (name === "ep" && typeof env.tp === "number" && typeof env.dp === "number") {
+    const v = Number(choice);
+    const group = env.tp * env.dp;
+    if (v !== 1 && v !== group) return `EP is 1 (off) or tp×dp = ${group}`;
+  }
+  return undefined;
+}
+
 function ChoiceControl({
   name,
   spec,
@@ -142,7 +167,9 @@ function ChoiceControl({
   value: ParamValue;
   onChange: (v: ParamValue) => void;
 }) {
+  const m = useModel();
   const choices = spec.choices ?? [];
+  const blocked = (c: string) => choiceBlocked(name, spec, c, m.envState.env);
   const numeric = spec.kind === "integer" || spec.kind === "number";
   const parse = (s: string): ParamValue => (numeric ? Number(s) : s);
   if (choices.length <= 6) {
@@ -158,7 +185,13 @@ function ChoiceControl({
         data-testid={`param-${name}`}
       >
         {choices.map((c) => (
-          <ToggleGroupItem key={c} value={c} className="h-7 flex-1 px-1 font-mono text-[11.5px]">
+          <ToggleGroupItem
+            key={c}
+            value={c}
+            disabled={!!blocked(c) && String(value) !== c}
+            title={blocked(c)}
+            className="h-7 flex-1 px-1 font-mono text-[11.5px]"
+          >
             {c}
           </ToggleGroupItem>
         ))}
@@ -176,8 +209,17 @@ function ChoiceControl({
       </SelectTrigger>
       <SelectContent>
         {choices.map((c) => (
-          <SelectItem key={c} value={c} className="font-mono text-[12px]">
+          <SelectItem
+            key={c}
+            value={c}
+            disabled={!!blocked(c) && String(value) !== c}
+            className="font-mono text-[12px]"
+            data-testid={`param-${name}-${c}`}
+          >
             {c}
+            {blocked(c) ? (
+              <span className="font-sans text-[10.5px] text-muted-foreground">{blocked(c)}</span>
+            ) : null}
           </SelectItem>
         ))}
       </SelectContent>

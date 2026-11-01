@@ -7,7 +7,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { srcUrl } from "@/lib/data";
 import { tryEvaluate } from "@/lib/expr";
 import { fmtBytes, fmtFlops, fmtNum, fmtSI, qText, shortClass } from "@/lib/format";
-import { nodeMetrics, type Phase, type Q, unshardedEnv } from "@/lib/model";
+import { nodeMetrics, type Phase, type Q, seqCapacity, unshardedEnv } from "@/lib/model";
 import { cn } from "@/lib/utils";
 import { drillTarget, inheritedParallel, irNode, viewForNode } from "@/lib/views";
 import { useModel } from "@/pages/model/context";
@@ -299,7 +299,11 @@ function NodeDetail({ node }: { node: IRNode }) {
   const where = viewForNode(m.ir, m.view, node.id);
   const parent = node.parent ? irNode(m.ir, node.parent) : undefined;
   const inherited = inheritedParallel(m.ir, node);
-  const parallel = Object.entries(inherited?.spec ?? {});
+  // Only axes that actually shard at the current degrees (tp=1 means nothing is split).
+  const parallel = Object.entries(inherited?.spec ?? {}).filter(([axis, p]) => {
+    const deg = m.envState.env[axis];
+    return p.dim !== "replicated" && typeof deg === "number" && deg > 1;
+  });
   const hasWork = node.kind !== "comm" && node.kind !== "io";
   return (
     <div data-testid="node-detail">
@@ -382,10 +386,12 @@ function NodeDetail({ node }: { node: IRNode }) {
                   ? `Sharding (via ${inherited.from})`
                   : "Sharding"
               }
-              v={parallel.map(([axis, p]) => `${axis}: ${p.dim}`).join(" · ")}
+              v={parallel
+                .map(([axis, p]) => `${axis}×${String(m.envState.env[axis])}: ${p.dim}`)
+                .join(" · ")}
             />
           ) : (
-            <Row k="Sharding" v="replicated" />
+            <Row k="Sharding" v="none at current degrees" />
           )}
           {node.kind === "group" ? (
             <p className="mt-1 text-[11px] text-muted-foreground">
@@ -469,10 +475,7 @@ function ModelSummary() {
   const l = m.ledger;
   const ir = m.ir;
   const ctx = m.envState.env.context;
-  const seqs =
-    l.kvTokens.v !== undefined && typeof ctx === "number"
-      ? Math.floor(l.kvTokens.v / Math.max(1, ctx + 1))
-      : undefined;
+  const seqs = seqCapacity(l.kvTokens.v, m.envState.env);
   return (
     <div data-testid="model-summary">
       <div className="border-b px-4 py-3">

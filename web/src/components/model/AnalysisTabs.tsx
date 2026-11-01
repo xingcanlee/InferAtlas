@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/chart";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { fmtBytes, fmtFlops, fmtNum, fmtSI } from "@/lib/format";
-import { buildEnv, memoryLedger } from "@/lib/model";
+import { kvSweep } from "@/lib/model";
 import { SIDE_TABS, type SideTab } from "@/lib/search";
 import { cn } from "@/lib/utils";
 import { descendants, inheritedParallel, irNode } from "@/lib/views";
@@ -192,35 +192,11 @@ const kvConfig = {
 
 function KvCapacity() {
   const m = useModel();
-  const tpSpec = m.ir.params.tp;
-  const choices = (tpSpec?.choices ?? ["1", "2", "4", "8"]).map(Number);
   const cur = m.envState.params.tp;
-  const overrides = useMemo(() => {
-    const o: Record<string, string | number | boolean> = {};
-    for (const [k, v] of Object.entries(m.envState.params))
-      if (v !== m.envState.defaults[k]) o[k] = v;
-    return o;
-  }, [m.envState]);
+  // Memoised per parameter state: one ledger per TP choice.
   const data = useMemo(
-    () =>
-      choices.map((tp) => {
-        const dp = Number(overrides.dp ?? 1);
-        const ep = Number(overrides.ep ?? 1);
-        const e = buildEnv(m.ir, { ...overrides, tp, ep: ep > 1 ? tp * dp : 1 });
-        const l = memoryLedger(m.ir, e.env);
-        const ctx = Number(e.env.context ?? 0);
-        return {
-          name: `tp=${tp}`,
-          tp,
-          weights: l.weights.v ?? 0,
-          activation: l.activation.v ?? 0,
-          other: (l.nonTorch.v ?? 0) + (l.reserved.v ?? 0),
-          kv: l.kvBytes.v ?? 0,
-          tokens: l.kvTokens.v ?? 0,
-          seqs: Math.floor((l.kvTokens.v ?? 0) / Math.max(1, ctx + 1)),
-        };
-      }),
-    [choices, m.ir, overrides],
+    () => kvSweep(m.ir, m.envState).map((r) => ({ ...r, name: `tp=${r.tp}` })),
+    [m.ir, m.envState],
   );
   const current = data.find((d) => d.tp === cur);
   const ctx = m.envState.env.context;
@@ -524,6 +500,7 @@ function RankLanes() {
           ))}
           {Array.from({ length: shown }, (_, r) => (
             <RankRow
+              m={m}
               key={`r${String(r)}`}
               r={r}
               n={n}
@@ -541,82 +518,92 @@ function RankLanes() {
       </div>
     </div>
   );
+}
 
-  function RankRow({
-    r,
-    n,
-    axis,
-    cols,
-    E,
-  }: {
-    r: number;
-    n: number;
-    axis: string;
-    cols: string[];
-    E: number;
-  }) {
-    return (
-      <>
-        <div className="flex items-center bg-background px-2 font-mono text-[11px] text-muted-foreground">
-          r{r}
-        </div>
-        {cols.map((id) => {
-          const node = irNode(m.ir, id);
-          if (!node) return <div key={id} className="bg-background" />;
-          const mt = m.metrics.get(id);
-          if (node.kind === "comm") {
-            const active = mt?.comm?.active;
-            return (
-              <div
-                key={id}
-                className={cn(
-                  "relative flex items-center justify-center bg-background px-2 py-1.5 font-mono text-[10.5px]",
-                  active ? "text-foreground" : "text-muted-foreground",
-                )}
-              >
-                <span className="absolute inset-y-0 left-1/2 border-l border-dashed border-edge" />
-                <span className="relative bg-background px-1">
-                  {r === 0 ? `${node.comm?.op} ${active ? fmtBytes(mt?.comm?.bus.v) : "off"}` : "│"}
-                </span>
-              </div>
-            );
-          }
-          const par = inheritedParallel(m.ir, node)?.spec ?? {};
-          const ax = par[axis];
-          let slice = "full copy";
-          if (ax && ax.dim !== "replicated" && n > 1) {
-            slice =
-              ax.dim === "experts" && E
-                ? `E ${(r * E) / n}–${((r + 1) * E) / n - 1}`
-                : `${ax.dim} ${r + 1}/${n}`;
-          } else if (n === 1) {
-            slice = "whole";
-          } else if (node.kind === "group") {
-            const parts = descendants(m.ir, node.id).filter((d) => {
-              const dim = d.parallel?.[axis]?.dim;
-              return dim && dim !== "replicated";
-            });
-            if (parts.length) slice = `${parts.length} sharded inside`;
-          }
+/** Expert range owned by rank r of n (integer bounds; remainder spread over the first ranks). */
+export function expertRange(r: number, n: number, E: number): [number, number] {
+  const base = Math.floor(E / n);
+  const extra = E % n;
+  const lo = r * base + Math.min(r, extra);
+  return [lo, lo + base + (r < extra ? 1 : 0) - 1];
+}
+
+function RankRow({
+  m,
+  r,
+  n,
+  axis,
+  cols,
+  E,
+}: {
+  m: ReturnType<typeof useModel>;
+  r: number;
+  n: number;
+  axis: string;
+  cols: string[];
+  E: number;
+}) {
+  return (
+    <>
+      <div className="flex items-center bg-background px-2 font-mono text-[11px] text-muted-foreground">
+        r{r}
+      </div>
+      {cols.map((id) => {
+        const node = irNode(m.ir, id);
+        if (!node) return <div key={id} className="bg-background" />;
+        const mt = m.metrics.get(id);
+        if (node.kind === "comm") {
+          const active = mt?.comm?.active;
           return (
-            <div key={id} className="bg-background px-2 py-1.5">
-              <div
-                className={cn(
-                  "font-mono text-[10.5px]",
-                  slice === "full copy" && "text-muted-foreground",
-                )}
-              >
-                {slice}
-              </div>
-              <div className="font-mono text-[10px] text-muted-foreground">
-                {fmtBytes(mt?.weight.v)}
-              </div>
+            <div
+              key={id}
+              className={cn(
+                "relative flex items-center justify-center bg-background px-2 py-1.5 font-mono text-[10.5px]",
+                active ? "text-foreground" : "text-muted-foreground",
+              )}
+            >
+              <span className="absolute inset-y-0 left-1/2 border-l border-dashed border-edge" />
+              <span className="relative bg-background px-1">
+                {r === 0 ? `${node.comm?.op} ${active ? fmtBytes(mt?.comm?.bus.v) : "off"}` : "│"}
+              </span>
             </div>
           );
-        })}
-      </>
-    );
-  }
+        }
+        const par = inheritedParallel(m.ir, node)?.spec ?? {};
+        const ax = par[axis];
+        let slice = "full copy";
+        if (ax && ax.dim !== "replicated" && n > 1) {
+          slice =
+            ax.dim === "experts" && E
+              ? `E ${expertRange(r, n, E).join("–")}`
+              : `${ax.dim} ${r + 1}/${n}`;
+        } else if (n === 1) {
+          slice = "whole";
+        } else if (node.kind === "group") {
+          const parts = descendants(m.ir, node.id).filter((d) => {
+            const dim = d.parallel?.[axis]?.dim;
+            return dim && dim !== "replicated";
+          });
+          if (parts.length) slice = `${parts.length} sharded inside`;
+        }
+        return (
+          <div key={id} className="bg-background px-2 py-1.5">
+            <div
+              className={cn(
+                "font-mono text-[10.5px]",
+                slice === "full copy" && "text-muted-foreground",
+              )}
+            >
+              {slice}
+            </div>
+            <div className="font-mono text-[10px] text-muted-foreground">
+              {fmtBytes(mt?.weight.v)}
+            </div>
+          </div>
+        );
+      })}
+    </>
+  );
 }
 
 // ------------------------------------------------------------------ tabs

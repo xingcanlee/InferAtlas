@@ -259,7 +259,7 @@ function DiffBody({
             env={side === "a" ? envA : envB}
             phase={phase}
             shapes="num"
-            minFitZoom={0.7}
+            minFitZoom={0.9}
             heat="flops"
             overlay={true}
             selected={selected}

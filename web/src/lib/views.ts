@@ -124,3 +124,25 @@ export function inheritedParallel(
   }
   return undefined;
 }
+
+/** Layer bands ordered by their first layer (expression-valued, evaluated by the caller). */
+export function sortedBands<T extends { g: LayerGroup; lo: number | undefined }>(bands: T[]): T[] {
+  return [...bands].sort(
+    (a, b) =>
+      (a.lo ?? Number.POSITIVE_INFINITY) - (b.lo ?? Number.POSITIVE_INFINITY) ||
+      a.g.id.localeCompare(b.g.id),
+  );
+}
+
+/**
+ * The L0 node that stands for a band. Layout folds consecutive bands into one decoder-stack
+ * anchor, so a band's own template may not be on L0; fall back to any band template there.
+ */
+export function bandAnchor(ir: IR, view: View | undefined, bandId: string): string | undefined {
+  const l0 = getView(view, L0);
+  if (!l0) return undefined;
+  const visible = new Set(l0.nodes.map((n) => n.ir_node));
+  const own = ir.groups.find((g) => g.id === bandId)?.template;
+  if (own && visible.has(own)) return own;
+  return ir.groups.map((g) => g.template).find((t) => visible.has(t));
+}

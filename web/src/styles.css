@@ -49,8 +49,8 @@
   --warn: #b86e00;
   --bad: #d23c3c;
 
-  /* chart categorical slots, fixed order (dataviz reference palette) */
-  --chart-1: #2a78d6;
+  /* chart series, fixed order. Slot 1 is a neutral slate so blue stays reserved for --focus. */
+  --chart-1: oklch(0.52 0.03 260);
   --chart-2: #eb6834;
   --chart-3: #1baf7a;
   --chart-4: #eda100;
@@ -93,7 +93,7 @@
   --warn: #e09a2a;
   --bad: #e66767;
 
-  --chart-1: #3987e5;
+  --chart-1: oklch(0.7 0.03 260);
   --chart-2: #d95926;
   --chart-3: #199e70;
   --chart-4: #c98500;

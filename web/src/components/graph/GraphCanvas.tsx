@@ -20,13 +20,16 @@ export interface GraphCanvasProps extends BuildOptions {
   onSelect: (irNode: string | undefined) => void;
   onDrill: (irNode: string) => void;
   className?: string;
-  /** Readable floor: wide views pan instead of shrinking text below this zoom. */
+  /** Readable floor: views pan instead of shrinking text below this zoom. */
   minFitZoom?: number;
   /** Distinguishes two canvases on the diff page for tests. */
   testId?: string;
 }
 
-/** Readable floor: wide views pan horizontally instead of shrinking text below this. */
+/**
+ * Place the precomputed layout: fit when it is readable, otherwise keep a readable zoom and
+ * pan (scroll) — wide/tall views never shrink text below `minZoom`.
+ */
 function FitOnChange({
   viewKey,
   gw,
@@ -38,8 +41,8 @@ function FitOnChange({
   gw: number;
   gh: number;
   minZoom: number;
-  /** Horizontal center (graph px) to keep in view when the graph is wider than the canvas. */
-  focus: number | undefined;
+  /** Center (graph px) to keep in view when the graph does not fit. */
+  focus: { x: number; y: number } | undefined;
 }) {
   const rf = useReactFlow();
   const width = useStore((s) => s.width);
@@ -49,18 +52,15 @@ function FitOnChange({
   focusRef.current = focus;
   // biome-ignore lint/correctness/useExhaustiveDependencies: viewKey intentionally re-triggers placement
   useEffect(() => {
-    const focus = focusRef.current;
     if (!width || !height) return;
-    // Re-fit whenever the drill level or canvas size changes; layout itself is precomputed.
-    const zoom = Math.min((width - 24) / gw, (height - 16) / gh, 1.1);
-    if (zoom >= minZoom) {
-      rf.setViewport({ x: (width - gw * zoom) / 2, y: (height - gh * zoom) / 2, zoom });
-    } else {
-      const z = minZoom;
-      const centered = focus === undefined ? 8 : width / 2 - focus * z;
-      const x = Math.min(8, Math.max(width - gw * z - 8, centered));
-      rf.setViewport({ x, y: (height - gh * z) / 2, zoom: z });
-    }
+    const f = focusRef.current;
+    const z = Math.max(minZoom, Math.min((width - 24) / gw, (height - 24) / gh, 1.1));
+    const place = (avail: number, size: number, at: number | undefined) => {
+      if (size * z <= avail) return (avail - size * z) / 2;
+      const want = at === undefined ? 8 : avail / 2 - at * z;
+      return Math.min(8, Math.max(avail - size * z - 8, want));
+    };
+    rf.setViewport({ x: place(width, gw, f?.x), y: place(height, gh, f?.y), zoom: z });
   }, [rf, viewKey, width, height, gw, gh, minZoom]);
   return null;
 }
@@ -102,9 +102,31 @@ function Canvas(p: GraphCanvasProps) {
   const focusNode =
     nodes.find((n) => n.data.selected) ??
     nodes.find((n) => n.data.diff && n.data.diff !== "removed");
-  const focusX = focusNode ? focusNode.position.x + (focusNode.width ?? 0) / 2 : undefined;
+  const focus = focusNode
+    ? {
+        x: focusNode.position.x + (focusNode.width ?? 0) / 2,
+        y: focusNode.position.y + (focusNode.height ?? 0) / 2,
+      }
+    : undefined;
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    const el = (e.target as HTMLElement).closest<HTMLElement>(".react-flow__node");
+    const n = el ? nodes.find((x) => x.id === el.dataset.id) : undefined;
+    if (!n) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const id = n.data.vn.ir_node;
+    // Enter opens an already-selected drillable node; otherwise both keys select.
+    if (e.key === "Enter" && n.data.selected && n.data.drillable) p.onDrill(id);
+    else p.onSelect(e.key === " " && n.data.selected ? undefined : id);
+  };
   return (
-    <div className={cn("relative h-full w-full", p.className)} data-testid={p.testId ?? "graph"}>
+    // biome-ignore lint/a11y/noStaticElementInteractions: delegates keys from focusable React Flow nodes
+    <div
+      className={cn("relative h-full w-full", p.className)}
+      data-testid={p.testId ?? "graph"}
+      onKeyDown={onKeyDown}
+    >
       <ArrowDefs />
       <ReactFlow<GraphNode>
         nodes={nodes}
@@ -134,7 +156,7 @@ function Canvas(p: GraphCanvasProps) {
           gw={p.graph.width}
           gh={p.graph.height}
           minZoom={p.minFitZoom ?? 0.9}
-          focus={focusX}
+          focus={focus}
         />
       </ReactFlow>
     </div>

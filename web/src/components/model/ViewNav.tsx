@@ -9,18 +9,20 @@ import {
 import { Kbd } from "@/components/ui/kbd";
 import { tryEvaluate } from "@/lib/expr";
 import { cn } from "@/lib/utils";
-import { breadcrumb, getView, irNode, viewTitle } from "@/lib/views";
+import { breadcrumb, getView, irNode, sortedBands, viewTitle } from "@/lib/views";
 import { useModel } from "@/pages/model/context";
 
 function BandStrip() {
   const m = useModel();
-  const bands = m.ir.groups.map((g) => {
-    const [a, b] = g.layers as [string, string];
-    const lo = tryEvaluate(String(a), m.envState.env);
-    const hi = tryEvaluate(String(b), m.envState.env);
-    const n = lo.ok && hi.ok ? hi.value - lo.value + 1 : undefined;
-    return { g, lo: lo.ok ? lo.value : undefined, hi: hi.ok ? hi.value : undefined, n };
-  });
+  const bands = sortedBands(
+    m.ir.groups.map((g) => {
+      const [a, b] = g.layers as [string, string];
+      const lo = tryEvaluate(String(a), m.envState.env);
+      const hi = tryEvaluate(String(b), m.envState.env);
+      const n = lo.ok && hi.ok ? hi.value - lo.value + 1 : undefined;
+      return { g, lo: lo.ok ? lo.value : undefined, hi: hi.ok ? hi.value : undefined, n };
+    }),
+  );
   if (!bands.length) return null;
   const total = bands.reduce((s, b) => s + (b.n ?? 1), 0);
   return (

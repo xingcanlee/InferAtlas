@@ -1,11 +1,14 @@
-import type { Eval, IR } from "@inferatlas/contracts";
+import type { Eval, IR, View } from "@inferatlas/contracts";
 import { describe, expect, it } from "vitest";
-import { buildEnv, computeAll, evalPointer, memoryLedger } from "@/lib/model";
+import { buildGraph } from "@/components/graph/build";
+import { buildEnv, computeAll, evalPointer, kvSweep, memoryLedger, seqCapacity } from "@/lib/model";
 import evalJson from "../../fixtures/qwen3-30b-a3b/eval.json";
 import irJson from "../../fixtures/qwen3-30b-a3b/ir.json";
+import viewJson from "../../fixtures/qwen3-30b-a3b/view.json";
 
 const ir = irJson as unknown as IR;
 const oracle = evalJson as unknown as Eval;
+const view = viewJson as unknown as View;
 
 describe("fixture eval oracle", () => {
   for (const c of oracle.cases) {
@@ -31,16 +34,38 @@ describe("env binding", () => {
     const s = buildEnv(ir, { tp: 2, ep: 4 });
     expect(s.warnings.some((w) => w.params.includes("ep"))).toBe(true);
   });
-  it("recomputes all metrics well under a frame budget", () => {
-    const { env } = buildEnv(ir, {});
-    computeAll(ir, env, "prefill");
-    const t0 = performance.now();
+  it("recomputes a parameter change (metrics, ledger, graph, KV tab) within a frame", () => {
+    const run = (i: number) => {
+      const state = buildEnv(ir, { tp: [1, 2, 4, 8][i % 4] as number });
+      const phase = i % 2 ? "decode" : "prefill";
+      const metrics = computeAll(ir, state.env, phase);
+      memoryLedger(ir, state.env);
+      kvSweep(ir, state);
+      for (const graph of view.views) {
+        buildGraph({
+          ir,
+          view,
+          graph,
+          metrics,
+          env: state.env,
+          phase,
+          shapes: "num",
+          heat: "flops",
+          overlay: true,
+          selected: "attn.o",
+        });
+      }
+    };
+    run(0); // warm compiled-closure cache
     const runs = 20;
-    for (let i = 0; i < runs; i++) {
-      const e = buildEnv(ir, { tp: [1, 2, 4, 8][i % 4] as number }).env;
-      computeAll(ir, e, i % 2 ? "decode" : "prefill");
-      memoryLedger(ir, e);
-    }
+    const t0 = performance.now();
+    for (let i = 0; i < runs; i++) run(i);
     expect((performance.now() - t0) / runs).toBeLessThan(16);
+  });
+  it("counts sequences in whole KV blocks", () => {
+    expect(seqCapacity(1000, { context: 100, block_size: 128 })).toBe(7);
+    expect(seqCapacity(1000, { context: 127, block_size: 128 })).toBe(7);
+    expect(seqCapacity(1000, { context: 128, block_size: 128 })).toBe(3);
+    expect(seqCapacity(1000, { context: 99 })).toBe(10);
   });
 });

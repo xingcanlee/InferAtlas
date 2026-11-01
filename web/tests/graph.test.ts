@@ -1,9 +1,10 @@
 import type { IR, View } from "@inferatlas/contracts";
 import { describe, expect, it } from "vitest";
 import { buildGraph, placeLabel } from "@/components/graph/build";
+import { expertRange } from "@/components/model/AnalysisTabs";
 import { diffIR, sideMarks } from "@/lib/diff";
 import { buildEnv, computeAll } from "@/lib/model";
-import { breadcrumb, drillTarget, parentView, viewForNode } from "@/lib/views";
+import { bandAnchor, breadcrumb, drillTarget, parentView, viewForNode } from "@/lib/views";
 import irJson from "../../fixtures/qwen3-30b-a3b/ir.json";
 import viewJson from "../../fixtures/qwen3-30b-a3b/view.json";
 
@@ -66,12 +67,26 @@ describe("graph build", () => {
   });
 });
 
+describe("rank lanes", () => {
+  it("assigns integer expert ranges covering all experts", () => {
+    expect(expertRange(0, 4, 128)).toEqual([0, 31]);
+    expect(expertRange(3, 4, 128)).toEqual([96, 127]);
+    const ranges = [0, 1, 2].map((r) => expertRange(r, 3, 128));
+    expect(ranges).toEqual([
+      [0, 42],
+      [43, 85],
+      [86, 127],
+    ]);
+  });
+});
+
 describe("navigation", () => {
   it("drills and goes back up", () => {
     expect(drillTarget(ir, view, "decoder")).toBe("L1:decoder");
     expect(drillTarget(ir, view, "attn")).toBe("L2:attn");
     expect(parentView(ir, view, "L2:moe")).toBe("L1:decoder");
     expect(breadcrumb(ir, view, "L2:attn")).toEqual(["L0", "L1:decoder", "L2:attn"]);
+    expect(bandAnchor(ir, view, "decoder")).toBe("decoder");
     expect(viewForNode(ir, view, "attn.q_norm")).toEqual({
       viewId: "L2:attn",
       visibleNode: "attn.qk_norm",

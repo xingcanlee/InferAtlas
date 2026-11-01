@@ -321,3 +321,56 @@ export function evalPointer(ir: IR, env: ExprEnv, pointer: string): number | num
 }
 
 export { compile };
+
+/**
+ * Concurrent sequences that fit the KV capacity: each sequence holds whole cache blocks, so
+ * `floor(kv_tokens / (ceil((context+1)/block_size) * block_size))`. Without a block_size
+ * param the token count is used unrounded.
+ */
+export function seqCapacity(kvTokens: number | undefined, env: ExprEnv): number | undefined {
+  const ctx = env.context;
+  if (kvTokens === undefined || typeof ctx !== "number") return undefined;
+  const block = typeof env.block_size === "number" && env.block_size > 0 ? env.block_size : 1;
+  const perSeq = Math.ceil((ctx + 1) / block) * block;
+  return Math.floor(kvTokens / Math.max(1, perSeq));
+}
+
+export interface KvSweepRow {
+  tp: number;
+  weights: number;
+  activation: number;
+  other: number;
+  kv: number;
+  tokens: number;
+  seqs: number;
+}
+
+/**
+ * Per-rank memory split for every TP choice, keeping the user's other overrides (KV tab).
+ * EP stays legal: enabled EP follows ep = tp*dp, disabled stays 1.
+ */
+export function kvSweep(ir: IR, state: EnvState): KvSweepRow[] {
+  const spec = ir.params.tp;
+  const choices = (spec?.choices ?? ["1", "2", "4", "8"]).map(Number);
+  const overrides: Overrides = {};
+  for (const [k, v] of Object.entries(state.params)) if (v !== state.defaults[k]) overrides[k] = v;
+  const dp = Number(state.params.dp ?? 1);
+  const ep = Number(state.params.ep ?? 1);
+  return choices.map((tp) => {
+    const e = buildEnv(ir, {
+      ...overrides,
+      tp,
+      ...("ep" in ir.params ? { ep: ep > 1 ? tp * dp : 1 } : {}),
+    });
+    const l = memoryLedger(ir, e.env);
+    return {
+      tp,
+      weights: l.weights.v ?? 0,
+      activation: l.activation.v ?? 0,
+      other: (l.nonTorch.v ?? 0) + (l.reserved.v ?? 0),
+      kv: l.kvBytes.v ?? 0,
+      tokens: l.kvTokens.v ?? 0,
+      seqs: seqCapacity(l.kvTokens.v ?? 0, e.env) ?? 0,
+    };
+  });
+}

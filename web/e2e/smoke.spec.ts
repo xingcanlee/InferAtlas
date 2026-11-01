@@ -92,10 +92,38 @@ test("diff page highlights changes", async ({ page }) => {
   await shot(page, "diff");
 });
 
-test("dense model without view.json shows an empty state", async ({ page }) => {
+test("dense model renders its build-time layout", async ({ page }) => {
   await page.goto("./#/m/main-verified/A2/qwen3-8b");
-  await expect(page.getByText("No diagram for this snapshot")).toBeVisible();
+  await expect(page.getByTestId("node-decoder")).toBeVisible();
   await expect(page.getByTestId("memory-chart")).toBeVisible();
+});
+
+test("keyboard: Space selects a focused node, Enter opens it, Esc returns to its anchor", async ({
+  page,
+}) => {
+  await page.goto(`./${MODEL}`);
+  const decoder = page.locator('.react-flow__node[data-id="decoder"]');
+  await decoder.focus();
+  await page.keyboard.press(" ");
+  await expect(page).toHaveURL(/node=decoder/);
+  await decoder.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByTestId("current-view")).toContainText("L1");
+  await page.keyboard.press("Escape");
+  await expect(page.getByTestId("current-view")).toContainText("L0");
+  await expect(page).toHaveURL(/node=decoder/);
+});
+
+test("ep choices are limited to 1 or tp×dp", async ({ page }) => {
+  await page.goto(`./${MODEL}?tp=2`);
+  await page.getByTestId("param-ep").click();
+  await expect(page.getByTestId("param-ep-4")).toHaveAttribute("data-disabled", "");
+  await expect(page.getByTestId("param-ep-2")).not.toHaveAttribute("data-disabled", "");
+  await page.getByTestId("param-ep-2").click();
+  await expect(page).toHaveURL(/ep=2/);
+  // changing tp keeps enabled EP on the tp×dp group
+  await page.getByTestId("param-tp").getByText("4", { exact: true }).click();
+  await expect(page).toHaveURL(/ep=4/);
 });
 
 test("single-file build works from file://", async ({ page }) => {

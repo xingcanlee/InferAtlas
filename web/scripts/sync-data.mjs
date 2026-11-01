@@ -1,11 +1,16 @@
 #!/usr/bin/env node
+import { spawnSync } from "node:child_process";
 /**
- * Copy contract fixtures into web/public/data/ for dev/build (dev-plan §3.7 layout):
+ * Populate web/public/data/ (dev-plan §3.7 layout):
  *   data/index.json, data/hardware.json, data/<version>-<device>/<model>/{ir,view,report}.json
  *
- * Also derives ONE clearly-labelled synthetic snapshot ("fixture-prev") from the
- * Qwen3-30B-A3B fixture so the version diff page has two versions to compare. It is not
- * publication data. With INFERATLAS_DATA_DIR=<dir> the real pipeline output is copied instead.
+ * Release:  INFERATLAS_DATA_DIR=<pipeline output dir> node scripts/sync-data.mjs
+ *           Copies real data. Without INFERATLAS_DATA_DIR (and without --demo) this FAILS, so a
+ *           release build can never ship fixtures.
+ * Demo:     node scripts/sync-data.mjs --demo   (dev server, build:demo, e2e)
+ *           Copies contract fixtures, lays out views with packages/layout when built, and derives
+ *           ONE clearly-labelled synthetic snapshot ("fixture-prev") so the diff page has two
+ *           versions. None of this is publication data.
  */
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -17,14 +22,46 @@ const web = resolve(here, "..");
 const repo = resolve(web, "..");
 const out = join(web, "public", "data");
 
+const demo = process.argv.includes("--demo") || process.env.INFERATLAS_DEMO === "1";
+
 if (process.env.INFERATLAS_DATA_DIR) {
   // Real pipeline output: a directory containing index.json, hardware.json and data paths.
-  const src = resolve(process.env.INFERATLAS_DATA_DIR);
+  // Relative paths are taken from where the user ran pnpm (INIT_CWD), not web/.
+  const src = resolve(process.env.INIT_CWD ?? process.cwd(), process.env.INFERATLAS_DATA_DIR);
+  if (!existsSync(join(src, "index.json"))) {
+    console.error(`[sync-data] ${src} has no index.json`);
+    process.exit(1);
+  }
+  if (src === out) {
+    console.log(`[sync-data] using ${out} in place`);
+    process.exit(0);
+  }
   rmSync(out, { recursive: true, force: true });
   cpSync(src, out, { recursive: true });
   console.log(`[sync-data] copied ${src} -> ${out}`);
   process.exit(0);
 }
+
+if (!demo) {
+  console.error(
+    "[sync-data] INFERATLAS_DATA_DIR is required for a release build (directory with index.json,\n" +
+      "hardware.json and the data/<snapshot>/<model>/ paths it names).\n" +
+      "For local fixture/demo data use `pnpm --filter web build:demo` or `dev`.",
+  );
+  process.exit(1);
+}
+
+// Prefer the real build-time layout (packages/layout) over the fixture's hand-made views.
+const layoutCli = join(repo, "packages", "layout", "dist", "cli.js");
+const layout = (irPath, outPath) => {
+  if (!existsSync(layoutCli)) return false;
+  const r = spawnSync(process.execPath, [layoutCli, irPath, "-o", outPath], { encoding: "utf8" });
+  if (r.status !== 0) {
+    console.warn(`[sync-data] layout failed for ${irPath}; using fixture view\n${r.stderr}`);
+    return false;
+  }
+  return true;
+};
 
 const fx = join(repo, "fixtures");
 const readJson = (p) => JSON.parse(readFileSync(p, "utf8"));
@@ -46,9 +83,11 @@ for (const cell of index.cells) {
   if (!cell.data_path) continue;
   const src = sources[cell.model];
   if (!src) continue;
+  const dst = join(web, "public", cell.data_path);
   for (const f of ["ir.json", "view.json", "report.json"]) {
-    if (existsSync(join(src, f))) cpSync(join(src, f), join(web, "public", cell.data_path, f));
+    if (existsSync(join(src, f))) cpSync(join(src, f), join(dst, f));
   }
+  layout(join(dst, "ir.json"), join(dst, "view.json"));
 }
 
 // 2. Synthetic previous snapshot for the diff page (fixture-derived, labelled as such).
@@ -83,6 +122,7 @@ const prevPath = "data/fixture-prev-A2/qwen3-30b-a3b";
   }
   writeJson(join(web, "public", prevPath, "ir.json"), ir);
   writeJson(join(web, "public", prevPath, "view.json"), view);
+  layout(join(web, "public", prevPath, "ir.json"), join(web, "public", prevPath, "view.json"));
   writeJson(join(web, "public", prevPath, "report.json"), report);
 
   index.versions.push({
@@ -110,4 +150,4 @@ writeJson(join(out, "index.json"), index);
 const catalog = parse(readFileSync(join(repo, "catalog.yaml"), "utf8"));
 writeJson(join(out, "hardware.json"), catalog.hardware_presets ?? []);
 
-console.log(`[sync-data] wrote fixtures to ${out}`);
+console.log(`[sync-data] wrote DEMO fixture data to ${out}`);
