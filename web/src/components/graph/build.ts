@@ -1,4 +1,5 @@
 import type { ExprEnv, GraphView, IR, View } from "@inferatlas/contracts";
+import { getNodesBounds, type Rect } from "@xyflow/react";
 import { tryEvaluate } from "@/lib/expr";
 import { fmtBytes, fmtDim, fmtFlops, pct } from "@/lib/format";
 import { evalShape, type NodeMetrics, type Phase, type Shape, shapeDims } from "@/lib/model";
@@ -178,4 +179,31 @@ export function placeLabel(
   const [cx, cy] = pos ?? [(best.a[0] + best.b[0]) / 2, (best.a[1] + best.b[1]) / 2];
   if (!horizontal || labelWidth(label) <= best.len - 8) return [cx, cy];
   return [cx, best.a[1] - 50];
+}
+
+/**
+ * Bounding box of what is drawn: nodes, edge polylines and (approximate) edge labels. Precomputed
+ * layouts carry routing margins, so fitting this rather than the layout's width/height keeps
+ * the content centred and as large as possible.
+ */
+export function contentBounds(nodes: GraphNode[], edges: GraphEdge[]): Rect {
+  const b = getNodesBounds(nodes);
+  let [x0, y0, x1, y1] = [b.x, b.y, b.x + b.width, b.y + b.height];
+  const add = (x: number, y: number, hw = 0, hh = 0) => {
+    x0 = Math.min(x0, x - hw);
+    y0 = Math.min(y0, y - hh);
+    x1 = Math.max(x1, x + hw);
+    y1 = Math.max(y1, y + hh);
+  };
+  for (const e of edges) {
+    const d = e.data;
+    if (!d) continue;
+    for (const [x, y] of d.points) add(x, y);
+    const at = d.labelPos ?? d.points[Math.floor(d.points.length / 2)];
+    // 10px mono label: ~6.1px per glyph plus padding, 16px tall.
+    if (d.label && at) add(at[0], at[1], (d.label.length * 6.1 + 10) / 2, 8);
+  }
+  if (!Number.isFinite(x0)) return { x: 0, y: 0, width: 1, height: 1 };
+  // Arrow heads and node badges poke a few px outside the boxes.
+  return { x: x0 - 6, y: y0 - 14, width: x1 - x0 + 12, height: y1 - y0 + 20 };
 }

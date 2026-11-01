@@ -1,6 +1,6 @@
 import type { IR, View } from "@inferatlas/contracts";
 import { describe, expect, it } from "vitest";
-import { buildGraph, placeLabel } from "@/components/graph/build";
+import { buildGraph, contentBounds, placeLabel } from "@/components/graph/build";
 import { expertRange } from "@/components/model/AnalysisTabs";
 import { diffIR, sideMarks } from "@/lib/diff";
 import { buildEnv, computeAll } from "@/lib/model";
@@ -43,6 +43,37 @@ describe("graph build", () => {
     const shares = g.nodes.map((n) => n.data.share ?? 0);
     expect(shares.reduce((a, b) => a + b, 0)).toBeCloseTo(1, 6);
   });
+  it("fits the drawn content, not the layout's routing margins", () => {
+    for (const g of view.views) {
+      const built = buildGraph({
+        ir,
+        view,
+        graph: g,
+        metrics,
+        env,
+        phase: "prefill",
+        shapes: "num",
+        heat: "flops",
+        overlay: false,
+        selected: undefined,
+      });
+      const b = contentBounds(built.nodes, built.edges);
+      for (const n of built.nodes) {
+        expect(n.position.x).toBeGreaterThanOrEqual(b.x);
+        expect(n.position.y).toBeGreaterThanOrEqual(b.y);
+        expect(n.position.x + (n.width ?? 0)).toBeLessThanOrEqual(b.x + b.width);
+        expect(n.position.y + (n.height ?? 0)).toBeLessThanOrEqual(b.y + b.height);
+      }
+      for (const e of built.edges)
+        for (const [x, y] of e.data?.points ?? []) {
+          expect(x).toBeGreaterThanOrEqual(b.x);
+          expect(y).toBeLessThanOrEqual(b.y + b.height);
+        }
+      expect(b.width).toBeLessThanOrEqual(g.width + 40);
+      expect(b.height).toBeLessThanOrEqual(g.height + 40);
+    }
+  });
+
   it("lifts labels that do not fit their segment", () => {
     expect(
       placeLabel(

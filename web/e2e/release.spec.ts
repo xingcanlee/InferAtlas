@@ -2,6 +2,7 @@ import { mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, type Page, test } from "@playwright/test";
+import { graphFit } from "./fit";
 
 const repo = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const shots = join(repo, "docs/screenshots/release");
@@ -19,6 +20,7 @@ async function screenshot(page: Page, name: string) {
   await page.screenshot({ path: join(shots, `${name}.png`), scale: "css" });
 }
 
+/** No page scrollbars and, on a model page, every graph node inside the canvas at zoom ≥ 0.6. */
 async function fits(page: Page) {
   expect(
     await page.evaluate(() => ({
@@ -26,6 +28,9 @@ async function fits(page: Page) {
       vertical: document.documentElement.scrollHeight > innerHeight,
     })),
   ).toEqual({ horizontal: false, vertical: false });
+  if ((await page.getByTestId("graph").count()) === 0) return;
+  await expect.poll(async () => (await graphFit(page)).outside).toEqual([]);
+  expect((await graphFit(page)).zoom).toBeGreaterThanOrEqual(0.6);
 }
 
 test("release matrix exposes DeepSeek blockers without numeric data or links", async ({ page }) => {
@@ -78,24 +83,15 @@ test("release model captures light, dark, overlay and smaller desktop", async ({
   await expect(page.getByTestId("node-decoder")).toBeVisible();
   await fits(page);
   await screenshot(page, "model-1280");
+  for (const view of ["L1:decoder", "L2:attn", "L2:moe"]) {
+    await page.goto(`./${route}?view=${encodeURIComponent(view)}`);
+    await expect(page.getByTestId("current-view")).toContainText(view.split(":")[0] as string);
+    await fits(page);
+  }
+  await page.goto(`./${route}`);
   await page.locator(".react-flow__controls-fitview").click();
   await screenshot(page, "model-1280-fit");
-  expect(
-    await page.getByTestId("graph").evaluate((graph) => {
-      const bounds = graph.getBoundingClientRect();
-      return [...graph.querySelectorAll(".react-flow__node")]
-        .filter((node) => {
-          const rect = node.getBoundingClientRect();
-          return (
-            rect.left < bounds.left ||
-            rect.top < bounds.top ||
-            rect.right > bounds.right ||
-            rect.bottom > bounds.bottom
-          );
-        })
-        .map((node) => node.getAttribute("data-id"));
-    }),
-  ).toEqual([]);
+  expect((await graphFit(page)).outside).toEqual([]);
   expect(errors).toEqual([]);
 });
 

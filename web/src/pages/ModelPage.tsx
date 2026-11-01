@@ -3,7 +3,6 @@ import { useCallback, useEffect, useMemo } from "react";
 import { EmptyState } from "@/components/AppShell";
 import { GraphCanvas } from "@/components/graph/GraphCanvas";
 import { Legend } from "@/components/graph/Legend";
-import { AnalysisTabs } from "@/components/model/AnalysisTabs";
 import { DetailPanel } from "@/components/model/DetailPanel";
 import { ModelToolbar } from "@/components/model/ModelToolbar";
 import { NodeSearch } from "@/components/model/NodeSearch";
@@ -20,6 +19,7 @@ import { paramOverrides } from "@/lib/search";
 import { useUi } from "@/lib/store";
 import { bandAnchor, descendants, drillTarget, getView, L0, parentView } from "@/lib/views";
 import { ModelContext, type ModelCtx } from "./model/context";
+import { MainSplit } from "./model/MainSplit";
 
 const route = getRouteApi("/m/$version/$device/$model");
 
@@ -184,34 +184,39 @@ export function ModelPage() {
         <ParamsPanel className="min-h-0 overflow-y-auto border-r" />
         <section className="flex min-h-0 min-w-0 flex-col">
           <ViewNav />
-          <div className="min-h-[280px] flex-1 bg-canvas">
-            {graph ? (
-              <GraphCanvas
-                ir={ir}
-                view={view}
-                graph={graph}
-                metrics={metrics}
-                env={envState.env}
-                phase={phase}
-                shapes={ctx.shapes}
-                heat={ctx.heat}
-                overlay={ctx.overlay}
-                selected={highlight}
-                onSelect={select}
-                onDrill={(id) => {
-                  const t = drillTarget(ir, view, id);
-                  if (t) goView(t);
-                }}
-              />
-            ) : (
-              <EmptyState title="No diagram for this snapshot">
-                <code>view.json</code> is missing, so there is no precomputed layout to draw.
-                Metrics, memory and the parameter panel still work from <code>ir.json</code>.
-              </EmptyState>
-            )}
-          </div>
-          <Legend heat={heat} overlay={overlay} collapsed={merged} />
-          <AnalysisTabs className="h-[300px] shrink-0 border-t" />
+          <MainSplit
+            graph={
+              <>
+                <div className="min-h-0 flex-1 bg-canvas">
+                  {graph ? (
+                    <GraphCanvas
+                      ir={ir}
+                      view={view}
+                      graph={graph}
+                      metrics={metrics}
+                      env={envState.env}
+                      phase={phase}
+                      shapes={ctx.shapes}
+                      heat={ctx.heat}
+                      overlay={ctx.overlay}
+                      selected={highlight}
+                      onSelect={select}
+                      onDrill={(id) => {
+                        const t = drillTarget(ir, view, id);
+                        if (t) goView(t);
+                      }}
+                    />
+                  ) : (
+                    <EmptyState title="No diagram for this snapshot">
+                      <code>view.json</code> is missing, so there is no precomputed layout to draw.
+                      Metrics, memory and the parameter panel still work from <code>ir.json</code>.
+                    </EmptyState>
+                  )}
+                </div>
+                <Legend heat={heat} overlay={overlay} collapsed={merged} />
+              </>
+            }
+          />
         </section>
         <DetailPanel className="min-h-0 overflow-y-auto border-l" />
       </div>

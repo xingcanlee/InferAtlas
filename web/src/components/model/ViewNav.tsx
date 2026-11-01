@@ -26,9 +26,9 @@ function BandStrip() {
   if (!bands.length) return null;
   const total = bands.reduce((s, b) => s + (b.n ?? 1), 0);
   return (
-    <div className="flex items-center gap-2" data-testid="band-strip">
-      <span className="text-[11px] text-muted-foreground">Layers</span>
-      <div className="flex h-6 w-72 overflow-hidden rounded-md border">
+    <div className="flex min-w-0 items-center gap-2" data-testid="band-strip">
+      <span className="shrink-0 text-[11px] text-muted-foreground">Layers</span>
+      <div className="flex h-6 w-72 min-w-36 shrink overflow-hidden rounded-md border">
         {bands.map(({ g, lo, hi, n }) => {
           const id = `L1:${g.id}`;
           const active = m.viewId === id;
@@ -48,7 +48,7 @@ function BandStrip() {
               title={`${label}: layers ${lo}–${hi} (representative layer ${g.representative_layer})`}
             >
               <span className="truncate">{label}</span>
-              <span className="font-mono text-muted-foreground">
+              <span className="font-mono whitespace-nowrap text-muted-foreground">
                 {lo}–{hi} ×{n}
               </span>
             </button>
@@ -64,8 +64,8 @@ export function ViewNav() {
   const chain = breadcrumb(m.ir, m.view, m.viewId);
   return (
     <div className="flex h-10 shrink-0 items-center gap-4 border-b px-3">
-      <Breadcrumb>
-        <BreadcrumbList className="gap-1 text-[12.5px] sm:gap-1">
+      <Breadcrumb className="shrink-0">
+        <BreadcrumbList className="flex-nowrap gap-1 text-[12.5px] whitespace-nowrap sm:gap-1">
           {chain.map((id, i) => {
             const last = i === chain.length - 1;
             const level = id.split(":")[0];
@@ -99,9 +99,9 @@ export function ViewNav() {
           })}
         </BreadcrumbList>
       </Breadcrumb>
-      <div className="ml-auto flex items-center gap-4">
+      <div className="ml-auto flex min-w-0 items-center gap-4">
         <BandStrip />
-        <span className="hidden items-center gap-1 text-[11px] text-muted-foreground xl:flex">
+        <span className="hidden items-center gap-1 text-[11px] whitespace-nowrap text-muted-foreground xl:flex">
           double-click to open · <Kbd>Esc</Kbd> up · <Kbd>/</Kbd> find
         </span>
       </div>

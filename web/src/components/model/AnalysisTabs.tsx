@@ -1,5 +1,5 @@
 import type { IRNode } from "@inferatlas/contracts";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, ChevronDown, ChevronUp } from "lucide-react";
 import { useMemo } from "react";
 import {
   Bar,
@@ -15,6 +15,7 @@ import {
   YAxis,
 } from "recharts";
 import { EmptyState } from "@/components/AppShell";
+import { Button } from "@/components/ui/button";
 import {
   type ChartConfig,
   ChartContainer,
@@ -608,15 +609,33 @@ function RankRow({
 
 // ------------------------------------------------------------------ tabs
 
-export function AnalysisTabs({ className }: { className?: string }) {
+export function AnalysisTabs({
+  className,
+  collapsed = false,
+  onCollapsedChange,
+  contentId,
+}: {
+  className?: string;
+  /** Only the tab strip is shown; choosing a tab expands the panel again. */
+  collapsed?: boolean;
+  onCollapsedChange?: (collapsed: boolean) => void;
+  /** id of the collapsible region, for `aria-controls`. */
+  contentId?: string;
+}) {
   const m = useModel();
+  const Chevron = collapsed ? ChevronUp : ChevronDown;
   return (
     <Tabs
       value={m.side}
-      onValueChange={(v) => m.patch({ side: v === "memory" ? undefined : (v as SideTab) }, true)}
+      onValueChange={(v) => {
+        m.patch({ side: v === "memory" ? undefined : (v as SideTab) }, true);
+        if (collapsed) onCollapsedChange?.(false);
+      }}
       className={cn("flex min-h-0 flex-col gap-0", className)}
+      data-testid="analysis"
+      data-collapsed={collapsed}
     >
-      <div className="flex h-10 shrink-0 items-center border-b px-3">
+      <div className="flex h-10 shrink-0 items-center gap-2 border-b px-3">
         <TabsList className="h-7">
           {SIDE_TABS.map((t) => (
             <TabsTrigger
@@ -624,26 +643,50 @@ export function AnalysisTabs({ className }: { className?: string }) {
               value={t}
               className="h-6 px-2.5 text-[12px]"
               data-testid={`tab-${t}`}
+              onClick={() => {
+                if (collapsed) onCollapsedChange?.(false);
+              }}
             >
               {TAB_LABEL[t]}
             </TabsTrigger>
           ))}
         </TabsList>
-        <span className="ml-auto text-[11px] text-muted-foreground">per rank · {m.phase}</span>
+        <span className="ml-auto truncate text-[11px] text-muted-foreground">
+          per rank · {m.phase}
+        </span>
+        {onCollapsedChange ? (
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            aria-expanded={!collapsed}
+            aria-controls={contentId}
+            aria-label={collapsed ? "Expand analysis panel" : "Collapse analysis panel"}
+            title={collapsed ? "Expand analysis panel" : "Collapse analysis panel"}
+            data-testid="analysis-toggle"
+            onClick={() => onCollapsedChange(!collapsed)}
+          >
+            <Chevron />
+          </Button>
+        ) : null}
       </div>
-      <div className="min-h-0 flex-1 p-3">
-        <TabsContent value="memory" className="h-full">
-          <MemoryWaterfall />
-        </TabsContent>
-        <TabsContent value="kv" className="h-full">
-          <KvCapacity />
-        </TabsContent>
-        <TabsContent value="roofline" className="h-full">
-          <Roofline />
-        </TabsContent>
-        <TabsContent value="ranks" className="h-full">
-          <RankLanes />
-        </TabsContent>
+      {/* Charts are not rendered while collapsed (they would measure a zero-height box). */}
+      <div className="min-h-0 flex-1 p-3" id={contentId} hidden={collapsed}>
+        {collapsed ? null : (
+          <>
+            <TabsContent value="memory" className="h-full">
+              <MemoryWaterfall />
+            </TabsContent>
+            <TabsContent value="kv" className="h-full">
+              <KvCapacity />
+            </TabsContent>
+            <TabsContent value="roofline" className="h-full">
+              <Roofline />
+            </TabsContent>
+            <TabsContent value="ranks" className="h-full">
+              <RankLanes />
+            </TabsContent>
+          </>
+        )}
       </div>
     </Tabs>
   );
