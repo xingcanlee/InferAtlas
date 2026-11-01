@@ -29,6 +29,10 @@ export type Path = string;
  */
 export type GoldenDiff = GoldenDifference[];
 /**
+ * Independent numeric ledger verification; never gates structure.
+ */
+export type NumericVerified = boolean;
+/**
  * Full immutable Git commit SHA, never an abbreviated hash.
  */
 export type Commit = string;
@@ -84,6 +88,7 @@ export type SourceLinkFailures = SourceLinkFailure[];
 export interface Report {
   checks: Checks;
   golden_diff: GoldenDiff;
+  numeric_verified?: NumericVerified;
   snapshot: Snapshot;
   source_link_failures: SourceLinkFailures;
 }

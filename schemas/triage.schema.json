@@ -29,7 +29,7 @@
         },
         "reason": {
           "default": "conditional_override",
-          "description": "Unannotated observed replacements block publication even when no candidate note exists.",
+          "description": "Unannotated observed replacements need review; structure remains available.",
           "enum": [
             "conditional_override",
             "unannotated_override"
@@ -333,7 +333,7 @@
       "properties": {
         "kind": {
           "const": "unknown_layer_class",
-          "description": "No rule matched a reachable class; blocks this model's publication.",
+          "description": "No rule matched a reachable class; architecture uses a generic component.",
           "title": "Kind",
           "type": "string"
         },
@@ -377,7 +377,7 @@
           "type": "string"
         },
         "message": {
-          "description": "Stable explanation of the version failure; blocks publication.",
+          "description": "Stable explanation of the unsupported numeric lowering version.",
           "title": "Message",
           "type": "string"
         },
@@ -401,7 +401,7 @@
   "additionalProperties": false,
   "properties": {
     "items": {
-      "description": "Unresolved items sorted by kind then symbol/id/model. Empty list permits publication subject to verify.",
+      "description": "Unresolved items sorted by kind then symbol/id/model. Items become architecture notes; source integrity and provenance remain hard errors.",
       "items": {
         "discriminator": {
           "mapping": {

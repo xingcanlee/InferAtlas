@@ -13,7 +13,7 @@
             }
           ],
           "default": null,
-          "description": "Relative directory containing ir.json/view.json/report.json, no leading slash; null for missing or triage cells without a numeric bundle.",
+          "description": "Relative directory containing arch.json/ir.json/view.json/report.json; null only when no structure was extracted.",
           "title": "Data Path"
         },
         "device": {
@@ -34,7 +34,7 @@
           "type": "string"
         },
         "status": {
-          "description": "ok is publishable; triage needs review; missing has no artifacts.",
+          "description": "ok has structure without notes; triage has review notes or extraction failure; missing has no artifacts.",
           "enum": [
             "ok",
             "triage",

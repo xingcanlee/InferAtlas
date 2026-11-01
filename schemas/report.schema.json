@@ -243,6 +243,12 @@
       "title": "Golden Diff",
       "type": "array"
     },
+    "numeric_verified": {
+      "default": false,
+      "description": "Independent numeric ledger verification; never gates structure.",
+      "title": "Numeric Verified",
+      "type": "boolean"
+    },
     "snapshot": {
       "$ref": "#/$defs/Snapshot",
       "description": "Verified immutable graph identity."

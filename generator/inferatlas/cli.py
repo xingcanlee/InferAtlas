@@ -17,14 +17,34 @@ from ruamel.yaml import YAML
 from typer.core import TyperCommand
 
 from inferatlas import __version__
+from inferatlas.arch import emit_arch, validate_arch_identity
 from inferatlas.exports import EXPORT_FILENAME, ExportManifest
 from inferatlas.expr import validate
 from inferatlas.extract import ExtractionError
-from inferatlas.schema import IR, Catalog, Eval, Extract, Index, Report, Snapshot, Triage, View
-from inferatlas.schema.models import Check, ConditionalOverride, ExtractionFailure
-from inferatlas.verify import Evaluator, exit_code, parse_vllm_logs, verify_ir
+from inferatlas.schema import (
+    IR,
+    Arch,
+    Catalog,
+    Eval,
+    Extract,
+    Index,
+    Report,
+    Snapshot,
+    Triage,
+    View,
+)
+from inferatlas.schema.arch import ArchNote
+from inferatlas.schema.models import Check, ConditionalOverride, ExtractionFailure, GoldenDiffItem
+from inferatlas.verify import (
+    Evaluator,
+    exit_code,
+    parse_vllm_logs,
+    update_numeric_verified,
+    verify_ir,
+)
 from inferatlas.verify.defaults import select_default_tp
 from inferatlas.verify.golden import (
+    check_arch_golden,
     check_golden,
     default_grid,
     format_diff,
@@ -225,7 +245,10 @@ def lower_stage(extracts: list[Extract]) -> tuple[IR, Triage]:
     if function := optional("lower", "lower"):
         ordered = sorted(extracts, key=lambda item: item.parallel.tp)
         if ordered[0].parallel.tp != 1:
-            raise ValueError("lower needs the tp=1 extract as primary")
+            from inferatlas.lower.structure import structure_ir
+
+            result = structure_ir(ordered[0])
+            return result.ir, result.triage
         results = [
             function(item, rules=ROOT / "rules", vllm_version=None, ascend_version=None, mro=None)
             for item in ordered
@@ -553,6 +576,19 @@ def snapshot_key(snapshot: Snapshot, pair: str) -> str:
     )
 
 
+def failure_message(error: Exception) -> str:
+    """Worker logs contain host paths and time; keep a stable exception summary."""
+    message = re.sub(r"0x[0-9a-fA-F]+", "<address>", str(error))
+    message = re.sub(
+        r"\b\d{4}-\d\d-\d\d[ T]\d\d:\d\d:\d\d(?:[.,]\d+)?(?:Z|[+-]\d\d:\d\d)?", "<time>", message
+    )
+    message = re.sub(r"(?<![\w:/])/(?:[^\s'\"<>:;,()\[\]{}]+)", "<path>", message)
+    message = " ".join(message.split())
+    if len(message) > 1000:
+        message = message[:997] + "..."
+    return message
+
+
 def extraction_failure(
     directory: Path,
     snapshot: Snapshot | None,
@@ -562,15 +598,7 @@ def extraction_failure(
     stage: str,
     error: Exception,
 ) -> tuple[Path, int]:
-    # Worker logs contain process ids, timestamps and scratch paths; keep only the exception.
-    message = re.sub(r"0x[0-9a-fA-F]+", "<address>", str(error))
-    message = re.sub(
-        r"\b\d{4}-\d\d-\d\d[ T]\d\d:\d\d:\d\d(?:[.,]\d+)?(?:Z|[+-]\d\d:\d\d)?", "<time>", message
-    )
-    message = re.sub(r"(?<![\w:/])/(?:[^\s'\"<>:;,()\[\]{}]+)", "<path>", message)
-    message = " ".join(message.split())
-    if len(message) > 1000:
-        message = message[:997] + "..."
+    message = failure_message(error)
     triage = Triage(
         snapshot=snapshot,
         items=[
@@ -596,7 +624,7 @@ def extraction_failure(
         publish_directory(pending, directory)
     warning(f"{stage} failed: {triage.items[0].exception_type}: {message}")
     typer.echo(str(directory))
-    return directory, 2
+    return directory, 3
 
 
 def build_pipeline(
@@ -620,17 +648,29 @@ def build_pipeline(
     with tempfile.TemporaryDirectory(prefix=".inferatlas-build-", dir=directory.parent) as scratch:
         pending = Path(scratch) / "artifacts"
         write_json(pending / "snapshot.json", snapshot)
-        try:
-            extracts = [extract_stage(snapshot, degree, ep) for degree in sorted(set(tp))]
-        except ExtractionError as error:
-            if not error.structured or error.exception_type in (
-                "TypeError",
-                "AttributeError",
-                "ValueError",
-                "ValidationError",
-            ):
-                raise
-            return extraction_failure(directory, snapshot, model, device, pair, "extract", error)
+        extracts, extraction_notes = [], []
+        for degree in sorted(set(tp)):
+            try:
+                extracts.append(extract_stage(snapshot, degree, ep))
+            except ExtractionError as error:
+                if not error.structured or error.exception_type in (
+                    "TypeError",
+                    "AttributeError",
+                    "ValueError",
+                    "ValidationError",
+                ):
+                    raise
+                if not extracts:
+                    return extraction_failure(
+                        directory, snapshot, model, device, pair, "extract", error
+                    )
+                extraction_notes.append(
+                    GoldenDiffItem(
+                        kind="golden_diff",
+                        model=snapshot.model.hf_id,
+                        diff=f"Numeric TP coverage unavailable at tp={degree}: {failure_message(error)}",
+                    )
+                )
         for extract in extracts:
             name = (
                 "extract.json"
@@ -639,6 +679,8 @@ def build_pipeline(
             )
             write_json(pending / name, extract)
         ir, triage = lower_stage(extracts)
+        triage.items.extend(extraction_notes)
+        triage.items.sort(key=lambda item: item.model_dump_json())
         ir, triage = annotate_stage(ir, extracts, triage)
         default_check = (
             select_default_tp(ir, Evaluator(ROOT, warning)) if not triage.items else None
@@ -648,26 +690,47 @@ def build_pipeline(
         report = report_stage(ir, extracts, triage)
         if default_check is not None:
             report.checks.append(default_check)
-        if triage.items:
+        arch = emit_arch(extracts[0], ir, triage, model_id=selected.id, family=selected.family)
+        try:
+            arch_diffs = check_arch_golden(golden_path(ir), arch)
+            report.golden_diff.extend(arch_diffs)
             report.checks.append(
-                Check(id="layout", status="skip", message="Blocked by triage; resolve it first.")
+                Check(
+                    id="arch_golden",
+                    status="fail" if arch_diffs else "pass",
+                    message=f"{len(arch_diffs)} architecture golden differences.",
+                )
             )
-        else:
-            try:
-                layout_stage(pending / "ir.json", pending / "view.json")
-                report.checks.append(
-                    Check(id="layout", status="pass", message="View validates against IR.")
+            if arch_diffs:
+                arch.notes.append(
+                    ArchNote(
+                        severity="warn",
+                        target=None,
+                        text="Architecture differs from its committed golden; review the report.",
+                        triage_kind="golden_diff",
+                    )
                 )
-            except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
-                (pending / "view.json").unlink(missing_ok=True)
-                warning(f"Layout failed: {error}")
-                report.checks.append(
-                    Check(id="layout", status="fail", message="Layout generation failed.")
-                )
+        except FileNotFoundError:
+            report.checks.append(
+                Check(id="arch_golden", status="skip", message="No architecture golden supplied.")
+            )
+        write_json(pending / "arch.json", arch)
+        try:
+            layout_stage(pending / "ir.json", pending / "view.json")
+            report.checks.append(
+                Check(id="layout", status="pass", message="View validates against IR.")
+            )
+        except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
+            (pending / "view.json").unlink(missing_ok=True)
+            warning(f"Layout failed: {error}")
+            report.checks.append(
+                Check(id="layout", status="fail", message="Layout generation failed.")
+            )
         if _used_fixtures.get():
             provenance = next(check for check in report.checks if check.id == "provenance")
             provenance.status = "fail"
             provenance.message = "Fixture stages: " + ", ".join(sorted(_used_fixtures.get()))
+        update_numeric_verified(report)
         report.checks.sort(key=lambda check: (check.id, check.node or ""))
         write_json(pending / "report.json", report)
         write_json(pending / "provenance.json", {"fixtures": sorted(_used_fixtures.get() or [])})
@@ -727,14 +790,14 @@ def lower(
     triage_output: Path = Path("triage.json"),
     allow_fixtures: AllowFixtures = False,
 ) -> None:
-    """Lower one or more extracts into symbolic IR and blocking triage."""
+    """Lower one or more extracts into symbolic IR and nonblocking review notes."""
     inherit_provenance(*(extract or [Path("extract.json")]))
     ir, triage = lower_stage(
         [Extract.model_validate(read_json(path)) for path in extract or [Path("extract.json")]]
     )
     save_artifact(output, ir)
     save_artifact(triage_output, triage)
-    raise typer.Exit(2 if triage.items else 0)
+    raise typer.Exit(0)
 
 
 @app.command()
@@ -758,7 +821,7 @@ def annotate(
     )
     save_artifact(output, graph)
     save_artifact(triage_output, issues)
-    raise typer.Exit(2 if issues.items else 0)
+    raise typer.Exit(0)
 
 
 @app.command()
@@ -773,7 +836,7 @@ def verify(
     output: Path = Path("report.json"),
     allow_fixtures: AllowFixtures = False,
 ) -> None:
-    """Write a schema-valid report; exit 2 for triage or 3 for failed verification."""
+    """Write a schema-valid report; exit 3 for integrity/provenance failures."""
     inherit_provenance(ir, *(extract or []))
     issues = Triage.model_validate(read_json(triage)) if triage else None
     report = report_stage(
@@ -804,7 +867,18 @@ def golden_update(
     if grid is None and (directory / "eval.json").is_file():
         grid = directory / "eval.json"
     values = Eval.model_validate(read_json(grid)) if grid else default_grid(graph)
+    architecture_path = ir.with_name("arch.json")
+    architecture = (
+        Arch.model_validate(read_json(architecture_path)) if architecture_path.is_file() else None
+    )
+    if architecture and (
+        architecture.model.hf_id != graph.snapshot.model.hf_id
+        or architecture.device != graph.snapshot.device
+    ):
+        raise ValueError("architecture disagrees with golden snapshot")
     update_golden(directory, graph, values, Evaluator(ROOT, warning))
+    if architecture:
+        write_json(directory / "arch.json", architecture)
     typer.echo("Golden updated.")
 
 
@@ -817,6 +891,13 @@ def golden_check(
     graph = IR.model_validate(read_json(ir))
     evaluator = Evaluator(ROOT, warning)
     diffs = check_golden(directory or golden_path(graph), graph, evaluator)
+    architecture_path = ir.with_name("arch.json")
+    if architecture_path.is_file():
+        diffs.extend(
+            check_arch_golden(
+                directory or golden_path(graph), Arch.model_validate(read_json(architecture_path))
+            )
+        )
     if evaluator.backend != "node":
         typer.echo("SKIPPED numeric golden evaluation.")
         if not allow_fixtures and os.environ.get("INFERATLAS_ALLOW_FIXTURES") != "1":
@@ -870,7 +951,7 @@ def parse_logs(log: Path, output: Path = Path("calibration.json")) -> None:
 def site(
     build_root: Path | None = None, data_dir: Path | None = None, include_blocked: bool = False
 ) -> None:
-    """Publish verified outputs; --include-blocked adds status-only triage cells."""
+    """Publish every extracted structure, with review badges for triage."""
     build_root = build_root or ROOT / ".cache/build"
     data = catalog()
     cells = {}
@@ -910,7 +991,7 @@ def site(
                 warning(f"Ignoring unresolved build superseded by resolved facts: {directory}")
                 continue
             raise ValueError("multiple builds occupy the same version/model/device cell")
-        status = 2
+        status = 3
         if (directory / "ir.json").is_file():
             if snapshot is None:
                 raise ValueError("unresolved triage cannot have a numeric bundle")
@@ -928,24 +1009,23 @@ def site(
             raise ValueError(f"triage-only cell must have blocking items: {directory}")
         code = max(code, status)
         relative = Path(directory.parent.name) / model.id
-        if status == 0:
+        if (directory / "ir.json").is_file():
+            arch = Arch.model_validate(read_json(directory / "arch.json"))
+            validate_arch_identity(arch, snapshot, model.id)
             view = View.model_validate(read_json(directory / "view.json"))
             validate_view(ir, view)
-            for name, value in (("ir", ir), ("view", view), ("report", report)):
+            for name, value in (("ir", ir), ("view", view), ("report", report), ("arch", arch)):
                 artifacts.append((relative / f"{name}.json", value))
         cells[key] = dict(
             version=pair.id,
             model=model.id,
             device=device,
-            status="ok" if status == 0 else "triage",
-            data_path=f"data/{relative.as_posix()}" if status == 0 else None,
+            status="ok" if status == 0 and not triage.items else "triage",
+            data_path=f"data/{relative.as_posix()}" if (directory / "ir.json").is_file() else None,
             triage_count=len(triage.items),
         )
     if not cells:
         raise ValueError("no build outputs found; run inferatlas build first")
-    if code == 2 and not include_blocked:
-        typer.echo("ERROR: site blocked by triage; use --include-blocked for review.", err=True)
-        raise typer.Exit(2)
     devices = sorted({device.id for device in data.devices} | {c["device"] for c in cells.values()})
     for pair in data.version_pairs:
         for model in data.models:
@@ -1038,7 +1118,12 @@ def single(
                 selected = catalog_model(model)
                 data = Path(temporary) / "data"
                 relative = Path(f"{pair}-{device}") / selected.id
-                for name in ("ir", "view", "report"):
+                for name in (
+                    "ir",
+                    "view",
+                    "report",
+                    *(["arch"] if (directory / "arch.json").is_file() else []),
+                ):
                     write_json(
                         data / relative / f"{name}.json", read_json(directory / f"{name}.json")
                     )
@@ -1066,7 +1151,7 @@ def single(
                                 version=pair,
                                 model=selected.id,
                                 device=device,
-                                status="ok" if build_code == 0 else "triage",
+                                status="ok" if build_code == 0 and not triage_count else "triage",
                                 data_path=f"data/{relative.as_posix()}",
                                 triage_count=triage_count,
                             )
@@ -1091,7 +1176,7 @@ def single(
                     raise ValueError("web build:single did not produce INFERATLAS_SINGLE_OUTPUT")
                 shutil.copyfile(generated, output)
             code = build_code
-            status = "ok" if code == 0 else "triage"
+            status = "ok" if code == 0 and not triage_count else "triage"
             typer.echo(str(output))
     finally:
         metadata = output.parent / ".inferatlas"
@@ -1141,16 +1226,16 @@ def hub_export(directory: Path, output: Path, manifest_paths: list[Path] | None 
     for item in manifests.values():
         key = (item.version, item.model, item.device)
         exists = (directory / item.file).is_file()
-        status = "missing" if item.status == "ok" and not exists else item.status
-        code = max(code, 3 if item.status == "ok" and not exists else item.exit_code)
-        if item.status == "ok" and not exists:
+        status = "missing" if item.exit_code == 0 and not exists else item.status
+        code = max(code, 3 if item.exit_code == 0 and not exists else item.exit_code)
+        if item.exit_code == 0 and not exists:
             warning(f"Successful export HTML is missing: {item.file}")
         cells[key] = dict(
             version=item.version,
             model=item.model,
             device=item.device,
             status=status,
-            triage_count=item.triage_count,
+            triage_count=item.triage_count if status == "triage" else 0,
             data_path=None,
         )
         if exists and item.status != "missing":

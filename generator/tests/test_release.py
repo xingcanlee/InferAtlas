@@ -41,7 +41,7 @@ def test_failure_is_deterministic_blocking_triage_and_site_cell(tmp_path, monkey
     (directory / "ir.json").write_text("stale")
     before = None
     for _ in range(2):
-        invoke("build", "--output", directory, code=2)
+        invoke("build", "--output", directory, code=3)
         triage = Triage.model_validate(read_json(directory / "triage.json"))
         assert (triage.snapshot is None) == (stage == "resolve")
         item = triage.items[0]
@@ -63,7 +63,7 @@ def test_failure_is_deterministic_blocking_triage_and_site_cell(tmp_path, monkey
                 Report(snapshot=snapshot, checks=[], golden_diff=[], source_link_failures=[]),
                 triage,
             )
-            == 2
+            == 3
         )
         Draft202012Validator(read_json(ROOT / "schemas/triage.schema.json")).validate(
             triage.model_dump(mode="json")
@@ -81,7 +81,7 @@ def test_failure_is_deterministic_blocking_triage_and_site_cell(tmp_path, monkey
         "--data-dir",
         tmp_path / "data",
         "--include-blocked",
-        code=2,
+        code=3,
     )
     index = Index.model_validate(read_json(tmp_path / "data/index.json"))
     cell = next(
@@ -123,7 +123,9 @@ def test_a5_lowering_preserves_unannotated_overrides_and_skips_numbers(
     monkeypatch.setattr(inferatlas.annotations, "load_annotations", lambda *args: [])
     monkeypatch.setattr(cli, "Evaluator", Evaluator)
     monkeypatch.setattr(cli, "select_default_tp", lambda *args: pytest.fail("numeric defaults ran"))
-    monkeypatch.setattr(cli, "layout_stage", lambda *args: pytest.fail("layout ran"))
+    monkeypatch.setattr(
+        cli, "layout_stage", lambda ir, out: write_json(out, read_json(FIXTURE / "view.json"))
+    )
     output = tmp_path / "build"
     response = invoke("build", "--device", "A5", "--output", output, code=3)
     assert (output / "triage.json").exists(), response.output
@@ -135,10 +137,12 @@ def test_a5_lowering_preserves_unannotated_overrides_and_skips_numbers(
     assert all(item.reason == "unannotated_override" for item in overrides)
     assert not any(item.kind == "extraction_failure" for item in triage.items)
     checks = {item["id"]: item for item in read_json(output / "report.json")["checks"]}
-    for name in ("weights.tp1", "weights.tp4", "golden", "evaluation", "calibration", "layout"):
+    for name in ("weights.tp1", "weights.tp4", "golden", "evaluation", "calibration"):
         assert checks[name]["status"] == "skip"
     assert read_json(output / "ir.json")["params"]["hbm_bytes"]["default"] == "0"
-    assert (output / "extract.json").exists() and not (output / "view.json").exists()
+    assert (output / "extract.json").exists() and (output / "view.json").exists()
+    assert (output / "arch.json").exists()
+    assert checks["layout"]["status"] == "pass"
 
 
 def test_a5_extract_keeps_facts_and_explains_numeric_block(tmp_path, monkeypatch):
@@ -413,10 +417,10 @@ def test_site_prefers_resolved_build_in_both_orders(tmp_path, monkeypatch, failu
     monkeypatch.setattr(cli, "resolve_stage", fail)
     unresolved = tmp_path / "build/main-verified-A2-unresolved/qwen3-30b-a3b"
     if failure_first:
-        invoke("build", "--output", unresolved, code=2)
+        invoke("build", "--output", unresolved, code=3)
     site_build(tmp_path, 0)
     if not failure_first:
-        invoke("build", "--output", unresolved, code=2)
+        invoke("build", "--output", unresolved, code=3)
     monkeypatch.setattr(cli.subprocess, "run", lambda *args, **kw: None)
     invoke("site", "--build-root", tmp_path / "build", "--data-dir", tmp_path / "data")
     index = Index.model_validate(read_json(tmp_path / "data/index.json"))
@@ -545,3 +549,37 @@ def test_single_reserves_index_for_the_hub(tmp_path, monkeypatch):
     monkeypatch.setattr(cli, "build_pipeline", lambda *args: pytest.fail("build ran"))
     assert "reserved for the hub" in invoke("single", "--output", output, code=3).output
     assert output.read_text() == "previous hub"
+
+
+def test_single_and_hub_publish_successful_exports_with_notes(tmp_path, monkeypatch):
+    directory = site_build(tmp_path, 2)
+    monkeypatch.setattr(cli, "build_pipeline", lambda *args: (directory, 0))
+    output = tmp_path / "inferatlas-qwen3-30b-a3b-a2.html"
+
+    def run(command, **kwargs):
+        env = kwargs["env"]
+        data = Path(env["INFERATLAS_DATA_DIR"])
+        index = Index.model_validate(read_json(data / "index.json"))
+        cell = next(
+            c
+            for c in index.cells
+            if c.model == "qwen3-30b-a3b" and c.device == "A2" and c.version == "main-verified"
+        )
+        assert cell.status == "triage" and cell.triage_count > 0
+        if command[-1] == "build:single":
+            assert list(data.rglob("arch.json"))
+            Path(env["INFERATLAS_SINGLE_OUTPUT"]).write_text("<!doctype html>single with notes")
+        else:
+            assert read_json(data / "hub.json")["exports"][0]["file"] == output.name
+            Path(env["INFERATLAS_HUB_OUTPUT"]).write_text("<!doctype html>hub with notes")
+
+    monkeypatch.setattr(cli.subprocess, "run", run)
+    invoke("single", "--output", output)
+    value = ExportManifest.model_validate(
+        read_json(tmp_path / ".inferatlas" / f"{output.name}.json")
+    )
+    assert value.exit_code == 0 and value.status == "triage" and value.triage_count > 0
+    invoke("hub", "--dir", tmp_path)
+    output.unlink()
+    response = invoke("hub", "--dir", tmp_path, code=3)
+    assert "Successful export HTML is missing" in response.output

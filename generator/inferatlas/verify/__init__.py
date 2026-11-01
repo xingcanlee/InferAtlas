@@ -36,7 +36,7 @@ def verify_ir(
         Check(
             id="coverage",
             status="fail" if triage and triage.items else "pass",
-            message=f"{len(triage.items) if triage else 0} blocking triage items.",
+            message=f"{len(triage.items) if triage else 0} numeric review items; structure is available.",
         )
         if triage is not None
         else Check(
@@ -161,21 +161,43 @@ def verify_ir(
             else "All stages used production backends.",
         )
     )
-    return Report(
+    report = Report(
         snapshot=ir.snapshot,
         checks=sorted(checks, key=lambda check: (check.id, check.node or "")),
         golden_diff=diffs,
         source_link_failures=failures,
     )
 
+    update_numeric_verified(report)
+    return report
+
+
+def update_numeric_verified(report: Report) -> None:
+    required = {"schema", "coverage", "source_links", "provenance", "evaluation", "golden"}
+    checks = {check.id: check.status for check in report.checks}
+    report.numeric_verified = (
+        required <= checks.keys()
+        and all(checks[key] == "pass" for key in required)
+        and any(key.startswith("weights.") for key in checks)
+        and all(check.status != "fail" for check in report.checks)
+        and not report.source_link_failures
+        and not report.golden_diff
+    )
+
 
 def exit_code(report: Report, triage: Triage | None = None) -> int:
-    if any(check.status == "fail" and check.id != "coverage" for check in report.checks):
-        return 3
-    if (triage and triage.items) or any(
-        check.id == "coverage" and check.status == "fail" for check in report.checks
+    if report.source_link_failures or (
+        triage and any(item.kind == "extraction_failure" for item in triage.items)
     ):
-        return 2
+        return 3
+    numeric = {"coverage", "golden", "arch_golden", "evaluation", "default_parameters"}
+    if any(
+        check.status == "fail"
+        and check.id not in numeric
+        and not check.id.startswith(("weights.", "calibration"))
+        for check in report.checks
+    ):
+        return 3
     return 0
 
 

@@ -50,7 +50,7 @@ export type Id1 = string;
  * @minItems 2
  * @maxItems 2
  */
-export type Layers = [unknown, unknown];
+export type Layers = [string, string];
 /**
  * Representative zero-based layer index as an expression string.
  */

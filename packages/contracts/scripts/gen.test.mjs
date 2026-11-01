@@ -15,7 +15,7 @@ async function generated() {
 
 test("committed generated types match schemas and regeneration is deterministic", async () => {
   const before = await generated();
-  assert.equal(Object.keys(before).length, 13);
+  assert.equal(Object.keys(before).length, 14);
   execFileSync(process.execPath, [new URL("./gen.mjs", import.meta.url).pathname]);
   assert.deepEqual(await generated(), before);
   execFileSync(process.execPath, [new URL("./gen.mjs", import.meta.url).pathname]);

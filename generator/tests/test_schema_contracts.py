@@ -25,6 +25,8 @@ def read(path):
 
 
 def fixture_schema(path):
+    if path.parent.name == "arch":
+        return "arch"
     if path.stem.startswith("extract"):
         return "extract"
     return path.stem

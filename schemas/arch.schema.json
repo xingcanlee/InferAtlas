@@ -1,0 +1,1120 @@
+{
+  "$defs": {
+    "ArchAttention": {
+      "additionalProperties": false,
+      "properties": {
+        "extras": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "description": "Variant metadata, including MLA ranks.",
+          "title": "Extras",
+          "type": "object"
+        },
+        "head_dim": {
+          "description": "Head width; zero when unavailable.",
+          "minimum": 0,
+          "title": "Head Dim",
+          "type": "integer"
+        },
+        "heads_kv": {
+          "description": "Global KV heads; zero when unavailable.",
+          "minimum": 0,
+          "title": "Heads Kv",
+          "type": "integer"
+        },
+        "heads_q": {
+          "description": "Global query heads; zero when unavailable.",
+          "minimum": 0,
+          "title": "Heads Q",
+          "type": "integer"
+        },
+        "kind": {
+          "const": "attention",
+          "default": "attention",
+          "description": "Token mixer.",
+          "title": "Kind",
+          "type": "string"
+        },
+        "qk_norm": {
+          "description": "Whether Q/K normalization modules are present.",
+          "title": "Qk Norm",
+          "type": "boolean"
+        },
+        "rope": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ArchRope"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "RoPE metadata or null."
+        },
+        "variant": {
+          "description": "Attention algorithm.",
+          "enum": [
+            "mha",
+            "gqa",
+            "mqa",
+            "mla",
+            "linear",
+            "sliding_window",
+            "sparse",
+            "other"
+          ],
+          "title": "Variant",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "variant",
+        "heads_q",
+        "heads_kv",
+        "head_dim",
+        "rope",
+        "qk_norm",
+        "extras"
+      ],
+      "title": "ArchAttention",
+      "type": "object"
+    },
+    "ArchBand": {
+      "additionalProperties": false,
+      "properties": {
+        "block": {
+          "$ref": "#/$defs/ArchBlock",
+          "description": "First layer's representative block."
+        },
+        "count": {
+          "description": "Number of consecutive structurally identical layers.",
+          "minimum": 1,
+          "title": "Count",
+          "type": "integer"
+        },
+        "id": {
+          "description": "Stable band id based on inclusive layer interval.",
+          "title": "Id",
+          "type": "string"
+        },
+        "layers": {
+          "description": "Inclusive start and end decoder indices.",
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "minimum": 0,
+              "type": "integer"
+            }
+          ],
+          "title": "Layers",
+          "type": "array"
+        },
+        "pattern": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Optional repeating-pattern label.",
+          "title": "Pattern"
+        }
+      },
+      "required": [
+        "id",
+        "layers",
+        "count",
+        "pattern",
+        "block"
+      ],
+      "title": "ArchBand",
+      "type": "object"
+    },
+    "ArchBlock": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "decoder",
+          "default": "decoder",
+          "description": "Decoder block.",
+          "title": "Kind",
+          "type": "string"
+        },
+        "residual": {
+          "description": "Residual topology; unknown when class has no reviewed block rule.",
+          "enum": [
+            "pre_norm",
+            "post_norm",
+            "sandwich",
+            "unknown"
+          ],
+          "title": "Residual",
+          "type": "string"
+        },
+        "sublayers": {
+          "description": "Sublayers in dataflow order.",
+          "items": {
+            "$ref": "#/$defs/ArchSublayer"
+          },
+          "title": "Sublayers",
+          "type": "array"
+        }
+      },
+      "required": [
+        "kind",
+        "residual",
+        "sublayers"
+      ],
+      "title": "ArchBlock",
+      "type": "object"
+    },
+    "ArchChild": {
+      "additionalProperties": false,
+      "properties": {
+        "class_name": {
+          "description": "Qualified child class.",
+          "title": "Class Name",
+          "type": "string"
+        },
+        "name": {
+          "description": "Relative direct child name.",
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "class_name"
+      ],
+      "title": "ArchChild",
+      "type": "object"
+    },
+    "ArchEmbedding": {
+      "additionalProperties": false,
+      "properties": {
+        "hidden": {
+          "description": "Hidden width.",
+          "minimum": 0,
+          "title": "Hidden",
+          "type": "integer"
+        },
+        "kind": {
+          "description": "Vocabulary projection direction.",
+          "enum": [
+            "embedding",
+            "lm_head"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "tied": {
+          "description": "Whether embedding and head share weights.",
+          "title": "Tied",
+          "type": "boolean"
+        },
+        "vocab": {
+          "description": "Unpadded vocabulary size.",
+          "minimum": 0,
+          "title": "Vocab",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "vocab",
+        "hidden",
+        "tied"
+      ],
+      "title": "ArchEmbedding",
+      "type": "object"
+    },
+    "ArchExpert": {
+      "additionalProperties": false,
+      "properties": {
+        "intermediate": {
+          "description": "Global expert intermediate width.",
+          "minimum": 0,
+          "title": "Intermediate",
+          "type": "integer"
+        },
+        "variant": {
+          "description": "Expert activation.",
+          "enum": [
+            "swiglu",
+            "geglu",
+            "gelu",
+            "other"
+          ],
+          "title": "Variant",
+          "type": "string"
+        }
+      },
+      "required": [
+        "variant",
+        "intermediate"
+      ],
+      "title": "ArchExpert",
+      "type": "object"
+    },
+    "ArchGeneric": {
+      "additionalProperties": false,
+      "properties": {
+        "children": {
+          "description": "Direct children in stable name order.",
+          "items": {
+            "$ref": "#/$defs/ArchChild"
+          },
+          "title": "Children",
+          "type": "array"
+        },
+        "class_name": {
+          "description": "Qualified class, or ResidualAdd for a residual junction.",
+          "title": "Class Name",
+          "type": "string"
+        },
+        "kind": {
+          "const": "generic",
+          "default": "generic",
+          "description": "Unrecognized component.",
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "class_name",
+        "children"
+      ],
+      "title": "ArchGeneric",
+      "type": "object"
+    },
+    "ArchIO": {
+      "additionalProperties": false,
+      "properties": {
+        "inputs": {
+          "description": "Dataflow inputs; empty when unknown.",
+          "items": {
+            "$ref": "#/$defs/ArchTensor"
+          },
+          "title": "Inputs",
+          "type": "array"
+        },
+        "outputs": {
+          "description": "Dataflow outputs; empty when unknown.",
+          "items": {
+            "$ref": "#/$defs/ArchTensor"
+          },
+          "title": "Outputs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "inputs",
+        "outputs"
+      ],
+      "title": "ArchIO",
+      "type": "object"
+    },
+    "ArchMLP": {
+      "additionalProperties": false,
+      "properties": {
+        "intermediate": {
+          "description": "Global intermediate width; zero when unavailable.",
+          "minimum": 0,
+          "title": "Intermediate",
+          "type": "integer"
+        },
+        "kind": {
+          "const": "mlp",
+          "default": "mlp",
+          "description": "Dense feed-forward component.",
+          "title": "Kind",
+          "type": "string"
+        },
+        "variant": {
+          "description": "Activation variant.",
+          "enum": [
+            "swiglu",
+            "geglu",
+            "gelu",
+            "other"
+          ],
+          "title": "Variant",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "variant",
+        "intermediate"
+      ],
+      "title": "ArchMLP",
+      "type": "object"
+    },
+    "ArchMoE": {
+      "additionalProperties": false,
+      "properties": {
+        "expert": {
+          "$ref": "#/$defs/ArchExpert",
+          "description": "One routed expert."
+        },
+        "experts": {
+          "description": "Number of routed experts.",
+          "minimum": 0,
+          "title": "Experts",
+          "type": "integer"
+        },
+        "kind": {
+          "const": "moe",
+          "default": "moe",
+          "description": "Routed feed-forward component.",
+          "title": "Kind",
+          "type": "string"
+        },
+        "router": {
+          "$ref": "#/$defs/ArchRouter",
+          "description": "Router semantics."
+        },
+        "shared": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ArchExpert"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Combined shared branch, if present."
+        },
+        "shared_experts": {
+          "description": "Number of shared experts.",
+          "minimum": 0,
+          "title": "Shared Experts",
+          "type": "integer"
+        },
+        "top_k": {
+          "description": "Routed experts selected per token.",
+          "minimum": 0,
+          "title": "Top K",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "experts",
+        "top_k",
+        "shared_experts",
+        "router",
+        "expert",
+        "shared"
+      ],
+      "title": "ArchMoE",
+      "type": "object"
+    },
+    "ArchModel": {
+      "additionalProperties": false,
+      "properties": {
+        "architecture": {
+          "description": "Extracted architecture class.",
+          "title": "Architecture",
+          "type": "string"
+        },
+        "family": {
+          "description": "Model family.",
+          "enum": [
+            "dense",
+            "moe",
+            "mla",
+            "hybrid",
+            "vlm"
+          ],
+          "title": "Family",
+          "type": "string"
+        },
+        "hf_id": {
+          "description": "Hugging Face repository identifier.",
+          "title": "Hf Id",
+          "type": "string"
+        },
+        "id": {
+          "description": "Catalog slug.",
+          "title": "Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "hf_id",
+        "architecture",
+        "family"
+      ],
+      "title": "ArchModel",
+      "type": "object"
+    },
+    "ArchModule": {
+      "additionalProperties": false,
+      "properties": {
+        "class_name": {
+          "description": "Qualified baseline class name.",
+          "title": "Class Name",
+          "type": "string"
+        },
+        "params": {
+          "description": "Component subtree parameters in stable relative-name order.",
+          "items": {
+            "$ref": "#/$defs/ArchTensor"
+          },
+          "title": "Params",
+          "type": "array"
+        },
+        "path": {
+          "description": "Extracted named_modules path.",
+          "title": "Path",
+          "type": "string"
+        },
+        "replaced": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ArchReplacement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Observed replacement, if any."
+        },
+        "source": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ArchSource"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Declaration source; null for external containers."
+        },
+        "status": {
+          "description": "Semantic rule and reviewed replacement status.",
+          "enum": [
+            "ruled",
+            "generic",
+            "ascend_override",
+            "unannotated_override"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "class_name",
+        "source",
+        "status",
+        "replaced",
+        "params"
+      ],
+      "title": "ArchModule",
+      "type": "object"
+    },
+    "ArchModuleStage": {
+      "additionalProperties": false,
+      "properties": {
+        "component": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "attention": "#/$defs/ArchAttention",
+                  "embedding": "#/$defs/ArchEmbedding",
+                  "generic": "#/$defs/ArchGeneric",
+                  "lm_head": "#/$defs/ArchEmbedding",
+                  "mlp": "#/$defs/ArchMLP",
+                  "moe": "#/$defs/ArchMoE",
+                  "norm": "#/$defs/ArchNorm"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/ArchNorm"
+                },
+                {
+                  "$ref": "#/$defs/ArchAttention"
+                },
+                {
+                  "$ref": "#/$defs/ArchMLP"
+                },
+                {
+                  "$ref": "#/$defs/ArchMoE"
+                },
+                {
+                  "$ref": "#/$defs/ArchGeneric"
+                },
+                {
+                  "$ref": "#/$defs/ArchEmbedding"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Semantic or generic component.",
+          "title": "Component"
+        },
+        "id": {
+          "description": "Stable stage target id.",
+          "title": "Id",
+          "type": "string"
+        },
+        "io": {
+          "$ref": "#/$defs/ArchIO",
+          "description": "Symbolic dataflow boundary."
+        },
+        "kind": {
+          "description": "Stage role.",
+          "enum": [
+            "embedding",
+            "norm",
+            "lm_head",
+            "other"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "label": {
+          "description": "Human-readable stage label.",
+          "title": "Label",
+          "type": "string"
+        },
+        "module": {
+          "$ref": "#/$defs/ArchModule",
+          "description": "Extracted module provenance and parameters."
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "label",
+        "module",
+        "io",
+        "component"
+      ],
+      "title": "ArchModuleStage",
+      "type": "object"
+    },
+    "ArchNorm": {
+      "additionalProperties": false,
+      "properties": {
+        "eps": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Observed/configured epsilon.",
+          "title": "Eps"
+        },
+        "kind": {
+          "const": "norm",
+          "default": "norm",
+          "description": "Normalization component.",
+          "title": "Kind",
+          "type": "string"
+        },
+        "variant": {
+          "description": "Normalization algorithm.",
+          "enum": [
+            "rmsnorm",
+            "layernorm",
+            "other"
+          ],
+          "title": "Variant",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "variant",
+        "eps"
+      ],
+      "title": "ArchNorm",
+      "type": "object"
+    },
+    "ArchNote": {
+      "additionalProperties": false,
+      "properties": {
+        "severity": {
+          "description": "Informational or review-needed badge.",
+          "enum": [
+            "info",
+            "warn"
+          ],
+          "title": "Severity",
+          "type": "string"
+        },
+        "target": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Stage, band or sublayer id; null means whole model.",
+          "title": "Target"
+        },
+        "text": {
+          "description": "Stable explanation without timestamps or host paths.",
+          "title": "Text",
+          "type": "string"
+        },
+        "triage_kind": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Original triage kind, or null for structure notes.",
+          "title": "Triage Kind"
+        }
+      },
+      "required": [
+        "severity",
+        "target",
+        "text",
+        "triage_kind"
+      ],
+      "title": "ArchNote",
+      "type": "object"
+    },
+    "ArchReplacement": {
+      "additionalProperties": false,
+      "properties": {
+        "ascend_class": {
+          "description": "Observed replacement qualified class.",
+          "title": "Ascend Class",
+          "type": "string"
+        },
+        "baseline_class": {
+          "description": "Baseline qualified class.",
+          "title": "Baseline Class",
+          "type": "string"
+        }
+      },
+      "required": [
+        "baseline_class",
+        "ascend_class"
+      ],
+      "title": "ArchReplacement",
+      "type": "object"
+    },
+    "ArchRope": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "description": "RoPE type, e.g. default, yarn or linear.",
+          "title": "Kind",
+          "type": "string"
+        },
+        "scaling": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/JsonValue"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Config scaling metadata.",
+          "title": "Scaling"
+        },
+        "theta": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "RoPE base frequency.",
+          "title": "Theta"
+        }
+      },
+      "required": [
+        "kind",
+        "theta",
+        "scaling"
+      ],
+      "title": "ArchRope",
+      "type": "object"
+    },
+    "ArchRouter": {
+      "additionalProperties": false,
+      "properties": {
+        "groups": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Expert routing groups, if specified.",
+          "title": "Groups"
+        },
+        "norm_topk": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Whether selected weights normalize.",
+          "title": "Norm Topk"
+        },
+        "scoring": {
+          "description": "Router scoring function, or unknown.",
+          "title": "Scoring",
+          "type": "string"
+        }
+      },
+      "required": [
+        "scoring",
+        "norm_topk",
+        "groups"
+      ],
+      "title": "ArchRouter",
+      "type": "object"
+    },
+    "ArchSource": {
+      "additionalProperties": false,
+      "properties": {
+        "file": {
+          "description": "Repository-relative source file.",
+          "title": "File",
+          "type": "string"
+        },
+        "line": {
+          "description": "Extracted declaration line.",
+          "minimum": 1,
+          "title": "Line",
+          "type": "integer"
+        },
+        "url": {
+          "description": "Immutable source URL including commit and declaration line.",
+          "title": "Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "file",
+        "line",
+        "url"
+      ],
+      "title": "ArchSource",
+      "type": "object"
+    },
+    "ArchStackStage": {
+      "additionalProperties": false,
+      "properties": {
+        "bands": {
+          "description": "Consecutive layer bands in dataflow order.",
+          "items": {
+            "$ref": "#/$defs/ArchBand"
+          },
+          "title": "Bands",
+          "type": "array"
+        },
+        "id": {
+          "description": "Stable stack target id.",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "const": "stack",
+          "default": "stack",
+          "description": "Decoder stack stage.",
+          "title": "Kind",
+          "type": "string"
+        },
+        "label": {
+          "description": "Human-readable stack label.",
+          "title": "Label",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "label",
+        "bands"
+      ],
+      "title": "ArchStackStage",
+      "type": "object"
+    },
+    "ArchSublayer": {
+      "additionalProperties": false,
+      "properties": {
+        "component": {
+          "description": "Semantic component or generic fallback.",
+          "discriminator": {
+            "mapping": {
+              "attention": "#/$defs/ArchAttention",
+              "embedding": "#/$defs/ArchEmbedding",
+              "generic": "#/$defs/ArchGeneric",
+              "lm_head": "#/$defs/ArchEmbedding",
+              "mlp": "#/$defs/ArchMLP",
+              "moe": "#/$defs/ArchMoE",
+              "norm": "#/$defs/ArchNorm"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/ArchNorm"
+            },
+            {
+              "$ref": "#/$defs/ArchAttention"
+            },
+            {
+              "$ref": "#/$defs/ArchMLP"
+            },
+            {
+              "$ref": "#/$defs/ArchMoE"
+            },
+            {
+              "$ref": "#/$defs/ArchGeneric"
+            },
+            {
+              "$ref": "#/$defs/ArchEmbedding"
+            }
+          ],
+          "title": "Component"
+        },
+        "id": {
+          "description": "Stable target id; representative module path for observed modules.",
+          "title": "Id",
+          "type": "string"
+        },
+        "io": {
+          "$ref": "#/$defs/ArchIO",
+          "description": "Symbolic dataflow boundary."
+        },
+        "module": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ArchModule"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Observed module; null for residual junctions."
+        },
+        "role": {
+          "description": "Dataflow role.",
+          "enum": [
+            "norm",
+            "mixer",
+            "ffn",
+            "residual_add",
+            "other"
+          ],
+          "title": "Role",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "role",
+        "component",
+        "io",
+        "module"
+      ],
+      "title": "ArchSublayer",
+      "type": "object"
+    },
+    "ArchSymbol": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "description": "Meaning of the symbolic dimension.",
+          "title": "Description",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "description": "Default numeric value; expressions reference this key.",
+          "title": "Value"
+        }
+      },
+      "required": [
+        "value",
+        "description"
+      ],
+      "title": "ArchSymbol",
+      "type": "object"
+    },
+    "ArchTensor": {
+      "additionalProperties": false,
+      "properties": {
+        "dtype": {
+          "description": "Observed scalar dtype, e.g. bfloat16 or int64.",
+          "title": "Dtype",
+          "type": "string"
+        },
+        "name": {
+          "description": "Tensor or local parameter name.",
+          "title": "Name",
+          "type": "string"
+        },
+        "shape": {
+          "description": "Dimensions in the existing expression DSL.",
+          "items": {
+            "description": "Expression in docs/expr-dsl.md; never a JSON number.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Shape",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "shape",
+        "dtype"
+      ],
+      "title": "ArchTensor",
+      "type": "object"
+    },
+    "JsonValue": {}
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "device": {
+      "description": "Extraction hardware profile.",
+      "enum": [
+        "A2",
+        "A3",
+        "A5",
+        "310P",
+        "H100"
+      ],
+      "title": "Device",
+      "type": "string"
+    },
+    "input": {
+      "$ref": "#/$defs/ArchTensor",
+      "description": "Whole-model token input."
+    },
+    "model": {
+      "$ref": "#/$defs/ArchModel",
+      "description": "Catalog identity and extracted architecture."
+    },
+    "notes": {
+      "description": "Stable review notes; never suppress structure.",
+      "items": {
+        "$ref": "#/$defs/ArchNote"
+      },
+      "title": "Notes",
+      "type": "array"
+    },
+    "output": {
+      "$ref": "#/$defs/ArchTensor",
+      "description": "Whole-model logits output."
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "description": "Structure contract version.",
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "stages": {
+      "description": "Top-level stages in dataflow order.",
+      "items": {
+        "discriminator": {
+          "mapping": {
+            "embedding": "#/$defs/ArchModuleStage",
+            "lm_head": "#/$defs/ArchModuleStage",
+            "norm": "#/$defs/ArchModuleStage",
+            "other": "#/$defs/ArchModuleStage",
+            "stack": "#/$defs/ArchStackStage"
+          },
+          "propertyName": "kind"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/$defs/ArchStackStage"
+          },
+          {
+            "$ref": "#/$defs/ArchModuleStage"
+          }
+        ]
+      },
+      "title": "Stages",
+      "type": "array"
+    },
+    "symbols": {
+      "additionalProperties": {
+        "$ref": "#/$defs/ArchSymbol"
+      },
+      "description": "Symbol defaults used by tensor dimensions.",
+      "title": "Symbols",
+      "type": "object"
+    }
+  },
+  "required": [
+    "schema_version",
+    "model",
+    "device",
+    "symbols",
+    "input",
+    "output",
+    "stages",
+    "notes"
+  ],
+  "title": "Arch",
+  "type": "object"
+}

@@ -254,11 +254,14 @@ def test_report_contract_and_exit_precedence(ir, runtime, monkeypatch, tmp_path)
     update_golden(tmp_path, ir, Eval.model_validate(read_json(FIXTURE / "eval.json")), runtime)
     report = verify_ir(ir, triage=triage, repos={}, evaluator=runtime, golden_dir=tmp_path)
     assert Report.model_validate_json(report.model_dump_json()) == report
-    assert exit_code(report, triage) == 2
+    assert exit_code(report, triage) == 0
+    assert not report.numeric_verified
     assert next(c for c in report.checks if c.id == "golden").status == "skip"
     assert report.golden_diff == []
     assert next(c for c in report.checks if c.id == "evaluation").status == "skip"
     report.checks.append(Check(id="golden", status="fail", message="drift"))
+    assert exit_code(report, triage) == 0
+    report.checks.append(Check(id="provenance", status="fail", message="fixture"))
     assert exit_code(report, triage) == 3
     assert (
         exit_code(Report(snapshot=ir.snapshot, checks=[], golden_diff=[], source_link_failures=[]))
@@ -300,7 +303,7 @@ def test_triage_blocks_numeric_work_but_preserves_integrity_failures(
     for name in ("weights.tp1", "golden", "evaluation", "calibration"):
         assert checks[name].status == "skip"
         assert "blocked by triage" in checks[name].message.lower()
-    assert exit_code(report, triage) == (3 if failure else 2)
+    assert exit_code(report, triage) == (3 if failure else 0)
     if failure:
         assert checks[failure].status == "fail"
 
@@ -326,7 +329,8 @@ def test_missing_runtime_report_and_fixture_provenance(ir, tmp_path, monkeypatch
     monkeypatch.setattr(verify, "check_sources", lambda *args: [])
     missing = Evaluator(tmp_path, lambda message: None)
     report = verify_ir(ir, repos={}, evaluator=missing)
-    assert exit_code(report) == 3
+    assert exit_code(report) == 0
+    assert not report.numeric_verified
     assert next(c for c in report.checks if c.id == "evaluation").status == "fail"
     report = verify_ir(ir, repos={}, evaluator=missing, allow_fixtures=True)
     assert next(c for c in report.checks if c.id == "evaluation").status == "skip"
@@ -397,6 +401,7 @@ def test_primary_ir_weight_formula_cross_checks_every_tp(ir, runtime, monkeypatc
     ]
     # T0 fixtures contain one representative layer; a real extraction contains every layer.
     for extract in extracts:
+        extract.fixture = False
         representative = [m for m in extract.modules if m.path.startswith("model.layers.0.")]
         extract.modules.extend(
             module.model_copy(
@@ -416,7 +421,8 @@ def test_primary_ir_weight_formula_cross_checks_every_tp(ir, runtime, monkeypatc
     report = verify_ir(ir, extracts=extracts, repos={}, evaluator=runtime, golden_dir=tmp_path)
     assert next(c for c in report.checks if c.id == "weights.tp1").status == "pass"
     assert next(c for c in report.checks if c.id == "weights.tp4").status == "fail"
-    assert exit_code(report) == 3
+    assert exit_code(report) == 0
+    assert not report.numeric_verified
 
 
 def test_constraints_reject_invalid_combined_parameters(ir, runtime):
@@ -436,4 +442,5 @@ def test_missing_grid_pointer_is_a_verification_failure(ir, runtime, monkeypatch
     report = verify_ir(ir, repos={}, evaluator=runtime, golden_dir=tmp_path)
     check = next(c for c in report.checks if c.id == "golden")
     assert check.status == "fail" and "pointer unavailable" in check.message
-    assert exit_code(report) == 3
+    assert exit_code(report) == 0
+    assert not report.numeric_verified

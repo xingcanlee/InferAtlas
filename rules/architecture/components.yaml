@@ -1,0 +1,195 @@
+# Structure semantics only; numeric lowering rules remain independently verified.
+torch.nn.modules.normalization.LayerNorm:
+  kind: norm
+  variant: layernorm
+vllm.model_executor.layers.layernorm.GemmaRMSNorm:
+  kind: norm
+  variant: rmsnorm
+vllm.model_executor.layers.layernorm.RMSNorm:
+  kind: norm
+  variant: rmsnorm
+vllm.model_executor.layers.mamba.gdn.qwen_gdn_linear_attn.QwenGatedDeltaNetAttention:
+  kind: attention
+  variant: linear
+vllm.model_executor.layers.vocab_parallel_embedding.ParallelLMHead:
+  kind: lm_head
+vllm.model_executor.layers.vocab_parallel_embedding.VocabParallelEmbedding:
+  kind: embedding
+vllm.model_executor.models.deepseek_v2.DeepseekAttention:
+  kind: attention
+  variant: other
+vllm.model_executor.models.deepseek_v2.DeepseekForCausalLM:
+  kind: container
+vllm.model_executor.models.deepseek_v2.DeepseekV2Attention:
+  kind: attention
+  variant: mla
+vllm.model_executor.models.deepseek_v2.DeepseekV2DecoderLayer:
+  kind: decoder
+  residual: pre_norm
+  order:
+  - input_layernorm
+  - self_attn
+  - linear_attn
+  - post_attention_layernorm
+  - mlp
+vllm.model_executor.models.deepseek_v2.DeepseekV2ForCausalLM:
+  kind: container
+vllm.model_executor.models.deepseek_v2.DeepseekV2MLAAttention:
+  kind: attention
+  variant: mla
+vllm.model_executor.models.deepseek_v2.DeepseekV2MLP:
+  kind: mlp
+vllm.model_executor.models.deepseek_v2.DeepseekV2MoE:
+  kind: moe
+vllm.model_executor.models.deepseek_v2.DeepseekV2Model:
+  kind: container
+vllm.model_executor.models.deepseek_v2.DeepseekV3ForCausalLM:
+  kind: container
+vllm.model_executor.models.deepseek_v2.GlmMoeDsaForCausalLM:
+  kind: container
+vllm.model_executor.models.glm4_moe.Glm4MoE:
+  kind: moe
+vllm.model_executor.models.glm4_moe.Glm4MoeAttention:
+  kind: attention
+  variant: other
+vllm.model_executor.models.glm4_moe.Glm4MoeDecoderLayer:
+  kind: decoder
+  residual: pre_norm
+  order:
+  - input_layernorm
+  - self_attn
+  - linear_attn
+  - post_attention_layernorm
+  - mlp
+vllm.model_executor.models.glm4_moe.Glm4MoeForCausalLM:
+  kind: container
+vllm.model_executor.models.glm4_moe.Glm4MoeMLP:
+  kind: mlp
+vllm.model_executor.models.glm4_moe.Glm4MoeModel:
+  kind: container
+vllm.model_executor.models.llama.LlamaAttention:
+  kind: attention
+  variant: other
+vllm.model_executor.models.llama.LlamaDecoderLayer:
+  kind: decoder
+  residual: pre_norm
+  order:
+  - input_layernorm
+  - self_attn
+  - linear_attn
+  - post_attention_layernorm
+  - mlp
+vllm.model_executor.models.llama.LlamaForCausalLM:
+  kind: container
+vllm.model_executor.models.llama.LlamaMLP:
+  kind: mlp
+vllm.model_executor.models.llama.LlamaModel:
+  kind: container
+vllm.model_executor.models.llama4.Llama4Attention:
+  kind: attention
+  variant: other
+vllm.model_executor.models.llama4.Llama4DecoderLayer:
+  kind: decoder
+  residual: pre_norm
+  order:
+  - input_layernorm
+  - self_attn
+  - linear_attn
+  - post_attention_layernorm
+  - mlp
+vllm.model_executor.models.llama4.Llama4ForCausalLM:
+  kind: container
+vllm.model_executor.models.llama4.Llama4MoE:
+  kind: moe
+vllm.model_executor.models.llama4.Llama4Model:
+  kind: container
+vllm.model_executor.models.minimax_m2.MiniMaxM2Attention:
+  kind: attention
+  variant: other
+vllm.model_executor.models.minimax_m2.MiniMaxM2DecoderLayer:
+  kind: decoder
+  residual: pre_norm
+  order:
+  - input_layernorm
+  - self_attn
+  - linear_attn
+  - post_attention_layernorm
+  - mlp
+vllm.model_executor.models.minimax_m2.MiniMaxM2ForCausalLM:
+  kind: container
+vllm.model_executor.models.minimax_m2.MiniMaxM2MoE:
+  kind: moe
+vllm.model_executor.models.minimax_m2.MiniMaxM2Model:
+  kind: container
+vllm.model_executor.models.qwen2.Qwen2Attention:
+  kind: attention
+  variant: other
+vllm.model_executor.models.qwen2.Qwen2DecoderLayer:
+  kind: decoder
+  residual: pre_norm
+  order:
+  - input_layernorm
+  - self_attn
+  - linear_attn
+  - post_attention_layernorm
+  - mlp
+vllm.model_executor.models.qwen2.Qwen2ForCausalLM:
+  kind: container
+vllm.model_executor.models.qwen2.Qwen2MLP:
+  kind: mlp
+vllm.model_executor.models.qwen2.Qwen2Model:
+  kind: container
+vllm.model_executor.models.qwen3.Qwen3Attention:
+  kind: attention
+  variant: other
+vllm.model_executor.models.qwen3.Qwen3DecoderLayer:
+  kind: decoder
+  residual: pre_norm
+  order:
+  - input_layernorm
+  - self_attn
+  - linear_attn
+  - post_attention_layernorm
+  - mlp
+vllm.model_executor.models.qwen3.Qwen3ForCausalLM:
+  kind: container
+vllm.model_executor.models.qwen3.Qwen3Model:
+  kind: container
+vllm.model_executor.models.qwen3_moe.Qwen3MoeAttention:
+  kind: attention
+  variant: other
+vllm.model_executor.models.qwen3_moe.Qwen3MoeDecoderLayer:
+  kind: decoder
+  residual: pre_norm
+  order:
+  - input_layernorm
+  - self_attn
+  - linear_attn
+  - post_attention_layernorm
+  - mlp
+vllm.model_executor.models.qwen3_moe.Qwen3MoeForCausalLM:
+  kind: container
+vllm.model_executor.models.qwen3_moe.Qwen3MoeMLP:
+  kind: mlp
+vllm.model_executor.models.qwen3_moe.Qwen3MoeModel:
+  kind: container
+vllm.model_executor.models.qwen3_moe.Qwen3MoeSparseMoeBlock:
+  kind: moe
+vllm.model_executor.models.qwen3_next.Qwen3NextAttention:
+  kind: attention
+  variant: other
+vllm.model_executor.models.qwen3_next.Qwen3NextDecoderLayer:
+  kind: decoder
+  residual: pre_norm
+  order:
+  - input_layernorm
+  - self_attn
+  - linear_attn
+  - post_attention_layernorm
+  - mlp
+vllm.model_executor.models.qwen3_next.Qwen3NextForCausalLM:
+  kind: container
+vllm.model_executor.models.qwen3_next.Qwen3NextModel:
+  kind: container
+vllm.model_executor.models.qwen3_next.Qwen3NextSparseMoeBlock:
+  kind: moe

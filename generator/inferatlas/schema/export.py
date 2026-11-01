@@ -7,6 +7,7 @@ from . import (
     IR,
     Annotation,
     Annotations,
+    Arch,
     Catalog,
     Eval,
     Extract,
@@ -21,6 +22,7 @@ from . import (
 
 ROOT = Path(__file__).resolve().parents[3]
 MODELS = {
+    "arch": Arch,
     "annotation": Annotation,
     "annotations": Annotations,
     "catalog": Catalog,

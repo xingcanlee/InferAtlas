@@ -22,10 +22,12 @@ class ExportManifest(Contract):
     def consistent_status(self) -> "ExportManifest":
         if ".." in self.file:
             raise ValueError("export filename must not contain '..' (the web hub rejects it)")
-        if (self.status == "ok") != (self.exit_code == 0):
-            raise ValueError("only successful exports may be ok")
+        if (self.status == "ok" and self.exit_code != 0) or (
+            self.status == "missing" and self.exit_code == 0
+        ):
+            raise ValueError("successful exports require ok or triage status")
         if self.status != "triage" and self.triage_count:
-            raise ValueError("only triage exports may have blocking items")
+            raise ValueError("only triage exports may have review notes")
         if self.exit_code == 2 and self.status != "triage":
             raise ValueError("exit 2 requires triage status")
         return self

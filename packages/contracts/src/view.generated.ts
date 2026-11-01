@@ -92,13 +92,13 @@ export type Prefill = string[];
 /**
  * Optional precomputed edge-label center in pixels, on the 4px grid.
  */
-export type LabelPos = [unknown, unknown] | null;
+export type LabelPos = [number, number] | null;
 /**
  * Ordered source-to-target orthogonal polyline, including endpoints; all coordinates on 4px grid.
  *
  * @minItems 2
  */
-export type Points = [[unknown, unknown], [unknown, unknown], ...[unknown, unknown][]];
+export type Points = [[number, number], [number, number], ...[number, number][]];
 /**
  * Consumer ViewNode.id.
  */

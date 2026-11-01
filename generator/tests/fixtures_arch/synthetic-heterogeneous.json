@@ -1,0 +1,1052 @@
+{
+  "device": "A2",
+  "input": {
+    "dtype": "int64",
+    "name": "input_ids",
+    "shape": ["T"]
+  },
+  "model": {
+    "architecture": "SyntheticHeterogeneousForCausalLM",
+    "family": "hybrid",
+    "hf_id": "synthetic/heterogeneous-mla",
+    "id": "synthetic-heterogeneous"
+  },
+  "notes": [
+    {
+      "severity": "warn",
+      "target": "lm_head",
+      "text": "{\"kind\":\"unknown_layer_class\",\"symbol\":\"vllm.model_executor.layers.vocab_parallel_embedding.ParallelLMHead\",\"used_by\":[\"synthetic/heterogeneous-mla\"]}",
+      "triage_kind": "unknown_layer_class"
+    },
+    {
+      "severity": "info",
+      "target": "model",
+      "text": "Generic component: synthetic.Model; I/O is derived only from parameter/constructor or sequential-child boundaries.",
+      "triage_kind": null
+    },
+    {
+      "severity": "warn",
+      "target": "model",
+      "text": "{\"kind\":\"unknown_layer_class\",\"symbol\":\"synthetic.Model\",\"used_by\":[\"synthetic/heterogeneous-mla\"]}",
+      "triage_kind": "unknown_layer_class"
+    },
+    {
+      "severity": "warn",
+      "target": "model",
+      "text": "{\"kind\":\"unknown_layer_class\",\"symbol\":\"torch.nn.modules.container.ModuleList\",\"used_by\":[\"synthetic/heterogeneous-mla\"]}",
+      "triage_kind": "unknown_layer_class"
+    },
+    {
+      "severity": "warn",
+      "target": "model",
+      "text": "{\"kind\":\"unknown_layer_class\",\"symbol\":\"vllm.model_executor.layers.layernorm.RMSNorm\",\"used_by\":[\"synthetic/heterogeneous-mla\"]}",
+      "triage_kind": "unknown_layer_class"
+    },
+    {
+      "severity": "warn",
+      "target": "model",
+      "text": "{\"kind\":\"unknown_layer_class\",\"symbol\":\"vllm.model_executor.layers.vocab_parallel_embedding.VocabParallelEmbedding\",\"used_by\":[\"synthetic/heterogeneous-mla\"]}",
+      "triage_kind": "unknown_layer_class"
+    },
+    {
+      "severity": "warn",
+      "target": "model",
+      "text": "{\"kind\":\"unknown_layer_class\",\"symbol\":\"vllm.model_executor.models.deepseek_v2.DeepseekV2DecoderLayer\",\"used_by\":[\"synthetic/heterogeneous-mla\"]}",
+      "triage_kind": "unknown_layer_class"
+    },
+    {
+      "severity": "warn",
+      "target": "model",
+      "text": "{\"kind\":\"unknown_layer_class\",\"symbol\":\"vllm.model_executor.models.deepseek_v2.DeepseekV2MLAAttention\",\"used_by\":[\"synthetic/heterogeneous-mla\"]}",
+      "triage_kind": "unknown_layer_class"
+    },
+    {
+      "severity": "warn",
+      "target": "model",
+      "text": "{\"kind\":\"unknown_layer_class\",\"symbol\":\"vllm.model_executor.models.deepseek_v2.DeepseekV2MLP\",\"used_by\":[\"synthetic/heterogeneous-mla\"]}",
+      "triage_kind": "unknown_layer_class"
+    },
+    {
+      "severity": "warn",
+      "target": "model",
+      "text": "{\"kind\":\"unknown_layer_class\",\"symbol\":\"vllm.model_executor.models.deepseek_v2.DeepseekV2MoE\",\"used_by\":[\"synthetic/heterogeneous-mla\"]}",
+      "triage_kind": "unknown_layer_class"
+    },
+    {
+      "severity": "warn",
+      "target": "model.embed_tokens",
+      "text": "{\"kind\":\"unknown_layer_class\",\"symbol\":\"vllm.model_executor.layers.vocab_parallel_embedding.VocabParallelEmbedding\",\"used_by\":[\"synthetic/heterogeneous-mla\"]}",
+      "triage_kind": "unknown_layer_class"
+    },
+    {
+      "severity": "warn",
+      "target": "model.layers.0.input_layernorm",
+      "text": "{\"kind\":\"unknown_layer_class\",\"symbol\":\"vllm.model_executor.layers.layernorm.RMSNorm\",\"used_by\":[\"synthetic/heterogeneous-mla\"]}",
+      "triage_kind": "unknown_layer_class"
+    },
+    {
+      "severity": "warn",
+      "target": "model.layers.0.mlp",
+      "text": "{\"kind\":\"unknown_layer_class\",\"symbol\":\"vllm.model_executor.models.deepseek_v2.DeepseekV2MLP\",\"used_by\":[\"synthetic/heterogeneous-mla\"]}",
+      "triage_kind": "unknown_layer_class"
+    },
+    {
+      "severity": "warn",
+      "target": "model.layers.0.post_attention_layernorm",
+      "text": "{\"kind\":\"unknown_layer_class\",\"symbol\":\"vllm.model_executor.layers.layernorm.RMSNorm\",\"used_by\":[\"synthetic/heterogeneous-mla\"]}",
+      "triage_kind": "unknown_layer_class"
+    },
+    {
+      "severity": "warn",
+      "target": "model.layers.0.self_attn",
+      "text": "{\"kind\":\"unknown_layer_class\",\"symbol\":\"vllm.model_executor.models.deepseek_v2.DeepseekV2MLAAttention\",\"used_by\":[\"synthetic/heterogeneous-mla\"]}",
+      "triage_kind": "unknown_layer_class"
+    },
+    {
+      "severity": "warn",
+      "target": "model.layers.2.input_layernorm",
+      "text": "{\"kind\":\"unknown_layer_class\",\"symbol\":\"vllm.model_executor.layers.layernorm.RMSNorm\",\"used_by\":[\"synthetic/heterogeneous-mla\"]}",
+      "triage_kind": "unknown_layer_class"
+    },
+    {
+      "severity": "warn",
+      "target": "model.layers.2.mlp",
+      "text": "{\"kind\":\"unknown_layer_class\",\"symbol\":\"vllm.model_executor.models.deepseek_v2.DeepseekV2MLP\",\"used_by\":[\"synthetic/heterogeneous-mla\"]}",
+      "triage_kind": "unknown_layer_class"
+    },
+    {
+      "severity": "warn",
+      "target": "model.layers.2.mlp",
+      "text": "{\"kind\":\"unknown_layer_class\",\"symbol\":\"vllm.model_executor.models.deepseek_v2.DeepseekV2MoE\",\"used_by\":[\"synthetic/heterogeneous-mla\"]}",
+      "triage_kind": "unknown_layer_class"
+    },
+    {
+      "severity": "warn",
+      "target": "model.layers.2.post_attention_layernorm",
+      "text": "{\"kind\":\"unknown_layer_class\",\"symbol\":\"vllm.model_executor.layers.layernorm.RMSNorm\",\"used_by\":[\"synthetic/heterogeneous-mla\"]}",
+      "triage_kind": "unknown_layer_class"
+    },
+    {
+      "severity": "warn",
+      "target": "model.layers.2.self_attn",
+      "text": "{\"kind\":\"unknown_layer_class\",\"symbol\":\"vllm.model_executor.models.deepseek_v2.DeepseekV2MLAAttention\",\"used_by\":[\"synthetic/heterogeneous-mla\"]}",
+      "triage_kind": "unknown_layer_class"
+    },
+    {
+      "severity": "warn",
+      "target": "model.norm",
+      "text": "{\"kind\":\"unknown_layer_class\",\"symbol\":\"vllm.model_executor.layers.layernorm.RMSNorm\",\"used_by\":[\"synthetic/heterogeneous-mla\"]}",
+      "triage_kind": "unknown_layer_class"
+    },
+    {
+      "severity": "info",
+      "target": "root",
+      "text": "Generic component: synthetic.SyntheticHeterogeneousForCausalLM; I/O is derived only from parameter/constructor or sequential-child boundaries.",
+      "triage_kind": null
+    },
+    {
+      "severity": "warn",
+      "target": "root",
+      "text": "{\"kind\":\"unknown_layer_class\",\"symbol\":\"synthetic.Model\",\"used_by\":[\"synthetic/heterogeneous-mla\"]}",
+      "triage_kind": "unknown_layer_class"
+    },
+    {
+      "severity": "warn",
+      "target": "root",
+      "text": "{\"kind\":\"unknown_layer_class\",\"symbol\":\"synthetic.SyntheticHeterogeneousForCausalLM\",\"used_by\":[\"synthetic/heterogeneous-mla\"]}",
+      "triage_kind": "unknown_layer_class"
+    },
+    {
+      "severity": "warn",
+      "target": "root",
+      "text": "{\"kind\":\"unknown_layer_class\",\"symbol\":\"torch.nn.modules.container.ModuleList\",\"used_by\":[\"synthetic/heterogeneous-mla\"]}",
+      "triage_kind": "unknown_layer_class"
+    },
+    {
+      "severity": "warn",
+      "target": "root",
+      "text": "{\"kind\":\"unknown_layer_class\",\"symbol\":\"vllm.model_executor.layers.layernorm.RMSNorm\",\"used_by\":[\"synthetic/heterogeneous-mla\"]}",
+      "triage_kind": "unknown_layer_class"
+    },
+    {
+      "severity": "warn",
+      "target": "root",
+      "text": "{\"kind\":\"unknown_layer_class\",\"symbol\":\"vllm.model_executor.layers.vocab_parallel_embedding.ParallelLMHead\",\"used_by\":[\"synthetic/heterogeneous-mla\"]}",
+      "triage_kind": "unknown_layer_class"
+    },
+    {
+      "severity": "warn",
+      "target": "root",
+      "text": "{\"kind\":\"unknown_layer_class\",\"symbol\":\"vllm.model_executor.layers.vocab_parallel_embedding.VocabParallelEmbedding\",\"used_by\":[\"synthetic/heterogeneous-mla\"]}",
+      "triage_kind": "unknown_layer_class"
+    },
+    {
+      "severity": "warn",
+      "target": "root",
+      "text": "{\"kind\":\"unknown_layer_class\",\"symbol\":\"vllm.model_executor.models.deepseek_v2.DeepseekV2DecoderLayer\",\"used_by\":[\"synthetic/heterogeneous-mla\"]}",
+      "triage_kind": "unknown_layer_class"
+    },
+    {
+      "severity": "warn",
+      "target": "root",
+      "text": "{\"kind\":\"unknown_layer_class\",\"symbol\":\"vllm.model_executor.models.deepseek_v2.DeepseekV2MLAAttention\",\"used_by\":[\"synthetic/heterogeneous-mla\"]}",
+      "triage_kind": "unknown_layer_class"
+    },
+    {
+      "severity": "warn",
+      "target": "root",
+      "text": "{\"kind\":\"unknown_layer_class\",\"symbol\":\"vllm.model_executor.models.deepseek_v2.DeepseekV2MLP\",\"used_by\":[\"synthetic/heterogeneous-mla\"]}",
+      "triage_kind": "unknown_layer_class"
+    },
+    {
+      "severity": "warn",
+      "target": "root",
+      "text": "{\"kind\":\"unknown_layer_class\",\"symbol\":\"vllm.model_executor.models.deepseek_v2.DeepseekV2MoE\",\"used_by\":[\"synthetic/heterogeneous-mla\"]}",
+      "triage_kind": "unknown_layer_class"
+    }
+  ],
+  "output": {
+    "dtype": "bfloat16",
+    "name": "logits",
+    "shape": ["T", "V"]
+  },
+  "schema_version": 1,
+  "stages": [
+    {
+      "component": {
+        "hidden": 16,
+        "kind": "embedding",
+        "tied": false,
+        "vocab": 32
+      },
+      "id": "model.embed_tokens",
+      "io": {
+        "inputs": [
+          {
+            "dtype": "int64",
+            "name": "input_ids",
+            "shape": ["T"]
+          }
+        ],
+        "outputs": [
+          {
+            "dtype": "bfloat16",
+            "name": "hidden_states",
+            "shape": ["T", "H"]
+          }
+        ]
+      },
+      "kind": "embedding",
+      "label": "Token embedding",
+      "module": {
+        "class_name": "vllm.model_executor.layers.vocab_parallel_embedding.VocabParallelEmbedding",
+        "params": [
+          {
+            "dtype": "bfloat16",
+            "name": "weight",
+            "shape": ["32", "16"]
+          }
+        ],
+        "path": "model.embed_tokens",
+        "replaced": null,
+        "source": null,
+        "status": "ruled"
+      }
+    },
+    {
+      "bands": [
+        {
+          "block": {
+            "kind": "decoder",
+            "residual": "pre_norm",
+            "sublayers": [
+              {
+                "component": {
+                  "eps": null,
+                  "kind": "norm",
+                  "variant": "rmsnorm"
+                },
+                "id": "model.layers.0.input_layernorm",
+                "io": {
+                  "inputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "H"]
+                    }
+                  ],
+                  "outputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "H"]
+                    }
+                  ]
+                },
+                "module": {
+                  "class_name": "vllm.model_executor.layers.layernorm.RMSNorm",
+                  "params": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "weight",
+                      "shape": ["16"]
+                    }
+                  ],
+                  "path": "model.layers.0.input_layernorm",
+                  "replaced": null,
+                  "source": null,
+                  "status": "ruled"
+                },
+                "role": "norm"
+              },
+              {
+                "component": {
+                  "extras": {
+                    "kv_lora_rank": 4,
+                    "q_lora_rank": 8,
+                    "qk_nope_head_dim": 4,
+                    "qk_rope_head_dim": 4,
+                    "v_head_dim": 4
+                  },
+                  "head_dim": 8,
+                  "heads_kv": 4,
+                  "heads_q": 4,
+                  "kind": "attention",
+                  "qk_norm": false,
+                  "rope": {
+                    "kind": "default",
+                    "scaling": null,
+                    "theta": 10000.0
+                  },
+                  "variant": "mla"
+                },
+                "id": "model.layers.0.self_attn",
+                "io": {
+                  "inputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "H"]
+                    }
+                  ],
+                  "outputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "H"]
+                    }
+                  ]
+                },
+                "module": {
+                  "class_name": "vllm.model_executor.models.deepseek_v2.DeepseekV2MLAAttention",
+                  "params": [],
+                  "path": "model.layers.0.self_attn",
+                  "replaced": null,
+                  "source": null,
+                  "status": "ruled"
+                },
+                "role": "mixer"
+              },
+              {
+                "component": {
+                  "children": [],
+                  "class_name": "ResidualAdd",
+                  "kind": "generic"
+                },
+                "id": "model.layers.0.self_attn:residual",
+                "io": {
+                  "inputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "branch",
+                      "shape": ["T", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "residual",
+                      "shape": ["T", "H"]
+                    }
+                  ],
+                  "outputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "H"]
+                    }
+                  ]
+                },
+                "module": null,
+                "role": "residual_add"
+              },
+              {
+                "component": {
+                  "eps": null,
+                  "kind": "norm",
+                  "variant": "rmsnorm"
+                },
+                "id": "model.layers.0.post_attention_layernorm",
+                "io": {
+                  "inputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "H"]
+                    }
+                  ],
+                  "outputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "H"]
+                    }
+                  ]
+                },
+                "module": {
+                  "class_name": "vllm.model_executor.layers.layernorm.RMSNorm",
+                  "params": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "weight",
+                      "shape": ["16"]
+                    }
+                  ],
+                  "path": "model.layers.0.post_attention_layernorm",
+                  "replaced": null,
+                  "source": null,
+                  "status": "ruled"
+                },
+                "role": "norm"
+              },
+              {
+                "component": {
+                  "intermediate": 48,
+                  "kind": "mlp",
+                  "variant": "swiglu"
+                },
+                "id": "model.layers.0.mlp",
+                "io": {
+                  "inputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "H"]
+                    }
+                  ],
+                  "outputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "H"]
+                    }
+                  ]
+                },
+                "module": {
+                  "class_name": "vllm.model_executor.models.deepseek_v2.DeepseekV2MLP",
+                  "params": [],
+                  "path": "model.layers.0.mlp",
+                  "replaced": null,
+                  "source": null,
+                  "status": "ruled"
+                },
+                "role": "ffn"
+              },
+              {
+                "component": {
+                  "children": [],
+                  "class_name": "ResidualAdd",
+                  "kind": "generic"
+                },
+                "id": "model.layers.0.mlp:residual",
+                "io": {
+                  "inputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "branch",
+                      "shape": ["T", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "residual",
+                      "shape": ["T", "H"]
+                    }
+                  ],
+                  "outputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "H"]
+                    }
+                  ]
+                },
+                "module": null,
+                "role": "residual_add"
+              }
+            ]
+          },
+          "count": 2,
+          "id": "model.layers:band:0",
+          "layers": [0, 1],
+          "pattern": null
+        },
+        {
+          "block": {
+            "kind": "decoder",
+            "residual": "pre_norm",
+            "sublayers": [
+              {
+                "component": {
+                  "eps": null,
+                  "kind": "norm",
+                  "variant": "rmsnorm"
+                },
+                "id": "model.layers.2.input_layernorm",
+                "io": {
+                  "inputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "H"]
+                    }
+                  ],
+                  "outputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "H"]
+                    }
+                  ]
+                },
+                "module": {
+                  "class_name": "vllm.model_executor.layers.layernorm.RMSNorm",
+                  "params": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "weight",
+                      "shape": ["16"]
+                    }
+                  ],
+                  "path": "model.layers.2.input_layernorm",
+                  "replaced": null,
+                  "source": null,
+                  "status": "ruled"
+                },
+                "role": "norm"
+              },
+              {
+                "component": {
+                  "extras": {
+                    "kv_lora_rank": 4,
+                    "q_lora_rank": 8,
+                    "qk_nope_head_dim": 4,
+                    "qk_rope_head_dim": 4,
+                    "v_head_dim": 4
+                  },
+                  "head_dim": 8,
+                  "heads_kv": 4,
+                  "heads_q": 4,
+                  "kind": "attention",
+                  "qk_norm": false,
+                  "rope": {
+                    "kind": "default",
+                    "scaling": null,
+                    "theta": 10000.0
+                  },
+                  "variant": "mla"
+                },
+                "id": "model.layers.2.self_attn",
+                "io": {
+                  "inputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "H"]
+                    }
+                  ],
+                  "outputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "H"]
+                    }
+                  ]
+                },
+                "module": {
+                  "class_name": "vllm.model_executor.models.deepseek_v2.DeepseekV2MLAAttention",
+                  "params": [],
+                  "path": "model.layers.2.self_attn",
+                  "replaced": null,
+                  "source": null,
+                  "status": "ruled"
+                },
+                "role": "mixer"
+              },
+              {
+                "component": {
+                  "children": [],
+                  "class_name": "ResidualAdd",
+                  "kind": "generic"
+                },
+                "id": "model.layers.2.self_attn:residual",
+                "io": {
+                  "inputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "branch",
+                      "shape": ["T", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "residual",
+                      "shape": ["T", "H"]
+                    }
+                  ],
+                  "outputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "H"]
+                    }
+                  ]
+                },
+                "module": null,
+                "role": "residual_add"
+              },
+              {
+                "component": {
+                  "eps": null,
+                  "kind": "norm",
+                  "variant": "rmsnorm"
+                },
+                "id": "model.layers.2.post_attention_layernorm",
+                "io": {
+                  "inputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "H"]
+                    }
+                  ],
+                  "outputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "H"]
+                    }
+                  ]
+                },
+                "module": {
+                  "class_name": "vllm.model_executor.layers.layernorm.RMSNorm",
+                  "params": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "weight",
+                      "shape": ["16"]
+                    }
+                  ],
+                  "path": "model.layers.2.post_attention_layernorm",
+                  "replaced": null,
+                  "source": null,
+                  "status": "ruled"
+                },
+                "role": "norm"
+              },
+              {
+                "component": {
+                  "expert": {
+                    "intermediate": 12,
+                    "variant": "swiglu"
+                  },
+                  "experts": 8,
+                  "kind": "moe",
+                  "router": {
+                    "groups": null,
+                    "norm_topk": null,
+                    "scoring": "sigmoid"
+                  },
+                  "shared": {
+                    "intermediate": 12,
+                    "variant": "swiglu"
+                  },
+                  "shared_experts": 1,
+                  "top_k": 2
+                },
+                "id": "model.layers.2.mlp",
+                "io": {
+                  "inputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "H"]
+                    }
+                  ],
+                  "outputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "H"]
+                    }
+                  ]
+                },
+                "module": {
+                  "class_name": "vllm.model_executor.models.deepseek_v2.DeepseekV2MoE",
+                  "params": [],
+                  "path": "model.layers.2.mlp",
+                  "replaced": null,
+                  "source": null,
+                  "status": "ruled"
+                },
+                "role": "ffn"
+              },
+              {
+                "component": {
+                  "children": [],
+                  "class_name": "ResidualAdd",
+                  "kind": "generic"
+                },
+                "id": "model.layers.2.mlp:residual",
+                "io": {
+                  "inputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "branch",
+                      "shape": ["T", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "residual",
+                      "shape": ["T", "H"]
+                    }
+                  ],
+                  "outputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "H"]
+                    }
+                  ]
+                },
+                "module": null,
+                "role": "residual_add"
+              }
+            ]
+          },
+          "count": 3,
+          "id": "model.layers:band:2",
+          "layers": [2, 4],
+          "pattern": null
+        }
+      ],
+      "id": "model.layers",
+      "kind": "stack",
+      "label": "Decoder layers"
+    },
+    {
+      "component": {
+        "eps": null,
+        "kind": "norm",
+        "variant": "rmsnorm"
+      },
+      "id": "model.norm",
+      "io": {
+        "inputs": [
+          {
+            "dtype": "bfloat16",
+            "name": "hidden_states",
+            "shape": ["T", "H"]
+          }
+        ],
+        "outputs": [
+          {
+            "dtype": "bfloat16",
+            "name": "hidden_states",
+            "shape": ["T", "H"]
+          }
+        ]
+      },
+      "kind": "norm",
+      "label": "Final norm",
+      "module": {
+        "class_name": "vllm.model_executor.layers.layernorm.RMSNorm",
+        "params": [
+          {
+            "dtype": "bfloat16",
+            "name": "weight",
+            "shape": ["16"]
+          }
+        ],
+        "path": "model.norm",
+        "replaced": null,
+        "source": null,
+        "status": "ruled"
+      }
+    },
+    {
+      "component": {
+        "hidden": 16,
+        "kind": "lm_head",
+        "tied": false,
+        "vocab": 32
+      },
+      "id": "lm_head",
+      "io": {
+        "inputs": [
+          {
+            "dtype": "bfloat16",
+            "name": "hidden_states",
+            "shape": ["T", "H"]
+          }
+        ],
+        "outputs": [
+          {
+            "dtype": "bfloat16",
+            "name": "logits",
+            "shape": ["T", "V"]
+          }
+        ]
+      },
+      "kind": "lm_head",
+      "label": "LM head",
+      "module": {
+        "class_name": "vllm.model_executor.layers.vocab_parallel_embedding.ParallelLMHead",
+        "params": [
+          {
+            "dtype": "bfloat16",
+            "name": "weight",
+            "shape": ["32", "16"]
+          }
+        ],
+        "path": "lm_head",
+        "replaced": null,
+        "source": null,
+        "status": "ruled"
+      }
+    },
+    {
+      "component": {
+        "children": [
+          {
+            "class_name": "vllm.model_executor.layers.vocab_parallel_embedding.VocabParallelEmbedding",
+            "name": "embed_tokens"
+          },
+          {
+            "class_name": "torch.nn.modules.container.ModuleList",
+            "name": "layers"
+          },
+          {
+            "class_name": "vllm.model_executor.layers.layernorm.RMSNorm",
+            "name": "norm"
+          }
+        ],
+        "class_name": "synthetic.Model",
+        "kind": "generic"
+      },
+      "id": "model",
+      "io": {
+        "inputs": [],
+        "outputs": []
+      },
+      "kind": "other",
+      "label": "model",
+      "module": {
+        "class_name": "synthetic.Model",
+        "params": [
+          {
+            "dtype": "bfloat16",
+            "name": "embed_tokens.weight",
+            "shape": ["32", "16"]
+          },
+          {
+            "dtype": "bfloat16",
+            "name": "layers.0.input_layernorm.weight",
+            "shape": ["16"]
+          },
+          {
+            "dtype": "bfloat16",
+            "name": "layers.0.post_attention_layernorm.weight",
+            "shape": ["16"]
+          },
+          {
+            "dtype": "bfloat16",
+            "name": "layers.1.input_layernorm.weight",
+            "shape": ["16"]
+          },
+          {
+            "dtype": "bfloat16",
+            "name": "layers.1.post_attention_layernorm.weight",
+            "shape": ["16"]
+          },
+          {
+            "dtype": "bfloat16",
+            "name": "layers.2.input_layernorm.weight",
+            "shape": ["16"]
+          },
+          {
+            "dtype": "bfloat16",
+            "name": "layers.2.post_attention_layernorm.weight",
+            "shape": ["16"]
+          },
+          {
+            "dtype": "bfloat16",
+            "name": "layers.3.input_layernorm.weight",
+            "shape": ["16"]
+          },
+          {
+            "dtype": "bfloat16",
+            "name": "layers.3.post_attention_layernorm.weight",
+            "shape": ["16"]
+          },
+          {
+            "dtype": "bfloat16",
+            "name": "layers.4.input_layernorm.weight",
+            "shape": ["16"]
+          },
+          {
+            "dtype": "bfloat16",
+            "name": "layers.4.post_attention_layernorm.weight",
+            "shape": ["16"]
+          },
+          {
+            "dtype": "bfloat16",
+            "name": "norm.weight",
+            "shape": ["16"]
+          }
+        ],
+        "path": "model",
+        "replaced": null,
+        "source": null,
+        "status": "generic"
+      }
+    },
+    {
+      "component": {
+        "children": [
+          {
+            "class_name": "vllm.model_executor.layers.vocab_parallel_embedding.ParallelLMHead",
+            "name": "lm_head"
+          },
+          {
+            "class_name": "synthetic.Model",
+            "name": "model"
+          }
+        ],
+        "class_name": "synthetic.SyntheticHeterogeneousForCausalLM",
+        "kind": "generic"
+      },
+      "id": "root",
+      "io": {
+        "inputs": [],
+        "outputs": []
+      },
+      "kind": "other",
+      "label": "SyntheticHeterogeneousForCausalLM",
+      "module": {
+        "class_name": "synthetic.SyntheticHeterogeneousForCausalLM",
+        "params": [
+          {
+            "dtype": "bfloat16",
+            "name": "lm_head.weight",
+            "shape": ["32", "16"]
+          },
+          {
+            "dtype": "bfloat16",
+            "name": "model.embed_tokens.weight",
+            "shape": ["32", "16"]
+          },
+          {
+            "dtype": "bfloat16",
+            "name": "model.layers.0.input_layernorm.weight",
+            "shape": ["16"]
+          },
+          {
+            "dtype": "bfloat16",
+            "name": "model.layers.0.post_attention_layernorm.weight",
+            "shape": ["16"]
+          },
+          {
+            "dtype": "bfloat16",
+            "name": "model.layers.1.input_layernorm.weight",
+            "shape": ["16"]
+          },
+          {
+            "dtype": "bfloat16",
+            "name": "model.layers.1.post_attention_layernorm.weight",
+            "shape": ["16"]
+          },
+          {
+            "dtype": "bfloat16",
+            "name": "model.layers.2.input_layernorm.weight",
+            "shape": ["16"]
+          },
+          {
+            "dtype": "bfloat16",
+            "name": "model.layers.2.post_attention_layernorm.weight",
+            "shape": ["16"]
+          },
+          {
+            "dtype": "bfloat16",
+            "name": "model.layers.3.input_layernorm.weight",
+            "shape": ["16"]
+          },
+          {
+            "dtype": "bfloat16",
+            "name": "model.layers.3.post_attention_layernorm.weight",
+            "shape": ["16"]
+          },
+          {
+            "dtype": "bfloat16",
+            "name": "model.layers.4.input_layernorm.weight",
+            "shape": ["16"]
+          },
+          {
+            "dtype": "bfloat16",
+            "name": "model.layers.4.post_attention_layernorm.weight",
+            "shape": ["16"]
+          },
+          {
+            "dtype": "bfloat16",
+            "name": "model.norm.weight",
+            "shape": ["16"]
+          }
+        ],
+        "path": "",
+        "replaced": null,
+        "source": null,
+        "status": "generic"
+      }
+    }
+  ],
+  "symbols": {
+    "D": {
+      "description": "head width",
+      "value": 8
+    },
+    "H": {
+      "description": "hidden size",
+      "value": 16
+    },
+    "Hkv": {
+      "description": "KV heads",
+      "value": 4
+    },
+    "Hq": {
+      "description": "query heads",
+      "value": 4
+    },
+    "I": {
+      "description": "dense intermediate width",
+      "value": 48
+    },
+    "I_moe": {
+      "description": "expert intermediate width",
+      "value": 12
+    },
+    "T": {
+      "description": "tokens in the batch",
+      "value": 4096
+    },
+    "V": {
+      "description": "vocabulary size",
+      "value": 32
+    }
+  }
+}

@@ -1,3 +1,33 @@
+export type {
+  Arch,
+  ArchAttention,
+  ArchBand,
+  ArchBlock,
+  ArchChild,
+  ArchEmbedding,
+  ArchExpert,
+  ArchGeneric,
+  ArchIO,
+  ArchMLP,
+  ArchModel,
+  ArchModule,
+  ArchModuleStage,
+  ArchMoE,
+  ArchNorm,
+  ArchNote,
+  ArchReplacement,
+  ArchRope,
+  ArchRouter,
+  ArchSource,
+  ArchStackStage,
+  ArchSublayer,
+  ArchSymbol,
+  ArchTensor,
+} from "./arch.generated.js";
+
+import type { Arch, ArchSublayer } from "./arch.generated.js";
+export type ArchComponent = ArchSublayer["component"];
+export type ArchStage = Arch["stages"][number];
 export type { Annotation } from "./annotation.generated.js";
 export type { Annotations } from "./annotations.generated.js";
 export type { Catalog, CatalogModel, HardwarePreset, VersionPair } from "./catalog.generated.js";

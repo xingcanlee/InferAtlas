@@ -8,7 +8,7 @@ import subprocess
 from pathlib import Path
 
 from inferatlas.expr import RESERVED, validate
-from inferatlas.schema import IR, Eval
+from inferatlas.schema import IR, Arch, Eval
 from inferatlas.schema.models import EvalCase, GoldenDifference
 
 from .io import ROOT, read_json, wire, write_json
@@ -318,3 +318,14 @@ def check_golden(directory: Path, ir: IR, evaluator: Evaluator) -> list[GoldenDi
         evaluated = evaluate_grid(ir, grid, evaluator)
         result.extend(differences(wire(grid), wire(evaluated), "/eval"))
     return sorted(result, key=lambda item: item.path)
+
+
+def check_arch_golden(directory: Path, arch: Arch) -> list[GoldenDifference]:
+    baseline = Arch.model_validate(read_json(directory / "arch.json"))
+    if (baseline.model.id, baseline.model.hf_id, baseline.device) != (
+        arch.model.id,
+        arch.model.hf_id,
+        arch.device,
+    ):
+        raise ValueError("architecture golden identity mismatch")
+    return differences(wire(baseline), wire(arch), "/arch")

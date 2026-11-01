@@ -1,7 +1,7 @@
 /* Generated from schemas; edit generator/inferatlas/schema instead. */
 
 /**
- * No rule matched a reachable class; blocks this model's publication.
+ * No rule matched a reachable class; architecture uses a generic component.
  */
 export type Kind = "unknown_layer_class";
 /**
@@ -25,7 +25,7 @@ export type Conditions = string[];
  */
 export type Kind1 = "conditional_override";
 /**
- * Unannotated observed replacements block publication even when no candidate note exists.
+ * Unannotated observed replacements need review; structure remains available.
  */
 export type Reason = "conditional_override" | "unannotated_override";
 /**
@@ -73,7 +73,7 @@ export type ExpectedRanges = string[];
  */
 export type Kind4 = "version_mismatch";
 /**
- * Stable explanation of the version failure; blocks publication.
+ * Stable explanation of the unsupported numeric lowering version.
  */
 export type Message = string;
 /**
@@ -125,7 +125,7 @@ export type Message2 = string;
  */
 export type Preset = string | null;
 /**
- * Unresolved items sorted by kind then symbol/id/model. Empty list permits publication subject to verify.
+ * Unresolved items sorted by kind then symbol/id/model. Items become architecture notes; source integrity and provenance remain hard errors.
  */
 export type Items = (
   | UnknownLayerClass

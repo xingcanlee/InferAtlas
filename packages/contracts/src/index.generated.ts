@@ -1,7 +1,7 @@
 /* Generated from schemas; edit generator/inferatlas/schema instead. */
 
 /**
- * Relative directory containing ir.json/view.json/report.json, no leading slash; null for missing or triage cells without a numeric bundle.
+ * Relative directory containing arch.json/ir.json/view.json/report.json; null only when no structure was extracted.
  */
 export type DataPath = string | null;
 /**
@@ -13,7 +13,7 @@ export type Device = "A2" | "A3" | "A5" | "310P" | "H100";
  */
 export type Model = string;
 /**
- * ok is publishable; triage needs review; missing has no artifacts.
+ * ok has structure without notes; triage has review notes or extraction failure; missing has no artifacts.
  */
 export type Status = "ok" | "triage" | "missing";
 /**

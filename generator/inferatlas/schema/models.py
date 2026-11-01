@@ -575,7 +575,7 @@ class View(Contract):
 
 class UnknownLayerClass(Contract):
     kind: Literal["unknown_layer_class"] = Field(
-        description="No rule matched a reachable class; blocks this model's publication."
+        description="No rule matched a reachable class; architecture uses a generic component."
     )
     symbol: str = Field(description="Unmatched qualified class symbol.")
     used_by: list[str] = Field(description="Affected architectures/models, sorted.")
@@ -592,7 +592,7 @@ class ConditionalOverride(Contract):
     )
     reason: Literal["conditional_override", "unannotated_override"] = Field(
         default="conditional_override",
-        description="Unannotated observed replacements block publication even when no candidate note exists.",
+        description="Unannotated observed replacements need review; structure remains available.",
     )
 
 
@@ -630,7 +630,7 @@ class VersionMismatch(Contract):
         description="Supported vLLM PEP 440 rule ranges, sorted and unique; an empty string means any version."
     )
     message: str = Field(
-        description="Stable explanation of the version failure; blocks publication."
+        description="Stable explanation of the unsupported numeric lowering version."
     )
 
 
@@ -677,7 +677,7 @@ class Triage(Contract):
         description="Same structured identity as extract/IR; null only when resolution failed before a snapshot existed."
     )
     items: list[TriageItem] = Field(
-        description="Unresolved items sorted by kind then symbol/id/model. Empty list permits publication subject to verify."
+        description="Unresolved items sorted by kind then symbol/id/model. Items become architecture notes; source integrity and provenance remain hard errors."
     )
 
     @model_validator(mode="after")
@@ -842,6 +842,9 @@ class SourceLinkFailure(Contract):
 
 
 class Report(Contract):
+    numeric_verified: bool = Field(
+        default=False, description="Independent numeric ledger verification; never gates structure."
+    )
     snapshot: Snapshot = Field(description="Verified immutable graph identity.")
     checks: list[Check] = Field(description="Verification checks sorted by id then node.")
     golden_diff: list[GoldenDifference] = Field(
@@ -894,11 +897,11 @@ class IndexCell(Contract):
     model: str = Field(description="IndexModel.id.")
     device: Device = Field(description="Extraction device used for this matrix cell.")
     status: Literal["ok", "triage", "missing"] = Field(
-        description="ok is publishable; triage needs review; missing has no artifacts."
+        description="ok has structure without notes; triage has review notes or extraction failure; missing has no artifacts."
     )
     data_path: str | None = Field(
         default=None,
-        description="Relative directory containing ir.json/view.json/report.json, no leading slash; null for missing or triage cells without a numeric bundle.",
+        description="Relative directory containing arch.json/ir.json/view.json/report.json; null only when no structure was extracted.",
     )
     triage_count: int = Field(
         default=0,

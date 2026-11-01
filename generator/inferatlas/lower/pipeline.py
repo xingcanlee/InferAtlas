@@ -1,4 +1,4 @@
-"""Extract facts to symbolic IR and blocking triage, without a runtime DSL evaluator."""
+"""Extract facts to symbolic IR and numeric review notes, without a runtime DSL evaluator."""
 
 import json
 import re
@@ -240,7 +240,7 @@ class LowerResult:
 
 
 def coverage_gate(triage: Triage | dict) -> bool:
-    """True permits publication; every current triage variant is blocking."""
+    """True permits numeric verification; structure emission never uses this gate."""
     return not Triage.model_validate(triage).items
 
 
@@ -316,6 +316,10 @@ def lower(
         extract = Extract.model_validate_json(Path(extract).read_text())
     else:
         extract = Extract.model_validate(extract)
+    if extract.config.get("model_type") not in {"qwen3", "qwen3_moe"}:
+        from .structure import structure_ir
+
+        return structure_ir(extract)
     rules = load_rules(rules) if isinstance(rules, str | Path) else rules
     version_error = None
     version = vllm_version or extract.snapshot.vllm.tag

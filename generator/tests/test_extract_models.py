@@ -64,23 +64,28 @@ def test_build_annotation_coverage_gates_verification(
     result = CliRunner().invoke(
         cli.app, ["build", "--model", "qwen3-8b", "--tp", "1", "--output", str(tmp_path)]
     )
-    assert result.exit_code == (2 if empty_annotations else 0), result.output or repr(
-        result.exception
-    )
+    assert result.exit_code == 0, result.output or repr(result.exception)
     report = json.loads((tmp_path / "report.json").read_text())
     checks = {c["id"]: c for c in report["checks"]}
     if empty_annotations:
         assert "default_parameters" not in checks
-        for name in ("weights.tp1", "golden", "evaluation", "calibration", "layout"):
+        for name in ("weights.tp1", "golden", "evaluation", "calibration"):
             assert checks[name]["status"] == "skip"
             assert "blocked by triage" in checks[name]["message"].lower()
-        assert not (tmp_path / "view.json").exists()
+        assert (tmp_path / "view.json").is_file()
+        assert checks["layout"]["status"] == "pass"
     else:
         assert checks["default_parameters"]["status"] == "pass"
         assert checks["layout"]["status"] == "pass"
         assert (tmp_path / "view.json").is_file()
-    assert report["golden_diff"] == []
-    assert not any(c["status"] == "fail" for c in report["checks"] if c["id"] != "coverage")
+    assert (tmp_path / "arch.json").is_file()
+    assert report["numeric_verified"] is (not empty_annotations)
+    assert not [d for d in report["golden_diff"] if not d["path"].startswith("/arch")]
+    assert not any(
+        c["status"] == "fail"
+        for c in report["checks"]
+        if c["id"] not in {"coverage", "arch_golden"}
+    )
     triage = json.loads((tmp_path / "triage.json").read_text())
     assert bool(triage["items"]) == empty_annotations
     if empty_annotations:

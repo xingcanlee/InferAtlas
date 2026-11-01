@@ -16,6 +16,7 @@ import inferatlas.extract
 import inferatlas.lower
 import inferatlas.resolve
 import inferatlas.verify as verification
+from inferatlas.arch import emit_arch
 from inferatlas.schema import IR, Extract, Index, Report, Snapshot, Triage
 from inferatlas.schema.models import Check, StaleAnnotation
 from inferatlas.verify.golden import Evaluator
@@ -95,7 +96,7 @@ def test_standalone_provenance_survives_commands(tmp_path):
     ]
     invoke("resolve", "--output", snapshot)
     invoke("extract", "--snapshot", snapshot, "--output", extract)
-    invoke("lower", "--extract", extract, "--output", graph, "--triage-output", issues, code=2)
+    invoke("lower", "--extract", extract, "--output", graph, "--triage-output", issues, code=0)
     invoke(
         "annotate",
         "--ir",
@@ -106,7 +107,7 @@ def test_standalone_provenance_survives_commands(tmp_path):
         graph,
         "--triage-output",
         issues,
-        code=2,
+        code=0,
     )
     invoke("verify", "--ir", graph, "--triage", issues, "--output", report, code=3)
     provenance = next(c for c in read_json(report)["checks"] if c["id"] == "provenance")
@@ -126,6 +127,7 @@ def test_build_complete_deterministic_and_removes_stale_outputs(tmp_path, monkey
         "extract.json",
         "extract-tp4.json",
         "ir.json",
+        "arch.json",
         "triage.json",
         "report.json",
         "view.json",
@@ -153,18 +155,20 @@ def test_build_complete_deterministic_and_removes_stale_outputs(tmp_path, monkey
     )
 
 
-def test_triage_skips_defaults_and_layout_and_removes_stale_view(tmp_path, monkeypatch):
+def test_triage_skips_numbers_but_emits_structure_and_layout(tmp_path, monkeypatch):
     (tmp_path / "view.json").write_text("stale")
     monkeypatch.setattr(cli, "select_default_tp", lambda *args: pytest.fail("defaults ran"))
-    monkeypatch.setattr(cli, "layout_stage", lambda *args: pytest.fail("layout ran"))
     invoke("build", "--output", tmp_path, code=3)
     assert read_json(tmp_path / "triage.json")["items"]
-    assert not (tmp_path / "view.json").exists()
+    assert (tmp_path / "view.json").is_file()
+    assert (tmp_path / "arch.json").is_file()
+    assert not read_json(tmp_path / "report.json")["numeric_verified"]
     checks = {c["id"]: c for c in read_json(tmp_path / "report.json")["checks"]}
     assert "default_parameters" not in checks
-    for name in ("weights.tp1", "weights.tp4", "golden", "evaluation", "calibration", "layout"):
+    for name in ("weights.tp1", "weights.tp4", "golden", "evaluation", "calibration"):
         assert checks[name]["status"] == "skip"
         assert "blocked by triage" in checks[name]["message"].lower()
+    assert checks["layout"]["status"] == "pass"
     assert checks["provenance"]["status"] == "fail"
 
 
@@ -231,8 +235,9 @@ def test_lower_exact_single_extract_api(monkeypatch):
     ir, triage = cli.lower_stage(extracts)
     assert ir.snapshot == triage.snapshot
     assert calls == [(tp, ROOT / "rules", None, None, None) for tp in (1, 4)]
-    with pytest.raises(ValueError, match="tp=1"):
-        cli.lower_stage(extracts[:1])
+    structure, notes = cli.lower_stage(extracts[:1])
+    assert structure.snapshot == extracts[0].snapshot
+    assert notes.items and structure.memory.unmodelled
 
 
 def test_annotations_exact_apis_bind_observed_swaps_and_keep_stale(monkeypatch, runtime):
@@ -323,18 +328,26 @@ def site_build(tmp_path, status):
     ir = IR.model_validate(read_json(directory / "ir.json"))
     checks = [Check(id="provenance", status="pass", message="real")]
     if status == 3:
-        checks.append(Check(id="golden", status="fail", message="drift"))
+        checks.append(Check(id="source_links", status="fail", message="invalid source"))
     if status == 0:
         write_json(directory / "triage.json", Triage(snapshot=ir.snapshot, items=[]))
     write_json(
         directory / "report.json",
         Report(snapshot=ir.snapshot, checks=checks, golden_diff=[], source_link_failures=[]),
     )
+    arch = emit_arch(
+        Extract.model_validate(read_json(FIXTURE / "extract.json")),
+        ir,
+        Triage.model_validate(read_json(directory / "triage.json")),
+        model_id="qwen3-30b-a3b",
+        family="moe",
+    )
+    write_json(directory / "arch.json", arch)
     return directory
 
 
 @pytest.mark.parametrize(
-    "status,include,expected", [(0, False, 0), (2, False, 2), (2, True, 2), (3, True, 3)]
+    "status,include,expected", [(0, False, 0), (2, False, 0), (2, True, 0), (3, True, 3)]
 )
 def test_site_gates_before_web_or_data_write(tmp_path, monkeypatch, status, include, expected):
     site_build(tmp_path, status)
@@ -342,15 +355,15 @@ def test_site_gates_before_web_or_data_write(tmp_path, monkeypatch, status, incl
     monkeypatch.setattr(cli.subprocess, "run", lambda command, **kwargs: calls.append(command))
     args = ["site", "--build-root", tmp_path / "build", "--data-dir", tmp_path / "data"]
     invoke(*args, *(["--include-blocked"] if include else []), code=expected)
-    allowed = status == 0 or (status == 2 and include)
+    allowed = status != 3
     assert bool(calls) == allowed
     assert (tmp_path / "data/index.json").exists() == allowed
     if allowed:
         index = Index.model_validate(read_json(tmp_path / "data/index.json"))
         assert any(c.status == ("triage" if status == 2 else "ok") for c in index.cells)
         if status == 2:
-            assert all(c.data_path is None for c in index.cells)
-            assert not list((tmp_path / "data").rglob("ir.json"))
+            assert any(c.data_path for c in index.cells if c.status == "triage")
+            assert list((tmp_path / "data").rglob("arch.json"))
 
 
 @pytest.mark.parametrize("empty", [False, True])
@@ -367,7 +380,7 @@ def test_site_triage_only_cell_never_publishes_numeric_artifacts(tmp_path, monke
         "--data-dir",
         tmp_path / "data",
         "--include-blocked",
-        code=3 if empty else 2,
+        code=3,
     )
     assert bool(calls) == (not empty)
     if empty:
@@ -537,7 +550,9 @@ def test_site_failed_cell_takes_precedence_over_blocked_cell(tmp_path, monkeypat
     failed = tmp_path / "build/z-failed/qwen3-30b-a3b"
     shutil.copytree(directory, failed)
     report = read_json(failed / "report.json")
-    report["checks"].append({"id": "golden", "status": "fail", "message": "drift", "node": None})
+    report["checks"].append(
+        {"id": "source_links", "status": "fail", "message": "invalid source", "node": None}
+    )
     write_json(failed / "report.json", report)
     # Distinct snapshot/device cell, so the failure cannot be hidden by the first triage cell.
     for name in ("ir", "report", "triage"):
@@ -716,7 +731,7 @@ def test_annotation_context_must_agree_across_extracts(monkeypatch, runtime, rev
         cli.exit_code(
             Report(snapshot=ir.snapshot, checks=[], golden_diff=[], source_link_failures=[]), triage
         )
-        == 2
+        == 0
     )
 
 
@@ -761,7 +776,9 @@ def test_site_reports_the_reason_for_refusal(tmp_path, monkeypatch):
     write_json(directory / "report.json", report)
     assert "fixture or unverified provenance" in invoke(*args, code=3).output
     site_build(tmp_path, 2)
-    assert "blocked by triage" in invoke(*args, code=2).output
+    monkeypatch.setattr(cli.subprocess, "run", lambda *args, **kwargs: None)
+    invoke(*args)
+    assert list((tmp_path / "data").rglob("arch.json"))
 
 
 @pytest.mark.parametrize("inactive", [False, True])
@@ -808,7 +825,7 @@ def test_observed_swaps_without_active_annotations_block_publication(
     assert replacements <= blocked
     assert all(item.reason == "unannotated_override" for item in triage.items)
     report = Report(snapshot=result.snapshot, checks=[], golden_diff=[], source_link_failures=[])
-    assert cli.exit_code(report, triage) == 2
+    assert cli.exit_code(report, triage) == 0
 
 
 def test_resolve_checks_tags_even_when_commit_pins_match(monkeypatch):
