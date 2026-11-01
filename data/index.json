@@ -4,120 +4,640 @@
       "data_path": null,
       "device": "310P",
       "model": "deepseek-v3",
-      "status": "triage",
-      "triage_count": 1,
+      "status": "missing",
+      "triage_count": 0,
       "version": "main-verified"
     },
     {
-      "data_path": null,
+      "data_path": "data/A2/deepseek-v3",
       "device": "A2",
       "model": "deepseek-v3",
       "status": "triage",
-      "triage_count": 1,
+      "triage_count": 65,
       "version": "main-verified"
     },
     {
       "data_path": null,
       "device": "A3",
       "model": "deepseek-v3",
-      "status": "triage",
-      "triage_count": 1,
+      "status": "missing",
+      "triage_count": 0,
       "version": "main-verified"
     },
     {
       "data_path": null,
       "device": "A5",
       "model": "deepseek-v3",
-      "status": "triage",
-      "triage_count": 1,
+      "status": "missing",
+      "triage_count": 0,
       "version": "main-verified"
     },
     {
-      "data_path": null,
+      "data_path": "data/H100/deepseek-v3",
       "device": "H100",
       "model": "deepseek-v3",
       "status": "triage",
-      "triage_count": 668,
+      "triage_count": 18,
       "version": "main-verified"
     },
     {
       "data_path": null,
       "device": "310P",
-      "model": "qwen3-30b-a3b",
-      "status": "triage",
-      "triage_count": 19,
+      "model": "deepseek-v3-2",
+      "status": "missing",
+      "triage_count": 0,
       "version": "main-verified"
     },
     {
-      "data_path": "data/main-verified-A2-544f182d9f0c-24a76e84394a-673e377baa29-g0.1.0/qwen3-30b-a3b",
+      "data_path": "data/A2/deepseek-v3-2",
       "device": "A2",
-      "model": "qwen3-30b-a3b",
-      "status": "ok",
-      "triage_count": 0,
+      "model": "deepseek-v3-2",
+      "status": "triage",
+      "triage_count": 73,
       "version": "main-verified"
     },
     {
       "data_path": null,
       "device": "A3",
-      "model": "qwen3-30b-a3b",
+      "model": "deepseek-v3-2",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": null,
+      "device": "A5",
+      "model": "deepseek-v3-2",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": "data/H100/deepseek-v3-2",
+      "device": "H100",
+      "model": "deepseek-v3-2",
+      "status": "triage",
+      "triage_count": 23,
+      "version": "main-verified"
+    },
+    {
+      "data_path": null,
+      "device": "310P",
+      "model": "deepseek-v4-flash",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": "data/A2/deepseek-v4-flash",
+      "device": "A2",
+      "model": "deepseek-v4-flash",
+      "status": "triage",
+      "triage_count": 72,
+      "version": "main-verified"
+    },
+    {
+      "data_path": null,
+      "device": "A3",
+      "model": "deepseek-v4-flash",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": null,
+      "device": "A5",
+      "model": "deepseek-v4-flash",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": "data/H100/deepseek-v4-flash",
+      "device": "H100",
+      "model": "deepseek-v4-flash",
+      "status": "triage",
+      "triage_count": 28,
+      "version": "main-verified"
+    },
+    {
+      "data_path": null,
+      "device": "310P",
+      "model": "glm-4-5",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": "data/A2/glm-4-5",
+      "device": "A2",
+      "model": "glm-4-5",
+      "status": "triage",
+      "triage_count": 65,
+      "version": "main-verified"
+    },
+    {
+      "data_path": null,
+      "device": "A3",
+      "model": "glm-4-5",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": null,
+      "device": "A5",
+      "model": "glm-4-5",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": "data/H100/glm-4-5",
+      "device": "H100",
+      "model": "glm-4-5",
+      "status": "triage",
+      "triage_count": 14,
+      "version": "main-verified"
+    },
+    {
+      "data_path": null,
+      "device": "310P",
+      "model": "glm-4-6",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": "data/A2/glm-4-6",
+      "device": "A2",
+      "model": "glm-4-6",
+      "status": "triage",
+      "triage_count": 65,
+      "version": "main-verified"
+    },
+    {
+      "data_path": null,
+      "device": "A3",
+      "model": "glm-4-6",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": null,
+      "device": "A5",
+      "model": "glm-4-6",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": "data/H100/glm-4-6",
+      "device": "H100",
+      "model": "glm-4-6",
+      "status": "triage",
+      "triage_count": 14,
+      "version": "main-verified"
+    },
+    {
+      "data_path": null,
+      "device": "310P",
+      "model": "gpt-oss-120b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": "data/A2/gpt-oss-120b",
+      "device": "A2",
+      "model": "gpt-oss-120b",
+      "status": "triage",
+      "triage_count": 52,
+      "version": "main-verified"
+    },
+    {
+      "data_path": null,
+      "device": "A3",
+      "model": "gpt-oss-120b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": null,
+      "device": "A5",
+      "model": "gpt-oss-120b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": "data/H100/gpt-oss-120b",
+      "device": "H100",
+      "model": "gpt-oss-120b",
+      "status": "triage",
+      "triage_count": 11,
+      "version": "main-verified"
+    },
+    {
+      "data_path": null,
+      "device": "310P",
+      "model": "kimi-k2",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": "data/A2/kimi-k2",
+      "device": "A2",
+      "model": "kimi-k2",
+      "status": "triage",
+      "triage_count": 65,
+      "version": "main-verified"
+    },
+    {
+      "data_path": null,
+      "device": "A3",
+      "model": "kimi-k2",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": null,
+      "device": "A5",
+      "model": "kimi-k2",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": "data/H100/kimi-k2",
+      "device": "H100",
+      "model": "kimi-k2",
+      "status": "triage",
+      "triage_count": 18,
+      "version": "main-verified"
+    },
+    {
+      "data_path": null,
+      "device": "310P",
+      "model": "llama-3-1-8b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": "data/A2/llama-3-1-8b",
+      "device": "A2",
+      "model": "llama-3-1-8b",
+      "status": "triage",
+      "triage_count": 48,
+      "version": "main-verified"
+    },
+    {
+      "data_path": null,
+      "device": "A3",
+      "model": "llama-3-1-8b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": null,
+      "device": "A5",
+      "model": "llama-3-1-8b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": "data/H100/llama-3-1-8b",
+      "device": "H100",
+      "model": "llama-3-1-8b",
+      "status": "triage",
+      "triage_count": 9,
+      "version": "main-verified"
+    },
+    {
+      "data_path": null,
+      "device": "310P",
+      "model": "llama-4-scout",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": "data/A2/llama-4-scout",
+      "device": "A2",
+      "model": "llama-4-scout",
+      "status": "triage",
+      "triage_count": 76,
+      "version": "main-verified"
+    },
+    {
+      "data_path": null,
+      "device": "A3",
+      "model": "llama-4-scout",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": null,
+      "device": "A5",
+      "model": "llama-4-scout",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": "data/H100/llama-4-scout",
+      "device": "H100",
+      "model": "llama-4-scout",
+      "status": "triage",
+      "triage_count": 26,
+      "version": "main-verified"
+    },
+    {
+      "data_path": null,
+      "device": "310P",
+      "model": "minimax-m2",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": "data/A2/minimax-m2",
+      "device": "A2",
+      "model": "minimax-m2",
+      "status": "triage",
+      "triage_count": 57,
+      "version": "main-verified"
+    },
+    {
+      "data_path": null,
+      "device": "A3",
+      "model": "minimax-m2",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": null,
+      "device": "A5",
+      "model": "minimax-m2",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": "data/H100/minimax-m2",
+      "device": "H100",
+      "model": "minimax-m2",
       "status": "triage",
       "triage_count": 12,
       "version": "main-verified"
     },
     {
       "data_path": null,
-      "device": "A5",
-      "model": "qwen3-30b-a3b",
-      "status": "triage",
-      "triage_count": 13,
-      "version": "main-verified"
-    },
-    {
-      "data_path": "data/main-verified-H100-544f182d9f0c-24a76e84394a-673e377baa29-g0.1.0/qwen3-30b-a3b",
-      "device": "H100",
-      "model": "qwen3-30b-a3b",
-      "status": "ok",
-      "triage_count": 0,
-      "version": "main-verified"
-    },
-    {
-      "data_path": null,
       "device": "310P",
-      "model": "qwen3-8b",
-      "status": "triage",
-      "triage_count": 15,
+      "model": "minimax-m3",
+      "status": "missing",
+      "triage_count": 0,
       "version": "main-verified"
     },
     {
-      "data_path": "data/main-verified-A2-544f182d9f0c-24a76e84394a-669a073a2521-g0.1.0/qwen3-8b",
+      "data_path": "data/A2/minimax-m3",
       "device": "A2",
-      "model": "qwen3-8b",
-      "status": "ok",
-      "triage_count": 0,
+      "model": "minimax-m3",
+      "status": "triage",
+      "triage_count": 83,
       "version": "main-verified"
     },
     {
       "data_path": null,
       "device": "A3",
-      "model": "qwen3-8b",
-      "status": "triage",
-      "triage_count": 10,
+      "model": "minimax-m3",
+      "status": "missing",
+      "triage_count": 0,
       "version": "main-verified"
     },
     {
       "data_path": null,
       "device": "A5",
-      "model": "qwen3-8b",
+      "model": "minimax-m3",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": "data/H100/minimax-m3",
+      "device": "H100",
+      "model": "minimax-m3",
+      "status": "triage",
+      "triage_count": 33,
+      "version": "main-verified"
+    },
+    {
+      "data_path": null,
+      "device": "310P",
+      "model": "mixtral-8x7b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": "data/A2/mixtral-8x7b",
+      "device": "A2",
+      "model": "mixtral-8x7b",
+      "status": "triage",
+      "triage_count": 56,
+      "version": "main-verified"
+    },
+    {
+      "data_path": null,
+      "device": "A3",
+      "model": "mixtral-8x7b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": null,
+      "device": "A5",
+      "model": "mixtral-8x7b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": "data/H100/mixtral-8x7b",
+      "device": "H100",
+      "model": "mixtral-8x7b",
       "status": "triage",
       "triage_count": 11,
       "version": "main-verified"
     },
     {
-      "data_path": "data/main-verified-H100-544f182d9f0c-24a76e84394a-669a073a2521-g0.1.0/qwen3-8b",
+      "data_path": null,
+      "device": "310P",
+      "model": "qwen3-235b-a22b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": "data/A2/qwen3-235b-a22b",
+      "device": "A2",
+      "model": "qwen3-235b-a22b",
+      "status": "ok",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": null,
+      "device": "A3",
+      "model": "qwen3-235b-a22b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": null,
+      "device": "A5",
+      "model": "qwen3-235b-a22b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": "data/H100/qwen3-235b-a22b",
+      "device": "H100",
+      "model": "qwen3-235b-a22b",
+      "status": "ok",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": null,
+      "device": "310P",
+      "model": "qwen3-30b-a3b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": "data/A2/qwen3-30b-a3b",
+      "device": "A2",
+      "model": "qwen3-30b-a3b",
+      "status": "ok",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": null,
+      "device": "A3",
+      "model": "qwen3-30b-a3b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": null,
+      "device": "A5",
+      "model": "qwen3-30b-a3b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": "data/H100/qwen3-30b-a3b",
+      "device": "H100",
+      "model": "qwen3-30b-a3b",
+      "status": "ok",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": null,
+      "device": "310P",
+      "model": "qwen3-8b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": "data/A2/qwen3-8b",
+      "device": "A2",
+      "model": "qwen3-8b",
+      "status": "ok",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": null,
+      "device": "A3",
+      "model": "qwen3-8b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": null,
+      "device": "A5",
+      "model": "qwen3-8b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": "data/H100/qwen3-8b",
       "device": "H100",
       "model": "qwen3-8b",
       "status": "ok",
       "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": null,
+      "device": "310P",
+      "model": "qwen3-next-80b-a3b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": "data/A2/qwen3-next-80b-a3b",
+      "device": "A2",
+      "model": "qwen3-next-80b-a3b",
+      "status": "triage",
+      "triage_count": 71,
+      "version": "main-verified"
+    },
+    {
+      "data_path": null,
+      "device": "A3",
+      "model": "qwen3-next-80b-a3b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": null,
+      "device": "A5",
+      "model": "qwen3-next-80b-a3b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "main-verified"
+    },
+    {
+      "data_path": "data/H100/qwen3-next-80b-a3b",
+      "device": "H100",
+      "model": "qwen3-next-80b-a3b",
+      "status": "triage",
+      "triage_count": 19,
       "version": "main-verified"
     },
     {
@@ -163,6 +683,486 @@
     {
       "data_path": null,
       "device": "310P",
+      "model": "deepseek-v3-2",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "A2",
+      "model": "deepseek-v3-2",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "A3",
+      "model": "deepseek-v3-2",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "A5",
+      "model": "deepseek-v3-2",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "H100",
+      "model": "deepseek-v3-2",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "310P",
+      "model": "deepseek-v4-flash",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "A2",
+      "model": "deepseek-v4-flash",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "A3",
+      "model": "deepseek-v4-flash",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "A5",
+      "model": "deepseek-v4-flash",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "H100",
+      "model": "deepseek-v4-flash",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "310P",
+      "model": "glm-4-5",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "A2",
+      "model": "glm-4-5",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "A3",
+      "model": "glm-4-5",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "A5",
+      "model": "glm-4-5",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "H100",
+      "model": "glm-4-5",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "310P",
+      "model": "glm-4-6",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "A2",
+      "model": "glm-4-6",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "A3",
+      "model": "glm-4-6",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "A5",
+      "model": "glm-4-6",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "H100",
+      "model": "glm-4-6",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "310P",
+      "model": "gpt-oss-120b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "A2",
+      "model": "gpt-oss-120b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "A3",
+      "model": "gpt-oss-120b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "A5",
+      "model": "gpt-oss-120b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "H100",
+      "model": "gpt-oss-120b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "310P",
+      "model": "kimi-k2",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "A2",
+      "model": "kimi-k2",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "A3",
+      "model": "kimi-k2",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "A5",
+      "model": "kimi-k2",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "H100",
+      "model": "kimi-k2",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "310P",
+      "model": "llama-3-1-8b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "A2",
+      "model": "llama-3-1-8b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "A3",
+      "model": "llama-3-1-8b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "A5",
+      "model": "llama-3-1-8b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "H100",
+      "model": "llama-3-1-8b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "310P",
+      "model": "llama-4-scout",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "A2",
+      "model": "llama-4-scout",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "A3",
+      "model": "llama-4-scout",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "A5",
+      "model": "llama-4-scout",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "H100",
+      "model": "llama-4-scout",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "310P",
+      "model": "minimax-m2",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "A2",
+      "model": "minimax-m2",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "A3",
+      "model": "minimax-m2",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "A5",
+      "model": "minimax-m2",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "H100",
+      "model": "minimax-m2",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "310P",
+      "model": "minimax-m3",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "A2",
+      "model": "minimax-m3",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "A3",
+      "model": "minimax-m3",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "A5",
+      "model": "minimax-m3",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "H100",
+      "model": "minimax-m3",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "310P",
+      "model": "mixtral-8x7b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "A2",
+      "model": "mixtral-8x7b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "A3",
+      "model": "mixtral-8x7b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "A5",
+      "model": "mixtral-8x7b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "H100",
+      "model": "mixtral-8x7b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "310P",
+      "model": "qwen3-235b-a22b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "A2",
+      "model": "qwen3-235b-a22b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "A3",
+      "model": "qwen3-235b-a22b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "A5",
+      "model": "qwen3-235b-a22b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "H100",
+      "model": "qwen3-235b-a22b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "310P",
       "model": "qwen3-30b-a3b",
       "status": "missing",
       "triage_count": 0,
@@ -236,6 +1236,46 @@
       "data_path": null,
       "device": "H100",
       "model": "qwen3-8b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "310P",
+      "model": "qwen3-next-80b-a3b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "A2",
+      "model": "qwen3-next-80b-a3b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "A3",
+      "model": "qwen3-next-80b-a3b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "A5",
+      "model": "qwen3-next-80b-a3b",
+      "status": "missing",
+      "triage_count": 0,
+      "version": "v0.32.0"
+    },
+    {
+      "data_path": null,
+      "device": "H100",
+      "model": "qwen3-next-80b-a3b",
       "status": "missing",
       "triage_count": 0,
       "version": "v0.32.0"
@@ -249,6 +1289,78 @@
       "label": "DeepSeek-V3"
     },
     {
+      "family": "mla",
+      "hf_id": "deepseek-ai/DeepSeek-V3.2",
+      "id": "deepseek-v3-2",
+      "label": "DeepSeek-V3.2"
+    },
+    {
+      "family": "mla",
+      "hf_id": "deepseek-ai/DeepSeek-V4-Flash",
+      "id": "deepseek-v4-flash",
+      "label": "DeepSeek-V4-Flash"
+    },
+    {
+      "family": "moe",
+      "hf_id": "zai-org/GLM-4.5",
+      "id": "glm-4-5",
+      "label": "GLM-4.5"
+    },
+    {
+      "family": "moe",
+      "hf_id": "zai-org/GLM-4.6",
+      "id": "glm-4-6",
+      "label": "GLM-4.6"
+    },
+    {
+      "family": "moe",
+      "hf_id": "openai/gpt-oss-120b",
+      "id": "gpt-oss-120b",
+      "label": "gpt-oss-120b"
+    },
+    {
+      "family": "mla",
+      "hf_id": "moonshotai/Kimi-K2-Instruct",
+      "id": "kimi-k2",
+      "label": "Kimi-K2-Instruct"
+    },
+    {
+      "family": "dense",
+      "hf_id": "unsloth/Llama-3.1-8B",
+      "id": "llama-3-1-8b",
+      "label": "Llama-3.1-8B"
+    },
+    {
+      "family": "vlm",
+      "hf_id": "unsloth/Llama-4-Scout-17B-16E-Instruct",
+      "id": "llama-4-scout",
+      "label": "Llama-4-Scout-17B-16E-Instruct"
+    },
+    {
+      "family": "moe",
+      "hf_id": "MiniMaxAI/MiniMax-M2",
+      "id": "minimax-m2",
+      "label": "MiniMax-M2"
+    },
+    {
+      "family": "vlm",
+      "hf_id": "MiniMaxAI/MiniMax-M3",
+      "id": "minimax-m3",
+      "label": "MiniMax-M3"
+    },
+    {
+      "family": "moe",
+      "hf_id": "mistralai/Mixtral-8x7B-v0.1",
+      "id": "mixtral-8x7b",
+      "label": "Mixtral-8x7B-v0.1"
+    },
+    {
+      "family": "moe",
+      "hf_id": "Qwen/Qwen3-235B-A22B",
+      "id": "qwen3-235b-a22b",
+      "label": "Qwen3-235B-A22B"
+    },
+    {
       "family": "moe",
       "hf_id": "Qwen/Qwen3-30B-A3B",
       "id": "qwen3-30b-a3b",
@@ -259,6 +1371,12 @@
       "hf_id": "Qwen/Qwen3-8B",
       "id": "qwen3-8b",
       "label": "Qwen3-8B"
+    },
+    {
+      "family": "hybrid",
+      "hf_id": "Qwen/Qwen3-Next-80B-A3B-Instruct",
+      "id": "qwen3-next-80b-a3b",
+      "label": "Qwen3-Next-80B-A3B-Instruct"
     }
   ],
   "versions": [

@@ -1,0 +1,1517 @@
+{
+  "device": "H100",
+  "flags": ["cpu_constructor_adapters"],
+  "input": {
+    "dtype": "int64",
+    "name": "input_ids",
+    "shape": ["T"]
+  },
+  "model": {
+    "architecture": "MiniMaxM3SparseForCausalLM",
+    "family": "vlm",
+    "hf_id": "MiniMaxAI/MiniMax-M3",
+    "id": "minimax-m3"
+  },
+  "notes": [
+    {
+      "severity": "info",
+      "target": "language_model.model.layers:band:3/self_attn",
+      "text": "Generic component: vllm.models.minimax_m3.nvidia.model.MiniMaxM3SparseAttention; I/O is derived only from parameter/constructor or sequential-child boundaries.",
+      "triage_kind": null
+    },
+    {
+      "severity": "warn",
+      "target": "language_model.model.layers:band:3/self_attn",
+      "text": "No architecture rule describes vllm.models.minimax_m3.nvidia.model.MiniMaxM3SparseAttention; shown as a generic component.",
+      "triage_kind": "unknown_layer_class"
+    },
+    {
+      "severity": "info",
+      "target": "vision_tower.multi_modal_projector",
+      "text": "Generic component: vllm.models.minimax_m3.common.vision_tower.MiniMaxVLMultiModalProjector; I/O is derived only from parameter/constructor or sequential-child boundaries.",
+      "triage_kind": null
+    },
+    {
+      "severity": "warn",
+      "target": "vision_tower.multi_modal_projector",
+      "text": "No architecture rule describes vllm.models.minimax_m3.common.vision_tower.MiniMaxVLMultiModalProjector; shown as a generic component.",
+      "triage_kind": "unknown_layer_class"
+    },
+    {
+      "severity": "info",
+      "target": "vision_tower.patch_merge_mlp",
+      "text": "Generic component: vllm.models.minimax_m3.common.vision_tower.MiniMaxVLPatchMerger; I/O is derived only from parameter/constructor or sequential-child boundaries.",
+      "triage_kind": null
+    },
+    {
+      "severity": "warn",
+      "target": "vision_tower.patch_merge_mlp",
+      "text": "No architecture rule describes vllm.models.minimax_m3.common.vision_tower.MiniMaxVLPatchMerger; shown as a generic component.",
+      "triage_kind": "unknown_layer_class"
+    },
+    {
+      "severity": "info",
+      "target": "vision_tower.vision_model.embeddings",
+      "text": "Generic component: vllm.models.minimax_m3.common.vision_tower.MiniMaxVLPatchEmbed; I/O is derived only from parameter/constructor or sequential-child boundaries.",
+      "triage_kind": null
+    },
+    {
+      "severity": "warn",
+      "target": "vision_tower.vision_model.embeddings",
+      "text": "No architecture rule describes vllm.models.minimax_m3.common.vision_tower.MiniMaxVLPatchEmbed; shown as a generic component.",
+      "triage_kind": "unknown_layer_class"
+    },
+    {
+      "severity": "info",
+      "target": "vision_tower.vision_model.encoder.layers:band:0/act",
+      "text": "Generic component: vllm.model_executor.layers.activation.GELU; I/O is derived only from parameter/constructor or sequential-child boundaries.",
+      "triage_kind": null
+    },
+    {
+      "severity": "warn",
+      "target": "vision_tower.vision_model.encoder.layers:band:0/act",
+      "text": "No architecture rule describes vllm.model_executor.layers.activation.GELU; shown as a generic component.",
+      "triage_kind": "unknown_layer_class"
+    },
+    {
+      "severity": "info",
+      "target": "vision_tower.vision_model.encoder.layers:band:0/fc1",
+      "text": "Generic component: vllm.model_executor.layers.linear.ColumnParallelLinear; I/O is derived only from parameter/constructor or sequential-child boundaries.",
+      "triage_kind": null
+    },
+    {
+      "severity": "warn",
+      "target": "vision_tower.vision_model.encoder.layers:band:0/fc1",
+      "text": "No architecture rule describes vllm.model_executor.layers.linear.ColumnParallelLinear; shown as a generic component.",
+      "triage_kind": "unknown_layer_class"
+    },
+    {
+      "severity": "info",
+      "target": "vision_tower.vision_model.encoder.layers:band:0/fc2",
+      "text": "Generic component: vllm.model_executor.layers.linear.RowParallelLinear; I/O is derived only from parameter/constructor or sequential-child boundaries.",
+      "triage_kind": null
+    },
+    {
+      "severity": "warn",
+      "target": "vision_tower.vision_model.encoder.layers:band:0/fc2",
+      "text": "No architecture rule describes vllm.model_executor.layers.linear.RowParallelLinear; shown as a generic component.",
+      "triage_kind": "unknown_layer_class"
+    },
+    {
+      "severity": "warn",
+      "target": "vision_tower.vision_model.encoder.layers:band:0/layer_norm1",
+      "text": "Residual topology for vllm.models.minimax_m3.common.vision_tower.MiniMaxVLEncoderLayer is unknown; children follow the decoder-slot heuristic.",
+      "triage_kind": null
+    }
+  ],
+  "output": {
+    "dtype": "bfloat16",
+    "name": "logits",
+    "shape": ["T", "V"]
+  },
+  "schema_version": 1,
+  "stages": [
+    {
+      "component": {
+        "children": [
+          {
+            "class_name": "vllm.model_executor.layers.conv.Conv3dLayer",
+            "name": "patch_embedding"
+          }
+        ],
+        "class_name": "vllm.models.minimax_m3.common.vision_tower.MiniMaxVLPatchEmbed",
+        "kind": "generic"
+      },
+      "id": "vision_tower.vision_model.embeddings",
+      "io": {
+        "inputs": [],
+        "internals": [],
+        "outputs": []
+      },
+      "kind": "embedding",
+      "label": "Token embedding",
+      "module": {
+        "class_name": "vllm.models.minimax_m3.common.vision_tower.MiniMaxVLPatchEmbed",
+        "flags": [],
+        "params": [
+          {
+            "dtype": "bfloat16",
+            "name": "patch_embedding.weight",
+            "shape": ["1280", "3", "2", "14", "14"]
+          }
+        ],
+        "path": "vision_tower.vision_model.embeddings",
+        "replaced": null,
+        "source": {
+          "file": "vllm/models/minimax_m3/common/vision_tower.py",
+          "line": 36,
+          "url": "https://github.com/vllm-project/vllm/blob/544f182d9f0c9bfe8bd7645525951d5e3692a542/vllm/models/minimax_m3/common/vision_tower.py#L36"
+        },
+        "status": "generic"
+      },
+      "placement": "spine"
+    },
+    {
+      "component": {
+        "eps": 1e-5,
+        "kind": "norm",
+        "variant": "layernorm"
+      },
+      "id": "vision_tower.vision_model.pre_layrnorm",
+      "io": {
+        "inputs": [
+          {
+            "dtype": "bfloat16",
+            "name": "hidden_states",
+            "shape": ["P", "1280"]
+          }
+        ],
+        "internals": [],
+        "outputs": [
+          {
+            "dtype": "bfloat16",
+            "name": "hidden_states",
+            "shape": ["P", "1280"]
+          }
+        ]
+      },
+      "kind": "norm",
+      "label": "Final norm",
+      "module": {
+        "class_name": "torch.nn.modules.normalization.LayerNorm",
+        "flags": [],
+        "params": [
+          {
+            "dtype": "bfloat16",
+            "name": "bias",
+            "shape": ["1280"]
+          },
+          {
+            "dtype": "bfloat16",
+            "name": "weight",
+            "shape": ["1280"]
+          }
+        ],
+        "path": "vision_tower.vision_model.pre_layrnorm",
+        "replaced": null,
+        "source": null,
+        "status": "ruled"
+      },
+      "placement": "spine"
+    },
+    {
+      "bands": [
+        {
+          "block": {
+            "kind": "decoder",
+            "residual": "unknown",
+            "sublayers": [
+              {
+                "component": {
+                  "eps": 1e-5,
+                  "kind": "norm",
+                  "variant": "layernorm"
+                },
+                "id": "layer_norm1",
+                "io": {
+                  "inputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["P", "1280"]
+                    }
+                  ],
+                  "internals": [],
+                  "outputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["P", "1280"]
+                    }
+                  ]
+                },
+                "module": {
+                  "class_name": "torch.nn.modules.normalization.LayerNorm",
+                  "flags": [],
+                  "params": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "bias",
+                      "shape": ["1280"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "weight",
+                      "shape": ["1280"]
+                    }
+                  ],
+                  "path": "vision_tower.vision_model.encoder.layers.0.layer_norm1",
+                  "replaced": null,
+                  "source": null,
+                  "status": "ruled"
+                },
+                "role": "norm"
+              },
+              {
+                "component": {
+                  "extras": {},
+                  "head_dim": 80,
+                  "heads_kv": 16,
+                  "heads_q": 16,
+                  "kind": "attention",
+                  "qk_norm": false,
+                  "rope": {
+                    "kind": "default",
+                    "partial_rotary_factor": null,
+                    "scaling": null,
+                    "theta": 10000.0
+                  },
+                  "variant": "mha"
+                },
+                "id": "self_attn",
+                "io": {
+                  "inputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["P", "1280"]
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "q",
+                      "shape": ["P", "16*80/tp"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "k",
+                      "shape": ["P", "max(1,16/tp)*80"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "v",
+                      "shape": ["P", "max(1,16/tp)*80"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "o",
+                      "shape": ["P", "1280"]
+                    }
+                  ],
+                  "outputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["P", "1280"]
+                    }
+                  ]
+                },
+                "module": {
+                  "class_name": "vllm.models.minimax_m3.common.vision_tower.MiniMaxVLAttention",
+                  "flags": [],
+                  "params": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "out_proj.bias",
+                      "shape": ["1280"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "out_proj.weight",
+                      "shape": ["1280", "1280/tp"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "qkv_proj.bias",
+                      "shape": ["3840/tp"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "qkv_proj.weight",
+                      "shape": ["3840/tp", "1280"]
+                    }
+                  ],
+                  "path": "vision_tower.vision_model.encoder.layers.0.self_attn",
+                  "replaced": null,
+                  "source": {
+                    "file": "vllm/models/minimax_m3/common/vision_tower.py",
+                    "line": 77,
+                    "url": "https://github.com/vllm-project/vllm/blob/544f182d9f0c9bfe8bd7645525951d5e3692a542/vllm/models/minimax_m3/common/vision_tower.py#L77"
+                  },
+                  "status": "ruled"
+                },
+                "role": "mixer"
+              },
+              {
+                "component": {
+                  "eps": 1e-5,
+                  "kind": "norm",
+                  "variant": "layernorm"
+                },
+                "id": "layer_norm2",
+                "io": {
+                  "inputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["P", "1280"]
+                    }
+                  ],
+                  "internals": [],
+                  "outputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["P", "1280"]
+                    }
+                  ]
+                },
+                "module": {
+                  "class_name": "torch.nn.modules.normalization.LayerNorm",
+                  "flags": [],
+                  "params": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "bias",
+                      "shape": ["1280"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "weight",
+                      "shape": ["1280"]
+                    }
+                  ],
+                  "path": "vision_tower.vision_model.encoder.layers.0.layer_norm2",
+                  "replaced": null,
+                  "source": null,
+                  "status": "ruled"
+                },
+                "role": "norm"
+              },
+              {
+                "component": {
+                  "children": [],
+                  "class_name": "vllm.model_executor.layers.activation.GELU",
+                  "kind": "generic"
+                },
+                "id": "act",
+                "io": {
+                  "inputs": [],
+                  "internals": [],
+                  "outputs": []
+                },
+                "module": {
+                  "class_name": "vllm.model_executor.layers.activation.GELU",
+                  "flags": [],
+                  "params": [],
+                  "path": "vision_tower.vision_model.encoder.layers.0.act",
+                  "replaced": null,
+                  "source": {
+                    "file": "vllm/model_executor/layers/activation.py",
+                    "line": 351,
+                    "url": "https://github.com/vllm-project/vllm/blob/544f182d9f0c9bfe8bd7645525951d5e3692a542/vllm/model_executor/layers/activation.py#L351"
+                  },
+                  "status": "generic"
+                },
+                "role": "other"
+              },
+              {
+                "component": {
+                  "children": [],
+                  "class_name": "vllm.model_executor.layers.linear.ColumnParallelLinear",
+                  "kind": "generic"
+                },
+                "id": "fc1",
+                "io": {
+                  "inputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "1280"]
+                    }
+                  ],
+                  "internals": [],
+                  "outputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "output",
+                      "shape": ["T", "5120"]
+                    }
+                  ]
+                },
+                "module": {
+                  "class_name": "vllm.model_executor.layers.linear.ColumnParallelLinear",
+                  "flags": [],
+                  "params": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "bias",
+                      "shape": ["5120/tp"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "weight",
+                      "shape": ["5120/tp", "1280"]
+                    }
+                  ],
+                  "path": "vision_tower.vision_model.encoder.layers.0.fc1",
+                  "replaced": null,
+                  "source": {
+                    "file": "vllm/model_executor/layers/linear.py",
+                    "line": 436,
+                    "url": "https://github.com/vllm-project/vllm/blob/544f182d9f0c9bfe8bd7645525951d5e3692a542/vllm/model_executor/layers/linear.py#L436"
+                  },
+                  "status": "generic"
+                },
+                "role": "other"
+              },
+              {
+                "component": {
+                  "children": [],
+                  "class_name": "vllm.model_executor.layers.linear.RowParallelLinear",
+                  "kind": "generic"
+                },
+                "id": "fc2",
+                "io": {
+                  "inputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "5120"]
+                    }
+                  ],
+                  "internals": [],
+                  "outputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "output",
+                      "shape": ["T", "1280"]
+                    }
+                  ]
+                },
+                "module": {
+                  "class_name": "vllm.model_executor.layers.linear.RowParallelLinear",
+                  "flags": [],
+                  "params": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "bias",
+                      "shape": ["1280"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "weight",
+                      "shape": ["1280", "5120/tp"]
+                    }
+                  ],
+                  "path": "vision_tower.vision_model.encoder.layers.0.fc2",
+                  "replaced": null,
+                  "source": {
+                    "file": "vllm/model_executor/layers/linear.py",
+                    "line": 1639,
+                    "url": "https://github.com/vllm-project/vllm/blob/544f182d9f0c9bfe8bd7645525951d5e3692a542/vllm/model_executor/layers/linear.py#L1639"
+                  },
+                  "status": "generic"
+                },
+                "role": "other"
+              }
+            ]
+          },
+          "count": 32,
+          "id": "vision_tower.vision_model.encoder.layers:band:0",
+          "layers": [0, 31],
+          "pattern": null
+        }
+      ],
+      "id": "vision_tower.vision_model.encoder.layers",
+      "kind": "stack",
+      "label": "Vision layers"
+    },
+    {
+      "component": {
+        "children": [
+          {
+            "class_name": "vllm.model_executor.layers.linear.ColumnParallelLinear",
+            "name": "linear_1"
+          },
+          {
+            "class_name": "vllm.model_executor.layers.linear.RowParallelLinear",
+            "name": "linear_2"
+          }
+        ],
+        "class_name": "vllm.models.minimax_m3.common.vision_tower.MiniMaxVLMultiModalProjector",
+        "kind": "generic"
+      },
+      "id": "vision_tower.multi_modal_projector",
+      "io": {
+        "inputs": [],
+        "internals": [],
+        "outputs": []
+      },
+      "kind": "other",
+      "label": "vision_tower.multi_modal_projector",
+      "module": {
+        "class_name": "vllm.models.minimax_m3.common.vision_tower.MiniMaxVLMultiModalProjector",
+        "flags": [],
+        "params": [
+          {
+            "dtype": "bfloat16",
+            "name": "linear_1.bias",
+            "shape": ["6144/tp"]
+          },
+          {
+            "dtype": "bfloat16",
+            "name": "linear_1.weight",
+            "shape": ["6144/tp", "1280"]
+          },
+          {
+            "dtype": "bfloat16",
+            "name": "linear_2.bias",
+            "shape": ["6144"]
+          },
+          {
+            "dtype": "bfloat16",
+            "name": "linear_2.weight",
+            "shape": ["6144", "6144/tp"]
+          }
+        ],
+        "path": "vision_tower.multi_modal_projector",
+        "replaced": null,
+        "source": {
+          "file": "vllm/models/minimax_m3/common/vision_tower.py",
+          "line": 525,
+          "url": "https://github.com/vllm-project/vllm/blob/544f182d9f0c9bfe8bd7645525951d5e3692a542/vllm/models/minimax_m3/common/vision_tower.py#L525"
+        },
+        "status": "generic"
+      },
+      "placement": "spine"
+    },
+    {
+      "component": {
+        "children": [
+          {
+            "class_name": "vllm.model_executor.layers.linear.ColumnParallelLinear",
+            "name": "linear_1"
+          },
+          {
+            "class_name": "vllm.model_executor.layers.linear.RowParallelLinear",
+            "name": "linear_2"
+          }
+        ],
+        "class_name": "vllm.models.minimax_m3.common.vision_tower.MiniMaxVLPatchMerger",
+        "kind": "generic"
+      },
+      "id": "vision_tower.patch_merge_mlp",
+      "io": {
+        "inputs": [],
+        "internals": [],
+        "outputs": []
+      },
+      "kind": "other",
+      "label": "vision_tower.patch_merge_mlp",
+      "module": {
+        "class_name": "vllm.models.minimax_m3.common.vision_tower.MiniMaxVLPatchMerger",
+        "flags": [],
+        "params": [
+          {
+            "dtype": "bfloat16",
+            "name": "linear_1.bias",
+            "shape": ["6144/tp"]
+          },
+          {
+            "dtype": "bfloat16",
+            "name": "linear_1.weight",
+            "shape": ["6144/tp", "24576"]
+          },
+          {
+            "dtype": "bfloat16",
+            "name": "linear_2.bias",
+            "shape": ["6144"]
+          },
+          {
+            "dtype": "bfloat16",
+            "name": "linear_2.weight",
+            "shape": ["6144", "6144/tp"]
+          }
+        ],
+        "path": "vision_tower.patch_merge_mlp",
+        "replaced": null,
+        "source": {
+          "file": "vllm/models/minimax_m3/common/vision_tower.py",
+          "line": 566,
+          "url": "https://github.com/vllm-project/vllm/blob/544f182d9f0c9bfe8bd7645525951d5e3692a542/vllm/models/minimax_m3/common/vision_tower.py#L566"
+        },
+        "status": "generic"
+      },
+      "placement": "spine"
+    },
+    {
+      "component": {
+        "hidden": 6144,
+        "kind": "embedding",
+        "tied": false,
+        "vocab": 200064
+      },
+      "id": "language_model.model.embed_tokens",
+      "io": {
+        "inputs": [
+          {
+            "dtype": "int64",
+            "name": "input_ids",
+            "shape": ["T"]
+          }
+        ],
+        "internals": [],
+        "outputs": [
+          {
+            "dtype": "bfloat16",
+            "name": "hidden_states",
+            "shape": ["T", "H"]
+          }
+        ]
+      },
+      "kind": "embedding",
+      "label": "Token embedding",
+      "module": {
+        "class_name": "vllm.model_executor.layers.vocab_parallel_embedding.VocabParallelEmbedding",
+        "flags": [],
+        "params": [
+          {
+            "dtype": "bfloat16",
+            "name": "weight",
+            "shape": ["200064/tp", "6144"]
+          }
+        ],
+        "path": "language_model.model.embed_tokens",
+        "replaced": null,
+        "source": {
+          "file": "vllm/model_executor/layers/vocab_parallel_embedding.py",
+          "line": 206,
+          "url": "https://github.com/vllm-project/vllm/blob/544f182d9f0c9bfe8bd7645525951d5e3692a542/vllm/model_executor/layers/vocab_parallel_embedding.py#L206"
+        },
+        "status": "ruled"
+      },
+      "placement": "spine"
+    },
+    {
+      "bands": [
+        {
+          "block": {
+            "kind": "decoder",
+            "residual": "pre_norm",
+            "sublayers": [
+              {
+                "component": {
+                  "eps": 1e-6,
+                  "kind": "norm",
+                  "variant": "rmsnorm"
+                },
+                "id": "input_layernorm",
+                "io": {
+                  "inputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "H"]
+                    }
+                  ],
+                  "internals": [],
+                  "outputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "H"]
+                    }
+                  ]
+                },
+                "module": {
+                  "class_name": "vllm.models.minimax_m3.nvidia.model.MiniMAXGemmaRMSNorm",
+                  "flags": [],
+                  "params": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "weight",
+                      "shape": ["6144"]
+                    }
+                  ],
+                  "path": "language_model.model.layers.0.input_layernorm",
+                  "replaced": null,
+                  "source": {
+                    "file": "vllm/models/minimax_m3/nvidia/model.py",
+                    "line": 118,
+                    "url": "https://github.com/vllm-project/vllm/blob/544f182d9f0c9bfe8bd7645525951d5e3692a542/vllm/models/minimax_m3/nvidia/model.py#L118"
+                  },
+                  "status": "ruled"
+                },
+                "role": "norm"
+              },
+              {
+                "component": {
+                  "extras": {},
+                  "head_dim": 128,
+                  "heads_kv": 4,
+                  "heads_q": 64,
+                  "kind": "attention",
+                  "qk_norm": true,
+                  "rope": {
+                    "kind": "default",
+                    "partial_rotary_factor": 0.5,
+                    "scaling": null,
+                    "theta": 5000000.0
+                  },
+                  "variant": "gqa"
+                },
+                "id": "self_attn",
+                "io": {
+                  "inputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "H"]
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "q",
+                      "shape": ["T", "Hq*D/tp"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "k",
+                      "shape": ["T", "max(1,Hkv/tp)*D"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "v",
+                      "shape": ["T", "max(1,Hkv/tp)*D"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "o",
+                      "shape": ["T", "H"]
+                    }
+                  ],
+                  "outputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "H"]
+                    }
+                  ]
+                },
+                "module": {
+                  "class_name": "vllm.models.minimax_m3.nvidia.model.MiniMaxM3Attention",
+                  "flags": [],
+                  "params": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "k_norm.weight",
+                      "shape": ["128"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "o_proj.weight",
+                      "shape": ["H", "Hq*D/tp"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "q_norm.weight",
+                      "shape": ["128"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "qkv_proj.weight",
+                      "shape": ["(Hq/tp+2*max(1,Hkv/tp))*D", "H"]
+                    }
+                  ],
+                  "path": "language_model.model.layers.0.self_attn",
+                  "replaced": null,
+                  "source": {
+                    "file": "vllm/models/minimax_m3/nvidia/model.py",
+                    "line": 292,
+                    "url": "https://github.com/vllm-project/vllm/blob/544f182d9f0c9bfe8bd7645525951d5e3692a542/vllm/models/minimax_m3/nvidia/model.py#L292"
+                  },
+                  "status": "ruled"
+                },
+                "role": "mixer"
+              },
+              {
+                "component": null,
+                "id": "residual_1",
+                "io": {
+                  "inputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "branch",
+                      "shape": ["T", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "residual",
+                      "shape": ["T", "H"]
+                    }
+                  ],
+                  "internals": [],
+                  "outputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "H"]
+                    }
+                  ]
+                },
+                "module": null,
+                "role": "residual_add"
+              },
+              {
+                "component": {
+                  "eps": 1e-6,
+                  "kind": "norm",
+                  "variant": "rmsnorm"
+                },
+                "id": "post_attention_layernorm",
+                "io": {
+                  "inputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "H"]
+                    }
+                  ],
+                  "internals": [],
+                  "outputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "H"]
+                    }
+                  ]
+                },
+                "module": {
+                  "class_name": "vllm.models.minimax_m3.nvidia.model.MiniMAXGemmaRMSNorm",
+                  "flags": [],
+                  "params": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "weight",
+                      "shape": ["6144"]
+                    }
+                  ],
+                  "path": "language_model.model.layers.0.post_attention_layernorm",
+                  "replaced": null,
+                  "source": {
+                    "file": "vllm/models/minimax_m3/nvidia/model.py",
+                    "line": 118,
+                    "url": "https://github.com/vllm-project/vllm/blob/544f182d9f0c9bfe8bd7645525951d5e3692a542/vllm/models/minimax_m3/nvidia/model.py#L118"
+                  },
+                  "status": "ruled"
+                },
+                "role": "norm"
+              },
+              {
+                "component": {
+                  "intermediate": 12288,
+                  "kind": "mlp",
+                  "variant": "other"
+                },
+                "id": "mlp",
+                "io": {
+                  "inputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "H"]
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "gate_up",
+                      "shape": ["T", "12288/tp"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "act",
+                      "shape": ["T", "12288/tp"]
+                    }
+                  ],
+                  "outputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "H"]
+                    }
+                  ]
+                },
+                "module": {
+                  "class_name": "vllm.models.minimax_m3.nvidia.model.MiniMaxM3MLP",
+                  "flags": [],
+                  "params": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "down_proj.weight",
+                      "shape": ["6144", "12288/tp"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "gate_up_proj.weight",
+                      "shape": ["24576/tp", "6144"]
+                    }
+                  ],
+                  "path": "language_model.model.layers.0.mlp",
+                  "replaced": null,
+                  "source": {
+                    "file": "vllm/models/minimax_m3/nvidia/model.py",
+                    "line": 149,
+                    "url": "https://github.com/vllm-project/vllm/blob/544f182d9f0c9bfe8bd7645525951d5e3692a542/vllm/models/minimax_m3/nvidia/model.py#L149"
+                  },
+                  "status": "ruled"
+                },
+                "role": "ffn"
+              },
+              {
+                "component": null,
+                "id": "residual_2",
+                "io": {
+                  "inputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "branch",
+                      "shape": ["T", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "residual",
+                      "shape": ["T", "H"]
+                    }
+                  ],
+                  "internals": [],
+                  "outputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "H"]
+                    }
+                  ]
+                },
+                "module": null,
+                "role": "residual_add"
+              }
+            ]
+          },
+          "count": 3,
+          "id": "language_model.model.layers:band:0",
+          "layers": [0, 2],
+          "pattern": null
+        },
+        {
+          "block": {
+            "kind": "decoder",
+            "residual": "pre_norm",
+            "sublayers": [
+              {
+                "component": {
+                  "eps": 1e-6,
+                  "kind": "norm",
+                  "variant": "rmsnorm"
+                },
+                "id": "input_layernorm",
+                "io": {
+                  "inputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "H"]
+                    }
+                  ],
+                  "internals": [],
+                  "outputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "H"]
+                    }
+                  ]
+                },
+                "module": {
+                  "class_name": "vllm.models.minimax_m3.nvidia.model.MiniMAXGemmaRMSNorm",
+                  "flags": [],
+                  "params": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "weight",
+                      "shape": ["6144"]
+                    }
+                  ],
+                  "path": "language_model.model.layers.3.input_layernorm",
+                  "replaced": null,
+                  "source": {
+                    "file": "vllm/models/minimax_m3/nvidia/model.py",
+                    "line": 118,
+                    "url": "https://github.com/vllm-project/vllm/blob/544f182d9f0c9bfe8bd7645525951d5e3692a542/vllm/models/minimax_m3/nvidia/model.py#L118"
+                  },
+                  "status": "ruled"
+                },
+                "role": "norm"
+              },
+              {
+                "component": {
+                  "children": [
+                    {
+                      "class_name": "vllm.models.minimax_m3.nvidia.model.MiniMAXGemmaRMSNorm",
+                      "name": "index_k_norm"
+                    },
+                    {
+                      "class_name": "vllm.models.minimax_m3.nvidia.model.MiniMAXGemmaRMSNorm",
+                      "name": "index_q_norm"
+                    },
+                    {
+                      "class_name": "vllm.models.minimax_m3.common.indexer.MiniMaxM3Indexer",
+                      "name": "indexer"
+                    },
+                    {
+                      "class_name": "vllm.models.minimax_m3.nvidia.model.MiniMAXGemmaRMSNorm",
+                      "name": "k_norm"
+                    },
+                    {
+                      "class_name": "vllm.model_executor.layers.linear.RowParallelLinear",
+                      "name": "o_proj"
+                    },
+                    {
+                      "class_name": "vllm.models.minimax_m3.nvidia.model.MiniMAXGemmaRMSNorm",
+                      "name": "q_norm"
+                    },
+                    {
+                      "class_name": "vllm.model_executor.layers.linear.MinimaxM3QKVParallelLinearWithIndexer",
+                      "name": "qkv_proj"
+                    }
+                  ],
+                  "class_name": "vllm.models.minimax_m3.nvidia.model.MiniMaxM3SparseAttention",
+                  "kind": "generic"
+                },
+                "id": "self_attn",
+                "io": {
+                  "inputs": [],
+                  "internals": [],
+                  "outputs": []
+                },
+                "module": {
+                  "class_name": "vllm.models.minimax_m3.nvidia.model.MiniMaxM3SparseAttention",
+                  "flags": [],
+                  "params": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "index_k_norm.weight",
+                      "shape": ["128"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "index_q_norm.weight",
+                      "shape": ["128"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "k_norm.weight",
+                      "shape": ["128"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "o_proj.weight",
+                      "shape": ["H", "Hq*D/tp"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "q_norm.weight",
+                      "shape": ["128"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "qkv_proj.weight",
+                      "shape": ["(Hq/tp+2*max(1,Hkv/tp))*D", "H"]
+                    }
+                  ],
+                  "path": "language_model.model.layers.3.self_attn",
+                  "replaced": null,
+                  "source": {
+                    "file": "vllm/models/minimax_m3/nvidia/model.py",
+                    "line": 392,
+                    "url": "https://github.com/vllm-project/vllm/blob/544f182d9f0c9bfe8bd7645525951d5e3692a542/vllm/models/minimax_m3/nvidia/model.py#L392"
+                  },
+                  "status": "generic"
+                },
+                "role": "mixer"
+              },
+              {
+                "component": null,
+                "id": "residual_1",
+                "io": {
+                  "inputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "branch",
+                      "shape": ["T", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "residual",
+                      "shape": ["T", "H"]
+                    }
+                  ],
+                  "internals": [],
+                  "outputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "H"]
+                    }
+                  ]
+                },
+                "module": null,
+                "role": "residual_add"
+              },
+              {
+                "component": {
+                  "eps": 1e-6,
+                  "kind": "norm",
+                  "variant": "rmsnorm"
+                },
+                "id": "post_attention_layernorm",
+                "io": {
+                  "inputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "H"]
+                    }
+                  ],
+                  "internals": [],
+                  "outputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "H"]
+                    }
+                  ]
+                },
+                "module": {
+                  "class_name": "vllm.models.minimax_m3.nvidia.model.MiniMAXGemmaRMSNorm",
+                  "flags": [],
+                  "params": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "weight",
+                      "shape": ["6144"]
+                    }
+                  ],
+                  "path": "language_model.model.layers.3.post_attention_layernorm",
+                  "replaced": null,
+                  "source": {
+                    "file": "vllm/models/minimax_m3/nvidia/model.py",
+                    "line": 118,
+                    "url": "https://github.com/vllm-project/vllm/blob/544f182d9f0c9bfe8bd7645525951d5e3692a542/vllm/models/minimax_m3/nvidia/model.py#L118"
+                  },
+                  "status": "ruled"
+                },
+                "role": "norm"
+              },
+              {
+                "component": {
+                  "expert": {
+                    "intermediate": 3072,
+                    "variant": "other"
+                  },
+                  "experts": 128,
+                  "kind": "moe",
+                  "router": {
+                    "groups": null,
+                    "norm_topk": null,
+                    "scoring": "sigmoid"
+                  },
+                  "shared": {
+                    "intermediate": 3072,
+                    "variant": "other"
+                  },
+                  "shared_experts": 1,
+                  "top_k": 4
+                },
+                "id": "block_sparse_moe",
+                "io": {
+                  "inputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "H"]
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "router_logits",
+                      "shape": ["T", "E"]
+                    },
+                    {
+                      "dtype": "int64",
+                      "name": "topk_ids",
+                      "shape": ["T", "K"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "topk_weights",
+                      "shape": ["T", "K"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_input",
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*3072/tp"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_output",
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "shared_output",
+                      "shape": ["T", "H"]
+                    }
+                  ],
+                  "outputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "H"]
+                    }
+                  ]
+                },
+                "module": {
+                  "class_name": "vllm.models.minimax_m3.nvidia.model.MiniMaxM3MoE",
+                  "flags": [],
+                  "params": [
+                    {
+                      "dtype": "float32",
+                      "name": "e_score_correction_bias",
+                      "shape": ["128"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "experts.routed_experts.w13_weight",
+                      "shape": ["E", "6144/tp", "6144"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "experts.routed_experts.w2_weight",
+                      "shape": ["E", "6144", "3072/tp"]
+                    },
+                    {
+                      "dtype": "float32",
+                      "name": "gate.weight",
+                      "shape": ["E", "6144"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "shared_experts.down_proj.weight",
+                      "shape": ["6144", "3072/tp"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "shared_experts.gate_up_proj.weight",
+                      "shape": ["6144/tp", "6144"]
+                    }
+                  ],
+                  "path": "language_model.model.layers.3.block_sparse_moe",
+                  "replaced": null,
+                  "source": {
+                    "file": "vllm/models/minimax_m3/nvidia/model.py",
+                    "line": 195,
+                    "url": "https://github.com/vllm-project/vllm/blob/544f182d9f0c9bfe8bd7645525951d5e3692a542/vllm/models/minimax_m3/nvidia/model.py#L195"
+                  },
+                  "status": "ruled"
+                },
+                "role": "ffn"
+              },
+              {
+                "component": null,
+                "id": "residual_2",
+                "io": {
+                  "inputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "branch",
+                      "shape": ["T", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "residual",
+                      "shape": ["T", "H"]
+                    }
+                  ],
+                  "internals": [],
+                  "outputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": ["T", "H"]
+                    }
+                  ]
+                },
+                "module": null,
+                "role": "residual_add"
+              }
+            ]
+          },
+          "count": 57,
+          "id": "language_model.model.layers:band:3",
+          "layers": [3, 59],
+          "pattern": null
+        }
+      ],
+      "id": "language_model.model.layers",
+      "kind": "stack",
+      "label": "Decoder layers"
+    },
+    {
+      "component": {
+        "eps": 1e-6,
+        "kind": "norm",
+        "variant": "rmsnorm"
+      },
+      "id": "language_model.model.norm",
+      "io": {
+        "inputs": [
+          {
+            "dtype": "bfloat16",
+            "name": "hidden_states",
+            "shape": ["T", "H"]
+          }
+        ],
+        "internals": [],
+        "outputs": [
+          {
+            "dtype": "bfloat16",
+            "name": "hidden_states",
+            "shape": ["T", "H"]
+          }
+        ]
+      },
+      "kind": "norm",
+      "label": "Final norm",
+      "module": {
+        "class_name": "vllm.models.minimax_m3.nvidia.model.MiniMAXGemmaRMSNorm",
+        "flags": [],
+        "params": [
+          {
+            "dtype": "bfloat16",
+            "name": "weight",
+            "shape": ["6144"]
+          }
+        ],
+        "path": "language_model.model.norm",
+        "replaced": null,
+        "source": {
+          "file": "vllm/models/minimax_m3/nvidia/model.py",
+          "line": 118,
+          "url": "https://github.com/vllm-project/vllm/blob/544f182d9f0c9bfe8bd7645525951d5e3692a542/vllm/models/minimax_m3/nvidia/model.py#L118"
+        },
+        "status": "ruled"
+      },
+      "placement": "spine"
+    },
+    {
+      "component": {
+        "hidden": 6144,
+        "kind": "lm_head",
+        "tied": false,
+        "vocab": 200064
+      },
+      "id": "language_model.lm_head",
+      "io": {
+        "inputs": [
+          {
+            "dtype": "bfloat16",
+            "name": "hidden_states",
+            "shape": ["T", "H"]
+          }
+        ],
+        "internals": [],
+        "outputs": [
+          {
+            "dtype": "bfloat16",
+            "name": "logits",
+            "shape": ["T", "V"]
+          }
+        ]
+      },
+      "kind": "lm_head",
+      "label": "LM head",
+      "module": {
+        "class_name": "vllm.model_executor.layers.vocab_parallel_embedding.ParallelLMHead",
+        "flags": [],
+        "params": [
+          {
+            "dtype": "bfloat16",
+            "name": "weight",
+            "shape": ["200064/tp", "6144"]
+          }
+        ],
+        "path": "language_model.lm_head",
+        "replaced": null,
+        "source": {
+          "file": "vllm/model_executor/layers/vocab_parallel_embedding.py",
+          "line": 578,
+          "url": "https://github.com/vllm-project/vllm/blob/544f182d9f0c9bfe8bd7645525951d5e3692a542/vllm/model_executor/layers/vocab_parallel_embedding.py#L578"
+        },
+        "status": "ruled"
+      },
+      "placement": "spine"
+    }
+  ],
+  "symbols": {
+    "D": {
+      "description": "head width",
+      "value": 128
+    },
+    "E": {
+      "description": "Routed experts",
+      "value": 128
+    },
+    "H": {
+      "description": "hidden size",
+      "value": 6144
+    },
+    "Hkv": {
+      "description": "KV heads",
+      "value": 4
+    },
+    "Hq": {
+      "description": "query heads",
+      "value": 64
+    },
+    "K": {
+      "description": "Experts per token",
+      "value": 4
+    },
+    "P": {
+      "description": "Vision patch tokens in the batch",
+      "value": 1024
+    },
+    "T": {
+      "description": "tokens in the batch",
+      "value": 4096
+    },
+    "V": {
+      "description": "vocabulary size",
+      "value": 200064
+    },
+    "tp": {
+      "description": "Tensor parallel degree",
+      "value": 1
+    }
+  }
+}

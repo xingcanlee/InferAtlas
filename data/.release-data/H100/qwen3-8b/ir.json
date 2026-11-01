@@ -1,0 +1,1800 @@
+{
+  "edges": [
+    {
+      "from": "attn.core",
+      "id": "attn.core->attn.o:data",
+      "kind": "data",
+      "tensor": {
+        "dtype": "dtype_a",
+        "name": "output",
+        "shape": ["T", "Hq/tp*D"]
+      },
+      "to": "attn.o"
+    },
+    {
+      "from": "attn.k_norm",
+      "id": "attn.k_norm->attn.rope:data",
+      "kind": "data",
+      "tensor": {
+        "dtype": "dtype_a",
+        "name": "output",
+        "shape": ["T", "D*max(1,Hkv/tp)"]
+      },
+      "to": "attn.rope"
+    },
+    {
+      "from": "attn.o",
+      "id": "attn.o->attn.o.reduce:data",
+      "kind": "data",
+      "tensor": {
+        "dtype": "dtype_a",
+        "name": "output",
+        "shape": ["T", "H"]
+      },
+      "to": "attn.o.reduce"
+    },
+    {
+      "from": "attn.o.reduce",
+      "id": "attn.o.reduce->norm.post:data",
+      "kind": "data",
+      "tensor": {
+        "dtype": "dtype_a",
+        "name": "output",
+        "shape": ["T", "H"]
+      },
+      "to": "norm.post"
+    },
+    {
+      "from": "attn.q_norm",
+      "id": "attn.q_norm->attn.rope:data",
+      "kind": "data",
+      "tensor": {
+        "dtype": "dtype_a",
+        "name": "output",
+        "shape": ["T", "D*Hq/tp"]
+      },
+      "to": "attn.rope"
+    },
+    {
+      "from": "attn.qkv",
+      "id": "attn.qkv->attn.k_norm:data",
+      "kind": "data",
+      "tensor": {
+        "dtype": "dtype_a",
+        "name": "output",
+        "shape": ["T", "(Hq/tp+2*max(1,Hkv/tp))*D"]
+      },
+      "to": "attn.k_norm"
+    },
+    {
+      "from": "attn.qkv",
+      "id": "attn.qkv->attn.q_norm:data",
+      "kind": "data",
+      "tensor": {
+        "dtype": "dtype_a",
+        "name": "output",
+        "shape": ["T", "(Hq/tp+2*max(1,Hkv/tp))*D"]
+      },
+      "to": "attn.q_norm"
+    },
+    {
+      "from": "attn.qkv",
+      "id": "attn.qkv->attn.rope:data",
+      "kind": "data",
+      "tensor": {
+        "dtype": "dtype_a",
+        "name": "output",
+        "shape": ["T", "(Hq/tp+2*max(1,Hkv/tp))*D"]
+      },
+      "to": "attn.rope"
+    },
+    {
+      "from": "attn.rope",
+      "id": "attn.rope->attn.core:data",
+      "kind": "data",
+      "tensor": {
+        "dtype": "dtype_a",
+        "name": "q",
+        "shape": ["T", "Hq/tp", "D"]
+      },
+      "to": "attn.core"
+    },
+    {
+      "from": "decoder",
+      "id": "decoder->final_norm:data",
+      "kind": "data",
+      "tensor": {
+        "dtype": "dtype_a",
+        "name": "output",
+        "shape": ["T", "H"]
+      },
+      "to": "final_norm"
+    },
+    {
+      "from": "embed",
+      "id": "embed->embed.reduce:data",
+      "kind": "data",
+      "tensor": {
+        "dtype": "dtype_a",
+        "name": "output",
+        "shape": ["T", "H"]
+      },
+      "to": "embed.reduce"
+    },
+    {
+      "from": "embed.reduce",
+      "id": "embed.reduce->decoder:data",
+      "kind": "data",
+      "tensor": {
+        "dtype": "dtype_a",
+        "name": "output",
+        "shape": ["T", "H"]
+      },
+      "to": "decoder"
+    },
+    {
+      "from": "final_norm",
+      "id": "final_norm->lm_head:data",
+      "kind": "data",
+      "tensor": {
+        "dtype": "dtype_a",
+        "name": "output",
+        "shape": ["T", "H*1"]
+      },
+      "to": "lm_head"
+    },
+    {
+      "from": "kv_cache",
+      "id": "kv_cache->attn.core:kv",
+      "kind": "kv",
+      "tensor": {
+        "dtype": "dtype_kv",
+        "name": "kv",
+        "shape": ["2", "S", "context", "max(1,Hkv/tp)", "D"]
+      },
+      "to": "attn.core"
+    },
+    {
+      "from": "lm_head",
+      "id": "lm_head->logits.gather:data",
+      "kind": "data",
+      "tensor": {
+        "dtype": "dtype_a",
+        "name": "output",
+        "shape": {
+          "decode": ["S", "round_up(V,64)/tp"],
+          "prefill": ["batch", "round_up(V,64)/tp"]
+        }
+      },
+      "to": "logits.gather"
+    },
+    {
+      "from": "logits",
+      "id": "logits->output:data",
+      "kind": "data",
+      "tensor": {
+        "dtype": "dtype_a",
+        "name": "output",
+        "shape": {
+          "decode": ["S", "V"],
+          "prefill": ["batch", "V"]
+        }
+      },
+      "to": "output"
+    },
+    {
+      "from": "logits.gather",
+      "id": "logits.gather->logits:data",
+      "kind": "data",
+      "tensor": {
+        "dtype": "dtype_a",
+        "name": "logits",
+        "shape": {
+          "decode": ["S", "round_up(V,64)"],
+          "prefill": ["batch", "round_up(V,64)"]
+        }
+      },
+      "to": "logits"
+    },
+    {
+      "from": "mlp.act",
+      "id": "mlp.act->mlp.down:data",
+      "kind": "data",
+      "tensor": {
+        "dtype": "dtype_a",
+        "name": "output",
+        "shape": ["T", "I/tp"]
+      },
+      "to": "mlp.down"
+    },
+    {
+      "from": "mlp.down",
+      "id": "mlp.down->mlp.down.reduce:data",
+      "kind": "data",
+      "tensor": {
+        "dtype": "dtype_a",
+        "name": "output",
+        "shape": ["T", "H"]
+      },
+      "to": "mlp.down.reduce"
+    },
+    {
+      "from": "mlp.gate_up",
+      "id": "mlp.gate_up->mlp.act:data",
+      "kind": "data",
+      "tensor": {
+        "dtype": "dtype_a",
+        "name": "output",
+        "shape": ["T", "false ? 24576 : 24576/tp"]
+      },
+      "to": "mlp.act"
+    },
+    {
+      "from": "norm.input",
+      "id": "norm.input->attn.qkv:data",
+      "kind": "data",
+      "tensor": {
+        "dtype": "dtype_a",
+        "name": "output",
+        "shape": ["T", "H*1"]
+      },
+      "to": "attn.qkv"
+    },
+    {
+      "from": "norm.input",
+      "id": "norm.input->norm.post:residual",
+      "kind": "residual",
+      "tensor": {
+        "dtype": "dtype_a",
+        "name": "output",
+        "shape": ["T", "H*1"]
+      },
+      "to": "norm.post"
+    },
+    {
+      "from": "norm.post",
+      "id": "norm.post->mlp.down.reduce:residual",
+      "kind": "residual",
+      "tensor": {
+        "dtype": "dtype_a",
+        "name": "output",
+        "shape": ["T", "H*1"]
+      },
+      "to": "mlp.down.reduce"
+    },
+    {
+      "from": "norm.post",
+      "id": "norm.post->mlp.gate_up:data",
+      "kind": "data",
+      "tensor": {
+        "dtype": "dtype_a",
+        "name": "output",
+        "shape": ["T", "H*1"]
+      },
+      "to": "mlp.gate_up"
+    }
+  ],
+  "groups": [
+    {
+      "id": "decoder",
+      "layers": ["0", "35"],
+      "representative_layer": "0",
+      "template": "decoder"
+    }
+  ],
+  "memory": {
+    "activation_peak": "max(max_num_batched_tokens*(4*H+(Hq/tp+2*max(1,Hkv/tp))*D+3*I/tp)*bytes(dtype_a),max_num_seqs*V*(bytes(dtype_a)+3*bytes(fp32)+bytes(int64)))",
+    "kv_per_token": "(((2*max(1,Hkv/tp)*D*bytes(dtype_kv)))*(36/pp))",
+    "kv_tokens": "((((2*max(1,Hkv/tp)*D*bytes(dtype_kv)))*(36/pp)))>0 ? floor(max(0,hbm_bytes*gpu_memory_utilization-((((H*bytes(dtype_w))+((12288/tp*H*bytes(dtype_w))+(false ? (H)*bytes(dtype_w) : 0))+((H*24576/tp*bytes(dtype_w))+(false ? (24576/tp)*bytes(dtype_w) : 0))+(H*bytes(dtype_w))+(D*bytes(dtype_w))+((H/tp*H*bytes(dtype_w))+(false ? (H)*bytes(dtype_w) : 0))+(D*bytes(dtype_w))+((H*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_w))+(false ? ((Hq/tp+2*max(1,Hkv/tp))*D)*bytes(dtype_w) : 0)))*(36/pp))+((pp==1 ? ((round_up(V,64)/tp*H*bytes(dtype_w))+(false ? 0 : round_up(V,64)/tp*H*bytes(dtype_w))+(H*bytes(dtype_w))) : max((round_up(V,64)/tp*H*bytes(dtype_w)),((false ? 0 : round_up(V,64)/tp*H*bytes(dtype_w))+(H*bytes(dtype_w)))))))-(max(max_num_batched_tokens*(4*H+(Hq/tp+2*max(1,Hkv/tp))*D+3*I/tp)*bytes(dtype_a),max_num_seqs*V*(bytes(dtype_a)+3*bytes(fp32)+bytes(int64))))-non_torch_bytes-reserved_bytes)/(((((2*max(1,Hkv/tp)*D*bytes(dtype_kv)))*(36/pp)))*block_size))*block_size : 0",
+    "non_torch": "non_torch_bytes",
+    "reserved": "reserved_bytes",
+    "unmodelled": [
+      "allocator fragmentation",
+      "graph capture workspace",
+      "HCCL/NCCL workspace beyond configured non_torch_bytes",
+      "RoPE tables and non-parameter buffers",
+      "quantization scales/zeros and NZ padding",
+      "backend-specific MoE transport buffers beyond gathered activations",
+      "backend-specific attention scratch space",
+      "input/output token index storage"
+    ],
+    "weights": "(((H*bytes(dtype_w))+((12288/tp*H*bytes(dtype_w))+(false ? (H)*bytes(dtype_w) : 0))+((H*24576/tp*bytes(dtype_w))+(false ? (24576/tp)*bytes(dtype_w) : 0))+(H*bytes(dtype_w))+(D*bytes(dtype_w))+((H/tp*H*bytes(dtype_w))+(false ? (H)*bytes(dtype_w) : 0))+(D*bytes(dtype_w))+((H*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_w))+(false ? ((Hq/tp+2*max(1,Hkv/tp))*D)*bytes(dtype_w) : 0)))*(36/pp))+((pp==1 ? ((round_up(V,64)/tp*H*bytes(dtype_w))+(false ? 0 : round_up(V,64)/tp*H*bytes(dtype_w))+(H*bytes(dtype_w))) : max((round_up(V,64)/tp*H*bytes(dtype_w)),((false ? 0 : round_up(V,64)/tp*H*bytes(dtype_w))+(H*bytes(dtype_w))))))"
+  },
+  "nodes": [
+    {
+      "ascend": null,
+      "bytes_moved": {
+        "decode": "(2*S*Hq/tp*D*bytes(dtype_a)+2*S*(context+1)*max(1,Hkv/tp)*D*bytes(dtype_kv))+(D*bytes(dtype_w)+2*S*D*max(1,Hkv/tp)*bytes(dtype_a))+(((H/tp*H*bytes(dtype_w))+(false ? (H)*bytes(dtype_w) : 0))+S*((H/tp)+(H))*bytes(dtype_a))+(D*bytes(dtype_w)+2*S*D*Hq/tp*bytes(dtype_a))+(((H*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_w))+(false ? ((Hq/tp+2*max(1,Hkv/tp))*D)*bytes(dtype_w) : 0))+S*((H)+((Hq/tp+2*max(1,Hkv/tp))*D))*bytes(dtype_a))+((2*S*(Hq/tp+max(1,Hkv/tp))*D*bytes(dtype_a)))",
+        "prefill": "(2*T*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_a))+(D*bytes(dtype_w)+2*T*D*max(1,Hkv/tp)*bytes(dtype_a))+(((H/tp*H*bytes(dtype_w))+(false ? (H)*bytes(dtype_w) : 0))+T*((H/tp)+(H))*bytes(dtype_a))+(D*bytes(dtype_w)+2*T*D*Hq/tp*bytes(dtype_a))+(((H*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_w))+(false ? ((Hq/tp+2*max(1,Hkv/tp))*D)*bytes(dtype_w) : 0))+T*((H)+((Hq/tp+2*max(1,Hkv/tp))*D))*bytes(dtype_a))+((2*T*(Hq/tp+max(1,Hkv/tp))*D*bytes(dtype_a)))"
+      },
+      "class": "vllm.model_executor.models.qwen3.Qwen3Attention",
+      "comm": null,
+      "flops": {
+        "decode": "(4*S*(context+1)*Hq/tp*D)+(5*S*D*max(1,Hkv/tp))+(2*S*H/tp*H)+(5*S*D*Hq/tp)+(2*S*H*(Hq/tp+2*max(1,Hkv/tp))*D)+((3*S*(Hq/tp+max(1,Hkv/tp))*D))",
+        "prefill": "(2*T*(T/batch+1)*Hq/tp*D)+(5*T*D*max(1,Hkv/tp))+(2*T*H/tp*H)+(5*T*D*Hq/tp)+(2*T*H*(Hq/tp+2*max(1,Hkv/tp))*D)+((3*T*(Hq/tp+max(1,Hkv/tp))*D))"
+      },
+      "id": "attn",
+      "in": [
+        {
+          "dtype": "dtype_a",
+          "name": "input",
+          "shape": ["T", "H"]
+        }
+      ],
+      "kind": "group",
+      "label": "attn",
+      "notes": ["Structural container; metrics summarize descendants."],
+      "out": [
+        {
+          "dtype": "dtype_a",
+          "name": "output",
+          "shape": ["T", "H"]
+        }
+      ],
+      "parallel": {},
+      "parent": "decoder",
+      "rule": "container.Qwen3Attention",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/models/qwen3.py",
+        "line": 65,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.models.qwen3.Qwen3Attention"
+      },
+      "weight_bytes": "(D*bytes(dtype_w))+((H/tp*H*bytes(dtype_w))+(false ? (H)*bytes(dtype_w) : 0))+(D*bytes(dtype_w))+((H*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_w))+(false ? ((Hq/tp+2*max(1,Hkv/tp))*D)*bytes(dtype_w) : 0))"
+    },
+    {
+      "ascend": null,
+      "bytes_moved": {
+        "decode": "2*S*Hq/tp*D*bytes(dtype_a)+2*S*(context+1)*max(1,Hkv/tp)*D*bytes(dtype_kv)",
+        "prefill": "2*T*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_a)"
+      },
+      "class": "vllm.model_executor.layers.attention.attention.Attention",
+      "comm": null,
+      "flops": {
+        "decode": "4*S*(context+1)*Hq/tp*D",
+        "prefill": "2*T*(T/batch+1)*Hq/tp*D"
+      },
+      "id": "attn.core",
+      "in": [
+        {
+          "dtype": "dtype_a",
+          "name": "q",
+          "shape": ["T", "Hq/tp", "D"]
+        },
+        {
+          "dtype": "dtype_a",
+          "name": "k",
+          "shape": ["T", "max(1,Hkv/tp)", "D"]
+        },
+        {
+          "dtype": "dtype_a",
+          "name": "v",
+          "shape": ["T", "max(1,Hkv/tp)", "D"]
+        }
+      ],
+      "kind": "compute",
+      "label": "attn.core",
+      "notes": [
+        "Prefill uses equal-length causal sequences; T/batch tokens per sequence. Decode reads context+1 tokens. Softmax work and backend scratch are excluded."
+      ],
+      "out": [
+        {
+          "dtype": "dtype_a",
+          "name": "output",
+          "shape": ["T", "Hq/tp*D"]
+        }
+      ],
+      "parallel": {
+        "tp": {
+          "dim": "heads"
+        }
+      },
+      "parent": "attn",
+      "rule": "attention",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/layers/attention/attention.py",
+        "line": 229,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.layers.attention.attention.Attention"
+      },
+      "weight_bytes": "0"
+    },
+    {
+      "ascend": null,
+      "bytes_moved": {
+        "decode": "D*bytes(dtype_w)+2*S*D*max(1,Hkv/tp)*bytes(dtype_a)",
+        "prefill": "D*bytes(dtype_w)+2*T*D*max(1,Hkv/tp)*bytes(dtype_a)"
+      },
+      "class": "vllm.model_executor.layers.layernorm.RMSNorm",
+      "comm": null,
+      "flops": {
+        "decode": "5*S*D*max(1,Hkv/tp)",
+        "prefill": "5*T*D*max(1,Hkv/tp)"
+      },
+      "id": "attn.k_norm",
+      "in": [
+        {
+          "dtype": "dtype_a",
+          "name": "input",
+          "shape": ["T", "D*(max(1,Hkv/tp))"]
+        },
+        {
+          "dtype": "dtype_w",
+          "name": "weight",
+          "shape": ["D"]
+        }
+      ],
+      "kind": "compute",
+      "label": "attn.k_norm",
+      "notes": [],
+      "out": [
+        {
+          "dtype": "dtype_a",
+          "name": "output",
+          "shape": ["T", "D*max(1,Hkv/tp)"]
+        }
+      ],
+      "parallel": {
+        "tp": {
+          "dim": "replicated"
+        }
+      },
+      "parent": "attn",
+      "rule": "norm.rms",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/layers/layernorm.py",
+        "line": 39,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.layers.layernorm.RMSNorm"
+      },
+      "weight_bytes": "D*bytes(dtype_w)"
+    },
+    {
+      "ascend": null,
+      "bytes_moved": {
+        "decode": "((H/tp*H*bytes(dtype_w))+(false ? (H)*bytes(dtype_w) : 0))+S*((H/tp)+(H))*bytes(dtype_a)",
+        "prefill": "((H/tp*H*bytes(dtype_w))+(false ? (H)*bytes(dtype_w) : 0))+T*((H/tp)+(H))*bytes(dtype_a)"
+      },
+      "class": "vllm.model_executor.layers.linear.RowParallelLinear",
+      "comm": null,
+      "flops": {
+        "decode": "2*S*H/tp*H",
+        "prefill": "2*T*H/tp*H"
+      },
+      "id": "attn.o",
+      "in": [
+        {
+          "dtype": "dtype_a",
+          "name": "input",
+          "shape": ["T", "H/tp"]
+        },
+        {
+          "dtype": "dtype_w",
+          "name": "weight",
+          "shape": ["H", "H/tp"]
+        }
+      ],
+      "kind": "compute",
+      "label": "attn.o",
+      "notes": [],
+      "out": [
+        {
+          "dtype": "dtype_a",
+          "name": "output",
+          "shape": ["T", "H"]
+        }
+      ],
+      "parallel": {
+        "tp": {
+          "dim": "in"
+        }
+      },
+      "parent": "attn",
+      "rule": "linear.row",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/layers/linear.py",
+        "line": 1639,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.layers.linear.RowParallelLinear"
+      },
+      "weight_bytes": "(H/tp*H*bytes(dtype_w))+(false ? (H)*bytes(dtype_w) : 0)"
+    },
+    {
+      "ascend": null,
+      "bytes_moved": {
+        "decode": "0",
+        "prefill": "0"
+      },
+      "class": "vllm.model_executor.layers.linear.RowParallelLinear",
+      "comm": {
+        "bus_bytes": {
+          "decode": "true && tp>1 ? (2*(tp-1)/tp)*(S*H*bytes(dtype_a)) : 0",
+          "prefill": "true && tp>1 ? (2*(tp-1)/tp)*(T*H*bytes(dtype_a)) : 0"
+        },
+        "group": "tp",
+        "logical_bytes": {
+          "decode": "S*H*bytes(dtype_a)",
+          "prefill": "T*H*bytes(dtype_a)"
+        },
+        "notes": ["Ring estimate; logical bytes describe the tensor even when inactive."],
+        "op": "all_reduce",
+        "when": "true && tp>1"
+      },
+      "flops": {
+        "decode": "0",
+        "prefill": "0"
+      },
+      "id": "attn.o.reduce",
+      "in": [
+        {
+          "dtype": "dtype_a",
+          "name": "output",
+          "shape": ["T", "H"]
+        }
+      ],
+      "kind": "comm",
+      "label": "all_reduce",
+      "notes": [],
+      "out": [
+        {
+          "dtype": "dtype_a",
+          "name": "output",
+          "shape": ["T", "H"]
+        }
+      ],
+      "parallel": {},
+      "parent": "attn",
+      "rule": "linear.row",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/layers/linear.py",
+        "line": 1639,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.layers.linear.RowParallelLinear"
+      },
+      "weight_bytes": "0"
+    },
+    {
+      "ascend": null,
+      "bytes_moved": {
+        "decode": "D*bytes(dtype_w)+2*S*D*Hq/tp*bytes(dtype_a)",
+        "prefill": "D*bytes(dtype_w)+2*T*D*Hq/tp*bytes(dtype_a)"
+      },
+      "class": "vllm.model_executor.layers.layernorm.RMSNorm",
+      "comm": null,
+      "flops": {
+        "decode": "5*S*D*Hq/tp",
+        "prefill": "5*T*D*Hq/tp"
+      },
+      "id": "attn.q_norm",
+      "in": [
+        {
+          "dtype": "dtype_a",
+          "name": "input",
+          "shape": ["T", "D*(Hq/tp)"]
+        },
+        {
+          "dtype": "dtype_w",
+          "name": "weight",
+          "shape": ["D"]
+        }
+      ],
+      "kind": "compute",
+      "label": "attn.q_norm",
+      "notes": [],
+      "out": [
+        {
+          "dtype": "dtype_a",
+          "name": "output",
+          "shape": ["T", "D*Hq/tp"]
+        }
+      ],
+      "parallel": {
+        "tp": {
+          "dim": "replicated"
+        }
+      },
+      "parent": "attn",
+      "rule": "norm.rms",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/layers/layernorm.py",
+        "line": 39,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.layers.layernorm.RMSNorm"
+      },
+      "weight_bytes": "D*bytes(dtype_w)"
+    },
+    {
+      "ascend": null,
+      "bytes_moved": {
+        "decode": "((H*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_w))+(false ? ((Hq/tp+2*max(1,Hkv/tp))*D)*bytes(dtype_w) : 0))+S*((H)+((Hq/tp+2*max(1,Hkv/tp))*D))*bytes(dtype_a)",
+        "prefill": "((H*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_w))+(false ? ((Hq/tp+2*max(1,Hkv/tp))*D)*bytes(dtype_w) : 0))+T*((H)+((Hq/tp+2*max(1,Hkv/tp))*D))*bytes(dtype_a)"
+      },
+      "class": "vllm.model_executor.layers.linear.QKVParallelLinear",
+      "comm": null,
+      "flops": {
+        "decode": "2*S*H*(Hq/tp+2*max(1,Hkv/tp))*D",
+        "prefill": "2*T*H*(Hq/tp+2*max(1,Hkv/tp))*D"
+      },
+      "id": "attn.qkv",
+      "in": [
+        {
+          "dtype": "dtype_a",
+          "name": "input",
+          "shape": ["T", "H"]
+        },
+        {
+          "dtype": "dtype_w",
+          "name": "weight",
+          "shape": ["(Hq/tp+2*max(1,Hkv/tp))*D", "H"]
+        }
+      ],
+      "kind": "compute",
+      "label": "attn.qkv",
+      "notes": ["KV heads are replicated when TP exceeds the global KV-head count."],
+      "out": [
+        {
+          "dtype": "dtype_a",
+          "name": "output",
+          "shape": ["T", "(Hq/tp+2*max(1,Hkv/tp))*D"]
+        }
+      ],
+      "parallel": {
+        "tp": {
+          "dim": "out"
+        }
+      },
+      "parent": "attn",
+      "rule": "linear.qkv",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/layers/linear.py",
+        "line": 1011,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.layers.linear.QKVParallelLinear"
+      },
+      "weight_bytes": "(H*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_w))+(false ? ((Hq/tp+2*max(1,Hkv/tp))*D)*bytes(dtype_w) : 0)"
+    },
+    {
+      "ascend": null,
+      "bytes_moved": {
+        "decode": "(2*S*(Hq/tp+max(1,Hkv/tp))*D*bytes(dtype_a))",
+        "prefill": "(2*T*(Hq/tp+max(1,Hkv/tp))*D*bytes(dtype_a))"
+      },
+      "class": "vllm.model_executor.layers.rotary_embedding.base.RotaryEmbedding",
+      "comm": null,
+      "flops": {
+        "decode": "(3*S*(Hq/tp+max(1,Hkv/tp))*D)",
+        "prefill": "(3*T*(Hq/tp+max(1,Hkv/tp))*D)"
+      },
+      "id": "attn.rope",
+      "in": [
+        {
+          "dtype": "dtype_a",
+          "name": "q",
+          "shape": ["T", "Hq/tp", "D"]
+        },
+        {
+          "dtype": "dtype_a",
+          "name": "k",
+          "shape": ["T", "max(1,Hkv/tp)", "D"]
+        }
+      ],
+      "kind": "group",
+      "label": "attn.rope",
+      "notes": [
+        "RoPE buffers are excluded from parameter weights. Arithmetic is on ApplyRotaryEmb."
+      ],
+      "out": [
+        {
+          "dtype": "dtype_a",
+          "name": "q",
+          "shape": ["T", "Hq/tp", "D"]
+        },
+        {
+          "dtype": "dtype_a",
+          "name": "k",
+          "shape": ["T", "max(1,Hkv/tp)", "D"]
+        }
+      ],
+      "parallel": {},
+      "parent": "attn",
+      "rule": "rotary",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/layers/rotary_embedding/base.py",
+        "line": 139,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.layers.rotary_embedding.base.RotaryEmbedding"
+      },
+      "weight_bytes": "0"
+    },
+    {
+      "ascend": null,
+      "bytes_moved": {
+        "decode": "2*S*(Hq/tp+max(1,Hkv/tp))*D*bytes(dtype_a)",
+        "prefill": "2*T*(Hq/tp+max(1,Hkv/tp))*D*bytes(dtype_a)"
+      },
+      "class": "vllm.model_executor.layers.rotary_embedding.common.ApplyRotaryEmb",
+      "comm": null,
+      "flops": {
+        "decode": "3*S*(Hq/tp+max(1,Hkv/tp))*D",
+        "prefill": "3*T*(Hq/tp+max(1,Hkv/tp))*D"
+      },
+      "id": "attn.rope.apply",
+      "in": [
+        {
+          "dtype": "dtype_a",
+          "name": "q",
+          "shape": ["T", "Hq/tp", "D"]
+        },
+        {
+          "dtype": "dtype_a",
+          "name": "k",
+          "shape": ["T", "max(1,Hkv/tp)", "D"]
+        }
+      ],
+      "kind": "compute",
+      "label": "attn.rope.apply",
+      "notes": [],
+      "out": [
+        {
+          "dtype": "dtype_a",
+          "name": "q",
+          "shape": ["T", "Hq/tp", "D"]
+        },
+        {
+          "dtype": "dtype_a",
+          "name": "k",
+          "shape": ["T", "max(1,Hkv/tp)", "D"]
+        }
+      ],
+      "parallel": {},
+      "parent": "attn.rope",
+      "rule": "rotary.apply",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/layers/rotary_embedding/common.py",
+        "line": 113,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.layers.rotary_embedding.common.ApplyRotaryEmb"
+      },
+      "weight_bytes": "0"
+    },
+    {
+      "ascend": null,
+      "bytes_moved": {
+        "decode": "((H*bytes(dtype_w)+2*S*H*1*bytes(dtype_a))+((3*S*I/tp*bytes(dtype_a))+(((12288/tp*H*bytes(dtype_w))+(false ? (H)*bytes(dtype_w) : 0))+S*((12288/tp)+(H))*bytes(dtype_a))+(((H*24576/tp*bytes(dtype_w))+(false ? (24576/tp)*bytes(dtype_w) : 0))+S*((H)+(24576/tp))*bytes(dtype_a)))+(H*bytes(dtype_w)+2*S*H*1*bytes(dtype_a))+((2*S*Hq/tp*D*bytes(dtype_a)+2*S*(context+1)*max(1,Hkv/tp)*D*bytes(dtype_kv))+(D*bytes(dtype_w)+2*S*D*max(1,Hkv/tp)*bytes(dtype_a))+(((H/tp*H*bytes(dtype_w))+(false ? (H)*bytes(dtype_w) : 0))+S*((H/tp)+(H))*bytes(dtype_a))+(D*bytes(dtype_w)+2*S*D*Hq/tp*bytes(dtype_a))+(((H*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_w))+(false ? ((Hq/tp+2*max(1,Hkv/tp))*D)*bytes(dtype_w) : 0))+S*((H)+((Hq/tp+2*max(1,Hkv/tp))*D))*bytes(dtype_a))+((2*S*(Hq/tp+max(1,Hkv/tp))*D*bytes(dtype_a)))))*(36/pp)",
+        "prefill": "((H*bytes(dtype_w)+2*T*H*1*bytes(dtype_a))+((3*T*I/tp*bytes(dtype_a))+(((12288/tp*H*bytes(dtype_w))+(false ? (H)*bytes(dtype_w) : 0))+T*((12288/tp)+(H))*bytes(dtype_a))+(((H*24576/tp*bytes(dtype_w))+(false ? (24576/tp)*bytes(dtype_w) : 0))+T*((H)+(24576/tp))*bytes(dtype_a)))+(H*bytes(dtype_w)+2*T*H*1*bytes(dtype_a))+((2*T*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_a))+(D*bytes(dtype_w)+2*T*D*max(1,Hkv/tp)*bytes(dtype_a))+(((H/tp*H*bytes(dtype_w))+(false ? (H)*bytes(dtype_w) : 0))+T*((H/tp)+(H))*bytes(dtype_a))+(D*bytes(dtype_w)+2*T*D*Hq/tp*bytes(dtype_a))+(((H*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_w))+(false ? ((Hq/tp+2*max(1,Hkv/tp))*D)*bytes(dtype_w) : 0))+T*((H)+((Hq/tp+2*max(1,Hkv/tp))*D))*bytes(dtype_a))+((2*T*(Hq/tp+max(1,Hkv/tp))*D*bytes(dtype_a)))))*(36/pp)"
+      },
+      "class": "vllm.model_executor.models.qwen3.Qwen3DecoderLayer",
+      "comm": null,
+      "flops": {
+        "decode": "((5*S*H*1)+((4*S*I/tp)+(2*S*12288/tp*H)+(2*S*H*24576/tp))+(5*S*H*1)+((4*S*(context+1)*Hq/tp*D)+(5*S*D*max(1,Hkv/tp))+(2*S*H/tp*H)+(5*S*D*Hq/tp)+(2*S*H*(Hq/tp+2*max(1,Hkv/tp))*D)+((3*S*(Hq/tp+max(1,Hkv/tp))*D))))*(36/pp)",
+        "prefill": "((5*T*H*1)+((4*T*I/tp)+(2*T*12288/tp*H)+(2*T*H*24576/tp))+(5*T*H*1)+((2*T*(T/batch+1)*Hq/tp*D)+(5*T*D*max(1,Hkv/tp))+(2*T*H/tp*H)+(5*T*D*Hq/tp)+(2*T*H*(Hq/tp+2*max(1,Hkv/tp))*D)+((3*T*(Hq/tp+max(1,Hkv/tp))*D))))*(36/pp)"
+      },
+      "id": "decoder",
+      "in": [
+        {
+          "dtype": "dtype_a",
+          "name": "input",
+          "shape": ["T", "H"]
+        }
+      ],
+      "kind": "group",
+      "label": "decoder",
+      "notes": ["Structural container; metrics summarize descendants."],
+      "out": [
+        {
+          "dtype": "dtype_a",
+          "name": "output",
+          "shape": ["T", "H"]
+        }
+      ],
+      "parallel": {},
+      "parent": null,
+      "rule": "container.Qwen3DecoderLayer",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/models/qwen3.py",
+        "line": 176,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.models.qwen3.Qwen3DecoderLayer"
+      },
+      "weight_bytes": "((H*bytes(dtype_w))+(((12288/tp*H*bytes(dtype_w))+(false ? (H)*bytes(dtype_w) : 0))+((H*24576/tp*bytes(dtype_w))+(false ? (24576/tp)*bytes(dtype_w) : 0)))+(H*bytes(dtype_w))+((D*bytes(dtype_w))+((H/tp*H*bytes(dtype_w))+(false ? (H)*bytes(dtype_w) : 0))+(D*bytes(dtype_w))+((H*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_w))+(false ? ((Hq/tp+2*max(1,Hkv/tp))*D)*bytes(dtype_w) : 0))))*(36/pp)"
+    },
+    {
+      "ascend": null,
+      "bytes_moved": {
+        "decode": "S*H*(bytes(dtype_w)+bytes(dtype_a))",
+        "prefill": "T*H*(bytes(dtype_w)+bytes(dtype_a))"
+      },
+      "class": "vllm.model_executor.layers.vocab_parallel_embedding.VocabParallelEmbedding",
+      "comm": null,
+      "flops": {
+        "decode": "0",
+        "prefill": "0"
+      },
+      "id": "embed",
+      "in": [
+        {
+          "dtype": "dtype_ids",
+          "name": "tokens",
+          "shape": ["T"]
+        },
+        {
+          "dtype": "dtype_w",
+          "name": "weight",
+          "shape": ["round_up(V,64)/tp", "H"]
+        }
+      ],
+      "kind": "compute",
+      "label": "embed",
+      "notes": ["Pad vocabulary to a multiple of 64 before TP sharding."],
+      "out": [
+        {
+          "dtype": "dtype_a",
+          "name": "output",
+          "shape": ["T", "H"]
+        }
+      ],
+      "parallel": {
+        "tp": {
+          "dim": "vocab"
+        }
+      },
+      "parent": null,
+      "rule": "embedding",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/layers/vocab_parallel_embedding.py",
+        "line": 206,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.layers.vocab_parallel_embedding.VocabParallelEmbedding"
+      },
+      "weight_bytes": "round_up(V,64)/tp*H*bytes(dtype_w)"
+    },
+    {
+      "ascend": null,
+      "bytes_moved": {
+        "decode": "0",
+        "prefill": "0"
+      },
+      "class": "vllm.model_executor.layers.vocab_parallel_embedding.VocabParallelEmbedding",
+      "comm": {
+        "bus_bytes": {
+          "decode": "tp>1 ? (2*(tp-1)/tp)*(S*H*bytes(dtype_a)) : 0",
+          "prefill": "tp>1 ? (2*(tp-1)/tp)*(T*H*bytes(dtype_a)) : 0"
+        },
+        "group": "tp",
+        "logical_bytes": {
+          "decode": "S*H*bytes(dtype_a)",
+          "prefill": "T*H*bytes(dtype_a)"
+        },
+        "notes": ["Ring estimate; logical bytes describe the tensor even when inactive."],
+        "op": "all_reduce",
+        "when": "tp>1"
+      },
+      "flops": {
+        "decode": "0",
+        "prefill": "0"
+      },
+      "id": "embed.reduce",
+      "in": [
+        {
+          "dtype": "dtype_a",
+          "name": "output",
+          "shape": ["T", "H"]
+        }
+      ],
+      "kind": "comm",
+      "label": "all_reduce",
+      "notes": [],
+      "out": [
+        {
+          "dtype": "dtype_a",
+          "name": "output",
+          "shape": ["T", "H"]
+        }
+      ],
+      "parallel": {},
+      "parent": null,
+      "rule": "embedding",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/layers/vocab_parallel_embedding.py",
+        "line": 206,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.layers.vocab_parallel_embedding.VocabParallelEmbedding"
+      },
+      "weight_bytes": "0"
+    },
+    {
+      "ascend": null,
+      "bytes_moved": {
+        "decode": "H*bytes(dtype_w)+2*S*H*1*bytes(dtype_a)",
+        "prefill": "H*bytes(dtype_w)+2*T*H*1*bytes(dtype_a)"
+      },
+      "class": "vllm.model_executor.layers.layernorm.RMSNorm",
+      "comm": null,
+      "flops": {
+        "decode": "5*S*H*1",
+        "prefill": "5*T*H*1"
+      },
+      "id": "final_norm",
+      "in": [
+        {
+          "dtype": "dtype_a",
+          "name": "input",
+          "shape": ["T", "H*(1)"]
+        },
+        {
+          "dtype": "dtype_w",
+          "name": "weight",
+          "shape": ["H"]
+        }
+      ],
+      "kind": "compute",
+      "label": "final_norm",
+      "notes": [],
+      "out": [
+        {
+          "dtype": "dtype_a",
+          "name": "output",
+          "shape": ["T", "H*1"]
+        }
+      ],
+      "parallel": {
+        "tp": {
+          "dim": "replicated"
+        }
+      },
+      "parent": null,
+      "rule": "norm.rms",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/layers/layernorm.py",
+        "line": 39,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.layers.layernorm.RMSNorm"
+      },
+      "weight_bytes": "H*bytes(dtype_w)"
+    },
+    {
+      "ascend": null,
+      "bytes_moved": {
+        "decode": "0",
+        "prefill": "0"
+      },
+      "class": "vllm.model_executor.layers.attention.attention.Attention",
+      "comm": null,
+      "flops": {
+        "decode": "0",
+        "prefill": "0"
+      },
+      "id": "kv_cache",
+      "in": [],
+      "kind": "io",
+      "label": "KV cache",
+      "notes": ["KV state input; capacity is reported by memory.kv_tokens."],
+      "out": [
+        {
+          "dtype": "dtype_kv",
+          "name": "kv",
+          "shape": ["2", "S", "context", "max(1,Hkv/tp)", "D"]
+        }
+      ],
+      "parallel": {
+        "tp": {
+          "dim": "heads"
+        }
+      },
+      "parent": "attn",
+      "rule": "attention",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/layers/attention/attention.py",
+        "line": 229,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.layers.attention.attention.Attention"
+      },
+      "weight_bytes": "0"
+    },
+    {
+      "ascend": null,
+      "bytes_moved": {
+        "decode": "round_up(V,64)/tp*H*bytes(dtype_w)+S*(H+round_up(V,64)/tp)*bytes(dtype_a)",
+        "prefill": "round_up(V,64)/tp*H*bytes(dtype_w)+batch*(H+round_up(V,64)/tp)*bytes(dtype_a)"
+      },
+      "class": "vllm.model_executor.layers.vocab_parallel_embedding.ParallelLMHead",
+      "comm": null,
+      "flops": {
+        "decode": "2*S*H*round_up(V,64)/tp",
+        "prefill": "2*batch*H*round_up(V,64)/tp"
+      },
+      "id": "lm_head",
+      "in": [
+        {
+          "dtype": "dtype_a",
+          "name": "input",
+          "shape": {
+            "decode": ["S", "H"],
+            "prefill": ["batch", "H"]
+          }
+        },
+        {
+          "dtype": "dtype_w",
+          "name": "weight",
+          "shape": ["round_up(V,64)/tp", "H"]
+        }
+      ],
+      "kind": "compute",
+      "label": "lm_head",
+      "notes": ["A tied head shares embedding storage; its compute still runs."],
+      "out": [
+        {
+          "dtype": "dtype_a",
+          "name": "output",
+          "shape": {
+            "decode": ["S", "round_up(V,64)/tp"],
+            "prefill": ["batch", "round_up(V,64)/tp"]
+          }
+        }
+      ],
+      "parallel": {
+        "tp": {
+          "dim": "out"
+        }
+      },
+      "parent": null,
+      "rule": "lm_head",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/layers/vocab_parallel_embedding.py",
+        "line": 578,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.layers.vocab_parallel_embedding.ParallelLMHead"
+      },
+      "weight_bytes": "false ? 0 : round_up(V,64)/tp*H*bytes(dtype_w)"
+    },
+    {
+      "ascend": null,
+      "bytes_moved": {
+        "decode": "2*S*V*bytes(dtype_a)",
+        "prefill": "2*batch*V*bytes(dtype_a)"
+      },
+      "class": "vllm.model_executor.layers.logits_processor.LogitsProcessor",
+      "comm": null,
+      "flops": {
+        "decode": "0",
+        "prefill": "0"
+      },
+      "id": "logits",
+      "in": [
+        {
+          "dtype": "dtype_a",
+          "name": "logits",
+          "shape": {
+            "decode": ["S", "round_up(V,64)"],
+            "prefill": ["batch", "round_up(V,64)"]
+          }
+        }
+      ],
+      "kind": "compute",
+      "label": "logits",
+      "notes": [
+        "Default gather to TP rank zero: bus bytes are rank-average outgoing local-shard bytes. Full-result all_gather uses a different convention."
+      ],
+      "out": [
+        {
+          "dtype": "dtype_a",
+          "name": "output",
+          "shape": {
+            "decode": ["S", "V"],
+            "prefill": ["batch", "V"]
+          }
+        }
+      ],
+      "parallel": {},
+      "parent": null,
+      "rule": "logits",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/layers/logits_processor.py",
+        "line": 58,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.layers.logits_processor.LogitsProcessor"
+      },
+      "weight_bytes": "0"
+    },
+    {
+      "ascend": null,
+      "bytes_moved": {
+        "decode": "0",
+        "prefill": "0"
+      },
+      "class": "vllm.model_executor.layers.logits_processor.LogitsProcessor",
+      "comm": {
+        "bus_bytes": {
+          "decode": "tp>1 ? ((tp-1)/tp)*(S*round_up(V,64)/tp*bytes(dtype_a)) : 0",
+          "prefill": "tp>1 ? ((tp-1)/tp)*(batch*round_up(V,64)/tp*bytes(dtype_a)) : 0"
+        },
+        "group": "tp",
+        "logical_bytes": {
+          "decode": "S*round_up(V,64)/tp*bytes(dtype_a)",
+          "prefill": "batch*round_up(V,64)/tp*bytes(dtype_a)"
+        },
+        "notes": ["Ring estimate; logical bytes describe the tensor even when inactive."],
+        "op": "gather",
+        "when": "tp>1"
+      },
+      "flops": {
+        "decode": "0",
+        "prefill": "0"
+      },
+      "id": "logits.gather",
+      "in": [
+        {
+          "dtype": "dtype_a",
+          "name": "logits_shard",
+          "shape": {
+            "decode": ["S", "round_up(V,64)/tp"],
+            "prefill": ["batch", "round_up(V,64)/tp"]
+          }
+        }
+      ],
+      "kind": "comm",
+      "label": "gather",
+      "notes": [],
+      "out": [
+        {
+          "dtype": "dtype_a",
+          "name": "logits",
+          "shape": {
+            "decode": ["S", "round_up(V,64)"],
+            "prefill": ["batch", "round_up(V,64)"]
+          }
+        }
+      ],
+      "parallel": {},
+      "parent": null,
+      "rule": "logits",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/layers/logits_processor.py",
+        "line": 58,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.layers.logits_processor.LogitsProcessor"
+      },
+      "weight_bytes": "0"
+    },
+    {
+      "ascend": null,
+      "bytes_moved": {
+        "decode": "(3*S*I/tp*bytes(dtype_a))+(((12288/tp*H*bytes(dtype_w))+(false ? (H)*bytes(dtype_w) : 0))+S*((12288/tp)+(H))*bytes(dtype_a))+(((H*24576/tp*bytes(dtype_w))+(false ? (24576/tp)*bytes(dtype_w) : 0))+S*((H)+(24576/tp))*bytes(dtype_a))",
+        "prefill": "(3*T*I/tp*bytes(dtype_a))+(((12288/tp*H*bytes(dtype_w))+(false ? (H)*bytes(dtype_w) : 0))+T*((12288/tp)+(H))*bytes(dtype_a))+(((H*24576/tp*bytes(dtype_w))+(false ? (24576/tp)*bytes(dtype_w) : 0))+T*((H)+(24576/tp))*bytes(dtype_a))"
+      },
+      "class": "vllm.model_executor.models.qwen2.Qwen2MLP",
+      "comm": null,
+      "flops": {
+        "decode": "(4*S*I/tp)+(2*S*12288/tp*H)+(2*S*H*24576/tp)",
+        "prefill": "(4*T*I/tp)+(2*T*12288/tp*H)+(2*T*H*24576/tp)"
+      },
+      "id": "mlp",
+      "in": [
+        {
+          "dtype": "dtype_a",
+          "name": "input",
+          "shape": ["T", "H"]
+        }
+      ],
+      "kind": "group",
+      "label": "mlp",
+      "notes": [
+        "Qwen3 imports Qwen2MLP as Qwen3MLP; the observed class identity remains Qwen2MLP."
+      ],
+      "out": [
+        {
+          "dtype": "dtype_a",
+          "name": "output",
+          "shape": ["T", "H"]
+        }
+      ],
+      "parallel": {},
+      "parent": "decoder",
+      "rule": "container.Qwen2MLP",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/models/qwen2.py",
+        "line": 81,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.models.qwen2.Qwen2MLP"
+      },
+      "weight_bytes": "((12288/tp*H*bytes(dtype_w))+(false ? (H)*bytes(dtype_w) : 0))+((H*24576/tp*bytes(dtype_w))+(false ? (24576/tp)*bytes(dtype_w) : 0))"
+    },
+    {
+      "ascend": null,
+      "bytes_moved": {
+        "decode": "3*S*I/tp*bytes(dtype_a)",
+        "prefill": "3*T*I/tp*bytes(dtype_a)"
+      },
+      "class": "vllm.model_executor.layers.activation.SiluAndMul",
+      "comm": null,
+      "flops": {
+        "decode": "4*S*I/tp",
+        "prefill": "4*T*I/tp"
+      },
+      "id": "mlp.act",
+      "in": [
+        {
+          "dtype": "dtype_a",
+          "name": "input",
+          "shape": ["T", "2*I/tp"]
+        }
+      ],
+      "kind": "compute",
+      "label": "mlp.act",
+      "notes": [],
+      "out": [
+        {
+          "dtype": "dtype_a",
+          "name": "output",
+          "shape": ["T", "I/tp"]
+        }
+      ],
+      "parallel": {},
+      "parent": "mlp",
+      "rule": "activation.silu",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/layers/activation.py",
+        "line": 116,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.layers.activation.SiluAndMul"
+      },
+      "weight_bytes": "0"
+    },
+    {
+      "ascend": null,
+      "bytes_moved": {
+        "decode": "((12288/tp*H*bytes(dtype_w))+(false ? (H)*bytes(dtype_w) : 0))+S*((12288/tp)+(H))*bytes(dtype_a)",
+        "prefill": "((12288/tp*H*bytes(dtype_w))+(false ? (H)*bytes(dtype_w) : 0))+T*((12288/tp)+(H))*bytes(dtype_a)"
+      },
+      "class": "vllm.model_executor.layers.linear.RowParallelLinear",
+      "comm": null,
+      "flops": {
+        "decode": "2*S*12288/tp*H",
+        "prefill": "2*T*12288/tp*H"
+      },
+      "id": "mlp.down",
+      "in": [
+        {
+          "dtype": "dtype_a",
+          "name": "input",
+          "shape": ["T", "12288/tp"]
+        },
+        {
+          "dtype": "dtype_w",
+          "name": "weight",
+          "shape": ["H", "12288/tp"]
+        }
+      ],
+      "kind": "compute",
+      "label": "mlp.down",
+      "notes": [],
+      "out": [
+        {
+          "dtype": "dtype_a",
+          "name": "output",
+          "shape": ["T", "H"]
+        }
+      ],
+      "parallel": {
+        "tp": {
+          "dim": "in"
+        }
+      },
+      "parent": "mlp",
+      "rule": "linear.row",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/layers/linear.py",
+        "line": 1639,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.layers.linear.RowParallelLinear"
+      },
+      "weight_bytes": "(12288/tp*H*bytes(dtype_w))+(false ? (H)*bytes(dtype_w) : 0)"
+    },
+    {
+      "ascend": null,
+      "bytes_moved": {
+        "decode": "0",
+        "prefill": "0"
+      },
+      "class": "vllm.model_executor.layers.linear.RowParallelLinear",
+      "comm": {
+        "bus_bytes": {
+          "decode": "true && tp>1 ? (2*(tp-1)/tp)*(S*H*bytes(dtype_a)) : 0",
+          "prefill": "true && tp>1 ? (2*(tp-1)/tp)*(T*H*bytes(dtype_a)) : 0"
+        },
+        "group": "tp",
+        "logical_bytes": {
+          "decode": "S*H*bytes(dtype_a)",
+          "prefill": "T*H*bytes(dtype_a)"
+        },
+        "notes": ["Ring estimate; logical bytes describe the tensor even when inactive."],
+        "op": "all_reduce",
+        "when": "true && tp>1"
+      },
+      "flops": {
+        "decode": "0",
+        "prefill": "0"
+      },
+      "id": "mlp.down.reduce",
+      "in": [
+        {
+          "dtype": "dtype_a",
+          "name": "output",
+          "shape": ["T", "H"]
+        }
+      ],
+      "kind": "comm",
+      "label": "all_reduce",
+      "notes": [],
+      "out": [
+        {
+          "dtype": "dtype_a",
+          "name": "output",
+          "shape": ["T", "H"]
+        }
+      ],
+      "parallel": {},
+      "parent": "mlp",
+      "rule": "linear.row",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/layers/linear.py",
+        "line": 1639,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.layers.linear.RowParallelLinear"
+      },
+      "weight_bytes": "0"
+    },
+    {
+      "ascend": null,
+      "bytes_moved": {
+        "decode": "((H*24576/tp*bytes(dtype_w))+(false ? (24576/tp)*bytes(dtype_w) : 0))+S*((H)+(24576/tp))*bytes(dtype_a)",
+        "prefill": "((H*24576/tp*bytes(dtype_w))+(false ? (24576/tp)*bytes(dtype_w) : 0))+T*((H)+(24576/tp))*bytes(dtype_a)"
+      },
+      "class": "vllm.model_executor.layers.linear.MergedColumnParallelLinear",
+      "comm": null,
+      "flops": {
+        "decode": "2*S*H*24576/tp",
+        "prefill": "2*T*H*24576/tp"
+      },
+      "id": "mlp.gate_up",
+      "in": [
+        {
+          "dtype": "dtype_a",
+          "name": "input",
+          "shape": ["T", "H"]
+        },
+        {
+          "dtype": "dtype_w",
+          "name": "weight",
+          "shape": ["24576/tp", "H"]
+        }
+      ],
+      "kind": "compute",
+      "label": "mlp.gate_up",
+      "notes": [],
+      "out": [
+        {
+          "dtype": "dtype_a",
+          "name": "output",
+          "shape": ["T", "false ? 24576 : 24576/tp"]
+        }
+      ],
+      "parallel": {
+        "tp": {
+          "dim": "out"
+        }
+      },
+      "parent": "mlp",
+      "rule": "linear.merged",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/layers/linear.py",
+        "line": 686,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.layers.linear.MergedColumnParallelLinear"
+      },
+      "weight_bytes": "(H*24576/tp*bytes(dtype_w))+(false ? (24576/tp)*bytes(dtype_w) : 0)"
+    },
+    {
+      "ascend": null,
+      "bytes_moved": {
+        "decode": "H*bytes(dtype_w)+2*S*H*1*bytes(dtype_a)",
+        "prefill": "H*bytes(dtype_w)+2*T*H*1*bytes(dtype_a)"
+      },
+      "class": "vllm.model_executor.layers.layernorm.RMSNorm",
+      "comm": null,
+      "flops": {
+        "decode": "5*S*H*1",
+        "prefill": "5*T*H*1"
+      },
+      "id": "norm.input",
+      "in": [
+        {
+          "dtype": "dtype_a",
+          "name": "input",
+          "shape": ["T", "H*(1)"]
+        },
+        {
+          "dtype": "dtype_w",
+          "name": "weight",
+          "shape": ["H"]
+        }
+      ],
+      "kind": "compute",
+      "label": "norm.input",
+      "notes": [],
+      "out": [
+        {
+          "dtype": "dtype_a",
+          "name": "output",
+          "shape": ["T", "H*1"]
+        }
+      ],
+      "parallel": {
+        "tp": {
+          "dim": "replicated"
+        }
+      },
+      "parent": "decoder",
+      "rule": "norm.rms",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/layers/layernorm.py",
+        "line": 39,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.layers.layernorm.RMSNorm"
+      },
+      "weight_bytes": "H*bytes(dtype_w)"
+    },
+    {
+      "ascend": null,
+      "bytes_moved": {
+        "decode": "H*bytes(dtype_w)+2*S*H*1*bytes(dtype_a)",
+        "prefill": "H*bytes(dtype_w)+2*T*H*1*bytes(dtype_a)"
+      },
+      "class": "vllm.model_executor.layers.layernorm.RMSNorm",
+      "comm": null,
+      "flops": {
+        "decode": "5*S*H*1",
+        "prefill": "5*T*H*1"
+      },
+      "id": "norm.post",
+      "in": [
+        {
+          "dtype": "dtype_a",
+          "name": "input",
+          "shape": ["T", "H*(1)"]
+        },
+        {
+          "dtype": "dtype_w",
+          "name": "weight",
+          "shape": ["H"]
+        }
+      ],
+      "kind": "compute",
+      "label": "norm.post",
+      "notes": [],
+      "out": [
+        {
+          "dtype": "dtype_a",
+          "name": "output",
+          "shape": ["T", "H*1"]
+        }
+      ],
+      "parallel": {
+        "tp": {
+          "dim": "replicated"
+        }
+      },
+      "parent": "decoder",
+      "rule": "norm.rms",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/layers/layernorm.py",
+        "line": 39,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.layers.layernorm.RMSNorm"
+      },
+      "weight_bytes": "H*bytes(dtype_w)"
+    },
+    {
+      "ascend": null,
+      "bytes_moved": {
+        "decode": "0",
+        "prefill": "0"
+      },
+      "class": "vllm.model_executor.layers.logits_processor.LogitsProcessor",
+      "comm": null,
+      "flops": {
+        "decode": "0",
+        "prefill": "0"
+      },
+      "id": "output",
+      "in": [
+        {
+          "dtype": "dtype_a",
+          "name": "output",
+          "shape": {
+            "decode": ["S", "V"],
+            "prefill": ["batch", "V"]
+          }
+        }
+      ],
+      "kind": "io",
+      "label": "Logits / sampling",
+      "notes": [
+        "Sampling internals are outside the extracted model; fp32 workspace is included in activation_peak."
+      ],
+      "out": [
+        {
+          "dtype": "dtype_ids",
+          "name": "tokens",
+          "shape": {
+            "decode": ["S"],
+            "prefill": ["batch"]
+          }
+        }
+      ],
+      "parallel": {},
+      "parent": null,
+      "rule": "logits",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/layers/logits_processor.py",
+        "line": 58,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.layers.logits_processor.LogitsProcessor"
+      },
+      "weight_bytes": "0"
+    }
+  ],
+  "notes": [
+    "Rank-local metrics; group summaries include children, never sum both.",
+    "Activation peak is a profiling-token liveness estimate including fp32 sampler warmup; uncalibrated.",
+    "Equal PP partitions only; mixed bands restrict PP to one. Runtime EP is a degree, not a boolean."
+  ],
+  "params": {
+    "S": {
+      "choices": null,
+      "constraint": null,
+      "default": "1",
+      "description": "Local concurrent decode sequences.",
+      "kind": "integer",
+      "max": null,
+      "min": "1",
+      "step": "1"
+    },
+    "T": {
+      "choices": null,
+      "constraint": "T%batch==0",
+      "default": "4096",
+      "description": "Local prefill chunk tokens; divisible by batch.",
+      "kind": "integer",
+      "max": null,
+      "min": "1",
+      "step": "1"
+    },
+    "batch": {
+      "choices": null,
+      "constraint": null,
+      "default": "1",
+      "description": "Equal-length prefill sequences, distinct from S.",
+      "kind": "integer",
+      "max": null,
+      "min": "1",
+      "step": "1"
+    },
+    "block_size": {
+      "choices": ["16", "32", "64", "128"],
+      "constraint": null,
+      "default": "128",
+      "description": "Cache capacity rounds down to whole blocks.",
+      "kind": "integer",
+      "max": null,
+      "min": null,
+      "step": null
+    },
+    "context": {
+      "choices": null,
+      "constraint": null,
+      "default": "4096",
+      "description": "Existing cached tokens per decode sequence.",
+      "kind": "integer",
+      "max": null,
+      "min": "0",
+      "step": "1"
+    },
+    "dp": {
+      "choices": null,
+      "constraint": null,
+      "default": "1",
+      "description": "Attention data replicas; expert TP flattens tp*dp.",
+      "kind": "integer",
+      "max": null,
+      "min": "1",
+      "step": "1"
+    },
+    "dtype_a": {
+      "choices": ["bf16", "fp16", "fp32"],
+      "constraint": null,
+      "default": "bf16",
+      "description": "Unquantized scalar dtype; scale/packing overhead excluded.",
+      "kind": "dtype",
+      "max": null,
+      "min": null,
+      "step": null
+    },
+    "dtype_ids": {
+      "choices": ["int32", "int64"],
+      "constraint": null,
+      "default": "int64",
+      "description": "Token index scalar dtype.",
+      "kind": "dtype",
+      "max": null,
+      "min": null,
+      "step": null
+    },
+    "dtype_kv": {
+      "choices": ["bf16", "fp16", "fp32"],
+      "constraint": null,
+      "default": "bf16",
+      "description": "Unquantized scalar dtype; scale/packing overhead excluded.",
+      "kind": "dtype",
+      "max": null,
+      "min": null,
+      "step": null
+    },
+    "dtype_w": {
+      "choices": ["bf16", "fp16", "fp32"],
+      "constraint": null,
+      "default": "bf16",
+      "description": "Unquantized scalar dtype; scale/packing overhead excluded.",
+      "kind": "dtype",
+      "max": null,
+      "min": null,
+      "step": null
+    },
+    "ep": {
+      "choices": ["1"],
+      "constraint": "ep==1",
+      "default": "1",
+      "description": "Dense model has no expert parallelism.",
+      "kind": "integer",
+      "max": null,
+      "min": "1",
+      "step": "1"
+    },
+    "gpu_memory_utilization": {
+      "choices": null,
+      "constraint": null,
+      "default": "0.9",
+      "description": "Fraction of device memory budgeted to vLLM.",
+      "kind": "number",
+      "max": "1",
+      "min": "0.01",
+      "step": null
+    },
+    "hbm_bytes": {
+      "choices": null,
+      "constraint": null,
+      "default": "80000000000",
+      "description": "Per-device memory bytes; override with catalog hardware preset.",
+      "kind": "number",
+      "max": null,
+      "min": "1",
+      "step": null
+    },
+    "max_num_batched_tokens": {
+      "choices": null,
+      "constraint": null,
+      "default": "4096",
+      "description": "Profiling prefill token count, independent of context.",
+      "kind": "integer",
+      "max": null,
+      "min": "1",
+      "step": "1"
+    },
+    "max_num_seqs": {
+      "choices": null,
+      "constraint": null,
+      "default": "256",
+      "description": "Sampler warmup concurrent sequences.",
+      "kind": "integer",
+      "max": null,
+      "min": "1",
+      "step": "1"
+    },
+    "non_torch_bytes": {
+      "choices": null,
+      "constraint": null,
+      "default": "200000000",
+      "description": "Catalog estimate for communication/runtime buffers.",
+      "kind": "number",
+      "max": null,
+      "min": "0",
+      "step": null
+    },
+    "pp": {
+      "choices": ["1", "2", "3", "4", "6", "9", "12", "18", "36"],
+      "constraint": "L%pp==0",
+      "default": "1",
+      "description": "Equal layer partitions; heaviest stage ledger.",
+      "kind": "integer",
+      "max": null,
+      "min": null,
+      "step": null
+    },
+    "reserved_bytes": {
+      "choices": null,
+      "constraint": null,
+      "default": "2000000000",
+      "description": "Catalog estimate for graph capture/allocator reserve.",
+      "kind": "number",
+      "max": null,
+      "min": "0",
+      "step": null
+    },
+    "tp": {
+      "choices": ["1", "2", "4", "8"],
+      "constraint": "Hq%tp==0 && (Hkv%tp==0 || tp%Hkv==0) && round_up(V,64)%tp==0 && I%tp==0",
+      "default": "1",
+      "description": "Attention tensor parallel degree. Build default: smallest valid TP choice with memory.kv_tokens > 0 on the snapshot device, keeping all other defaults; if none fits, use the smallest valid TP and retain the zero-capacity warning.",
+      "kind": "integer",
+      "max": null,
+      "min": null,
+      "step": null
+    }
+  },
+  "snapshot": {
+    "ascend": {
+      "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
+      "tag": "main"
+    },
+    "device": "H100",
+    "generator_version": "0.1.0",
+    "model": {
+      "config_rev": "inline:sha256:d4e9a115241526b8e427513a2bbbff545bb324875df0f0a158d25bf0b007fe49",
+      "hf_id": "Qwen/Qwen3-8B"
+    },
+    "vllm": {
+      "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+      "tag": "main"
+    }
+  },
+  "symbols": {
+    "D": "128",
+    "E": "0",
+    "H": "4096",
+    "Hkv": "8",
+    "Hq": "32",
+    "I": "12288",
+    "I_moe": "12288",
+    "L": "36",
+    "V": "151936",
+    "topk": "1"
+  },
+  "views": {
+    "family": "dense"
+  }
+}
