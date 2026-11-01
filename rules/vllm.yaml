@@ -711,35 +711,35 @@
         kind: comm
         comm:
           op: all_gather
-          group: ep
+          group: dp
           logical_bytes:
-            prefill: T*H*bytes(dtype_a)
-            decode: S*H*bytes(dtype_a)
+            prefill: dp*T*H*bytes(dtype_a)
+            decode: dp*S*H*bytes(dtype_a)
           bus_bytes:
-            prefill: 'dp>1 ? (tp*dp-1)/(tp*dp)*(T*H*bytes(dtype_a)) : 0'
-            decode: 'dp>1 ? (tp*dp-1)/(tp*dp)*(S*H*bytes(dtype_a)) : 0'
+            prefill: 'dp>1 ? (dp-1)/dp*(dp*T*H*bytes(dtype_a)) : 0'
+            decode: 'dp>1 ? (dp-1)/dp*(dp*S*H*bytes(dtype_a)) : 0'
           when: dp>1
           notes:
-            - Default allgather_reducescatter backend, flattened tp*dp group even with ep=1. Logical tensor is
-              T*H; ring bus factor is (n-1)/n. Expert compute uses T*dp gathered tokens. Router
-              scores/metadata omitted.
+            - Default allgather_reducescatter backend, DP group without sequence parallelism or PCP. Logical
+              bytes describe the full gathered dp*T*H tensor for both collectives; ring bus factor
+              is (dp-1)/dp. Router scores/metadata omitted.
       - &id002
         suffix: combine
         kind: comm
         comm:
           op: reduce_scatter
-          group: ep
+          group: dp
           logical_bytes:
-            prefill: T*H*bytes(dtype_a)
-            decode: S*H*bytes(dtype_a)
+            prefill: dp*T*H*bytes(dtype_a)
+            decode: dp*S*H*bytes(dtype_a)
           bus_bytes:
-            prefill: 'dp>1 ? (tp*dp-1)/(tp*dp)*(T*H*bytes(dtype_a)) : 0'
-            decode: 'dp>1 ? (tp*dp-1)/(tp*dp)*(S*H*bytes(dtype_a)) : 0'
+            prefill: 'dp>1 ? (dp-1)/dp*(dp*T*H*bytes(dtype_a)) : 0'
+            decode: 'dp>1 ? (dp-1)/dp*(dp*S*H*bytes(dtype_a)) : 0'
           when: dp>1
           notes:
-            - Default allgather_reducescatter backend, flattened tp*dp group even with ep=1. Logical tensor is
-              T*H; ring bus factor is (n-1)/n. Expert compute uses T*dp gathered tokens. Router
-              scores/metadata omitted.
+            - Default allgather_reducescatter backend, DP group without sequence parallelism or PCP. Logical
+              bytes describe the full gathered dp*T*H tensor for both collectives; ring bus factor
+              is (dp-1)/dp. Router scores/metadata omitted.
       - &id003
         suffix: reduce
         kind: comm

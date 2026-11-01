@@ -709,7 +709,7 @@ node(
         "Execution strategy metadata node; no additional tensors/weights. Not included in data-flow views."
     ],
 )
-logical = "T*H*bytes(dtype_a)"
+logical = "dp*T*H*bytes(dtype_a)"
 for name, op in [("dispatch", "all_gather"), ("combine", "reduce_scatter")]:
     node(
         "moe.experts." + name,
@@ -719,13 +719,13 @@ for name, op in [("dispatch", "all_gather"), ("combine", "reduce_scatter")]:
         kind="comm",
         communication=comm(
             op,
-            "ep",
+            "dp",
             logical,
-            f"dp>1 ? (tp*dp-1)/(tp*dp)*({logical}) : 0",
+            f"dp>1 ? (dp-1)/dp*({logical}) : 0",
             "dp>1",
         ),
         notes=[
-            "Default allgather_reducescatter backend, flattened tp*dp group even with ep=1. Contract logical tensor is T*H; router metadata omitted. Expert compute uses T*dp tokens."
+            "Default allgather_reducescatter backend, DP group without sequence parallelism or PCP. Logical bytes describe the full gathered dp*T*H tensor for both collectives; router metadata omitted."
         ],
     )
 for name, factor in [("w13", 4), ("w2", 2)]:
@@ -882,7 +882,7 @@ for key, in_dim, out_dim in [
         f"({traffic_weight})+({routed_tokens})*(({in_dim})+({out_dim}))*bytes(dtype_a)",
         f"({traffic_weight.replace('T*', 'S*')})+({routed_tokens.replace('T*', 'S*')})*(({in_dim})+({out_dim}))*bytes(dtype_a)",
     )
-node_map["moe.experts.combine"]["in"] = [tensor("routed", [routed_tokens, "H"])]
+node_map["moe.experts.combine"]["in"] = [tensor("gathered", ["dp*T", "H"])]
 node_map["attn.rope.apply"]["in"] = node_map["attn.rope"]["in"]
 node_map["attn.rope.apply"]["out"] = node_map["attn.rope"]["out"]
 
@@ -1079,14 +1079,17 @@ for tp in [1, 4]:
     )
     cases.append({"id": f"tp{tp}-bf16-T4096", "env": env, "expected": expected})
 # Unverified transport estimates, independent arithmetic for the EP/DP boundary cases.
-for tp, dp, ep in [(4, 1, 4), (2, 2, 4), (1, 4, 4), (1, 4, 1)]:
+for tp, dp, ep in [(4, 1, 4), (1, 2, 1), (2, 2, 1), (4, 2, 1), (2, 2, 4), (1, 4, 4), (1, 4, 1)]:
     active_dispatch = dp > 1
     active_reduce = tp > 1 or ep > 1
     expected = {}
     for phase_name, tokens in [("prefill", 4096), ("decode", 3)]:
         for suffix in ["dispatch", "combine"]:
+            expected[f"/nodes/moe.experts.{suffix}/comm/logical_bytes/{phase_name}"] = (
+                dp * tokens * 2048 * 2
+            )
             expected[f"/nodes/moe.experts.{suffix}/comm/bus_bytes/{phase_name}"] = (
-                (tp * dp - 1) / (tp * dp) * tokens * 2048 * 2 if active_dispatch else 0
+                (dp - 1) * tokens * 2048 * 2 if active_dispatch else 0
             )
         expected[f"/nodes/moe.experts.reduce/comm/logical_bytes/{phase_name}"] = tokens * 2048 * 2
         expected[f"/nodes/moe.experts.reduce/comm/bus_bytes/{phase_name}"] = (

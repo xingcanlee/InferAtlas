@@ -194,9 +194,9 @@ def test_communication_and_moe_flops(data, tp, dp, ep):
             assert evaluate(getattr(comm.bus_bytes, phase), e) == 2 * (tp - 1) / tp * logical
         for name in ["moe.experts.dispatch", "moe.experts.combine"]:
             comm = nodes[name].comm
-            assert evaluate(getattr(comm.bus_bytes, phase), e) == (
-                (tp * dp - 1) / (tp * dp) * logical if dp > 1 else 0
-            )
+            assert comm.group == "dp"
+            assert evaluate(getattr(comm.logical_bytes, phase), e) == dp * logical
+            assert evaluate(getattr(comm.bus_bytes, phase), e) == (dp - 1) * logical
         rows = 2 if phase == "prefill" else 3
         assert (
             evaluate(getattr(nodes["logits.gather"].comm.logical_bytes, phase), e)
@@ -458,6 +458,30 @@ def test_expert_traffic_is_transferred_to_children(data, tp, dp, ep):
     )
 
 
+@pytest.mark.parametrize("tp", [1, 2, 4])
+@pytest.mark.parametrize("enable_ep", [False, True])
+def test_default_moe_dp_traffic_is_independent_of_tp(data, tp, enable_ep):
+    # Check the independently curated fixture and rule-driven lowering against pinned bytes.
+    from inferatlas.schema.models import IR
+
+    fixture = IR.model_validate_json(FIXTURE.with_name("ir.json").read_text())
+    for ir in [fixture, lower(data).ir]:
+        env = environment(ir, tp=tp, dp=2, ep=tp * 2 if enable_ep else 1, T=4096, S=3)
+        nodes = {node.id: node for node in ir.nodes}
+        for suffix, op in [("dispatch", "all_gather"), ("combine", "reduce_scatter")]:
+            node = nodes["moe.experts." + suffix]
+            assert (node.comm.op, node.comm.group) == (op, "dp")
+            assert evaluate(node.comm.when, env) == 1
+            for phase, logical, bus in [
+                ("prefill", 33_554_432, 16_777_216),
+                ("decode", 24_576, 12_288),
+            ]:
+                assert evaluate(getattr(node.comm.logical_bytes, phase), env) == logical
+                assert evaluate(getattr(node.comm.bus_bytes, phase), env) == bus
+            if suffix == "combine":
+                assert [evaluate(dim, env) for dim in node.inputs[0].shape] == [8192, 2048]
+
+
 @pytest.mark.parametrize("tp,dp,ep", [(4, 1, 4), (2, 2, 1), (2, 2, 4), (1, 4, 4)])
 def test_moe_backend_collectives_are_exclusive(data, tp, dp, ep):
     for a2a in [False, True]:
@@ -469,10 +493,10 @@ def test_moe_backend_collectives_are_exclusive(data, tp, dp, ep):
             for name, op in [("dispatch", "all_gather"), ("combine", "reduce_scatter")]:
                 comm = nodes["moe.experts." + name].comm
                 assert comm.op == ("all_to_all" if a2a else op)
-                assert comm.group == "ep"
+                assert comm.group == ("ep" if a2a else "dp")
                 active = dp > 1 and (ep > 1 if a2a else True)
-                logical = tokens * (8 if a2a else 1) * 2048 * 2
-                degree = ep if a2a else tp * dp
+                logical = tokens * (8 if a2a else dp) * 2048 * 2
+                degree = ep if a2a else dp
                 assert evaluate(getattr(comm.logical_bytes, phase), env) == logical
                 assert evaluate(comm.when, env) == active
                 assert evaluate(getattr(comm.bus_bytes, phase), env) == (

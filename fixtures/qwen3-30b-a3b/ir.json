@@ -1705,13 +1705,13 @@
       "class": "vllm.model_executor.layers.fused_moe.runner.moe_runner.MoERunner",
       "comm": {
         "bus_bytes": {
-          "decode": "dp>1 ? (tp*dp-1)/(tp*dp)*(S*H*bytes(dtype_a)) : 0",
-          "prefill": "dp>1 ? (tp*dp-1)/(tp*dp)*(T*H*bytes(dtype_a)) : 0"
+          "decode": "dp>1 ? (dp-1)/dp*(dp*S*H*bytes(dtype_a)) : 0",
+          "prefill": "dp>1 ? (dp-1)/dp*(dp*T*H*bytes(dtype_a)) : 0"
         },
-        "group": "ep",
+        "group": "dp",
         "logical_bytes": {
-          "decode": "S*H*bytes(dtype_a)",
-          "prefill": "T*H*bytes(dtype_a)"
+          "decode": "dp*S*H*bytes(dtype_a)",
+          "prefill": "dp*T*H*bytes(dtype_a)"
         },
         "op": "reduce_scatter",
         "when": "dp>1"
@@ -1724,9 +1724,9 @@
       "in": [
         {
           "dtype": "dtype_a",
-          "name": "routed",
+          "name": "gathered",
           "shape": [
-            "T*dp*topk/(ep>1 ? ep : 1)",
+            "dp*T",
             "H"
           ]
         }
@@ -1734,7 +1734,7 @@
       "kind": "comm",
       "label": "EP combine",
       "notes": [
-        "Default allgather_reducescatter backend, flattened tp*dp group even with ep=1. Contract logical tensor is T*H; router metadata omitted. Expert compute uses T*dp tokens."
+        "Default allgather_reducescatter backend, DP group without sequence parallelism or PCP. Logical bytes describe the full gathered dp*T*H tensor for both collectives; router metadata omitted."
       ],
       "out": [
         {
@@ -1766,13 +1766,13 @@
       "class": "vllm.model_executor.layers.fused_moe.runner.moe_runner.MoERunner",
       "comm": {
         "bus_bytes": {
-          "decode": "dp>1 ? (tp*dp-1)/(tp*dp)*(S*H*bytes(dtype_a)) : 0",
-          "prefill": "dp>1 ? (tp*dp-1)/(tp*dp)*(T*H*bytes(dtype_a)) : 0"
+          "decode": "dp>1 ? (dp-1)/dp*(dp*S*H*bytes(dtype_a)) : 0",
+          "prefill": "dp>1 ? (dp-1)/dp*(dp*T*H*bytes(dtype_a)) : 0"
         },
-        "group": "ep",
+        "group": "dp",
         "logical_bytes": {
-          "decode": "S*H*bytes(dtype_a)",
-          "prefill": "T*H*bytes(dtype_a)"
+          "decode": "dp*S*H*bytes(dtype_a)",
+          "prefill": "dp*T*H*bytes(dtype_a)"
         },
         "op": "all_gather",
         "when": "dp>1"
@@ -1803,7 +1803,7 @@
       "kind": "comm",
       "label": "EP dispatch",
       "notes": [
-        "Default allgather_reducescatter backend, flattened tp*dp group even with ep=1. Contract logical tensor is T*H; router metadata omitted. Expert compute uses T*dp tokens."
+        "Default allgather_reducescatter backend, DP group without sequence parallelism or PCP. Logical bytes describe the full gathered dp*T*H tensor for both collectives; router metadata omitted."
       ],
       "out": [
         {

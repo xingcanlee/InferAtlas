@@ -568,6 +568,7 @@ def lower(
                 collective = collective.model_copy(
                     update={
                         "op": "all_to_all",
+                        "group": "ep",
                         "when": "ep>1 && dp>1",
                         "logical_bytes": logical,
                         "bus_bytes": PhaseExpr(
@@ -582,6 +583,8 @@ def lower(
                     }
                 )
             comm_in, comm_out = output, output
+            if not moe_a2a and emission.suffix == "combine":
+                comm_in = [TensorSpec(name="gathered", shape=["dp*T", "H"])]
             if nid == "logits":
                 comm_in = [
                     TensorSpec(

@@ -284,11 +284,14 @@ For pinned vLLM 544f182, this fixture excludes PCP/SP and uses the default unfus
 reduction path. The default `all2all_backend` is `allgather_reducescatter`
 (`config/parallel.py`); naive dispatch/combine activates whenever `dp>1`
 (`fused_moe/runner/moe_runner.py`), regardless of whether EP is enabled.
-The approved communication contract represents dispatch as **all_gather** and combine as
-**reduce_scatter** over the flattened **tp*dp** EP group, including `ep=1`.
-Each has logical bytes `T*H*bytes(dtype_a)` / `S*H*bytes(dtype_a)` and bus bytes
-`(tp*dp-1)/(tp*dp)` times that tensor, gated by `dp>1`.
-The group size for these default collectives is `tp*dp`, not the `ep` enable degree.
+`AgRsAll2AllManager._get_comm_group` (`distributed/device_communicators/all2all.py`)
+selects the **DP** group of size `dp` for this path, including `ep=1`.
+Dispatch is **all_gather** and combine is **reduce_scatter**. Both use logical bytes
+`dp*T*H*bytes(dtype_a)` / `dp*S*H*bytes(dtype_a)`: the full gathered output of dispatch
+and input of combine, following the full-gathered-size convention of `linear.column`.
+Bus bytes are `dp>1 ? (dp-1)/dp * logical_bytes : 0`; communication activates at `dp>1`.
+At `T=4096`, `H=2048`, bf16 and `dp=2`, each collective transfers 16,777,216 bus bytes
+for each of `tp=1`, `tp=2`, and `tp=4`. Sequence parallelism and PCP require separate rules.
 Expert FLOPs and workspace use the `T*dp` / `S*dp` gathered tokens, with local expert
 ownership divided by `ep` when EP is enabled, or intermediate TP `tp*dp` otherwise.
 

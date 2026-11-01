@@ -282,7 +282,7 @@ def test_schema_review_communications_and_phase_slots():
     nodes = {n.id: n for n in IR.model_validate(read(MOE / "ir.json")).nodes}
     for suffix, op in [("dispatch", "all_gather"), ("combine", "reduce_scatter")]:
         collective = nodes[f"moe.experts.{suffix}"].comm
-        assert (collective.op, collective.group, collective.when) == (op, "ep", "dp>1")
+        assert (collective.op, collective.group, collective.when) == (op, "dp", "dp>1")
     reduce = nodes["moe.experts.reduce"].comm
     assert (reduce.group, reduce.when) == ("tp", "tp>1 || ep>1")
     assert "dp" not in reduce.logical_bytes.prefill
