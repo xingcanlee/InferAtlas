@@ -19,3 +19,13 @@ experiments/a2_qwen3moe/runtime/
 .cache/
 .agents/
 .worktrees/
+# Generated web data and per-mode single-file builds
+web/public/data/
+dist-*/
+# Local env, logs, editors, OS
+.env
+.env.*
+*.log
+.DS_Store
+.idea/
+.vscode/
