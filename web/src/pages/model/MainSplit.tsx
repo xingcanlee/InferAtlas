@@ -15,8 +15,9 @@ const ANALYSIS_OPEN = "28%";
 /**
  * Short windows show the analysis panel collapsed so the whole graph fits readably (≥ 0.6 zoom);
  * taller windows show it open. Applies until the user resizes or toggles the panel.
+ * 900px + the 40px model tab header (Architecture | Graph & analysis) above the workspace.
  */
-const OPEN_BY_DEFAULT_MIN_HEIGHT = 900;
+const OPEN_BY_DEFAULT_MIN_HEIGHT = 940;
 
 /** Re-open size; percentages need the unit, a bare number would be pixels in v4. */
 const openSize = (pct: number | undefined) => (pct === undefined ? ANALYSIS_OPEN : `${pct}%`);

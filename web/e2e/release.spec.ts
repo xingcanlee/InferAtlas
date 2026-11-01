@@ -89,7 +89,7 @@ test("release matrix exposes DeepSeek blockers without numeric data or links", a
 
 test("release model captures light, dark, overlay and smaller desktop", async ({ page }) => {
   await page.emulateMedia({ colorScheme: "light" });
-  await page.goto(`./${route}`);
+  await page.goto(`./${route}?tab=graph`);
   await expect(page.getByTestId("node-decoder")).toBeVisible();
   await expect(
     page.getByTestId("param-tp").getByRole("radio", { name: "2", exact: true }),
@@ -107,7 +107,7 @@ test("release model captures light, dark, overlay and smaller desktop", async ({
   await expect(page.getByTestId("ascend-card")).toBeVisible();
   await screenshot(page, "model-overlay-a2");
   await page.setViewportSize({ width: 1280, height: 800 });
-  await page.goto(`./${route}`);
+  await page.goto(`./${route}?tab=graph`);
   await expect(page.getByTestId("node-decoder")).toBeVisible();
   await fits(page);
   await screenshot(page, "model-1280");
@@ -116,7 +116,7 @@ test("release model captures light, dark, overlay and smaller desktop", async ({
     await expect(page.getByTestId("current-view")).toContainText(view.split(":")[0] as string);
     await fits(page);
   }
-  await page.goto(`./${route}`);
+  await page.goto(`./${route}?tab=graph`);
   await page.locator(".react-flow__controls-fitview").click();
   await screenshot(page, "model-1280-fit");
   expect((await graphFit(page)).outside).toEqual([]);

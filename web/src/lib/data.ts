@@ -1,4 +1,5 @@
 import type { HardwarePreset, Index, IndexCell, IR, Report, View } from "@inferatlas/contracts";
+import type { Arch } from "@/lib/arch-types";
 import type { HubManifest } from "@/lib/hub";
 import { cellUnavailableMessage } from "@/lib/status";
 
@@ -14,7 +15,8 @@ export interface Bundle {
 export interface InlineData {
   index: Index;
   hardware?: Hardware[];
-  bundles: Record<string, { ir: IR; view?: View; report?: Report }>;
+  /** `ir` may be absent for structure-only cells that ship just `arch.json`. */
+  bundles: Record<string, { ir?: IR; view?: View; report?: Report; arch?: Arch }>;
   /** Hub build only: the single-file exports that sit beside the hub HTML. */
   hub?: HubManifest;
 }
@@ -86,7 +88,7 @@ export function loadBundle(dataPath: string): Promise<Bundle> {
   const data = inline();
   if (data) {
     const b = data.bundles[dataPath];
-    if (!b) return Promise.reject(new DataError(`${dataPath} is not inlined`, "not_found"));
+    if (!b?.ir) return Promise.reject(new DataError(`${dataPath} is not inlined`, "not_found"));
     return Promise.resolve({ dataPath, ir: b.ir, view: b.view, report: b.report });
   }
   let p = bundleCache.get(dataPath);
@@ -115,11 +117,35 @@ export function findCell(
   return index.cells.find((c) => c.version === version && c.model === model && c.device === device);
 }
 
+const archCache = new Map<string, Promise<Arch | undefined>>();
+/** `arch.json` of a data path, or undefined when the snapshot has none yet. */
+export function loadArch(dataPath: string): Promise<Arch | undefined> {
+  const data = inline();
+  if (data) return Promise.resolve(data.bundles[dataPath]?.arch);
+  let p = archCache.get(dataPath);
+  if (!p) {
+    const base = dataPath.replace(/\/+$/, "");
+    p = fetchJson<Arch>(`${base}/arch.json`, true).then((a) => {
+      if (a && (!Array.isArray(a.stages) || !a.model))
+        throw new DataError(`${base}/arch.json is malformed`);
+      return a;
+    });
+    p.catch(() => archCache.delete(dataPath));
+    archCache.set(dataPath, p);
+  }
+  return p;
+}
+
+/**
+ * A cell's data: the numeric bundle (ir/view/report) and/or the structure (`arch.json`).
+ * Structure first: a cell with only `arch.json` still opens; one with only `ir.json` shows the
+ * architecture tab's empty state.
+ */
 export async function loadCellBundle(
   version: string,
   model: string,
   device: string,
-): Promise<{ index: Index; cell: IndexCell; bundle: Bundle }> {
+): Promise<{ index: Index; cell: IndexCell; bundle: Bundle | undefined; arch: Arch | undefined }> {
   const index = await loadIndex();
   const cell = findCell(index, version, model, device);
   if (!cell)
@@ -127,7 +153,17 @@ export async function loadCellBundle(
   if (!cell.data_path) {
     throw new DataError(cellUnavailableMessage(cell), "not_found", cell);
   }
-  return { index, cell, bundle: await loadBundle(cell.data_path) };
+  const path = cell.data_path;
+  const [bundle, arch] = await Promise.all([
+    loadBundle(path).catch((e: unknown) => {
+      if (e instanceof DataError && e.kind === "not_found") return undefined;
+      throw e;
+    }),
+    loadArch(path),
+  ]);
+  if (!bundle && !arch)
+    throw new DataError(`${path} has neither ir.json nor arch.json`, "not_found");
+  return { index, cell, bundle, arch };
 }
 
 /**

@@ -14,7 +14,8 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@inferatlas/contracts": ["../packages/contracts/src/index.ts"]
+      "@inferatlas/contracts": ["../packages/contracts/src/index.ts"],
+      "@inferatlas/arch-ui": ["../packages/arch-ui/src/index.ts"]
     }
   },
   "include": ["src", "tests", "e2e", "vite.config.ts", "playwright.config.ts"]

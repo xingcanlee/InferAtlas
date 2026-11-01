@@ -52,7 +52,7 @@ function inlineData(mode: "single" | "hub"): Plugin {
         if (!existsSync(dir) || !statSync(dir).isDirectory()) continue;
         const bundle: Record<string, unknown> = {};
         for (const f of readdirSync(dir)) {
-          if (["ir.json", "view.json", "report.json"].includes(f)) {
+          if (["ir.json", "view.json", "report.json", "arch.json"].includes(f)) {
             bundle[f.replace(".json", "")] = read(join(dir, f));
           }
         }
@@ -108,10 +108,18 @@ export default defineConfig(({ mode }) => {
     ],
     publicDir: inlined ? false : "public",
     resolve: {
-      alias: {
-        "@": resolve(here, "src"),
-        "@inferatlas/contracts": resolve(here, "../packages/contracts/src/index.ts"),
-      },
+      alias: [
+        { find: /^@\//, replacement: `${resolve(here, "src")}/` },
+        {
+          find: /^@inferatlas\/contracts$/,
+          replacement: resolve(here, "../packages/contracts/src/index.ts"),
+        },
+        // Source, not dist: the package is copy-in friendly and needs no build for dev.
+        {
+          find: /^@inferatlas\/arch-ui$/,
+          replacement: resolve(here, "../packages/arch-ui/src/index.ts"),
+        },
+      ],
     },
     build: {
       outDir: inlined ? `dist-${mode}` : "dist",

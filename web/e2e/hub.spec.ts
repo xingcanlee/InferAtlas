@@ -34,6 +34,9 @@ test("single-file export opens on its embedded model page", async ({ page }) => 
   await page.goto(`file://${single}`);
   await expect(page.getByTestId("model-title")).toHaveText("Qwen/Qwen3-30B-A3B");
   await expect(page).toHaveURL(/#\/m\/main-verified\/A2\/qwen3-30b-a3b/);
+  // Structure first: the export opens on the architecture figure; the graph is one tab away.
+  await expect(page.getByTestId("arch-figure")).toBeVisible();
+  await page.getByTestId("tab-graph").click();
   await expect(page.getByTestId("node-decoder")).toBeVisible();
   await expect(page.getByTestId("matrix")).toHaveCount(0);
   await expect(page.getByTestId("hw-select")).toContainText("A2");

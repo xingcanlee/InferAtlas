@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "sync-data": "node scripts/sync-data.mjs",
-    "deps": "pnpm --filter @inferatlas/contracts --filter @inferatlas/expr --filter @inferatlas/layout build",
+    "deps": "pnpm --filter @inferatlas/contracts --filter @inferatlas/expr --filter @inferatlas/layout --filter @inferatlas/arch-ui build",
     "dev": "pnpm run deps && node scripts/sync-data.mjs --demo && vite",
     "build": "pnpm run deps && node scripts/sync-data.mjs && tsc -p tsconfig.json && vite build",
     "build:single": "pnpm run deps && node scripts/sync-data.mjs && tsc -p tsconfig.json && vite build --mode single",
@@ -22,6 +22,7 @@
   "dependencies": {
     "@fontsource/inter": "^5.3.0",
     "@fontsource/jetbrains-mono": "^5.3.0",
+    "@inferatlas/arch-ui": "workspace:*",
     "@inferatlas/contracts": "workspace:*",
     "@inferatlas/expr": "workspace:*",
     "@tanstack/react-router": "^1.170.46",

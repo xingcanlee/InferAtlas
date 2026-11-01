@@ -1,6 +1,9 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "@xyflow/react/dist/base.css";
+/* Architecture figure tokens + component classes from packages/arch-ui. */
+@import "../../packages/arch-ui/src/theme.css";
+@source "../../packages/arch-ui/src";
 
 @custom-variant dark (&:is(.dark *));
 

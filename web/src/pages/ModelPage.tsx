@@ -1,226 +1,113 @@
 import { getRouteApi } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo } from "react";
+import { ChevronRight, Network, Workflow } from "lucide-react";
 import { EmptyState } from "@/components/AppShell";
-import { GraphCanvas } from "@/components/graph/GraphCanvas";
-import { Legend } from "@/components/graph/Legend";
-import { DetailPanel } from "@/components/model/DetailPanel";
-import { ModelToolbar } from "@/components/model/ModelToolbar";
-import { NodeSearch } from "@/components/model/NodeSearch";
-import { ParamsPanel } from "@/components/model/ParamsPanel";
-import { ViewNav } from "@/components/model/ViewNav";
-import {
-  buildEnv,
-  computeAll,
-  memoryLedger,
-  type ParamValue,
-  runtimeAnnotations,
-} from "@/lib/model";
-import { paramOverrides } from "@/lib/search";
-import { useUi } from "@/lib/store";
-import { bandAnchor, descendants, drillTarget, getView, L0, parentView } from "@/lib/views";
-import { ModelContext, type ModelCtx } from "./model/context";
-import { MainSplit } from "./model/MainSplit";
+import { HomeLink } from "@/components/HomeLink";
+import { StatusBadge } from "@/components/StatusBadge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { type ModelTab, modelTab } from "@/lib/search";
+import { ArchitectureView } from "./model/ArchitectureView";
+import { GraphWorkspace } from "./model/GraphWorkspace";
 
 const route = getRouteApi("/m/$version/$device/$model");
 
-function isTyping(e: KeyboardEvent): boolean {
-  const t = e.target as HTMLElement | null;
-  return !!t && (t.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(t.tagName));
-}
-
+/**
+ * Model page: the Architecture tab (structure first: whole-model dataflow + per-layer tensor
+ * I/O) is the default; the graph / analysis workspace is the secondary tab. Triage status is
+ * shown as a badge and never hides either.
+ */
 export function ModelPage() {
-  const { bundle, cell, hardware } = route.useLoaderData();
+  const { bundle, arch, cell, index, hardware } = route.useLoaderData();
   const search = route.useSearch();
   const navigate = route.useNavigate();
-  const { ir: sourceIr, view, report } = bundle;
-  const searchOpen = useUi((s) => s.searchOpen);
-  const setSearchOpen = useUi((s) => s.setSearchOpen);
+  const tab = modelTab(search);
+  const hfId =
+    arch?.model.hf_id ??
+    bundle?.ir.snapshot.model.hf_id ??
+    index.models.find((m) => m.id === cell.model)?.hf_id ??
+    cell.model;
+  const version = index.versions.find((v) => v.id === cell.version);
 
-  const overrides = paramOverrides(search);
-  const overridesKey = JSON.stringify(overrides);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: keyed by serialized overrides
-  const envState = useMemo(() => buildEnv(sourceIr, overrides), [sourceIr, overridesKey]);
-  const ir = useMemo(() => runtimeAnnotations(sourceIr, envState.env), [sourceIr, envState]);
-  const phase = search.phase ?? "prefill";
-  const metrics = useMemo(() => computeAll(ir, envState.env, phase), [ir, envState, phase]);
-  const ledger = useMemo(() => memoryLedger(ir, envState.env), [ir, envState]);
-
-  const viewId = search.view && getView(view, search.view) ? search.view : L0;
-  const graph = getView(view, viewId);
-  const selected =
-    search.node && ir.nodes.some((n) => n.id === search.node) ? search.node : undefined;
-  const hw =
-    hardware.find((h) => h.id === search.hw) ??
-    hardware.find((h) => h.device === ir.snapshot.device);
-
-  const patch = useCallback<ModelCtx["patch"]>(
-    (p, replace = false) => navigate({ search: (prev) => ({ ...prev, ...p }), replace }),
-    [navigate],
-  );
-  const setParam = useCallback<ModelCtx["setParam"]>(
-    (name, value) => {
-      const norm = (k: string, x: ParamValue | undefined) =>
-        x === envState.defaults[k] ? undefined : x;
-      const next: Record<string, ParamValue | undefined> = { [name]: norm(name, value) };
-      // Keep enabled EP on the flattened tp×dp group when tp/dp change (vLLM rule).
-      const ep = envState.params.ep;
-      if ((name === "tp" || name === "dp") && typeof ep === "number" && ep > 1) {
-        const tp =
-          name === "tp" ? Number(value ?? envState.defaults.tp) : Number(envState.params.tp);
-        const dp =
-          name === "dp" ? Number(value ?? envState.defaults.dp) : Number(envState.params.dp);
-        const choices = ir.params.ep?.choices;
-        const want = tp * dp;
-        next.ep = norm("ep", !choices || choices.includes(String(want)) ? want : 1);
-      }
-      patch(next, true);
-    },
-    [envState.defaults, envState.params, ir.params, patch],
-  );
-  const select = useCallback((id: string | undefined) => patch({ node: id }), [patch]);
-  const goView = useCallback(
-    (v: string, node?: string) => patch({ view: v === L0 ? undefined : v, node }),
-    [patch],
-  );
-
-  // Fidelity ledger: represented scope minus what is drawn.
-  const merged = useMemo(() => {
-    const drawn = new Set(graph?.nodes.map((n) => n.ir_node));
-    return (graph?.collapsed_of ?? []).filter((id) => !drawn.has(id));
-  }, [graph]);
-
-  // Highlight the node itself, or the visible node that contains it.
-  const highlight = useMemo(() => {
-    if (!selected || !graph) return undefined;
-    const visible = new Set(graph.nodes.map((n) => n.ir_node));
-    if (visible.has(selected)) return selected;
-    return [...visible].find((v) => descendants(ir, v).some((d) => d.id === selected));
-  }, [graph, ir, selected]);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (searchOpen || isTyping(e) || e.metaKey || e.ctrlKey || e.altKey) return;
-      if (e.key === "/") {
-        e.preventDefault();
-        setSearchOpen(true);
-      } else if (e.key === "Escape") {
-        const up = parentView(ir, view, viewId);
-        // Going up keeps focus on the node we came out of.
-        const from = viewId.startsWith("L2:")
-          ? viewId.slice(3)
-          : viewId.startsWith("L1:")
-            ? bandAnchor(ir, view, viewId.slice(3))
-            : undefined;
-        if (up) goView(up, from);
-        else if (selected) select(undefined);
-      } else if (e.key === "Enter" && selected) {
-        const t = drillTarget(ir, view, selected);
-        if (t) goView(t);
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [goView, ir, searchOpen, select, selected, setSearchOpen, view, viewId]);
-
-  const overlay = search.overlay ?? false;
-  const shapes = search.shapes ?? "num";
-  const heat = search.heat ?? "flops";
-  const side = search.side ?? "memory";
-  const ctx = useMemo<ModelCtx>(
-    () => ({
-      ir,
-      view,
-      report,
-      cell,
-      hardware,
-      hw,
-      envState,
-      metrics,
-      ledger,
-      phase,
-      viewId,
-      graph,
-      selected,
-      overlay,
-      shapes,
-      heat,
-      side,
-      search,
-      patch,
-      setParam,
-      select,
-      goView,
-    }),
-    [
-      ir,
-      view,
-      report,
-      cell,
-      hardware,
-      hw,
-      envState,
-      metrics,
-      ledger,
-      phase,
-      viewId,
-      graph,
-      selected,
-      overlay,
-      shapes,
-      heat,
-      side,
-      search,
-      patch,
-      setParam,
-      select,
-      goView,
-    ],
-  );
+  const setTab = (t: ModelTab) =>
+    navigate({
+      search: (prev) => ({
+        ...prev,
+        tab: t === modelTab({ ...prev, tab: undefined }) ? undefined : t,
+      }),
+    });
 
   return (
-    <ModelContext.Provider value={ctx}>
-      <div className="grid h-full min-h-0 grid-cols-[264px_minmax(0,1fr)_352px] grid-rows-[auto_minmax(0,1fr)]">
-        <ModelToolbar className="col-span-3" />
-        <ParamsPanel className="min-h-0 overflow-y-auto border-r" />
-        <section className="flex min-h-0 min-w-0 flex-col">
-          <ViewNav />
-          <MainSplit
-            graph={
-              <>
-                <div className="min-h-0 flex-1 bg-canvas">
-                  {graph ? (
-                    <GraphCanvas
-                      ir={ir}
-                      view={view}
-                      graph={graph}
-                      metrics={metrics}
-                      env={envState.env}
-                      phase={phase}
-                      shapes={ctx.shapes}
-                      heat={ctx.heat}
-                      overlay={ctx.overlay}
-                      selected={highlight}
-                      onSelect={select}
-                      onDrill={(id) => {
-                        const t = drillTarget(ir, view, id);
-                        if (t) goView(t);
-                      }}
-                    />
-                  ) : (
-                    <EmptyState title="No diagram for this snapshot">
-                      <code>view.json</code> is missing, so there is no precomputed layout to draw.
-                      Metrics, memory and the parameter panel still work from <code>ir.json</code>.
-                    </EmptyState>
-                  )}
-                </div>
-                <Legend heat={heat} overlay={overlay} collapsed={merged} />
-              </>
-            }
-          />
-        </section>
-        <DetailPanel className="min-h-0 overflow-y-auto border-l" />
+    <Tabs
+      value={tab}
+      onValueChange={(v) => setTab(v as ModelTab)}
+      className="flex h-full min-h-0 flex-col gap-0"
+    >
+      <div className="flex h-10 shrink-0 items-center gap-3 border-b px-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <HomeLink className="text-muted-foreground hover:text-foreground" />
+          <ChevronRight className="size-3.5 text-muted-foreground" />
+          <h1
+            className="truncate text-[15px] font-semibold tracking-tight"
+            data-testid="model-title"
+          >
+            {hfId}
+          </h1>
+          <span className="rounded border px-1.5 font-mono text-[11px] text-muted-foreground">
+            {cell.device}
+          </span>
+          {version ? (
+            <span className="hidden truncate text-[12px] text-muted-foreground lg:inline">
+              {version.label}
+            </span>
+          ) : null}
+          {cell.status === "triage" ? (
+            <StatusBadge status="triage" count={cell.triage_count ?? undefined} />
+          ) : null}
+        </div>
+        <TabsList variant="line" className="ml-auto h-8" aria-label="Model views">
+          <TabsTrigger value="arch" className="px-2.5 text-[12.5px]" data-testid="tab-arch">
+            <Workflow className="size-3.5" />
+            Architecture
+          </TabsTrigger>
+          <TabsTrigger value="graph" className="px-2.5 text-[12.5px]" data-testid="tab-graph">
+            <Network className="size-3.5" />
+            Graph &amp; analysis
+          </TabsTrigger>
+        </TabsList>
       </div>
-      <NodeSearch />
-    </ModelContext.Provider>
+      <TabsContent value="arch" className="min-h-0 flex-1">
+        {arch ? (
+          <ArchitectureView arch={arch} />
+        ) : (
+          <EmptyState title="No architecture data for this snapshot yet" icon={<Workflow />}>
+            <p data-testid="arch-empty">
+              This snapshot was published before the generator emitted <code>arch.json</code>, so
+              the structure view is not available. The graph and analysis tab still works from{" "}
+              <code>ir.json</code>.
+            </p>
+            <p className="mt-3">
+              <button
+                type="button"
+                className="underline underline-offset-2"
+                onClick={() => setTab("graph")}
+              >
+                Open graph &amp; analysis
+              </button>
+            </p>
+          </EmptyState>
+        )}
+      </TabsContent>
+      <TabsContent value="graph" className="min-h-0 flex-1">
+        {bundle ? (
+          <GraphWorkspace bundle={bundle} cell={cell} hardware={hardware} />
+        ) : (
+          <EmptyState title="No graph data for this snapshot" icon={<Network />}>
+            <p data-testid="graph-empty">
+              Only the structure (<code>arch.json</code>) was published for this cell; the numeric
+              graph, memory and roofline need <code>ir.json</code>.
+            </p>
+          </EmptyState>
+        )}
+      </TabsContent>
+    </Tabs>
   );
 }

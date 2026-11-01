@@ -52,7 +52,7 @@ for (const size of VIEWPORTS) {
     const views = await viewsToCheck(page);
     expect(views.length).toBeGreaterThan(0);
     for (const { route, view } of views) {
-      const q = view === "L0" ? "" : `?view=${encodeURIComponent(view)}`;
+      const q = view === "L0" ? "?tab=graph" : `?view=${encodeURIComponent(view)}`;
       await page.goto(`./${route}${q}`);
       await expect(page.locator('[data-testid="graph"] .react-flow__node').first()).toBeVisible();
       // Placement re-runs (debounced) when the canvas settles; poll until stable.
@@ -69,7 +69,7 @@ for (const size of VIEWPORTS) {
 
 test("analysis panel collapses, expands and remembers the split", async ({ page }) => {
   await page.setViewportSize({ width: 1600, height: 1000 });
-  await page.goto("./#/m/main-verified/A2/qwen3-30b-a3b");
+  await page.goto("./#/m/main-verified/A2/qwen3-30b-a3b?tab=graph");
   const toggle = page.getByTestId("analysis-toggle");
   const graphHeight = async () =>
     (await page.getByTestId("graph").boundingBox())?.height ?? Number.NaN;
@@ -109,7 +109,7 @@ test("analysis panel re-opens in the same session (button, tab, Enter on divider
   page,
 }) => {
   await page.setViewportSize({ width: 1600, height: 1000 });
-  await page.goto("./#/m/main-verified/A2/qwen3-30b-a3b");
+  await page.goto("./#/m/main-verified/A2/qwen3-30b-a3b?tab=graph");
   const toggle = page.getByTestId("analysis-toggle");
   const analysisHeight = async () =>
     (await page.getByTestId("analysis").boundingBox())?.height ?? Number.NaN;
@@ -137,7 +137,7 @@ test("analysis panel re-opens in the same session (button, tab, Enter on divider
 
 test("view header items do not overlap at 1280×800", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
-  for (const q of ["", "?view=L1%3Adecoder", "?view=L2%3Aattn"]) {
+  for (const q of ["?tab=graph", "?view=L1%3Adecoder", "?view=L2%3Aattn"]) {
     await page.goto(`./#/m/main-verified/A2/qwen3-30b-a3b${q}`);
     const band = await page.getByTestId("band-strip").boundingBox();
     const crumb = await page.getByTestId("current-view").boundingBox();
@@ -160,7 +160,7 @@ test("view header items do not overlap at 1280×800", async ({ page }) => {
 
 test("a user zoom survives a small window resize", async ({ page }) => {
   await page.setViewportSize({ width: 1600, height: 1000 });
-  await page.goto("./#/m/main-verified/A2/qwen3-30b-a3b");
+  await page.goto("./#/m/main-verified/A2/qwen3-30b-a3b?tab=graph");
   await expect(page.getByTestId("node-decoder")).toBeVisible();
   await page.locator(".react-flow__controls-zoomin").click();
   await page.locator(".react-flow__controls-zoomin").click();

@@ -26,7 +26,7 @@ test("home matrix lists cells and opens a model", async ({ page }) => {
 
 test("model page: drill down, select, recompute, overlay", async ({ page }) => {
   await page.emulateMedia({ colorScheme: "light" });
-  await page.goto(`./${MODEL}?tp=1`);
+  await page.goto(`./${MODEL}?tab=graph&tp=1`);
   await expect(page.getByTestId("node-decoder")).toBeVisible();
   await expect(page.getByTestId("edge-label").first()).toBeVisible();
   await shot(page, "model-light");
@@ -98,7 +98,7 @@ test("diff page handles the available versions", async ({ page }) => {
 });
 
 test("dense model renders its build-time layout", async ({ page }) => {
-  await page.goto("./#/m/main-verified/A2/qwen3-8b");
+  await page.goto("./#/m/main-verified/A2/qwen3-8b?tab=graph");
   await expect(page.getByTestId("node-decoder")).toBeVisible();
   await expect(page.getByTestId("memory-chart")).toBeVisible();
 });
@@ -106,7 +106,7 @@ test("dense model renders its build-time layout", async ({ page }) => {
 test("keyboard: Space selects a focused node, Enter opens it, Esc returns to its anchor", async ({
   page,
 }) => {
-  await page.goto(`./${MODEL}`);
+  await page.goto(`./${MODEL}?tab=graph`);
   const decoder = page.locator('.react-flow__node[data-id="decoder"]');
   await decoder.focus();
   await page.keyboard.press(" ");
@@ -120,7 +120,7 @@ test("keyboard: Space selects a focused node, Enter opens it, Esc returns to its
 });
 
 test("ep choices are limited to 1 or tp×dp", async ({ page }) => {
-  await page.goto(`./${MODEL}?tp=2`);
+  await page.goto(`./${MODEL}?tab=graph&tp=2`);
   await page.getByTestId("param-ep").click();
   await expect(page.getByTestId("param-ep-4")).toHaveAttribute("data-disabled", "");
   await expect(page.getByTestId("param-ep-2")).not.toHaveAttribute("data-disabled", "");

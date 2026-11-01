@@ -22,7 +22,8 @@ pnpm --filter web lint                # Biome
 
 `INFERATLAS_DATA_DIR` is the pipeline's public data directory: it contains `index.json`,
 `hardware.json` (catalog `hardware_presets`) and every `data_path` the index names, each with
-`ir.json`, `view.json`, `report.json`. Relative paths resolve from where pnpm was invoked.
+`ir.json`, `view.json`, `report.json` and optionally `arch.json` (structure; a cell may ship
+`arch.json` alone). Relative paths resolve from where pnpm was invoked.
 `scripts/sync-data.mjs` copies it to `public/data/`; without it (and without `--demo`) the sync
 step exits 1, so a release build can never ship fixtures.
 
@@ -45,6 +46,11 @@ export is a plain relative `<a href="./<file>">` (works on file://; only bare `*
 are linked); every other cell shows its honest status. Output: `dist-hub/index.html`, plus a
 copy at `INFERATLAS_HUB_OUTPUT` when set. Demo sync also writes a demo `hub.json` and
 synthetic status-only H100 cells (one triage-only cell, like the release's blocked cells).
+
+Model page tabs: **Architecture** (default; `src/pages/model/ArchitectureView.tsx`, figure built
+from `@inferatlas/arch-ui` over `arch.json`, `?layer=<i>&sub=<id>` / `?stage=<id>`, symbol
+overrides such as `?T=8192&tp=8`) and **Graph & analysis** (`?tab=graph`; links with graph-only
+keys such as `view`/`node`/`side` open it directly). See `docs/progress/U1.md`.
 
 URL state (all shareable): `#/m/<version>/<device>/<model>?view=L2:attn&node=attn.o&phase=decode&overlay=true&side=roofline&shapes=sym&heat=weight&hw=<preset>&tp=4&T=8192…`.
 Any non-UI search key is a runtime-parameter override validated against `ir.params`; defaults are

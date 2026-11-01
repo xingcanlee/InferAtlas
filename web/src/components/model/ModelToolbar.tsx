@@ -1,5 +1,4 @@
-import { ChevronRight, ExternalLink } from "lucide-react";
-import { HomeLink } from "@/components/HomeLink";
+import { ExternalLink } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -68,16 +67,6 @@ export function ModelToolbar({ className }: { className?: string }) {
     <div
       className={cn("flex flex-wrap items-center gap-x-4 gap-y-2 border-b px-3 py-2", className)}
     >
-      <div className="flex min-w-0 items-center gap-2">
-        <HomeLink className="text-muted-foreground hover:text-foreground" />
-        <ChevronRight className="size-3.5 text-muted-foreground" />
-        <h1 className="truncate text-[15px] font-semibold tracking-tight" data-testid="model-title">
-          {snap.model.hf_id}
-        </h1>
-        <span className="rounded border px-1.5 font-mono text-[11px] text-muted-foreground">
-          {snap.device}
-        </span>
-      </div>
       <div className="flex items-center gap-1.5">
         <Commit repo="vllm" tag={snap.vllm.tag} commit={snap.vllm.commit} />
         <Commit repo="vllm-ascend" tag={snap.ascend.tag} commit={snap.ascend.commit} />
@@ -94,9 +83,6 @@ export function ModelToolbar({ className }: { className?: string }) {
               ))}
             </TooltipContent>
           </Tooltip>
-        ) : null}
-        {m.cell.status === "triage" ? (
-          <StatusBadge status="triage" count={m.cell.triage_count ?? undefined} />
         ) : null}
       </div>
       <div className="ml-auto flex flex-wrap items-center gap-3">

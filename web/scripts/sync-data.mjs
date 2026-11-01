@@ -12,8 +12,20 @@ import { spawnSync } from "node:child_process";
  *           ONE clearly-labelled synthetic snapshot ("fixture-prev") so the diff page has two
  *           versions, synthetic H100 status-only cells (one triage-only, like a blocked release
  *           cell) and a demo hub.json for `build:hub:demo`. None of this is publication data.
+ *           Hand-written arch.json fixtures (fixtures/arch-ui/<model>/arch.json) are copied into
+ *           every main-verified cell of their model; models without IR fixtures (DeepSeek-V3,
+ *           Qwen3-Next) get structure-only triage cells. The synthetic fixture-prev snapshot has
+ *           no arch.json, which exercises the architecture tab's empty state.
  */
-import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parse } from "yaml";
@@ -89,6 +101,43 @@ for (const cell of index.cells) {
     if (existsSync(join(src, f))) cpSync(join(src, f), join(dst, f));
   }
   layout(join(dst, "ir.json"), join(dst, "view.json"));
+}
+
+// 1b. Hand-written arch.json fixtures (structure first): copy into the model's main-verified
+//     cell, creating a structure-only cell (no ir.json) for models without IR fixtures.
+const ARCH_LABELS = {
+  "deepseek-v3": "DeepSeek V3",
+  "qwen3-next-80b-a3b": "Qwen3 Next 80B A3B",
+};
+const archFx = join(fx, "arch-ui");
+for (const model of existsSync(archFx) ? readdirSync(archFx).sort() : []) {
+  const file = join(archFx, model, "arch.json");
+  if (!existsSync(file)) continue;
+  const arch = readJson(file);
+  let cell = index.cells.find(
+    (c) => c.model === model && c.version === "main-verified" && c.device === arch.device,
+  );
+  if (!cell) {
+    const warns = new Set(arch.notes.filter((n) => n.severity === "warn").map((n) => n.text)).size;
+    cell = {
+      data_path: `data/main-verified-${arch.device}/${model}`,
+      device: arch.device,
+      model,
+      status: warns ? "triage" : "ok",
+      triage_count: warns,
+      version: "main-verified",
+    };
+    index.cells.push(cell);
+  }
+  if (!index.models.some((m) => m.id === model)) {
+    index.models.push({
+      family: arch.model.family,
+      hf_id: arch.model.hf_id,
+      id: model,
+      label: ARCH_LABELS[model] ?? model,
+    });
+  }
+  if (cell.data_path) cpSync(file, join(web, "public", cell.data_path, "arch.json"));
 }
 
 // 2. Synthetic previous snapshot for the diff page (fixture-derived, labelled as such).

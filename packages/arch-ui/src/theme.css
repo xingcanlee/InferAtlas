@@ -1,0 +1,117 @@
+/*
+ * @inferatlas/arch-ui theme tokens (Tailwind v4).
+ *
+ * Paper-figure role tints layered on the host app's semantic tokens (--foreground, --border,
+ * --edge, --focus, --ok/--warn/--bad, --overlay …), which arch-ui expects the host to define.
+ * Each role has a fill, a border and an "ink" (text/accent) value for light and dark themes.
+ * Import once from the app stylesheet *after* `@import "tailwindcss"` and add
+ * `@source "<path>/packages/arch-ui/src"` so the component classes are generated.
+ */
+:root {
+  --arch-col: 15.5rem;
+  --arch-rail: 1.75rem;
+
+  --arch-norm: oklch(0.975 0.04 96);
+  --arch-norm-border: oklch(0.82 0.1 92);
+  --arch-norm-ink: oklch(0.45 0.08 80);
+
+  --arch-attn: oklch(0.968 0.03 55);
+  --arch-attn-border: oklch(0.8 0.09 52);
+  --arch-attn-ink: oklch(0.5 0.13 45);
+
+  --arch-ffn: oklch(0.968 0.022 240);
+  --arch-ffn-border: oklch(0.79 0.07 243);
+  --arch-ffn-ink: oklch(0.46 0.11 250);
+
+  --arch-router: oklch(0.965 0.025 300);
+  --arch-router-border: oklch(0.78 0.08 300);
+  --arch-router-ink: oklch(0.47 0.12 300);
+
+  --arch-shared: oklch(0.965 0.03 160);
+  --arch-shared-border: oklch(0.76 0.08 160);
+  --arch-shared-ink: oklch(0.45 0.09 160);
+
+  --arch-embed: oklch(0.97 0.025 350);
+  --arch-embed-border: oklch(0.8 0.08 350);
+  --arch-embed-ink: oklch(0.48 0.12 350);
+
+  --arch-head: oklch(0.965 0.02 190);
+  --arch-head-border: oklch(0.78 0.06 195);
+  --arch-head-ink: oklch(0.45 0.08 200);
+
+  --arch-generic: oklch(0.975 0.003 260);
+  --arch-generic-border: oklch(0.7 0.01 260);
+  --arch-generic-ink: oklch(0.45 0.01 260);
+
+  --arch-frame: oklch(0.955 0.004 260);
+  --arch-frame-border: oklch(0.86 0.005 260);
+  --arch-wire: oklch(0.55 0.01 260);
+}
+
+.dark {
+  --arch-norm: oklch(0.29 0.035 92);
+  --arch-norm-border: oklch(0.5 0.07 92);
+  --arch-norm-ink: oklch(0.86 0.09 92);
+
+  --arch-attn: oklch(0.29 0.035 50);
+  --arch-attn-border: oklch(0.52 0.08 50);
+  --arch-attn-ink: oklch(0.84 0.1 55);
+
+  --arch-ffn: oklch(0.28 0.03 245);
+  --arch-ffn-border: oklch(0.5 0.07 245);
+  --arch-ffn-ink: oklch(0.83 0.08 240);
+
+  --arch-router: oklch(0.28 0.035 300);
+  --arch-router-border: oklch(0.5 0.08 300);
+  --arch-router-ink: oklch(0.84 0.08 300);
+
+  --arch-shared: oklch(0.28 0.035 160);
+  --arch-shared-border: oklch(0.5 0.07 160);
+  --arch-shared-ink: oklch(0.83 0.08 160);
+
+  --arch-embed: oklch(0.28 0.035 350);
+  --arch-embed-border: oklch(0.5 0.08 350);
+  --arch-embed-ink: oklch(0.84 0.08 350);
+
+  --arch-head: oklch(0.28 0.03 195);
+  --arch-head-border: oklch(0.5 0.06 195);
+  --arch-head-ink: oklch(0.83 0.07 195);
+
+  --arch-generic: oklch(0.22 0.005 260);
+  --arch-generic-border: oklch(0.48 0.01 260);
+  --arch-generic-ink: oklch(0.78 0.01 260);
+
+  --arch-frame: oklch(0.19 0.005 260);
+  --arch-frame-border: oklch(0.32 0.006 260);
+  --arch-wire: oklch(0.66 0.01 260);
+}
+
+@theme inline {
+  --color-arch-norm: var(--arch-norm);
+  --color-arch-norm-border: var(--arch-norm-border);
+  --color-arch-norm-ink: var(--arch-norm-ink);
+  --color-arch-attn: var(--arch-attn);
+  --color-arch-attn-border: var(--arch-attn-border);
+  --color-arch-attn-ink: var(--arch-attn-ink);
+  --color-arch-ffn: var(--arch-ffn);
+  --color-arch-ffn-border: var(--arch-ffn-border);
+  --color-arch-ffn-ink: var(--arch-ffn-ink);
+  --color-arch-router: var(--arch-router);
+  --color-arch-router-border: var(--arch-router-border);
+  --color-arch-router-ink: var(--arch-router-ink);
+  --color-arch-shared: var(--arch-shared);
+  --color-arch-shared-border: var(--arch-shared-border);
+  --color-arch-shared-ink: var(--arch-shared-ink);
+  --color-arch-embed: var(--arch-embed);
+  --color-arch-embed-border: var(--arch-embed-border);
+  --color-arch-embed-ink: var(--arch-embed-ink);
+  --color-arch-head: var(--arch-head);
+  --color-arch-head-border: var(--arch-head-border);
+  --color-arch-head-ink: var(--arch-head-ink);
+  --color-arch-generic: var(--arch-generic);
+  --color-arch-generic-border: var(--arch-generic-border);
+  --color-arch-generic-ink: var(--arch-generic-ink);
+  --color-arch-frame: var(--arch-frame);
+  --color-arch-frame-border: var(--arch-frame-border);
+  --color-arch-wire: var(--arch-wire);
+}
