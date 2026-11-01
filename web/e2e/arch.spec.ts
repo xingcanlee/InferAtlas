@@ -13,7 +13,14 @@ test.skip(!demo, "architecture fixtures are demo data");
 
 const here = dirname(fileURLToPath(import.meta.url));
 const shots = join(here, "..", "docs", "screenshots", "u1");
-const MODELS = ["qwen3-8b", "qwen3-30b-a3b", "deepseek-v3", "qwen3-next-80b-a3b"] as const;
+const MODELS = [
+  "qwen3-8b",
+  "qwen3-30b-a3b",
+  "deepseek-v3",
+  "qwen3-next-80b-a3b",
+  "deepseek-v4-flash",
+  "gpt-oss-120b",
+] as const;
 const url = (model: string, q = "") => `./#/m/main-verified/A2/${model}${q}`;
 
 function watchErrors(page: Page) {
@@ -175,5 +182,43 @@ test("graph tab stays available beside the architecture", async ({ page }) => {
   await expect(page).toHaveURL(/tab=graph/);
   await expect(page.getByTestId("node-decoder")).toBeVisible();
   await page.getByTestId("tab-arch").click();
+  await expect(page.getByTestId("arch-figure")).toBeVisible();
+});
+
+test("DeepSeek-V4: mHC residual bus, compressed attention, internals", async ({ page }) => {
+  const errors = watchErrors(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(url("deepseek-v4-flash"));
+  await applyStoredTheme(page, "light");
+  await expect(page.locator("[data-slot=residual-bus]")).toHaveCount(2);
+  await expect(page.getByTestId("band-list").getByRole("button")).toHaveCount(3);
+  await expect(page.getByTestId("arch-figure")).toContainText("KV ÷128");
+  await expect(page.getByTestId("arch-figure")).toContainText("indexer top-512");
+  await page.getByTestId("internals-toggle").click();
+  await expect(page.locator("[data-slot=tensor-chip]").first()).toBeVisible();
+  await page.getByTestId("sub-c4_4-attn").click();
+  const card = page.getByTestId("sub-card-attn");
+  await expect(card.getByTestId("internals")).toContainText("kv_compressed");
+  await settle(page);
+  await page.screenshot({ path: join(shots, "deepseek-v4-flash-internals-light.png") });
+  // Prefix band card: layers 0-1 (sliding window only, hash routing).
+  await page.getByTestId("band-card-swa_hash").click();
+  await expect(page).toHaveURL(/layer=0/);
+  await expect(page.getByTestId("layer-detail")).toContainText("hash");
+  expect(errors).toEqual([]);
+});
+
+test("home: family groups, filter and model links", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("./");
+  await applyStoredTheme(page, "light");
+  for (const f of ["dense", "moe", "mla", "hybrid"])
+    await expect(page.getByTestId(`family-${f}`)).toBeVisible();
+  await settle(page);
+  await page.screenshot({ path: join(shots, "home-light.png") });
+  await page.getByTestId("model-filter").fill("v4");
+  await expect(page.getByTestId("model-row-deepseek-v4-flash")).toBeVisible();
+  await expect(page.getByTestId("model-row-qwen3-8b")).toHaveCount(0);
+  await page.getByTestId("model-link-deepseek-v4-flash").click();
   await expect(page.getByTestId("arch-figure")).toBeVisible();
 });

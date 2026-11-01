@@ -107,6 +107,8 @@ for (const cell of index.cells) {
 //     cell, creating a structure-only cell (no ir.json) for models without IR fixtures.
 const ARCH_LABELS = {
   "deepseek-v3": "DeepSeek V3",
+  "deepseek-v4-flash": "DeepSeek V4 Flash",
+  "gpt-oss-120b": "gpt-oss 120B",
   "qwen3-next-80b-a3b": "Qwen3 Next 80B A3B",
 };
 const archFx = join(fx, "arch-ui");

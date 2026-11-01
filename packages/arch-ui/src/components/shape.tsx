@@ -129,3 +129,33 @@ export function ShapeLabel({
     </button>
   );
 }
+
+export interface TensorChipProps extends Omit<React.ComponentProps<"span">, "children"> {
+  name: string;
+  shape: Shape;
+}
+
+/**
+ * A tiny non-interactive tensor tag for use inside figure nodes (which may themselves be
+ * buttons): `q [T, Hq*D/tp]`, evaluated shape in the title.
+ */
+export function TensorChip({ name, shape, className, ...props }: TensorChipProps) {
+  const { evaluate } = useArchFigure();
+  const values = evaluateShape(shape, evaluate);
+  const sym = formatSymbolic(shape);
+  return (
+    <span
+      data-slot="tensor-chip"
+      data-numeric={values ? formatNumeric(values) : undefined}
+      title={`${name} ${sym}${values ? ` = ${formatNumeric(values)}` : ""}`}
+      className={cn(
+        "inline-flex items-baseline gap-1 rounded-sm bg-background/70 px-1 font-mono text-[10px] leading-4 whitespace-nowrap text-muted-foreground",
+        className,
+      )}
+      {...props}
+    >
+      <span className="text-foreground/80">{name}</span>
+      {sym}
+    </span>
+  );
+}

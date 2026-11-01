@@ -181,6 +181,28 @@ describe("DecoderBlock", () => {
     expect(step.querySelector('[data-kind="norm"]')).not.toBeNull();
   });
 
+  it("hyper-connection: multi-lane residual bus and mHC boxes in dataflow position", () => {
+    const { container } = render(
+      <DecoderBlock
+        residual="hyper_connection"
+        streams={4}
+        mixer={<Attention variant="mqa" compressRatio={4} indexer indexTopk={512} />}
+        ffn={<MLP />}
+      />,
+    );
+    const bus = slot(container, "residual-bus");
+    expect(bus).toHaveLength(1);
+    expect(bus[0]).toHaveAttribute("data-streams", "4");
+    expect(slot(container, "residual-add")).toHaveLength(0);
+    expect(slot(container, "hyper-branch")).toHaveLength(2);
+    const order = [...container.querySelectorAll("[data-slot=mhc-box], [data-kind]")].map((e) =>
+      e.getAttribute("data-slot") === "mhc-box" ? "mhc" : e.getAttribute("data-kind"),
+    );
+    expect(order).toEqual(["mhc", "norm", "attention", "mhc", "mhc", "norm", "mlp", "mhc"]);
+    expect(screen.getByText("KV ÷4")).toBeInTheDocument();
+    expect(screen.getByText("indexer top-512")).toBeInTheDocument();
+  });
+
   it("unknown residual style: plain chain, no skip line", () => {
     const { container } = render(
       <DecoderBlock residual="unknown" mixer={<Attention variant="gqa" />} ffn={<MLP />} />,
@@ -190,6 +212,45 @@ describe("DecoderBlock", () => {
 });
 
 describe("figure layout", () => {
+  it("TensorChip shows the symbolic shape and the evaluated one in its title", () => {
+    render(
+      <ArchFigureProvider evaluate={evaluator({ T: 8, Hq: 4, D: 2, tp: 1 })}>
+        <Attention variant="gqa" tensors={[{ name: "q", shape: ["T", "Hq*D/tp"] }]} />
+      </ArchFigureProvider>,
+    );
+    const chip = screen.getByText("q").closest("[data-slot=tensor-chip]");
+    expect(chip).toHaveTextContent("q[T, Hq*D/tp]");
+    expect(chip).toHaveAttribute("title", "q [T, Hq*D/tp] = [8, 8]");
+  });
+
+  it("collapsible stacks show a summary until opened", async () => {
+    const onOpenChange = vi.fn();
+    const { rerender, container } = render(
+      <BlockStack
+        title="Vision encoder"
+        layers={24}
+        collapsible
+        open={false}
+        summary="ViT"
+        onOpenChange={onOpenChange}
+      >
+        <Norm />
+      </BlockStack>,
+    );
+    const toggle = screen.getByRole("button", { name: /Vision encoder/ });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(slot(container, "stack-summary")[0]).toHaveTextContent("ViT");
+    expect(container.querySelector("[data-kind=norm]")).toBeNull();
+    await userEvent.click(toggle);
+    expect(onOpenChange).toHaveBeenCalledWith(true);
+    rerender(
+      <BlockStack title="Vision encoder" layers={24} collapsible open summary="ViT">
+        <Norm />
+      </BlockStack>,
+    );
+    expect(container.querySelector("[data-kind=norm]")).not.toBeNull();
+  });
+
   it("ModelFigure inserts arrows between nodes and labels tensor edges", () => {
     const { container } = render(
       <ModelFigure evaluate={evaluator({ T: 4, H: 8 })}>

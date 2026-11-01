@@ -77,7 +77,7 @@ export function BlockStep({ className, children, ...props }: React.ComponentProp
 
 // ---------------------------------------------------------------------------- DecoderBlock
 
-export type ResidualStyle = "pre_norm" | "post_norm" | "sandwich" | "unknown";
+export type ResidualStyle = "pre_norm" | "post_norm" | "sandwich" | "hyper_connection" | "unknown";
 
 export interface DecoderBlockProps extends React.ComponentProps<"div"> {
   residual?: ResidualStyle;
@@ -91,6 +91,8 @@ export interface DecoderBlockProps extends React.ComponentProps<"div"> {
   /** Sandwich only: norms applied to the branch outputs before ⊕. */
   mixerPostNorm?: React.ReactNode;
   ffnPostNorm?: React.ReactNode;
+  /** Hyper-connection only: number of residual streams drawn on the bus (`hc_mult`). */
+  streams?: number;
 }
 
 /**
@@ -106,6 +108,7 @@ export function DecoderBlock({
   ffnNorm = <Norm />,
   mixerPostNorm = <Norm />,
   ffnPostNorm = <Norm />,
+  streams = 4,
   className,
   children,
   ...props
@@ -113,6 +116,20 @@ export function DecoderBlock({
   let body: React.ReactNode = children;
   if (!body) {
     switch (residual) {
+      case "hyper_connection":
+        body = (
+          <>
+            <HyperBranch pre={<MhcBox />} post={<MhcBox post />}>
+              {mixerNorm}
+              {mixer}
+            </HyperBranch>
+            <HyperBranch pre={<MhcBox />} post={<MhcBox post />}>
+              {ffnNorm}
+              {ffn}
+            </HyperBranch>
+          </>
+        );
+        break;
       case "post_norm":
         body = (
           <>
@@ -164,6 +181,22 @@ export function DecoderBlock({
         );
     }
   }
+  if (residual === "hyper_connection") {
+    return (
+      <div
+        data-slot="decoder-block"
+        data-residual={residual}
+        className={cn("relative flex flex-col items-center px-[var(--arch-rail)]", className)}
+        {...props}
+      >
+        <ResidualBus streams={streams} />
+        {body}
+        <div className="flex w-[var(--arch-col)] flex-col items-center">
+          <FlowArrow />
+        </div>
+      </div>
+    );
+  }
   return (
     <div
       data-slot="decoder-block"
@@ -175,6 +208,124 @@ export function DecoderBlock({
       <div className="flex w-[var(--arch-col)] flex-col items-center">
         <FlowArrow />
       </div>
+    </div>
+  );
+}
+
+// ----------------------------------------------------------------- hyper-connections (mHC)
+
+/** Lane pitch of the residual bus in px (lines are 1px). */
+const LANE = 4;
+const laneStyle = (n: number, dir: "right" | "bottom"): React.CSSProperties => ({
+  backgroundImage: `repeating-linear-gradient(to ${dir}, currentColor 0 1px, transparent 1px ${LANE}px)`,
+  [dir === "right" ? "width" : "height"]: (n - 1) * LANE + 1,
+});
+
+/**
+ * Multi-stream residual bus (DeepSeek-V4 mHC): `streams` parallel lines down the left side of
+ * the block, replacing the single skip line of a pre-norm block.
+ */
+export function ResidualBus({ streams = 4 }: { streams?: number }) {
+  return (
+    <span
+      data-slot="residual-bus"
+      data-streams={streams}
+      title={`${streams} residual streams (hyper-connections)`}
+      className="pointer-events-none absolute top-0 bottom-3 left-[5px] text-arch-wire"
+      style={laneStyle(streams, "right")}
+    >
+      <span className="absolute -top-0.5 left-full ml-1 font-mono text-[10px] leading-none whitespace-nowrap text-muted-foreground">
+        ×{streams}
+      </span>
+    </span>
+  );
+}
+
+export interface MhcBoxProps extends React.HTMLAttributes<HTMLElement> {
+  /** `post` writes the branch output back to the streams (H_post / H_res); else reads (H_pre). */
+  post?: boolean;
+  title?: string;
+  streams?: number;
+  onSelect?: (() => void) | undefined;
+  selected?: boolean | undefined;
+  label?: string | undefined;
+}
+
+/**
+ * An mHC mixing step in dataflow position, wired to the residual bus by `streams` short lanes.
+ */
+export function MhcBox({
+  post,
+  title,
+  streams = 4,
+  onSelect,
+  selected,
+  label,
+  className,
+  ...props
+}: MhcBoxProps) {
+  const text = title ?? (post ? "H_post · H_res" : "H_pre");
+  const cls = cn(
+    "relative flex h-5 w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-arch-router-border bg-arch-router/60 font-mono text-[10.5px] text-arch-router-ink outline-none",
+    onSelect &&
+      "cursor-pointer hover:border-foreground/45 focus-visible:ring-2 focus-visible:ring-ring/70",
+    selected && "ring-2 ring-focus ring-offset-1 ring-offset-background",
+    className,
+  );
+  const content = (
+    <>
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute top-1/2 right-full -translate-y-1/2 text-arch-wire"
+        style={{ ...laneStyle(streams, "bottom"), width: "calc(var(--arch-rail) - 18px)" }}
+      />
+      <span className="font-semibold">mHC</span>
+      <span className="text-muted-foreground">{text}</span>
+    </>
+  );
+  if (onSelect)
+    return (
+      <button
+        type="button"
+        data-slot="mhc-box"
+        aria-pressed={!!selected}
+        aria-label={label}
+        className={cls}
+        onClick={(e) => {
+          e.stopPropagation();
+          onSelect();
+        }}
+        {...(props as React.ButtonHTMLAttributes<HTMLButtonElement>)}
+      >
+        {content}
+      </button>
+    );
+  return (
+    <div data-slot="mhc-box" title={label} className={cls} {...props}>
+      {content}
+    </div>
+  );
+}
+
+export interface HyperBranchProps extends React.ComponentProps<"div"> {
+  pre?: React.ReactNode;
+  post?: React.ReactNode;
+}
+
+/** One hyper-connection segment: H_pre → body → H_post, inside a block with a ResidualBus. */
+export function HyperBranch({ pre, post, className, children, ...props }: HyperBranchProps) {
+  return (
+    <div
+      data-slot="hyper-branch"
+      className={cn("flex w-[var(--arch-col)] flex-col items-center", className)}
+      {...props}
+    >
+      <FlowArrow length="sm" />
+      <Flow gap="sm">
+        {pre}
+        {children}
+        {post}
+      </Flow>
     </div>
   );
 }
@@ -325,6 +476,12 @@ export interface BlockStackProps extends Omit<React.ComponentProps<"section">, "
    * `column`: children stacked vertically (compact band list + one expanded block).
    */
   layout?: "row" | "column";
+  /** Secondary stacks (vision / encoder): header toggles between summary and full drawing. */
+  collapsible?: boolean;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  /** One-line summary shown while collapsed. */
+  summary?: React.ReactNode;
 }
 
 /**
@@ -335,6 +492,10 @@ export function BlockStack({
   title = "Decoder layers",
   layers,
   layout = "row",
+  collapsible,
+  open = true,
+  onOpenChange,
+  summary,
   className,
   children,
   ...props
@@ -350,10 +511,45 @@ export function BlockStack({
     >
       {/* Legend on the frame border, left of the spine so it never meets edge labels. */}
       <header className="absolute -top-2 left-5 flex items-baseline gap-1.5 bg-arch-surface px-2 text-[11px] leading-4 whitespace-nowrap text-muted-foreground">
-        <span className="font-medium tracking-wide uppercase">{title}</span>
-        {layers !== undefined ? <span className="font-mono tabular-nums">· {layers}</span> : null}
+        {collapsible ? (
+          <button
+            type="button"
+            data-slot="stack-toggle"
+            aria-expanded={open}
+            onClick={() => onOpenChange?.(!open)}
+            className="inline-flex items-baseline gap-1.5 rounded-sm outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/70"
+          >
+            <svg
+              viewBox="0 0 10 10"
+              aria-hidden="true"
+              className={cn("size-2.5 self-center transition-transform", open && "rotate-90")}
+            >
+              <path
+                d="M3.5 1.5 L7 5 L3.5 8.5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+              />
+            </svg>
+            <span className="font-medium tracking-wide uppercase">{title}</span>
+            {layers !== undefined ? (
+              <span className="font-mono tabular-nums">· {layers}</span>
+            ) : null}
+          </button>
+        ) : (
+          <>
+            <span className="font-medium tracking-wide uppercase">{title}</span>
+            {layers !== undefined ? (
+              <span className="font-mono tabular-nums">· {layers}</span>
+            ) : null}
+          </>
+        )}
       </header>
-      {layout === "column" ? (
+      {collapsible && !open ? (
+        <div data-slot="stack-summary" className="px-2 pt-1 text-[11.5px] text-muted-foreground">
+          {summary}
+        </div>
+      ) : layout === "column" ? (
         <div className="flex flex-col items-center gap-3">{children}</div>
       ) : (
         <div className="flex items-start justify-center gap-3">{withThen(children)}</div>
@@ -398,14 +594,15 @@ export function BandList({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="band-list"
-      className={cn("flex max-w-[46rem] flex-wrap justify-center gap-1.5", className)}
+      className={cn("flex max-w-[60rem] flex-wrap justify-center gap-1.5", className)}
       {...props}
     />
   );
 }
 
 export interface PatternGroupProps extends Omit<React.ComponentProps<"div">, "title"> {
-  title: React.ReactNode;
+  /** Omit (with `subtitle`) when the context already labels the group (compact stacks). */
+  title?: React.ReactNode;
   subtitle?: React.ReactNode;
   /** How many times the period repeats. */
   repeats: number;
@@ -426,10 +623,12 @@ export function PatternGroup({
       className={cn("flex flex-col items-center gap-1", className)}
       {...props}
     >
-      <div className="inline-flex h-6 items-center gap-1.5 px-2 text-[11.5px]">
-        <span className="font-semibold">{title}</span>
-        {subtitle ? <span className="text-muted-foreground">{subtitle}</span> : null}
-      </div>
+      {title || subtitle ? (
+        <div className="inline-flex h-6 items-center gap-1.5 px-2 text-[11.5px]">
+          <span className="font-semibold">{title}</span>
+          {subtitle ? <span className="text-muted-foreground">{subtitle}</span> : null}
+        </div>
+      ) : null}
       <div className="flex items-stretch gap-1.5">
         <div className="flex items-start gap-3 rounded-2xl border border-arch-frame-border px-3 pt-1 pb-3">
           {withThen(children)}

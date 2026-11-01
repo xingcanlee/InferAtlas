@@ -135,7 +135,8 @@
             ],
             "dtype": "bfloat16"
           }
-        ]
+        ],
+        "internals": []
       }
     },
     {
@@ -183,7 +184,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.0.input_layernorm",
@@ -258,6 +260,48 @@
                       "shape": [
                         "T",
                         "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "c_q",
+                      "shape": [
+                        "T",
+                        "Rq"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "c_kv",
+                      "shape": [
+                        "T",
+                        "Rkv"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "k_rope",
+                      "shape": [
+                        "T",
+                        "Dr"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "q",
+                      "shape": [
+                        "T",
+                        "Hq*(Dn+Dr)/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "attn_out",
+                      "shape": [
+                        "T",
+                        "Hq*Dv/tp"
                       ],
                       "dtype": "bfloat16"
                     }
@@ -358,7 +402,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               },
@@ -390,7 +435,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.0.post_attention_layernorm",
@@ -438,6 +484,24 @@
                       "shape": [
                         "T",
                         "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "gate_up",
+                      "shape": [
+                        "T",
+                        "2*I/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "act",
+                      "shape": [
+                        "T",
+                        "I/tp"
                       ],
                       "dtype": "bfloat16"
                     }
@@ -505,7 +569,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               }
@@ -552,7 +617,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.3.input_layernorm",
@@ -627,6 +693,48 @@
                       "shape": [
                         "T",
                         "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "c_q",
+                      "shape": [
+                        "T",
+                        "Rq"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "c_kv",
+                      "shape": [
+                        "T",
+                        "Rkv"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "k_rope",
+                      "shape": [
+                        "T",
+                        "Dr"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "q",
+                      "shape": [
+                        "T",
+                        "Hq*(Dn+Dr)/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "attn_out",
+                      "shape": [
+                        "T",
+                        "Hq*Dv/tp"
                       ],
                       "dtype": "bfloat16"
                     }
@@ -727,7 +835,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               },
@@ -759,7 +868,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.3.post_attention_layernorm",
@@ -821,6 +931,56 @@
                   "outputs": [
                     {
                       "name": "hidden_states",
+                      "shape": [
+                        "T",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "router_logits",
+                      "shape": [
+                        "T",
+                        "E"
+                      ],
+                      "dtype": "float32"
+                    },
+                    {
+                      "name": "topk_ids",
+                      "shape": [
+                        "T",
+                        "topk"
+                      ],
+                      "dtype": "int32"
+                    },
+                    {
+                      "name": "topk_weights",
+                      "shape": [
+                        "T",
+                        "topk"
+                      ],
+                      "dtype": "float32"
+                    },
+                    {
+                      "name": "expert_gate_up",
+                      "shape": [
+                        "T*topk",
+                        "2*I_moe/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "expert_down",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "shared_out",
                       "shape": [
                         "T",
                         "H"
@@ -927,7 +1087,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               }
@@ -993,7 +1154,8 @@
             ],
             "dtype": "bfloat16"
           }
-        ]
+        ],
+        "internals": []
       }
     },
     {
@@ -1047,7 +1209,8 @@
             ],
             "dtype": "bfloat16"
           }
-        ]
+        ],
+        "internals": []
       }
     },
     {
@@ -1150,7 +1313,8 @@
             ],
             "dtype": "bfloat16"
           }
-        ]
+        ],
+        "internals": []
       }
     }
   ],

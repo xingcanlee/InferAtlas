@@ -91,9 +91,13 @@ function componentSignature(c: ArchComponent | null): unknown {
   if (!c) return null;
   switch (c.kind) {
     case "attention":
+      // v1.2 §3: compression ratio and indexer distinguish otherwise identical attention.
+      return [c.kind, c.variant, c.extras.compress_ratio ?? null, c.extras.indexer ?? null];
     case "mlp":
     case "norm":
       return [c.kind, c.variant];
+    case "moe":
+      return [c.kind, c.router.scoring];
     case "generic":
       return [c.kind, shortClass(c.class_name)];
     default:
@@ -138,10 +142,17 @@ const MAX_PERIOD = 6;
 /** Short mixer name of a band ("linear attn", "GQA attn"). */
 export function mixerLabel(band: ArchBand): string {
   const c = band.block.sublayers.find((s) => s.role === "mixer")?.component;
-  if (c?.kind === "attention")
-    return c.variant === "linear" ? "linear attn" : `${ATTN[c.variant]} attn`;
+  if (c?.kind === "attention") return attentionLabel(c);
   if (c?.kind === "generic") return shortClass(c.class_name);
   return "block";
+}
+
+/** "GQA attn", "linear attn", "MQA attn ÷4 + indexer" (compressed attention, v1.2 §3). */
+export function attentionLabel(c: Extract<ArchComponent, { kind: "attention" }>): string {
+  const base = c.variant === "linear" ? "linear attn" : `${ATTN[c.variant]} attn`;
+  const r = c.extras.compress_ratio;
+  const comp = typeof r === "number" && r > 1 ? ` ÷${r}` : "";
+  return `${base}${comp}${c.extras.indexer === true ? " + indexer" : ""}`;
 }
 
 const autoLabel = (period: ArchBand[]) =>
@@ -219,16 +230,37 @@ export function stackItems(bands: ArchBand[]): StackItem[] {
   return out;
 }
 
-/** The band the figure draws for `band`: its period representative, or itself when compact. */
+/** The band the figure draws for `band`: its period representative inside a pattern group. */
 export function drawnBand(arch: Arch, band: ArchBand): ArchBand {
   const stack = stacks(arch).find((s) => s.bands.includes(band));
-  if (!stack) return band;
-  const items = stackItems(stack.bands);
-  return stackColumns(items) > MAX_STACK_COLUMNS ? band : representative(items, band);
+  return stack ? representative(stackItems(stack.bands), band) : band;
 }
 
-/** Most block columns drawn side by side; beyond this the stack switches to a compact list. */
-export const MAX_STACK_COLUMNS = 4;
+/**
+ * Most block columns drawn side by side; beyond this the stack shows one card per item (band or
+ * folded pattern) and draws only the selected item (default: the one covering most layers).
+ */
+export const MAX_STACK_COLUMNS = 3;
+
+export const itemBands = (it: StackItem): ArchBand[] =>
+  it.kind === "band" ? [it.band] : it.members;
+export const itemLayers = (it: StackItem): [number, number] =>
+  it.kind === "band" ? it.band.layers : it.layers;
+
+/** The item drawn in compact mode: the one holding `band`, else the one with most layers. */
+export function compactFocus(
+  items: StackItem[],
+  band: ArchBand | undefined,
+): StackItem | undefined {
+  const holding =
+    band &&
+    items.find(
+      (it) => itemBands(it).includes(band) || (it.kind === "pattern" && it.period.includes(band)),
+    );
+  if (holding) return holding;
+  const size = (it: StackItem) => itemLayers(it)[1] - itemLayers(it)[0];
+  return [...items].sort((a, b) => size(b) - size(a))[0];
+}
 
 /** Number of blocks the folded stack would draw side by side. */
 export const stackColumns = (items: StackItem[]): number =>
@@ -258,7 +290,51 @@ export function represented(items: StackItem[], band: ArchBand): ArchBand[] {
 
 export type Segment =
   | { kind: "branch"; body: ArchSublayer[]; add: ArchSublayer | undefined }
-  | { kind: "node"; sublayer: ArchSublayer };
+  | { kind: "node"; sublayer: ArchSublayer }
+  /** v1.2 §4 mHC: `pre` reads the residual streams, `post` writes back (both `mhc_*`). */
+  | {
+      kind: "hyper";
+      pre: ArchSublayer | undefined;
+      body: ArchSublayer[];
+      post: ArchSublayer | undefined;
+    };
+
+export const isMhc = (s: ArchSublayer): boolean => s.role === "other" && /^mhc/i.test(s.id);
+
+/**
+ * Hyper-connection blocks: each `mhc_*` sublayer closes the open segment and/or opens the next
+ * one, in dataflow order (pre … post, or a fused post/pre that does both).
+ */
+function hyperSegments(subs: ArchSublayer[]): Segment[] {
+  const out: Segment[] = [];
+  let pre: ArchSublayer | undefined;
+  let body: ArchSublayer[] = [];
+  let open = false;
+  for (const s of subs) {
+    if (!isMhc(s)) {
+      body.push(s);
+      continue;
+    }
+    const isPost = /post/i.test(s.id);
+    const isPre = /pre/i.test(s.id);
+    if (open && (isPost || !isPre)) {
+      out.push({ kind: "hyper", pre, body, post: s });
+      body = [];
+      pre = undefined;
+      open = false;
+      if (!(isPre && isPost)) continue;
+    }
+    if (body.length) {
+      out.push(...body.map((b): Segment => ({ kind: "node", sublayer: b })));
+      body = [];
+    }
+    pre = s;
+    open = true;
+  }
+  if (open) out.push({ kind: "hyper", pre, body, post: undefined });
+  else out.push(...body.map((b): Segment => ({ kind: "node", sublayer: b })));
+  return out;
+}
 
 /**
  * Split a block into residual branches. Explicit `residual_add` sublayers close a branch; when
@@ -267,6 +343,7 @@ export type Segment =
  */
 export function blockSegments(block: ArchBlock): Segment[] {
   const subs = block.sublayers;
+  if (block.residual === "hyper_connection") return hyperSegments(subs);
   if (block.residual === "unknown") return subs.map((s) => ({ kind: "node", sublayer: s }));
   const explicit = subs.some((s) => s.role === "residual_add");
   const out: Segment[] = [];
@@ -364,12 +441,97 @@ export function uniqueNotes(notes: ArchNote[]): ArchNote[] {
   });
 }
 
+/**
+ * Figure badge for a component: only targeted **warn** notes (v1.2 §2: warn = changes the
+ * figure). Info notes live in the panels, never on the figure.
+ */
 export function noteMarker(
   notes: ArchNote[],
 ): { severity: "info" | "warn"; count: number } | undefined {
-  const u = uniqueNotes(notes);
-  if (!u.length) return undefined;
-  return { severity: u.some((n) => n.severity === "warn") ? "warn" : "info", count: u.length };
+  const u = uniqueNotes(notes).filter((n) => n.severity === "warn");
+  return u.length ? { severity: "warn", count: u.length } : undefined;
+}
+
+export interface NoteGroup {
+  /** `triage_kind`, or `null` for plain notes. */
+  kind: string | null;
+  notes: ArchNote[];
+  warn: number;
+}
+
+/** Notes grouped by `triage_kind` (warn-heavy groups first, plain info notes last). */
+export function groupNotes(notes: ArchNote[]): NoteGroup[] {
+  const groups = new Map<string | null, ArchNote[]>();
+  for (const n of uniqueNotes(notes)) {
+    const k = n.triage_kind ?? null;
+    groups.set(k, [...(groups.get(k) ?? []), n]);
+  }
+  return [...groups.entries()]
+    .map(([kind, ns]) => ({
+      kind,
+      notes: ns,
+      warn: ns.filter((n) => n.severity === "warn").length,
+    }))
+    .sort(
+      (a, b) =>
+        Number(a.kind === null) - Number(b.kind === null) ||
+        b.warn - a.warn ||
+        String(a.kind).localeCompare(String(b.kind)),
+    );
+}
+
+/** Model- and stack-level notes: `null` target, or a stack stage id. */
+export function modelNotes(arch: Arch): ArchNote[] {
+  const stackIds = new Set(stacks(arch).map((s) => s.id));
+  return arch.notes.filter((n) => n.target === null || stackIds.has(n.target));
+}
+
+// ------------------------------------------------------------------------------- stages
+
+const STAGE_RANK: Record<string, number> = { embedding: 0, stack: 1, norm: 2, lm_head: 3 };
+
+/** `other` stages drawn as side branches (v1.1 §5; legacy default aside). */
+export const isAsideStage = (s: Arch["stages"][number]): boolean =>
+  s.kind === "other" && (s.placement ?? "aside") === "aside";
+
+/**
+ * Canonical stage order (v1.2 §5): embedding(s) → stack(s) → final norm → lm_head → spine
+ * others; aside others last. Stable within a rank, so emitter order breaks ties.
+ */
+export function canonicalStages(arch: Arch): Arch["stages"] {
+  const rank = (s: Arch["stages"][number]) =>
+    s.kind === "other" ? (isAsideStage(s) ? 5 : 4) : (STAGE_RANK[s.kind] ?? 4);
+  return arch.stages
+    .map((s, i) => ({ s, i }))
+    .sort((a, b) => rank(a.s) - rank(b.s) || a.i - b.i)
+    .map(({ s }) => s);
+}
+
+/** The decoder stack feeding the final norm: the last stack in canonical order. */
+export function primaryStack(arch: Arch): ArchStackStage | undefined {
+  return canonicalStages(arch).filter(isStack).at(-1);
+}
+
+// ---------------------------------------------------------------------------- internals
+
+const KEY_INTERNALS = [
+  /^q$/,
+  /^k$/,
+  /^v$/,
+  /^c_?kv/i,
+  /^c_?q/i,
+  /^kv/i,
+  /^qkv/i,
+  /router_logits/i,
+  /^topk_(ids|weights)/i,
+  /^index/i,
+];
+
+/** A few representative internal tensors for figure chips (q/k/v, latents, routing). */
+export function keyInternals(sub: ArchSublayer, max = 3) {
+  const all = sub.io.internals ?? [];
+  const picked = KEY_INTERNALS.flatMap((re) => all.filter((t) => re.test(t.name)));
+  return [...new Set(picked)].slice(0, max);
 }
 
 // --------------------------------------------------------------------------- display
@@ -383,8 +545,13 @@ export function layerPath(module: ArchModule, band: ArchBand, layer: number): st
 }
 
 /** One-line human summary of a component ("GQA attention", "MoE 128E top-8"). */
-export function componentSummary(c: ArchComponent | null, role?: string): string {
-  if (!c) return role === "residual_add" ? "Residual add" : (role ?? "module");
+export function componentSummary(c: ArchComponent | null, role?: string, id?: string): string {
+  if (!c) {
+    if (role === "residual_add") return "Residual add";
+    if (id && /^mhc/i.test(id))
+      return /post/i.test(id) ? "mHC write-back (H_post · H_res)" : "mHC read (H_pre)";
+    return role ?? "module";
+  }
   switch (c.kind) {
     case "norm":
       return c.variant === "rmsnorm" ? "RMSNorm" : c.variant === "layernorm" ? "LayerNorm" : "Norm";
@@ -395,7 +562,7 @@ export function componentSummary(c: ArchComponent | null, role?: string): string
     case "mlp":
       return `MLP (${c.variant === "swiglu" ? "SwiGLU" : c.variant === "geglu" ? "GeGLU" : c.variant})`;
     case "moe":
-      return `MoE ${c.experts}E top-${c.top_k}${c.shared_experts ? ` + ${c.shared_experts} shared` : ""}`;
+      return `MoE ${c.experts}E top-${c.top_k}${c.shared_experts ? ` + ${c.shared_experts} shared` : ""} · ${c.router.scoring} router`;
     case "generic":
       return shortClass(c.class_name);
     case "embedding":
@@ -411,9 +578,7 @@ export function bandSummary(band: ArchBand): string {
   const ffn = band.block.sublayers.find((s) => s.role === "ffn")?.component;
   const m =
     mixer?.kind === "attention"
-      ? mixer.variant === "linear"
-        ? "linear attn"
-        : `${ATTN[mixer.variant]} attn`
+      ? attentionLabel(mixer)
       : mixer?.kind === "generic"
         ? shortClass(mixer.class_name)
         : undefined;

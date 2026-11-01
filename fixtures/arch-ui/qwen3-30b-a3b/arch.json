@@ -119,7 +119,8 @@
             ],
             "dtype": "bfloat16"
           }
-        ]
+        ],
+        "internals": []
       }
     },
     {
@@ -167,7 +168,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.0.input_layernorm",
@@ -231,6 +233,40 @@
                       "shape": [
                         "T",
                         "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "q",
+                      "shape": [
+                        "T",
+                        "Hq*D/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "k",
+                      "shape": [
+                        "T",
+                        "Hkv*D/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "v",
+                      "shape": [
+                        "T",
+                        "Hkv*D/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "attn_out",
+                      "shape": [
+                        "T",
+                        "Hq*D/tp"
                       ],
                       "dtype": "bfloat16"
                     }
@@ -312,7 +348,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               },
@@ -344,7 +381,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.0.post_attention_layernorm",
@@ -402,6 +440,48 @@
                       "name": "hidden_states",
                       "shape": [
                         "T",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "router_logits",
+                      "shape": [
+                        "T",
+                        "E"
+                      ],
+                      "dtype": "float32"
+                    },
+                    {
+                      "name": "topk_ids",
+                      "shape": [
+                        "T",
+                        "topk"
+                      ],
+                      "dtype": "int32"
+                    },
+                    {
+                      "name": "topk_weights",
+                      "shape": [
+                        "T",
+                        "topk"
+                      ],
+                      "dtype": "float32"
+                    },
+                    {
+                      "name": "expert_gate_up",
+                      "shape": [
+                        "T*topk",
+                        "2*I_moe/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "expert_down",
+                      "shape": [
+                        "T*topk",
                         "H"
                       ],
                       "dtype": "bfloat16"
@@ -483,7 +563,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               }
@@ -549,7 +630,8 @@
             ],
             "dtype": "bfloat16"
           }
-        ]
+        ],
+        "internals": []
       }
     },
     {
@@ -603,7 +685,8 @@
             ],
             "dtype": "bfloat16"
           }
-        ]
+        ],
+        "internals": []
       }
     }
   ],

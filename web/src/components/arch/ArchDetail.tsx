@@ -13,12 +13,14 @@ import { Input } from "@/components/ui/input";
 import {
   bandSummary,
   componentSummary,
+  groupNotes,
   layerCount,
   layerPath,
   layerRange,
   notesFor,
   RUNTIME_SYMBOLS,
   shortClass,
+  stackItems,
   subTarget,
   uniqueNotes,
 } from "@/lib/arch";
@@ -124,7 +126,47 @@ export function TensorTable({
 
 // ------------------------------------------------------------------------------- notes
 
-export function NoteList({ notes }: { notes: ArchNote[] }) {
+/**
+ * Model-wide notes grouped by `triage_kind` with counts. Warn notes are listed; info notes are
+ * collapsed behind a disclosure so they never crowd out the structure.
+ */
+export function NoteGroups({ notes }: { notes: ArchNote[] }) {
+  const groups = groupNotes(notes);
+  return (
+    <div className="flex flex-col gap-2.5" data-testid="note-groups">
+      {groups.map((g) => {
+        const warn = g.notes.filter((n) => n.severity === "warn");
+        const info = g.notes.filter((n) => n.severity !== "warn");
+        return (
+          <section
+            key={g.kind ?? "general"}
+            data-testid={`note-group-${g.kind ?? "general"}`}
+            className="flex flex-col gap-1"
+          >
+            <header className="flex items-center gap-2 text-[11.5px]">
+              <span className="font-mono">{g.kind ?? "general"}</span>
+              {warn.length ? <NoteBadge severity="warn" count={warn.length} /> : null}
+              {info.length ? <NoteBadge severity="info" count={info.length} /> : null}
+            </header>
+            <NoteList notes={warn} withTarget />
+            {info.length ? (
+              <details className="group/info text-[12px]" data-testid="info-notes">
+                <summary className="cursor-pointer text-muted-foreground select-none hover:text-foreground">
+                  {info.length} info note{info.length === 1 ? "" : "s"}
+                </summary>
+                <div className="mt-1">
+                  <NoteList notes={info} withTarget />
+                </div>
+              </details>
+            ) : null}
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
+export function NoteList({ notes, withTarget }: { notes: ArchNote[]; withTarget?: boolean }) {
   const list = uniqueNotes(notes);
   if (!list.length) return null;
   return (
@@ -144,8 +186,13 @@ export function NoteList({ notes }: { notes: ArchNote[] }) {
             <Info className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" aria-label="info" />
           )}
           <span>
+            {withTarget && n.target ? (
+              <span className="mr-1.5 font-mono text-[10.5px] text-muted-foreground">
+                {n.target}
+              </span>
+            ) : null}
             {n.text}
-            {n.triage_kind ? (
+            {!withTarget && n.triage_kind ? (
               <span className="ml-1.5 rounded border px-1 font-mono text-[10px] text-muted-foreground">
                 {n.triage_kind}
               </span>
@@ -175,7 +222,7 @@ function ModuleCard({
   subtitle?: string | undefined;
   module: ArchModule | null;
   path?: string | undefined;
-  io: { inputs: ArchTensor[]; outputs: ArchTensor[] };
+  io: { inputs: ArchTensor[]; outputs: ArchTensor[]; internals?: ArchTensor[] | undefined };
   notes: ArchNote[];
   evaluate: Evaluate;
   selected?: boolean;
@@ -242,6 +289,14 @@ function ModuleCard({
           </div>
           <TensorTable tensors={io.outputs} evaluate={evaluate} kind="io" />
         </div>
+        {io.internals?.length ? (
+          <div data-testid="internals">
+            <div className="mb-0.5 text-[10.5px] font-medium text-muted-foreground uppercase">
+              Internal tensors · {io.internals.length}
+            </div>
+            <TensorTable tensors={io.internals} evaluate={evaluate} kind="io" />
+          </div>
+        ) : null}
         {module?.params.length ? (
           <div>
             <div className="mb-0.5 text-[10.5px] font-medium text-muted-foreground uppercase">
@@ -502,7 +557,7 @@ export function LayerDetail({
             <ModuleCard
               id={`sub-card-${s.id}`}
               testId={`sub-card-${s.id}`}
-              title={`${i + 1}. ${componentSummary(s.component, s.role)}`}
+              title={`${i + 1}. ${componentSummary(s.component, s.role, s.id)}`}
               subtitle={`${s.id} · ${s.role.replace("_", " ")}`}
               module={s.module}
               path={s.module ? layerPath(s.module, band, layer) : undefined}
@@ -574,25 +629,26 @@ export function Overview({
                 <div>
                   <span className="font-medium">{s.label ?? "Decoder layers"}</span>
                   <ul className="mt-0.5 ml-3 flex flex-col">
-                    {s.bands.length > 8 ? (
-                      <li className="text-muted-foreground">
-                        {s.bands.length} bands
-                        {s.bands[0]?.pattern ? ` · ${s.bands[0].pattern}` : ""}
-                      </li>
-                    ) : (
-                      s.bands.map((b) => (
-                        <li key={b.id}>
+                    {stackItems(s.bands).map((it) => {
+                      const first = (it.kind === "band" ? it.band : it.period[0]) as ArchBand;
+                      return (
+                        <li key={first.id}>
                           <button
                             type="button"
                             className="text-left hover:underline"
-                            onClick={() => onBand(b)}
+                            onClick={() => onBand(first)}
                           >
-                            {layerRange(b.layers)}{" "}
-                            <span className="text-muted-foreground">· {bandSummary(b)}</span>
+                            {layerRange(it.kind === "band" ? it.band.layers : it.layers)}{" "}
+                            <span className="text-muted-foreground">
+                              ·{" "}
+                              {it.kind === "band"
+                                ? bandSummary(it.band)
+                                : `(${it.label}) × ${it.repeats}`}
+                            </span>
                           </button>
                         </li>
-                      ))
-                    )}
+                      );
+                    })}
                   </ul>
                 </div>
               ) : (
@@ -616,7 +672,7 @@ export function Overview({
         aside={warn ? <NoteBadge severity="warn" count={warn} size="md" /> : undefined}
       >
         {arch.notes.length ? (
-          <NoteList notes={arch.notes} />
+          <NoteGroups notes={arch.notes} />
         ) : (
           <p className="text-[12px] text-muted-foreground">No notes.</p>
         )}

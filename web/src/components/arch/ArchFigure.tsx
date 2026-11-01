@@ -15,7 +15,9 @@ import {
   FigureTerminal,
   FlowArrow,
   Generic,
+  HyperBranch,
   LMHead,
+  MhcBox,
   MLP,
   ModelFigure,
   MoE,
@@ -25,14 +27,20 @@ import {
   ResidualBranch,
   TensorEdge,
 } from "@inferatlas/arch-ui";
-import type { ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import {
   bandSummary,
   blockSegments,
+  canonicalStages,
+  compactFocus,
+  isAsideStage,
+  itemLayers,
+  keyInternals,
   layerRange,
   MAX_STACK_COLUMNS,
   noteMarker,
   notesFor,
+  primaryStack,
   represented,
   type StackItem,
   shortClass,
@@ -67,6 +75,8 @@ export interface ArchFigureProps {
   onSelectStage: (stage: string) => void;
   /** id of the detail panel the band headers control. */
   detailId?: string;
+  /** Draw key internal tensors (q/k/v, latents, routing) as chips in Attention / MoE. */
+  showInternals?: boolean;
 }
 
 const num = (v: unknown): number | undefined => (typeof v === "number" ? v : undefined);
@@ -85,6 +95,8 @@ export function ropeTag(rope: ArchRope | null): string | undefined {
 }
 
 type GlyphProps = NodeMarkers & {
+  /** Key internal tensors shown as chips inside Attention / MoE (optional, v1.2 §1). */
+  tensors?: readonly ArchTensor[] | undefined;
   onSelect?: () => void;
   selected?: boolean;
   label?: string;
@@ -95,6 +107,7 @@ type GlyphProps = NodeMarkers & {
 export function ComponentGlyph({
   component,
   fallbackClass,
+  tensors,
   ...common
 }: { component: ArchComponent | null; fallbackClass?: string | undefined } & GlyphProps) {
   if (!component)
@@ -139,6 +152,9 @@ export function ComponentGlyph({
               : undefined
           }
           window={num(x.sliding_window)}
+          compressRatio={num(x.compress_ratio)}
+          indexer={x.indexer === true}
+          tensors={tensors}
           indexTopk={num(x.index_topk)}
           name={gdn ? "Gated DeltaNet" : undefined}
           detail={linearDetail || undefined}
@@ -166,6 +182,7 @@ export function ComponentGlyph({
           }
           expert={component.expert}
           shared={component.shared}
+          tensors={tensors}
           {...common}
         />
       );
@@ -198,6 +215,14 @@ export function ComponentGlyph({
   }
 }
 
+/** Residual stream count of an mHC block, from the `mhc_*` input shape `[T, n_hc, H]`. */
+function hyperStreams(band: ArchBand, evaluate: (e: string) => number | undefined): number {
+  const pre = band.block.sublayers.find((s) => /^mhc/i.test(s.id));
+  const shape = pre?.io.inputs[0]?.shape;
+  const n = shape && shape.length === 3 ? evaluate(shape[1] as string) : undefined;
+  return n && Number.isInteger(n) && n > 1 && n <= 16 ? n : 4;
+}
+
 const firstOut = (s: ArchStage): ArchTensor | undefined =>
   s.kind === "stack"
     ? s.bands[s.bands.length - 1]?.block.sublayers.at(-1)?.io.outputs[0]
@@ -211,11 +236,15 @@ export function ArchFigure({
   onSelectSub,
   onSelectStage,
   detailId,
+  showInternals = false,
 }: ArchFigureProps) {
-  // v1.1 §5: `other` stages go on the spine unless `placement: "aside"` (legacy: aside).
-  const isAside = (s: ArchStage) => s.kind === "other" && (s.placement ?? "aside") === "aside";
-  const main = arch.stages.filter((s) => !isAside(s));
-  const others = arch.stages.filter((s): s is ArchModuleStage => isAside(s));
+  // v1.2 §5 canonical order; `other` stages on the spine unless `placement: "aside"`.
+  const ordered = canonicalStages(arch);
+  const main = ordered.filter((s) => !isAsideStage(s));
+  const others = ordered.filter((s): s is ArchModuleStage => isAsideStage(s));
+  const primary = primaryStack(arch);
+  // Secondary stacks (vision / encoder) start collapsed unless they hold the selection.
+  const [openStacks, setOpenStacks] = useState<Set<string>>(() => new Set());
   const branchAt = [...main].reverse().find((s) => s.kind !== "stack")?.id;
 
   const stageGlyph = (s: ArchModuleStage) => (
@@ -241,6 +270,7 @@ export function ArchFigure({
         fallbackClass={sub.module?.class_name ?? sub.role}
         status={sub.module?.status}
         notes={noteMarker(notesFor(arch, targets))}
+        tensors={showInternals ? keyInternals(sub) : undefined}
         selected={selection.band === band && selection.sub === sub.id}
         onSelect={() => onSelectSub(band, sub.id)}
         label={`${sub.id} (${layerRange(band.layers)}): show details`}
@@ -249,10 +279,31 @@ export function ArchFigure({
     );
   };
 
+  const mhcBox = (band: ArchBand, sub: ArchSublayer | undefined, post: boolean, streams: number) =>
+    sub ? (
+      <MhcBox
+        key={sub.id}
+        post={post}
+        streams={streams}
+        onSelect={() => onSelectSub(band, sub.id)}
+        selected={selection.band === band && selection.sub === sub.id}
+        label={`${sub.id} (${layerRange(band.layers)}): show details`}
+        data-testid={`sub-${band.id}-${sub.id}`}
+      />
+    ) : null;
+
   const blockView = (items: StackItem[], band: ArchBand) => (
-    <DecoderBlock residual={band.block.residual}>
+    <DecoderBlock residual={band.block.residual} streams={hyperStreams(band, evaluate)}>
       {blockSegments(band.block).map((seg, i) =>
-        seg.kind === "branch" ? (
+        seg.kind === "hyper" ? (
+          <HyperBranch
+            key={`hyper-${seg.pre?.id ?? seg.body[0]?.id ?? seg.post?.id}`}
+            pre={mhcBox(band, seg.pre, false, hyperStreams(band, evaluate))}
+            post={mhcBox(band, seg.post, true, hyperStreams(band, evaluate))}
+          >
+            {seg.body.map((s) => subGlyph(items, band, s))}
+          </HyperBranch>
+        ) : seg.kind === "branch" ? (
           <ResidualBranch
             // biome-ignore lint/suspicious/noArrayIndexKey: segments are positional
             key={i}
@@ -293,12 +344,73 @@ export function ArchFigure({
   const stackView = (stage: Extract<ArchStage, { kind: "stack" }>) => {
     const items = stackItems(stage.bands);
     const total = stage.bands.reduce((n, b) => n + b.count, 0);
+    if (stage !== primary) {
+      const holdsSelection = !!selection.band && stage.bands.includes(selection.band);
+      const open = holdsSelection || openStacks.has(stage.id);
+      const toggle = (next: boolean) =>
+        setOpenStacks((prev) => {
+          const s = new Set(prev);
+          if (next) s.add(stage.id);
+          else s.delete(stage.id);
+          return s;
+        });
+      if (!open)
+        return (
+          <BlockStack
+            key={stage.id}
+            title={stage.label ?? stage.id}
+            layers={total}
+            collapsible
+            open={false}
+            onOpenChange={toggle}
+            summary={[...new Set(stage.bands.map(bandSummary))].join(" / ")}
+            data-testid={`stage-${stage.id}`}
+          />
+        );
+      return (
+        <BlockStack
+          key={stage.id}
+          title={stage.label ?? stage.id}
+          layers={total}
+          collapsible
+          open
+          onOpenChange={toggle}
+          data-testid={`stage-${stage.id}`}
+        >
+          {items.map((it) =>
+            it.kind === "band" ? (
+              bandView(items, it.band, false)
+            ) : (
+              <PatternGroup
+                key={it.members[0]?.id}
+                title={layerRange(it.layers)}
+                subtitle={it.label}
+                repeats={it.repeats}
+              >
+                {it.period.map((b) => bandView(items, b, true))}
+              </PatternGroup>
+            ),
+          )}
+        </BlockStack>
+      );
+    }
+    const itemView = (it: StackItem, labelled = true) =>
+      it.kind === "band" ? (
+        bandView(items, it.band, false)
+      ) : (
+        <PatternGroup
+          key={it.members[0]?.id}
+          title={labelled ? layerRange(it.layers) : undefined}
+          subtitle={labelled ? it.label : undefined}
+          repeats={it.repeats}
+          data-testid="pattern-group"
+        >
+          {it.period.map((b) => bandView(items, b, true))}
+        </PatternGroup>
+      );
     if (stackColumns(items) > MAX_STACK_COLUMNS) {
-      // Too heterogeneous to draw side by side: a wrapping band list + the selected block.
-      const shown =
-        selection.band && stage.bands.includes(selection.band)
-          ? selection.band
-          : (stage.bands[0] as ArchBand);
+      // Too wide to draw side by side: one card per item + the selected (or largest) item.
+      const focus = compactFocus(items, selection.band);
       return (
         <BlockStack
           key={stage.id}
@@ -308,19 +420,23 @@ export function ArchFigure({
           data-testid={`stage-${stage.id}`}
         >
           <BandList data-testid="band-list">
-            {stage.bands.map((b) => (
-              <BandCard
-                key={b.id}
-                title={layerRange(b.layers)}
-                subtitle={bandSummary(b)}
-                count={b.count}
-                selected={selection.band === b}
-                onClick={() => onSelectBand(b)}
-                data-testid={`band-card-${b.id}`}
-              />
-            ))}
+            {items.map((it) => {
+              const first = (it.kind === "band" ? it.band : it.period[0]) as ArchBand;
+              return (
+                <BandCard
+                  key={first.id}
+                  title={layerRange(itemLayers(it))}
+                  subtitle={it.kind === "band" ? bandSummary(it.band) : it.label}
+                  count={it.kind === "band" ? it.band.count : it.repeats}
+                  selected={it === focus}
+                  onClick={() => onSelectBand(first)}
+                  data-testid={`band-card-${first.id}`}
+                />
+              );
+            })}
           </BandList>
-          {bandView(items, shown, false)}
+          {/* The selected card already labels the drawn item. */}
+          {focus ? itemView(focus, false) : null}
         </BlockStack>
       );
     }
@@ -331,21 +447,7 @@ export function ArchFigure({
         layers={total}
         data-testid={`stage-${stage.id}`}
       >
-        {items.map((it) =>
-          it.kind === "band" ? (
-            bandView(items, it.band, false)
-          ) : (
-            <PatternGroup
-              key={it.members[0]?.id}
-              title={layerRange(it.layers)}
-              subtitle={it.label}
-              repeats={it.repeats}
-              data-testid="pattern-group"
-            >
-              {it.period.map((b) => bandView(items, b, true))}
-            </PatternGroup>
-          ),
-        )}
+        {items.map((it) => itemView(it))}
       </BlockStack>
     );
   };

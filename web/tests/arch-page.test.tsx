@@ -6,6 +6,8 @@ import userEvent from "@testing-library/user-event";
 import { beforeAll, describe, expect, it } from "vitest";
 import type { Arch } from "@/lib/arch-types";
 import deepseekJson from "../../fixtures/arch-ui/deepseek-v3/arch.json";
+import v4Json from "../../fixtures/arch-ui/deepseek-v4-flash/arch.json";
+import denseArchJson from "../../fixtures/arch-ui/qwen3-8b/arch.json";
 import moeArchJson from "../../fixtures/arch-ui/qwen3-30b-a3b/arch.json";
 import nextJson from "../../fixtures/arch-ui/qwen3-next-80b-a3b/arch.json";
 import indexJson from "../../fixtures/index.json";
@@ -19,6 +21,24 @@ const DS = "data/main-verified-A2/deepseek-v3";
 const NEXT = "data/main-verified-A2/qwen3-next-80b-a3b";
 const BAD = "data/main-verified-H100/qwen3-30b-a3b";
 const MIXED = "data/main-verified-H100/qwen3-8b";
+const V4 = "data/main-verified-A2/deepseek-v4-flash";
+const VLM = "data/main-verified-H100/deepseek-v3";
+
+/** Qwen3-8B with an extra (secondary) "Vision encoder" stack before the decoder. */
+function visionArch(): Arch {
+  const a = denseArchJson as unknown as Arch;
+  const stack = a.stages.find((x) => x.kind === "stack") as Extract<
+    Arch["stages"][number],
+    { kind: "stack" }
+  >;
+  const vision = {
+    ...stack,
+    id: "vision",
+    label: "Vision encoder",
+    bands: stack.bands.map((b) => ({ ...b, id: "vit" })),
+  };
+  return { ...a, stages: [a.stages[0], vision, ...a.stages.slice(1)] } as Arch;
+}
 
 /** A non-periodic, heterogeneous stack (6 bands alternating dense / MoE with varying counts). */
 function mixedArch(): Arch {
@@ -60,6 +80,12 @@ beforeAll(() => {
           family: "mla",
         },
         {
+          id: "deepseek-v4-flash",
+          hf_id: "deepseek-ai/DeepSeek-V4-Flash",
+          label: "DeepSeek V4 Flash",
+          family: "mla",
+        },
+        {
           id: "qwen3-next-80b-a3b",
           hf_id: "Qwen/Qwen3-Next",
           label: "Qwen3 Next",
@@ -83,6 +109,22 @@ beforeAll(() => {
           status: "triage",
           triage_count: 1,
           data_path: MIXED,
+        },
+        {
+          version: "main-verified",
+          model: "deepseek-v4-flash",
+          device: "A2",
+          status: "triage",
+          triage_count: 1,
+          data_path: V4,
+        },
+        {
+          version: "main-verified",
+          model: "deepseek-v3",
+          device: "H100",
+          status: "ok",
+          triage_count: 0,
+          data_path: VLM,
         },
         // Structure-only triage cells: still linked and rendered (triage never blocks).
         {
@@ -122,6 +164,8 @@ beforeAll(() => {
         arch: { schema_version: 1, oops: true } as unknown as Arch,
       },
       [MIXED]: { arch: mixedArch() },
+      [V4]: { arch: v4Json as unknown as Arch },
+      [VLM]: { arch: visionArch() },
     },
   };
 });
@@ -197,9 +241,9 @@ describe("architecture page", { timeout: 20_000 }, () => {
     await renderAt("/m/main-verified/A2/deepseek-v3");
     const mtp = await screen.findByTestId("stage-mtp");
     expect(mtp).toHaveTextContent("DeepSeekMultiTokenPredictorLayer");
-    expect(within(screen.getByTestId("arch-overview")).getByTestId("note-list")).toHaveTextContent(
-      "no lowering rule",
-    );
+    expect(
+      within(screen.getByTestId("arch-overview")).getByTestId("note-group-unknown_layer_class"),
+    ).toHaveTextContent("no lowering rule");
     await userEvent.click(mtp);
     expect(await screen.findByTestId("stage-card-mtp")).toHaveTextContent("generic");
   });
@@ -243,6 +287,54 @@ describe("architecture page", { timeout: 20_000 }, () => {
     expect(screen.getByTestId("sym-tp")).toBeInTheDocument();
     expect(screen.queryByTestId("sym-H")).toBeNull();
     expect(screen.getByTestId("model-dims")).toHaveTextContent("7,168");
+  });
+
+  it("DeepSeek-V4: mHC blocks, compact stack, internals in figure and detail", async () => {
+    await renderAt("/m/main-verified/A2/deepseek-v4-flash");
+    const list = await screen.findByTestId("band-list");
+    expect(within(list).getAllByRole("button")).toHaveLength(3);
+    expect(screen.getAllByTestId(/^band-(c128_3|c4_4)$/)).toHaveLength(2);
+    expect(document.querySelectorAll("[data-slot=residual-bus]").length).toBe(2);
+    expect(document.querySelectorAll("[data-slot=tensor-chip]")).toHaveLength(0);
+    await userEvent.click(screen.getByTestId("internals-toggle"));
+    expect(document.querySelectorAll("[data-slot=tensor-chip]").length).toBeGreaterThan(0);
+    await userEvent.click(screen.getByTestId("sub-c4_4-attn"));
+    const card = await screen.findByTestId("sub-card-attn");
+    const internals = within(card).getByTestId("internals");
+    expect(internals).toHaveTextContent("index_topk_ids");
+    expect(internals).toHaveTextContent("[1024, 512]"); // kv_compressed = [cdiv(T, 4), D]
+    // Outputs are only what leaves the sublayer.
+    expect(within(card).getAllByTestId("tensor-row").length).toBeGreaterThan(2);
+  });
+
+  it("secondary (vision) stacks start collapsed and expand on demand", async () => {
+    await renderAt("/m/main-verified/H100/deepseek-v3");
+    const toggle = await screen.findByRole("button", { name: /Vision encoder/ });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByTestId("band-vit")).toBeNull();
+    expect(screen.getByTestId("band-dense")).toBeInTheDocument();
+    await userEvent.click(toggle);
+    expect(await screen.findByTestId("band-vit")).toBeInTheDocument();
+  });
+
+  it("home groups models by family and filters by text and family", async () => {
+    const router = await renderAt("/");
+    await screen.findByTestId("matrix");
+    expect(screen.getByTestId("family-moe")).toBeInTheDocument();
+    expect(screen.getByTestId("family-mla")).toBeInTheDocument();
+    // The model name is the row's primary link to its model page.
+    expect(screen.getByTestId("model-link-qwen3-8b")).toHaveAttribute(
+      "href",
+      expect.stringContaining("/m/main-verified/A2/qwen3-8b"),
+    );
+    await userEvent.type(screen.getByTestId("model-filter"), "deepseek");
+    expect(router.state.location.search).toMatchObject({ q: "deepseek" });
+    expect(screen.queryByTestId("model-row-qwen3-8b")).toBeNull();
+    expect(screen.getByTestId("model-row-deepseek-v3")).toBeInTheDocument();
+    await userEvent.clear(screen.getByTestId("model-filter"));
+    await userEvent.click(within(screen.getByTestId("family-filter")).getByText("Dense"));
+    expect(screen.getByTestId("model-row-qwen3-8b")).toBeInTheDocument();
+    expect(screen.queryByTestId("model-row-qwen3-30b-a3b")).toBeNull();
   });
 
   it("home links every cell with data, including triage-only structure cells", async () => {

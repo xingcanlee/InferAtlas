@@ -1,6 +1,6 @@
 /**
  * TEMPORARY mirror of the `arch.json` contract (docs/arch-contract.md, schema_version 1 with
- * the "Contract decisions v1.1").
+ * the "Contract decisions v1.1" and "v1.2").
  *
  * TO BE REPLACED by the generated `Arch*` types from `@inferatlas/contracts` once S1 lands:
  * delete this file and re-export from the contract, e.g.
@@ -14,6 +14,9 @@
  * - Periodic runs share a `pattern` label; the UI also folds by structural signature.
  * - `other` stages carry `placement: "spine" | "aside"`.
  * - `class_name` is fully qualified (figures show the last segment).
+ * v1.2: `IO.internals` (tensors produced inside a component), de-duplicated notes, attention
+ * extras `compress_ratio` / `indexer`, residual `"hyper_connection"` with `mhc_*` sublayers
+ * (role `"other"`), canonical stage order.
  */
 
 /** Expression string in the expr DSL (docs/expr-dsl.md). */
@@ -27,7 +30,10 @@ export interface ArchTensor {
 
 export interface ArchIO {
   inputs: ArchTensor[];
+  /** Only what leaves the sublayer (usually `[T, H]`). */
   outputs: ArchTensor[];
+  /** v1.2: q/k/v/o, MLA latents, router logits, top-k ids/weights, per-expert tensors… */
+  internals?: ArchTensor[];
 }
 
 export type ArchModuleStatus = "ruled" | "generic" | "ascend_override" | "unannotated_override";
@@ -69,7 +75,8 @@ export interface ArchRope {
 /**
  * Optional attention extras (v1.1 §7): MLA `q_lora_rank`, `kv_lora_rank`, `qk_nope_head_dim`,
  * `qk_rope_head_dim`, `v_head_dim`; sparse `index_topk`; sliding `sliding_window`; linear
- * `kind`, `num_k_heads`, `num_v_heads`, `head_k_dim`, `head_v_dim`, `conv_kernel`, `output_gate`.
+ * `kind`, `num_k_heads`, `num_v_heads`, `head_k_dim`, `head_v_dim`, `conv_kernel`, `output_gate`;
+ * v1.2 compressed attention `compress_ratio` (number) and `indexer` (bool).
  */
 export type ArchAttentionExtras = Record<string, unknown>;
 
@@ -137,7 +144,7 @@ export interface ArchSublayer {
   module: ArchModule | null;
 }
 
-export type ArchResidual = "pre_norm" | "post_norm" | "sandwich" | "unknown";
+export type ArchResidual = "pre_norm" | "post_norm" | "sandwich" | "hyper_connection" | "unknown";
 
 export interface ArchBlock {
   kind: "decoder";

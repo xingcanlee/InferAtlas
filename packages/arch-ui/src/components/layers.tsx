@@ -2,6 +2,7 @@ import type * as React from "react";
 import { cn } from "../cn";
 import { VariantBadge } from "./badges";
 import { Chip, type ComponentNodeProps, FigureNode } from "./node";
+import { TensorChip } from "./shape";
 
 const fmt = (n: number) => n.toLocaleString("en-US");
 
@@ -221,6 +222,12 @@ export interface AttentionProps extends ComponentNodeProps {
   window?: number | undefined;
   /** Sparse attention: tokens kept by the indexer (e.g. DeepSeek-V3.2 `index_topk`). */
   indexTopk?: number | undefined;
+  /** Compressed attention: KV compression ratio (DeepSeek-V4 `compress_ratio`, > 1). */
+  compressRatio?: number | undefined;
+  /** A lightning indexer selects the attended tokens (sparse attention). */
+  indexer?: boolean | undefined;
+  /** Key internal tensors drawn as small chips (q / k / v, latents). */
+  tensors?: readonly { name: string; shape: readonly string[] }[] | undefined;
   /** Extra one-line description (e.g. `Gated DeltaNet · conv 4`). */
   detail?: React.ReactNode;
 }
@@ -290,6 +297,9 @@ export function Attention({
   latent,
   window,
   indexTopk,
+  compressRatio,
+  indexer,
+  tensors,
   detail,
   ...props
 }: AttentionProps) {
@@ -305,7 +315,12 @@ export function Attention({
       : undefined;
   const tags = [
     window !== undefined ? `window ${fmt(window)}` : undefined,
-    indexTopk !== undefined ? `index top-${fmt(indexTopk)}` : undefined,
+    compressRatio !== undefined && compressRatio > 1 ? `KV ÷${fmt(compressRatio)}` : undefined,
+    indexer
+      ? `indexer${indexTopk !== undefined ? ` top-${fmt(indexTopk)}` : ""}`
+      : indexTopk !== undefined
+        ? `index top-${fmt(indexTopk)}`
+        : undefined,
     rope,
     qkNorm ? "QK-Norm" : undefined,
     gated ? "out gate" : undefined,
@@ -329,7 +344,24 @@ export function Attention({
           ))}
         </span>
       ) : null}
+      <TensorRow tensors={tensors} />
     </FigureNode>
+  );
+}
+
+/** Row of internal-tensor chips (only rendered when tensors are given). */
+function TensorRow({
+  tensors,
+}: {
+  tensors?: readonly { name: string; shape: readonly string[] }[] | undefined;
+}) {
+  if (!tensors?.length) return null;
+  return (
+    <span data-slot="tensor-row" className="mt-0.5 flex flex-wrap justify-center gap-x-1.5">
+      {tensors.map((t) => (
+        <TensorChip key={t.name} name={t.name} shape={t.shape} />
+      ))}
+    </span>
   );
 }
 
@@ -413,6 +445,8 @@ export interface MoEProps extends ComponentNodeProps {
   expert?: { variant: MlpVariant; intermediate?: number | undefined } | undefined;
   shared?: { variant: MlpVariant; intermediate?: number | undefined } | null | undefined;
   name?: string | undefined;
+  /** Key internal tensors drawn as small chips (router logits, top-k ids…). */
+  tensors?: readonly { name: string; shape: readonly string[] }[] | undefined;
   /** How many routed expert boxes to draw before the ellipsis (plus the last one). */
   visibleExperts?: number;
 }
@@ -432,6 +466,7 @@ export function MoE({
   shared,
   name,
   visibleExperts = 5,
+  tensors,
   ...props
 }: MoEProps) {
   const head = Math.min(visibleExperts, experts);
@@ -516,6 +551,7 @@ export function MoE({
           ? ` · shared ${fmt(shared.intermediate)}`
           : ""}
       </span>
+      <TensorRow tensors={tensors} />
     </FigureNode>
   );
 }

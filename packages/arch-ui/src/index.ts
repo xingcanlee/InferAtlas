@@ -26,11 +26,16 @@ export {
   BlockStep,
   DecoderBlock,
   type DecoderBlockProps,
+  HyperBranch,
+  type HyperBranchProps,
+  MhcBox,
+  type MhcBoxProps,
   PatternGroup,
   type PatternGroupProps,
   RepeatCount,
   ResidualBranch,
   type ResidualBranchProps,
+  ResidualBus,
   type ResidualStyle,
 } from "./components/block";
 export {
@@ -91,5 +96,7 @@ export {
   type Shape,
   ShapeLabel,
   type ShapeLabelProps,
+  TensorChip,
+  type TensorChipProps,
 } from "./components/shape";
 export { type ArchFigureContextValue, ArchFigureProvider, useArchFigure } from "./context";

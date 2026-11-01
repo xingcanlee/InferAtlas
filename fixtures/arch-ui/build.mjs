@@ -7,6 +7,7 @@
  *   node fixtures/arch-ui/build.mjs        # rewrites fixtures/arch-ui/<model>/arch.json
  *
  * Shapes are global (tp is a symbol, default 1) expression strings in the expr DSL.
+ * Contract v1.2: `io.internals`, de-duplicated notes, compressed attention extras, mHC.
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -33,6 +34,13 @@ const SRC = {
   dsMlp: src("vllm/model_executor/models/deepseek_v2.py", 244),
   dsMoe: src("vllm/model_executor/models/deepseek_v2.py", 291),
   dsMtp: src("vllm/model_executor/models/deepseek_mtp.py", 76),
+  v4Attn: src("vllm/models/deepseek_v4/attention.py", 132),
+  v4Moe: src("vllm/models/deepseek_v4/nvidia/model.py", 205),
+  v4Layer: src("vllm/models/deepseek_v4/nvidia/model.py", 585),
+  v4Model: src("vllm/models/deepseek_v4/nvidia/model.py", 811),
+  v4Mtp: src("vllm/models/deepseek_v4/nvidia/mtp.py", 79),
+  ossAttn: src("vllm/model_executor/models/gpt_oss.py", 92),
+  ossMlp: src("vllm/model_executor/models/gpt_oss.py", 359),
   nextGdn: src("vllm/model_executor/layers/mamba/gdn/qwen_gdn_linear_attn.py", 527),
   nextAttn: src("vllm/model_executor/models/qwen3_next.py", 280),
   nextMoe: src("vllm/model_executor/models/qwen3_next.py", 131),
@@ -699,19 +707,460 @@ function qwen3_next() {
         text: "Hybrid layout from layer_types: every 4th layer is full (gated) attention, the rest Gated DeltaNet (full_attention_interval = 4).",
         triage_kind: null,
       },
-      ...bands
-        .filter((b) => b.id.startsWith("linear"))
-        .map((b) => ({
-          severity: "warn",
-          target: `${b.id}/linear_attn`,
-          text: "vllm-ascend patches the Gated DeltaNet chunk kernels (triton fla ops); no reviewed annotation yet.",
-          triage_kind: "unannotated_override",
-        })),
+      {
+        severity: "warn",
+        target: "layers",
+        text: "QwenGatedDeltaNetAttention: vllm-ascend patches the Gated DeltaNet chunk kernels (triton fla ops); no reviewed annotation yet (36 layers).",
+        triage_kind: "unannotated_override",
+      },
+      {
+        severity: "info",
+        target: "layers",
+        text: "SharedFusedMoE → AscendSharedFusedMoE (annotated).",
+        triage_kind: "conditional_override",
+      },
     ],
   };
 }
 
-for (const arch of [qwen3_8b(), qwen3_30b(), deepseek_v3(), qwen3_next()]) {
+// ---------------------------------------------------------------------- DeepSeek-V4-Flash
+
+/** config.compress_ratios[0..42] (entry 43 is the MTP layer). */
+const V4_RATIOS = [0, 0, ...Array.from({ length: 41 }, (_, i) => (i % 2 === 0 ? 4 : 128))];
+const V4_HASH_LAYERS = 3;
+
+function deepseek_v4_flash() {
+  const F32 = "float32";
+  const hcSub = (id, L, post) => ({
+    id,
+    role: "other",
+    component: null,
+    io: post
+      ? io(
+          [hidden(), t("residual_streams", ["T", "n_hc", "H"])],
+          [t("residual_streams", ["T", "n_hc", "H"])],
+        )
+      : io([t("residual_streams", ["T", "n_hc", "H"])], [hidden()]),
+    internals: undefined,
+    module: mod(`model.layers.${L}`, "DeepseekV4DecoderLayer", SRC.v4Layer, [
+      p(`hc_${id.includes("attn") ? "attn" : "ffn"}_fn`, ["(2+n_hc)*n_hc", "n_hc*H"], F32),
+      p(`hc_${id.includes("attn") ? "attn" : "ffn"}_base`, ["(2+n_hc)*n_hc"], F32),
+      p(`hc_${id.includes("attn") ? "attn" : "ffn"}_scale`, ["3"], F32),
+    ]),
+  });
+  const attn = (L) => {
+    const ratio = V4_RATIOS[L];
+    const indexer = ratio === 4;
+    const params = [
+      p("fused_wqa_wkv.weight", ["Rq+D", "H"]),
+      p("q_norm.weight", ["Rq"]),
+      p("wq_b.weight", ["Hq*D/tp", "Rq"]),
+      p("kv_norm.weight", ["D"]),
+      p("wo_a.weight", ["G*Ro/tp", "Hq*D/G"]),
+      p("wo_b.weight", ["H", "G*Ro/tp"]),
+      p("attn_sink", ["Hq/tp"], F32),
+    ];
+    if (ratio > 1) params.push(p("compressor.fused_wkv_wgate.weight", ["2*D", "H"]));
+    if (indexer)
+      params.push(
+        p("indexer.wq_b.weight", ["Ni*Di", "Rq"]),
+        p("indexer.wk.weight", ["Di", "H"]),
+        p("indexer.weights_proj.weight", ["Ni", "H"]),
+      );
+    const internals = [
+      t("c_q", ["T", "Rq"]),
+      t("q", ["T", "Hq*D/tp"]),
+      t("kv", ["T", "D"]),
+    ];
+    if (ratio > 1) internals.push(t("kv_compressed", [`cdiv(T, ${ratio})`, "D"]));
+    if (indexer) internals.push(t("index_topk_ids", ["T", "K_idx"], "int32"));
+    internals.push(t("attn_out", ["T", "Hq*D/tp"]));
+    return {
+      id: "attn",
+      role: "mixer",
+      component: {
+        kind: "attention",
+        variant: ratio > 1 ? "mqa" : "sliding_window",
+        heads_q: 64,
+        heads_kv: 1,
+        head_dim: 512,
+        rope: {
+          kind: "yarn",
+          theta: 10000,
+          scaling: { factor: 16, original_max_position_embeddings: 65536 },
+        },
+        qk_norm: false,
+        extras: {
+          q_lora_rank: 1024,
+          o_lora_rank: 1024,
+          o_groups: 8,
+          qk_rope_head_dim: 64,
+          sliding_window: 128,
+          ...(ratio > 1 ? { compress_ratio: ratio } : {}),
+          ...(indexer
+            ? { indexer: true, index_topk: 512, index_n_heads: 64, index_head_dim: 128 }
+            : {}),
+        },
+      },
+      io: { ...io([t("positions", ["T"], "int64"), hidden()], [hidden()]), internals },
+      module: mod(`model.layers.${L}.attn`, "DeepseekV4Attention", SRC.v4Attn, params),
+    };
+  };
+  const moe = (L) => {
+    const hash = L < V4_HASH_LAYERS;
+    return {
+      id: "ffn",
+      role: "ffn",
+      component: {
+        kind: "moe",
+        experts: 256,
+        top_k: 6,
+        shared_experts: 1,
+        router: { scoring: hash ? "hash" : "sqrtsoftplus", norm_topk: true, groups: null },
+        expert: { variant: "swiglu", intermediate: 2048 },
+        shared: { variant: "swiglu", intermediate: 2048 },
+      },
+      io: {
+        ...io([hidden()], [hidden()]),
+        internals: [
+          ...(hash ? [] : [t("router_logits", ["T", "E"], F32)]),
+          t("topk_ids", ["T", "topk"], "int32"),
+          t("topk_weights", ["T", "topk"], F32),
+          t("expert_gate_up", ["T*topk", "2*I_moe/tp"]),
+          t("expert_down", ["T*topk", "H"]),
+          t("shared_out", ["T", "H"]),
+        ],
+      },
+      module: mod(
+        `model.layers.${L}.ffn`,
+        "DeepseekV4MoE",
+        SRC.v4Moe,
+        [
+          ...(hash
+            ? [p("gate.tid2eid", ["V", "topk"], "int32")]
+            : [p("gate.weight", ["E", "H"]), p("gate.e_score_correction_bias", ["E"], F32)]),
+          p("experts.w13_weight", ["E", "2*I_moe/tp", "H"], "fp4"),
+          p("experts.w2_weight", ["E", "H", "I_moe/tp"], "fp4"),
+          p("shared_experts.gate_up_proj.weight", ["2*I_moe/tp", "H"]),
+          p("shared_experts.down_proj.weight", ["H", "I_moe/tp"]),
+        ],
+        "ascend_override",
+        { baseline_class: "FusedMoE", ascend_class: "AscendFusedMoE" },
+      ),
+    };
+  };
+  const block = (L) => ({
+    kind: "decoder",
+    residual: "hyper_connection",
+    sublayers: [
+      hcSub("mhc_attn_pre", L, false),
+      normSub("attn_norm", `model.layers.${L}.attn_norm`),
+      attn(L),
+      hcSub("mhc_attn_post", L, true),
+      hcSub("mhc_ffn_pre", L, false),
+      normSub("ffn_norm", `model.layers.${L}.ffn_norm`),
+      moe(L),
+      hcSub("mhc_ffn_post", L, true),
+    ],
+  });
+  const PATTERN = "1× KV ÷128 + 1× KV ÷4 + indexer";
+  const bands = [
+    band("swa_hash", [0, 1], block(0)),
+    band("c4_hash", [2, 2], block(2)),
+  ];
+  for (let L = 3; L <= 42; L++)
+    bands.push(band(V4_RATIOS[L] === 128 ? `c128_${L}` : `c4_${L}`, [L, L], block(L), PATTERN));
+  return {
+    schema_version: 1,
+    model: {
+      id: "deepseek-v4-flash",
+      hf_id: "deepseek-ai/DeepSeek-V4-Flash",
+      architecture: "DeepseekV4ForCausalLM",
+      family: "mla",
+    },
+    device: "A2",
+    symbols: {
+      D: sym(512, "head dim (shared single KV head)"),
+      Di: sym(128, "index_head_dim"),
+      E: sym(256, "routed experts"),
+      G: sym(8, "o_groups"),
+      H: sym(4096, "hidden size"),
+      Hq: sym(64, "attention heads"),
+      I_moe: sym(2048, "expert intermediate size"),
+      K_idx: sym(512, "index_topk"),
+      L: sym(43, "decoder layers"),
+      Ni: sym(64, "index_n_heads"),
+      Ro: sym(1024, "o_lora_rank"),
+      Rq: sym(1024, "q_lora_rank"),
+      T: tSym,
+      V: sym(129280, "vocabulary size"),
+      n_hc: sym(4, "hyper-connection streams (hc_mult)"),
+      topk: sym(6, "experts per token"),
+      tp: tpSym,
+    },
+    input: t("input_ids", ["T"], "int64"),
+    output: t("logits", ["T", "V"]),
+    stages: [
+      embedStage(129280, 4096),
+      { id: "layers", kind: "stack", label: "Decoder layers", bands },
+      {
+        id: "final_norm",
+        kind: "norm",
+        label: "HC head + final norm",
+        component: { kind: "norm", variant: "rmsnorm", eps: 1e-6 },
+        module: mod("model.norm", "RMSNorm", SRC.rmsnorm, [p("weight", ["H"])]),
+        io: {
+          ...io([t("residual_streams", ["T", "n_hc", "H"])], [hidden()]),
+          internals: [t("hc_head_mix", ["T", "n_hc"], "float32")],
+        },
+      },
+      lmHead(129280, 4096),
+      {
+        id: "mtp",
+        kind: "other",
+        placement: "aside",
+        label: "Multi-token prediction",
+        component: {
+          kind: "generic",
+          class_name: qualify("DeepSeekV4MultiTokenPredictorLayer", SRC.v4Mtp),
+          children: [
+            { name: "enorm", class_name: "RMSNorm" },
+            { name: "hnorm", class_name: "RMSNorm" },
+            { name: "eh_proj", class_name: "ReplicatedLinear" },
+            { name: "mtp_block", class_name: "DeepseekV4DecoderLayer" },
+          ],
+        },
+        module: mod(
+          "model.layers.43",
+          "DeepSeekV4MultiTokenPredictorLayer",
+          SRC.v4Mtp,
+          [p("eh_proj.weight", ["H", "2*H"])],
+          "generic",
+        ),
+        io: io([t("input_ids", ["T"], "int64"), hidden("previous_hidden_states")], [hidden()]),
+      },
+    ],
+    notes: [
+      {
+        severity: "info",
+        target: null,
+        text: "Hyper-connections (mHC): the residual is 4 parallel streams; H_pre mixes them into the sublayer input and H_post / H_res (Sinkhorn-normalised) write back. The HC head reduces the streams before the final norm.",
+        triage_kind: null,
+      },
+      {
+        severity: "info",
+        target: "layers",
+        text: "compress_ratios: layers 0–1 sliding window only; then KV ÷4 (with lightning indexer, top-512) and KV ÷128 alternate. Layers 0–2 route experts by token hash (num_hash_layers = 3).",
+        triage_kind: null,
+      },
+      {
+        severity: "warn",
+        target: "mtp",
+        text: "DeepSeekV4MultiTokenPredictorLayer has no lowering rule; drawn as a generic component.",
+        triage_kind: "unknown_layer_class",
+      },
+      {
+        severity: "info",
+        target: "layers",
+        text: "FusedMoE → AscendFusedMoE (annotated); fp4 expert weights are dequantised on Ascend.",
+        triage_kind: "conditional_override",
+      },
+    ],
+  };
+}
+
+// --------------------------------------------------------------------------- gpt-oss-120b
+
+function gpt_oss_120b() {
+  const F32 = "float32";
+  const attn = (L, sliding) => ({
+    id: "attn",
+    role: "mixer",
+    component: {
+      kind: "attention",
+      variant: sliding ? "sliding_window" : "gqa",
+      heads_q: 64,
+      heads_kv: 8,
+      head_dim: 64,
+      rope: {
+        kind: "yarn",
+        theta: 150000,
+        scaling: { factor: 32, original_max_position_embeddings: 4096 },
+      },
+      qk_norm: false,
+      extras: { ...(sliding ? { sliding_window: 128 } : {}), attention_sinks: true },
+    },
+    io: {
+      ...io([t("positions", ["T"], "int64"), hidden()], [hidden()]),
+      internals: [
+        t("q", ["T", "Hq*D/tp"]),
+        t("k", ["T", "Hkv*D/tp"]),
+        t("v", ["T", "Hkv*D/tp"]),
+        t("attn_out", ["T", "Hq*D/tp"]),
+      ],
+    },
+    module: mod(`model.layers.${L}.attn`, "OAIAttention", SRC.ossAttn, [
+      p("qkv_proj.weight", ["(Hq+2*Hkv)*D/tp", "H"]),
+      p("qkv_proj.bias", ["(Hq+2*Hkv)*D/tp"]),
+      p("o_proj.weight", ["H", "Hq*D/tp"]),
+      p("o_proj.bias", ["H"]),
+      p("sinks", ["Hq/tp"], F32),
+    ]),
+  });
+  const mlp = (L) => ({
+    id: "mlp",
+    role: "ffn",
+    component: {
+      kind: "moe",
+      experts: 128,
+      top_k: 4,
+      shared_experts: 0,
+      router: { scoring: "softmax", norm_topk: true, groups: null },
+      expert: { variant: "swiglu", intermediate: 2880 },
+      shared: null,
+    },
+    io: {
+      ...io([hidden()], [hidden()]),
+      internals: [
+        t("router_logits", ["T", "E"], F32),
+        t("topk_ids", ["T", "topk"], "int32"),
+        t("topk_weights", ["T", "topk"], F32),
+        t("expert_gate_up", ["T*topk", "2*I/tp"]),
+        t("expert_down", ["T*topk", "H"]),
+      ],
+    },
+    module: mod(`model.layers.${L}.mlp`, "MLPBlock", SRC.ossMlp, [
+      p("router.weight", ["E", "H"]),
+      p("router.bias", ["E"]),
+      p("experts.w13_weight", ["E", "2*I/tp", "H"], "mxfp4"),
+      p("experts.w2_weight", ["E", "H", "I/tp"], "mxfp4"),
+    ]),
+  });
+  const block = (L) => ({
+    kind: "decoder",
+    residual: "pre_norm",
+    sublayers: [
+      normSub("input_layernorm", `model.layers.${L}.input_layernorm`),
+      attn(L, L % 2 === 0),
+      addSub("residual_1"),
+      normSub("post_attention_layernorm", `model.layers.${L}.post_attention_layernorm`),
+      mlp(L),
+      addSub("residual_2"),
+    ],
+  });
+  const PATTERN = "1× sliding + 1× full";
+  const bands = Array.from({ length: 36 }, (_, L) =>
+    band(L % 2 === 0 ? `sliding_${L}` : `full_${L}`, [L, L], block(L), PATTERN),
+  );
+  return {
+    schema_version: 1,
+    model: {
+      id: "gpt-oss-120b",
+      hf_id: "openai/gpt-oss-120b",
+      architecture: "GptOssForCausalLM",
+      family: "moe",
+    },
+    device: "A2",
+    symbols: {
+      D: sym(64, "head dim"),
+      E: sym(128, "local experts"),
+      H: sym(2880, "hidden size"),
+      Hkv: sym(8, "key/value heads"),
+      Hq: sym(64, "query heads"),
+      I: sym(2880, "expert intermediate size"),
+      L: sym(36, "decoder layers"),
+      T: tSym,
+      V: sym(201088, "vocabulary size"),
+      topk: sym(4, "experts per token"),
+      tp: tpSym,
+    },
+    input: t("input_ids", ["T"], "int64"),
+    output: t("logits", ["T", "V"]),
+    stages: [
+      embedStage(201088, 2880),
+      { id: "layers", kind: "stack", label: "Decoder layers", bands },
+      finalNorm(),
+      lmHead(201088, 2880),
+    ],
+    notes: [
+      {
+        severity: "info",
+        target: "layers",
+        text: "layer_types alternate sliding_attention (window 128) and full_attention; every attention layer has learned per-head attention sinks.",
+        triage_kind: null,
+      },
+      {
+        severity: "info",
+        target: null,
+        text: "Experts are mxfp4-quantised (quantization_config); attention, router, embeddings and lm_head stay bf16.",
+        triage_kind: null,
+      },
+    ],
+  };
+}
+
+// ----------------------------------------------------------- internals for the v1.1 fixtures
+
+/** Add v1.2 `io.internals` by component kind (explicit internals are kept). */
+function withInternals(arch) {
+  const has = (k) => k in arch.symbols;
+  const F32 = "float32";
+  const forComponent = (c) => {
+    if (!c) return [];
+    if (c.kind === "attention") {
+      if (c.variant === "mla")
+        return [
+          t("c_q", ["T", "Rq"]),
+          t("c_kv", ["T", "Rkv"]),
+          t("k_rope", ["T", "Dr"]),
+          t("q", ["T", "Hq*(Dn+Dr)/tp"]),
+          t("attn_out", ["T", "Hq*Dv/tp"]),
+        ];
+      if (c.variant === "linear")
+        return [
+          t("qkvz", ["T", "(2*Nk*Dk+2*Nv*Dv)/tp"]),
+          t("ba", ["T", "2*Nv/tp"]),
+          t("core_out", ["T", "Nv*Dv/tp"]),
+        ];
+      return [
+        t("q", ["T", c.extras.output_gate ? "2*Hq*D/tp" : "Hq*D/tp"]),
+        t("k", ["T", "Hkv*D/tp"]),
+        t("v", ["T", "Hkv*D/tp"]),
+        t("attn_out", ["T", "Hq*D/tp"]),
+      ];
+    }
+    if (c.kind === "moe")
+      return [
+        t("router_logits", ["T", "E"], F32),
+        t("topk_ids", ["T", "topk"], "int32"),
+        t("topk_weights", ["T", "topk"], F32),
+        t("expert_gate_up", ["T*topk", "2*I_moe/tp"]),
+        t("expert_down", ["T*topk", "H"]),
+        ...(c.shared_experts ? [t("shared_out", ["T", "H"])] : []),
+      ];
+    if (c.kind === "mlp") return [t("gate_up", ["T", "2*I/tp"]), t("act", ["T", "I/tp"])];
+    return [];
+  };
+  const fix = (x) => {
+    if (x.io && !x.io.internals) x.io.internals = forComponent(x.component ?? null);
+    x.internals = undefined;
+  };
+  for (const s of arch.stages) {
+    if (s.kind === "stack") for (const b of s.bands) for (const sub of b.block.sublayers) fix(sub);
+    else fix(s);
+  }
+  if (!has("T")) throw new Error(`${arch.model.id}: missing T`);
+  return arch;
+}
+
+for (const arch of [
+  qwen3_8b(),
+  qwen3_30b(),
+  deepseek_v3(),
+  qwen3_next(),
+  deepseek_v4_flash(),
+  gpt_oss_120b(),
+].map(withInternals)) {
   const out = join(here, arch.model.id, "arch.json");
   mkdirSync(dirname(out), { recursive: true });
   writeFileSync(out, `${JSON.stringify(arch, null, 2)}\n`);

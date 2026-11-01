@@ -143,7 +143,8 @@
             ],
             "dtype": "bfloat16"
           }
-        ]
+        ],
+        "internals": []
       }
     },
     {
@@ -191,7 +192,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.0.input_layernorm",
@@ -252,6 +254,32 @@
                       "shape": [
                         "T",
                         "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "qkvz",
+                      "shape": [
+                        "T",
+                        "(2*Nk*Dk+2*Nv*Dv)/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "ba",
+                      "shape": [
+                        "T",
+                        "2*Nv/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "core_out",
+                      "shape": [
+                        "T",
+                        "Nv*Dv/tp"
                       ],
                       "dtype": "bfloat16"
                     }
@@ -357,7 +385,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               },
@@ -389,7 +418,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.0.post_attention_layernorm",
@@ -448,6 +478,56 @@
                   "outputs": [
                     {
                       "name": "hidden_states",
+                      "shape": [
+                        "T",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "router_logits",
+                      "shape": [
+                        "T",
+                        "E"
+                      ],
+                      "dtype": "float32"
+                    },
+                    {
+                      "name": "topk_ids",
+                      "shape": [
+                        "T",
+                        "topk"
+                      ],
+                      "dtype": "int32"
+                    },
+                    {
+                      "name": "topk_weights",
+                      "shape": [
+                        "T",
+                        "topk"
+                      ],
+                      "dtype": "float32"
+                    },
+                    {
+                      "name": "expert_gate_up",
+                      "shape": [
+                        "T*topk",
+                        "2*I_moe/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "expert_down",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "shared_out",
                       "shape": [
                         "T",
                         "H"
@@ -555,7 +635,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               }
@@ -602,7 +683,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.3.input_layernorm",
@@ -669,6 +751,40 @@
                       "shape": [
                         "T",
                         "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "q",
+                      "shape": [
+                        "T",
+                        "2*Hq*D/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "k",
+                      "shape": [
+                        "T",
+                        "Hkv*D/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "v",
+                      "shape": [
+                        "T",
+                        "Hkv*D/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "attn_out",
+                      "shape": [
+                        "T",
+                        "Hq*D/tp"
                       ],
                       "dtype": "bfloat16"
                     }
@@ -750,7 +866,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               },
@@ -782,7 +899,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.3.post_attention_layernorm",
@@ -841,6 +959,56 @@
                   "outputs": [
                     {
                       "name": "hidden_states",
+                      "shape": [
+                        "T",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "router_logits",
+                      "shape": [
+                        "T",
+                        "E"
+                      ],
+                      "dtype": "float32"
+                    },
+                    {
+                      "name": "topk_ids",
+                      "shape": [
+                        "T",
+                        "topk"
+                      ],
+                      "dtype": "int32"
+                    },
+                    {
+                      "name": "topk_weights",
+                      "shape": [
+                        "T",
+                        "topk"
+                      ],
+                      "dtype": "float32"
+                    },
+                    {
+                      "name": "expert_gate_up",
+                      "shape": [
+                        "T*topk",
+                        "2*I_moe/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "expert_down",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "shared_out",
                       "shape": [
                         "T",
                         "H"
@@ -948,7 +1116,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               }
@@ -995,7 +1164,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.4.input_layernorm",
@@ -1056,6 +1226,32 @@
                       "shape": [
                         "T",
                         "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "qkvz",
+                      "shape": [
+                        "T",
+                        "(2*Nk*Dk+2*Nv*Dv)/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "ba",
+                      "shape": [
+                        "T",
+                        "2*Nv/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "core_out",
+                      "shape": [
+                        "T",
+                        "Nv*Dv/tp"
                       ],
                       "dtype": "bfloat16"
                     }
@@ -1161,7 +1357,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               },
@@ -1193,7 +1390,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.4.post_attention_layernorm",
@@ -1252,6 +1450,56 @@
                   "outputs": [
                     {
                       "name": "hidden_states",
+                      "shape": [
+                        "T",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "router_logits",
+                      "shape": [
+                        "T",
+                        "E"
+                      ],
+                      "dtype": "float32"
+                    },
+                    {
+                      "name": "topk_ids",
+                      "shape": [
+                        "T",
+                        "topk"
+                      ],
+                      "dtype": "int32"
+                    },
+                    {
+                      "name": "topk_weights",
+                      "shape": [
+                        "T",
+                        "topk"
+                      ],
+                      "dtype": "float32"
+                    },
+                    {
+                      "name": "expert_gate_up",
+                      "shape": [
+                        "T*topk",
+                        "2*I_moe/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "expert_down",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "shared_out",
                       "shape": [
                         "T",
                         "H"
@@ -1359,7 +1607,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               }
@@ -1406,7 +1655,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.7.input_layernorm",
@@ -1473,6 +1723,40 @@
                       "shape": [
                         "T",
                         "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "q",
+                      "shape": [
+                        "T",
+                        "2*Hq*D/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "k",
+                      "shape": [
+                        "T",
+                        "Hkv*D/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "v",
+                      "shape": [
+                        "T",
+                        "Hkv*D/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "attn_out",
+                      "shape": [
+                        "T",
+                        "Hq*D/tp"
                       ],
                       "dtype": "bfloat16"
                     }
@@ -1554,7 +1838,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               },
@@ -1586,7 +1871,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.7.post_attention_layernorm",
@@ -1645,6 +1931,56 @@
                   "outputs": [
                     {
                       "name": "hidden_states",
+                      "shape": [
+                        "T",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "router_logits",
+                      "shape": [
+                        "T",
+                        "E"
+                      ],
+                      "dtype": "float32"
+                    },
+                    {
+                      "name": "topk_ids",
+                      "shape": [
+                        "T",
+                        "topk"
+                      ],
+                      "dtype": "int32"
+                    },
+                    {
+                      "name": "topk_weights",
+                      "shape": [
+                        "T",
+                        "topk"
+                      ],
+                      "dtype": "float32"
+                    },
+                    {
+                      "name": "expert_gate_up",
+                      "shape": [
+                        "T*topk",
+                        "2*I_moe/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "expert_down",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "shared_out",
                       "shape": [
                         "T",
                         "H"
@@ -1752,7 +2088,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               }
@@ -1799,7 +2136,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.8.input_layernorm",
@@ -1860,6 +2198,32 @@
                       "shape": [
                         "T",
                         "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "qkvz",
+                      "shape": [
+                        "T",
+                        "(2*Nk*Dk+2*Nv*Dv)/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "ba",
+                      "shape": [
+                        "T",
+                        "2*Nv/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "core_out",
+                      "shape": [
+                        "T",
+                        "Nv*Dv/tp"
                       ],
                       "dtype": "bfloat16"
                     }
@@ -1965,7 +2329,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               },
@@ -1997,7 +2362,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.8.post_attention_layernorm",
@@ -2056,6 +2422,56 @@
                   "outputs": [
                     {
                       "name": "hidden_states",
+                      "shape": [
+                        "T",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "router_logits",
+                      "shape": [
+                        "T",
+                        "E"
+                      ],
+                      "dtype": "float32"
+                    },
+                    {
+                      "name": "topk_ids",
+                      "shape": [
+                        "T",
+                        "topk"
+                      ],
+                      "dtype": "int32"
+                    },
+                    {
+                      "name": "topk_weights",
+                      "shape": [
+                        "T",
+                        "topk"
+                      ],
+                      "dtype": "float32"
+                    },
+                    {
+                      "name": "expert_gate_up",
+                      "shape": [
+                        "T*topk",
+                        "2*I_moe/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "expert_down",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "shared_out",
                       "shape": [
                         "T",
                         "H"
@@ -2163,7 +2579,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               }
@@ -2210,7 +2627,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.11.input_layernorm",
@@ -2277,6 +2695,40 @@
                       "shape": [
                         "T",
                         "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "q",
+                      "shape": [
+                        "T",
+                        "2*Hq*D/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "k",
+                      "shape": [
+                        "T",
+                        "Hkv*D/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "v",
+                      "shape": [
+                        "T",
+                        "Hkv*D/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "attn_out",
+                      "shape": [
+                        "T",
+                        "Hq*D/tp"
                       ],
                       "dtype": "bfloat16"
                     }
@@ -2358,7 +2810,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               },
@@ -2390,7 +2843,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.11.post_attention_layernorm",
@@ -2449,6 +2903,56 @@
                   "outputs": [
                     {
                       "name": "hidden_states",
+                      "shape": [
+                        "T",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "router_logits",
+                      "shape": [
+                        "T",
+                        "E"
+                      ],
+                      "dtype": "float32"
+                    },
+                    {
+                      "name": "topk_ids",
+                      "shape": [
+                        "T",
+                        "topk"
+                      ],
+                      "dtype": "int32"
+                    },
+                    {
+                      "name": "topk_weights",
+                      "shape": [
+                        "T",
+                        "topk"
+                      ],
+                      "dtype": "float32"
+                    },
+                    {
+                      "name": "expert_gate_up",
+                      "shape": [
+                        "T*topk",
+                        "2*I_moe/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "expert_down",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "shared_out",
                       "shape": [
                         "T",
                         "H"
@@ -2556,7 +3060,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               }
@@ -2603,7 +3108,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.12.input_layernorm",
@@ -2664,6 +3170,32 @@
                       "shape": [
                         "T",
                         "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "qkvz",
+                      "shape": [
+                        "T",
+                        "(2*Nk*Dk+2*Nv*Dv)/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "ba",
+                      "shape": [
+                        "T",
+                        "2*Nv/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "core_out",
+                      "shape": [
+                        "T",
+                        "Nv*Dv/tp"
                       ],
                       "dtype": "bfloat16"
                     }
@@ -2769,7 +3301,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               },
@@ -2801,7 +3334,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.12.post_attention_layernorm",
@@ -2860,6 +3394,56 @@
                   "outputs": [
                     {
                       "name": "hidden_states",
+                      "shape": [
+                        "T",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "router_logits",
+                      "shape": [
+                        "T",
+                        "E"
+                      ],
+                      "dtype": "float32"
+                    },
+                    {
+                      "name": "topk_ids",
+                      "shape": [
+                        "T",
+                        "topk"
+                      ],
+                      "dtype": "int32"
+                    },
+                    {
+                      "name": "topk_weights",
+                      "shape": [
+                        "T",
+                        "topk"
+                      ],
+                      "dtype": "float32"
+                    },
+                    {
+                      "name": "expert_gate_up",
+                      "shape": [
+                        "T*topk",
+                        "2*I_moe/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "expert_down",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "shared_out",
                       "shape": [
                         "T",
                         "H"
@@ -2967,7 +3551,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               }
@@ -3014,7 +3599,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.15.input_layernorm",
@@ -3081,6 +3667,40 @@
                       "shape": [
                         "T",
                         "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "q",
+                      "shape": [
+                        "T",
+                        "2*Hq*D/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "k",
+                      "shape": [
+                        "T",
+                        "Hkv*D/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "v",
+                      "shape": [
+                        "T",
+                        "Hkv*D/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "attn_out",
+                      "shape": [
+                        "T",
+                        "Hq*D/tp"
                       ],
                       "dtype": "bfloat16"
                     }
@@ -3162,7 +3782,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               },
@@ -3194,7 +3815,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.15.post_attention_layernorm",
@@ -3253,6 +3875,56 @@
                   "outputs": [
                     {
                       "name": "hidden_states",
+                      "shape": [
+                        "T",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "router_logits",
+                      "shape": [
+                        "T",
+                        "E"
+                      ],
+                      "dtype": "float32"
+                    },
+                    {
+                      "name": "topk_ids",
+                      "shape": [
+                        "T",
+                        "topk"
+                      ],
+                      "dtype": "int32"
+                    },
+                    {
+                      "name": "topk_weights",
+                      "shape": [
+                        "T",
+                        "topk"
+                      ],
+                      "dtype": "float32"
+                    },
+                    {
+                      "name": "expert_gate_up",
+                      "shape": [
+                        "T*topk",
+                        "2*I_moe/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "expert_down",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "shared_out",
                       "shape": [
                         "T",
                         "H"
@@ -3360,7 +4032,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               }
@@ -3407,7 +4080,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.16.input_layernorm",
@@ -3468,6 +4142,32 @@
                       "shape": [
                         "T",
                         "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "qkvz",
+                      "shape": [
+                        "T",
+                        "(2*Nk*Dk+2*Nv*Dv)/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "ba",
+                      "shape": [
+                        "T",
+                        "2*Nv/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "core_out",
+                      "shape": [
+                        "T",
+                        "Nv*Dv/tp"
                       ],
                       "dtype": "bfloat16"
                     }
@@ -3573,7 +4273,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               },
@@ -3605,7 +4306,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.16.post_attention_layernorm",
@@ -3664,6 +4366,56 @@
                   "outputs": [
                     {
                       "name": "hidden_states",
+                      "shape": [
+                        "T",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "router_logits",
+                      "shape": [
+                        "T",
+                        "E"
+                      ],
+                      "dtype": "float32"
+                    },
+                    {
+                      "name": "topk_ids",
+                      "shape": [
+                        "T",
+                        "topk"
+                      ],
+                      "dtype": "int32"
+                    },
+                    {
+                      "name": "topk_weights",
+                      "shape": [
+                        "T",
+                        "topk"
+                      ],
+                      "dtype": "float32"
+                    },
+                    {
+                      "name": "expert_gate_up",
+                      "shape": [
+                        "T*topk",
+                        "2*I_moe/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "expert_down",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "shared_out",
                       "shape": [
                         "T",
                         "H"
@@ -3771,7 +4523,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               }
@@ -3818,7 +4571,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.19.input_layernorm",
@@ -3885,6 +4639,40 @@
                       "shape": [
                         "T",
                         "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "q",
+                      "shape": [
+                        "T",
+                        "2*Hq*D/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "k",
+                      "shape": [
+                        "T",
+                        "Hkv*D/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "v",
+                      "shape": [
+                        "T",
+                        "Hkv*D/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "attn_out",
+                      "shape": [
+                        "T",
+                        "Hq*D/tp"
                       ],
                       "dtype": "bfloat16"
                     }
@@ -3966,7 +4754,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               },
@@ -3998,7 +4787,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.19.post_attention_layernorm",
@@ -4057,6 +4847,56 @@
                   "outputs": [
                     {
                       "name": "hidden_states",
+                      "shape": [
+                        "T",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "router_logits",
+                      "shape": [
+                        "T",
+                        "E"
+                      ],
+                      "dtype": "float32"
+                    },
+                    {
+                      "name": "topk_ids",
+                      "shape": [
+                        "T",
+                        "topk"
+                      ],
+                      "dtype": "int32"
+                    },
+                    {
+                      "name": "topk_weights",
+                      "shape": [
+                        "T",
+                        "topk"
+                      ],
+                      "dtype": "float32"
+                    },
+                    {
+                      "name": "expert_gate_up",
+                      "shape": [
+                        "T*topk",
+                        "2*I_moe/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "expert_down",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "shared_out",
                       "shape": [
                         "T",
                         "H"
@@ -4164,7 +5004,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               }
@@ -4211,7 +5052,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.20.input_layernorm",
@@ -4272,6 +5114,32 @@
                       "shape": [
                         "T",
                         "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "qkvz",
+                      "shape": [
+                        "T",
+                        "(2*Nk*Dk+2*Nv*Dv)/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "ba",
+                      "shape": [
+                        "T",
+                        "2*Nv/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "core_out",
+                      "shape": [
+                        "T",
+                        "Nv*Dv/tp"
                       ],
                       "dtype": "bfloat16"
                     }
@@ -4377,7 +5245,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               },
@@ -4409,7 +5278,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.20.post_attention_layernorm",
@@ -4468,6 +5338,56 @@
                   "outputs": [
                     {
                       "name": "hidden_states",
+                      "shape": [
+                        "T",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "router_logits",
+                      "shape": [
+                        "T",
+                        "E"
+                      ],
+                      "dtype": "float32"
+                    },
+                    {
+                      "name": "topk_ids",
+                      "shape": [
+                        "T",
+                        "topk"
+                      ],
+                      "dtype": "int32"
+                    },
+                    {
+                      "name": "topk_weights",
+                      "shape": [
+                        "T",
+                        "topk"
+                      ],
+                      "dtype": "float32"
+                    },
+                    {
+                      "name": "expert_gate_up",
+                      "shape": [
+                        "T*topk",
+                        "2*I_moe/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "expert_down",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "shared_out",
                       "shape": [
                         "T",
                         "H"
@@ -4575,7 +5495,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               }
@@ -4622,7 +5543,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.23.input_layernorm",
@@ -4689,6 +5611,40 @@
                       "shape": [
                         "T",
                         "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "q",
+                      "shape": [
+                        "T",
+                        "2*Hq*D/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "k",
+                      "shape": [
+                        "T",
+                        "Hkv*D/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "v",
+                      "shape": [
+                        "T",
+                        "Hkv*D/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "attn_out",
+                      "shape": [
+                        "T",
+                        "Hq*D/tp"
                       ],
                       "dtype": "bfloat16"
                     }
@@ -4770,7 +5726,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               },
@@ -4802,7 +5759,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.23.post_attention_layernorm",
@@ -4861,6 +5819,56 @@
                   "outputs": [
                     {
                       "name": "hidden_states",
+                      "shape": [
+                        "T",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "router_logits",
+                      "shape": [
+                        "T",
+                        "E"
+                      ],
+                      "dtype": "float32"
+                    },
+                    {
+                      "name": "topk_ids",
+                      "shape": [
+                        "T",
+                        "topk"
+                      ],
+                      "dtype": "int32"
+                    },
+                    {
+                      "name": "topk_weights",
+                      "shape": [
+                        "T",
+                        "topk"
+                      ],
+                      "dtype": "float32"
+                    },
+                    {
+                      "name": "expert_gate_up",
+                      "shape": [
+                        "T*topk",
+                        "2*I_moe/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "expert_down",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "shared_out",
                       "shape": [
                         "T",
                         "H"
@@ -4968,7 +5976,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               }
@@ -5015,7 +6024,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.24.input_layernorm",
@@ -5076,6 +6086,32 @@
                       "shape": [
                         "T",
                         "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "qkvz",
+                      "shape": [
+                        "T",
+                        "(2*Nk*Dk+2*Nv*Dv)/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "ba",
+                      "shape": [
+                        "T",
+                        "2*Nv/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "core_out",
+                      "shape": [
+                        "T",
+                        "Nv*Dv/tp"
                       ],
                       "dtype": "bfloat16"
                     }
@@ -5181,7 +6217,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               },
@@ -5213,7 +6250,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.24.post_attention_layernorm",
@@ -5272,6 +6310,56 @@
                   "outputs": [
                     {
                       "name": "hidden_states",
+                      "shape": [
+                        "T",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "router_logits",
+                      "shape": [
+                        "T",
+                        "E"
+                      ],
+                      "dtype": "float32"
+                    },
+                    {
+                      "name": "topk_ids",
+                      "shape": [
+                        "T",
+                        "topk"
+                      ],
+                      "dtype": "int32"
+                    },
+                    {
+                      "name": "topk_weights",
+                      "shape": [
+                        "T",
+                        "topk"
+                      ],
+                      "dtype": "float32"
+                    },
+                    {
+                      "name": "expert_gate_up",
+                      "shape": [
+                        "T*topk",
+                        "2*I_moe/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "expert_down",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "shared_out",
                       "shape": [
                         "T",
                         "H"
@@ -5379,7 +6467,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               }
@@ -5426,7 +6515,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.27.input_layernorm",
@@ -5493,6 +6583,40 @@
                       "shape": [
                         "T",
                         "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "q",
+                      "shape": [
+                        "T",
+                        "2*Hq*D/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "k",
+                      "shape": [
+                        "T",
+                        "Hkv*D/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "v",
+                      "shape": [
+                        "T",
+                        "Hkv*D/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "attn_out",
+                      "shape": [
+                        "T",
+                        "Hq*D/tp"
                       ],
                       "dtype": "bfloat16"
                     }
@@ -5574,7 +6698,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               },
@@ -5606,7 +6731,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.27.post_attention_layernorm",
@@ -5665,6 +6791,56 @@
                   "outputs": [
                     {
                       "name": "hidden_states",
+                      "shape": [
+                        "T",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "router_logits",
+                      "shape": [
+                        "T",
+                        "E"
+                      ],
+                      "dtype": "float32"
+                    },
+                    {
+                      "name": "topk_ids",
+                      "shape": [
+                        "T",
+                        "topk"
+                      ],
+                      "dtype": "int32"
+                    },
+                    {
+                      "name": "topk_weights",
+                      "shape": [
+                        "T",
+                        "topk"
+                      ],
+                      "dtype": "float32"
+                    },
+                    {
+                      "name": "expert_gate_up",
+                      "shape": [
+                        "T*topk",
+                        "2*I_moe/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "expert_down",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "shared_out",
                       "shape": [
                         "T",
                         "H"
@@ -5772,7 +6948,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               }
@@ -5819,7 +6996,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.28.input_layernorm",
@@ -5880,6 +7058,32 @@
                       "shape": [
                         "T",
                         "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "qkvz",
+                      "shape": [
+                        "T",
+                        "(2*Nk*Dk+2*Nv*Dv)/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "ba",
+                      "shape": [
+                        "T",
+                        "2*Nv/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "core_out",
+                      "shape": [
+                        "T",
+                        "Nv*Dv/tp"
                       ],
                       "dtype": "bfloat16"
                     }
@@ -5985,7 +7189,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               },
@@ -6017,7 +7222,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.28.post_attention_layernorm",
@@ -6076,6 +7282,56 @@
                   "outputs": [
                     {
                       "name": "hidden_states",
+                      "shape": [
+                        "T",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "router_logits",
+                      "shape": [
+                        "T",
+                        "E"
+                      ],
+                      "dtype": "float32"
+                    },
+                    {
+                      "name": "topk_ids",
+                      "shape": [
+                        "T",
+                        "topk"
+                      ],
+                      "dtype": "int32"
+                    },
+                    {
+                      "name": "topk_weights",
+                      "shape": [
+                        "T",
+                        "topk"
+                      ],
+                      "dtype": "float32"
+                    },
+                    {
+                      "name": "expert_gate_up",
+                      "shape": [
+                        "T*topk",
+                        "2*I_moe/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "expert_down",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "shared_out",
                       "shape": [
                         "T",
                         "H"
@@ -6183,7 +7439,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               }
@@ -6230,7 +7487,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.31.input_layernorm",
@@ -6297,6 +7555,40 @@
                       "shape": [
                         "T",
                         "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "q",
+                      "shape": [
+                        "T",
+                        "2*Hq*D/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "k",
+                      "shape": [
+                        "T",
+                        "Hkv*D/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "v",
+                      "shape": [
+                        "T",
+                        "Hkv*D/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "attn_out",
+                      "shape": [
+                        "T",
+                        "Hq*D/tp"
                       ],
                       "dtype": "bfloat16"
                     }
@@ -6378,7 +7670,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               },
@@ -6410,7 +7703,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.31.post_attention_layernorm",
@@ -6469,6 +7763,56 @@
                   "outputs": [
                     {
                       "name": "hidden_states",
+                      "shape": [
+                        "T",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "router_logits",
+                      "shape": [
+                        "T",
+                        "E"
+                      ],
+                      "dtype": "float32"
+                    },
+                    {
+                      "name": "topk_ids",
+                      "shape": [
+                        "T",
+                        "topk"
+                      ],
+                      "dtype": "int32"
+                    },
+                    {
+                      "name": "topk_weights",
+                      "shape": [
+                        "T",
+                        "topk"
+                      ],
+                      "dtype": "float32"
+                    },
+                    {
+                      "name": "expert_gate_up",
+                      "shape": [
+                        "T*topk",
+                        "2*I_moe/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "expert_down",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "shared_out",
                       "shape": [
                         "T",
                         "H"
@@ -6576,7 +7920,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               }
@@ -6623,7 +7968,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.32.input_layernorm",
@@ -6684,6 +8030,32 @@
                       "shape": [
                         "T",
                         "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "qkvz",
+                      "shape": [
+                        "T",
+                        "(2*Nk*Dk+2*Nv*Dv)/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "ba",
+                      "shape": [
+                        "T",
+                        "2*Nv/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "core_out",
+                      "shape": [
+                        "T",
+                        "Nv*Dv/tp"
                       ],
                       "dtype": "bfloat16"
                     }
@@ -6789,7 +8161,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               },
@@ -6821,7 +8194,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.32.post_attention_layernorm",
@@ -6880,6 +8254,56 @@
                   "outputs": [
                     {
                       "name": "hidden_states",
+                      "shape": [
+                        "T",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "router_logits",
+                      "shape": [
+                        "T",
+                        "E"
+                      ],
+                      "dtype": "float32"
+                    },
+                    {
+                      "name": "topk_ids",
+                      "shape": [
+                        "T",
+                        "topk"
+                      ],
+                      "dtype": "int32"
+                    },
+                    {
+                      "name": "topk_weights",
+                      "shape": [
+                        "T",
+                        "topk"
+                      ],
+                      "dtype": "float32"
+                    },
+                    {
+                      "name": "expert_gate_up",
+                      "shape": [
+                        "T*topk",
+                        "2*I_moe/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "expert_down",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "shared_out",
                       "shape": [
                         "T",
                         "H"
@@ -6987,7 +8411,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               }
@@ -7034,7 +8459,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.35.input_layernorm",
@@ -7101,6 +8527,40 @@
                       "shape": [
                         "T",
                         "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "q",
+                      "shape": [
+                        "T",
+                        "2*Hq*D/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "k",
+                      "shape": [
+                        "T",
+                        "Hkv*D/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "v",
+                      "shape": [
+                        "T",
+                        "Hkv*D/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "attn_out",
+                      "shape": [
+                        "T",
+                        "Hq*D/tp"
                       ],
                       "dtype": "bfloat16"
                     }
@@ -7182,7 +8642,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               },
@@ -7214,7 +8675,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.35.post_attention_layernorm",
@@ -7273,6 +8735,56 @@
                   "outputs": [
                     {
                       "name": "hidden_states",
+                      "shape": [
+                        "T",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "router_logits",
+                      "shape": [
+                        "T",
+                        "E"
+                      ],
+                      "dtype": "float32"
+                    },
+                    {
+                      "name": "topk_ids",
+                      "shape": [
+                        "T",
+                        "topk"
+                      ],
+                      "dtype": "int32"
+                    },
+                    {
+                      "name": "topk_weights",
+                      "shape": [
+                        "T",
+                        "topk"
+                      ],
+                      "dtype": "float32"
+                    },
+                    {
+                      "name": "expert_gate_up",
+                      "shape": [
+                        "T*topk",
+                        "2*I_moe/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "expert_down",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "shared_out",
                       "shape": [
                         "T",
                         "H"
@@ -7380,7 +8892,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               }
@@ -7427,7 +8940,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.36.input_layernorm",
@@ -7488,6 +9002,32 @@
                       "shape": [
                         "T",
                         "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "qkvz",
+                      "shape": [
+                        "T",
+                        "(2*Nk*Dk+2*Nv*Dv)/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "ba",
+                      "shape": [
+                        "T",
+                        "2*Nv/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "core_out",
+                      "shape": [
+                        "T",
+                        "Nv*Dv/tp"
                       ],
                       "dtype": "bfloat16"
                     }
@@ -7593,7 +9133,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               },
@@ -7625,7 +9166,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.36.post_attention_layernorm",
@@ -7684,6 +9226,56 @@
                   "outputs": [
                     {
                       "name": "hidden_states",
+                      "shape": [
+                        "T",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "router_logits",
+                      "shape": [
+                        "T",
+                        "E"
+                      ],
+                      "dtype": "float32"
+                    },
+                    {
+                      "name": "topk_ids",
+                      "shape": [
+                        "T",
+                        "topk"
+                      ],
+                      "dtype": "int32"
+                    },
+                    {
+                      "name": "topk_weights",
+                      "shape": [
+                        "T",
+                        "topk"
+                      ],
+                      "dtype": "float32"
+                    },
+                    {
+                      "name": "expert_gate_up",
+                      "shape": [
+                        "T*topk",
+                        "2*I_moe/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "expert_down",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "shared_out",
                       "shape": [
                         "T",
                         "H"
@@ -7791,7 +9383,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               }
@@ -7838,7 +9431,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.39.input_layernorm",
@@ -7905,6 +9499,40 @@
                       "shape": [
                         "T",
                         "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "q",
+                      "shape": [
+                        "T",
+                        "2*Hq*D/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "k",
+                      "shape": [
+                        "T",
+                        "Hkv*D/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "v",
+                      "shape": [
+                        "T",
+                        "Hkv*D/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "attn_out",
+                      "shape": [
+                        "T",
+                        "Hq*D/tp"
                       ],
                       "dtype": "bfloat16"
                     }
@@ -7986,7 +9614,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               },
@@ -8018,7 +9647,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.39.post_attention_layernorm",
@@ -8077,6 +9707,56 @@
                   "outputs": [
                     {
                       "name": "hidden_states",
+                      "shape": [
+                        "T",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "router_logits",
+                      "shape": [
+                        "T",
+                        "E"
+                      ],
+                      "dtype": "float32"
+                    },
+                    {
+                      "name": "topk_ids",
+                      "shape": [
+                        "T",
+                        "topk"
+                      ],
+                      "dtype": "int32"
+                    },
+                    {
+                      "name": "topk_weights",
+                      "shape": [
+                        "T",
+                        "topk"
+                      ],
+                      "dtype": "float32"
+                    },
+                    {
+                      "name": "expert_gate_up",
+                      "shape": [
+                        "T*topk",
+                        "2*I_moe/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "expert_down",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "shared_out",
                       "shape": [
                         "T",
                         "H"
@@ -8184,7 +9864,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               }
@@ -8231,7 +9912,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.40.input_layernorm",
@@ -8292,6 +9974,32 @@
                       "shape": [
                         "T",
                         "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "qkvz",
+                      "shape": [
+                        "T",
+                        "(2*Nk*Dk+2*Nv*Dv)/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "ba",
+                      "shape": [
+                        "T",
+                        "2*Nv/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "core_out",
+                      "shape": [
+                        "T",
+                        "Nv*Dv/tp"
                       ],
                       "dtype": "bfloat16"
                     }
@@ -8397,7 +10105,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               },
@@ -8429,7 +10138,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.40.post_attention_layernorm",
@@ -8488,6 +10198,56 @@
                   "outputs": [
                     {
                       "name": "hidden_states",
+                      "shape": [
+                        "T",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "router_logits",
+                      "shape": [
+                        "T",
+                        "E"
+                      ],
+                      "dtype": "float32"
+                    },
+                    {
+                      "name": "topk_ids",
+                      "shape": [
+                        "T",
+                        "topk"
+                      ],
+                      "dtype": "int32"
+                    },
+                    {
+                      "name": "topk_weights",
+                      "shape": [
+                        "T",
+                        "topk"
+                      ],
+                      "dtype": "float32"
+                    },
+                    {
+                      "name": "expert_gate_up",
+                      "shape": [
+                        "T*topk",
+                        "2*I_moe/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "expert_down",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "shared_out",
                       "shape": [
                         "T",
                         "H"
@@ -8595,7 +10355,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               }
@@ -8642,7 +10403,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.43.input_layernorm",
@@ -8709,6 +10471,40 @@
                       "shape": [
                         "T",
                         "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "q",
+                      "shape": [
+                        "T",
+                        "2*Hq*D/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "k",
+                      "shape": [
+                        "T",
+                        "Hkv*D/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "v",
+                      "shape": [
+                        "T",
+                        "Hkv*D/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "attn_out",
+                      "shape": [
+                        "T",
+                        "Hq*D/tp"
                       ],
                       "dtype": "bfloat16"
                     }
@@ -8790,7 +10586,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               },
@@ -8822,7 +10619,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.43.post_attention_layernorm",
@@ -8881,6 +10679,56 @@
                   "outputs": [
                     {
                       "name": "hidden_states",
+                      "shape": [
+                        "T",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "router_logits",
+                      "shape": [
+                        "T",
+                        "E"
+                      ],
+                      "dtype": "float32"
+                    },
+                    {
+                      "name": "topk_ids",
+                      "shape": [
+                        "T",
+                        "topk"
+                      ],
+                      "dtype": "int32"
+                    },
+                    {
+                      "name": "topk_weights",
+                      "shape": [
+                        "T",
+                        "topk"
+                      ],
+                      "dtype": "float32"
+                    },
+                    {
+                      "name": "expert_gate_up",
+                      "shape": [
+                        "T*topk",
+                        "2*I_moe/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "expert_down",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "shared_out",
                       "shape": [
                         "T",
                         "H"
@@ -8988,7 +10836,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               }
@@ -9035,7 +10884,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.44.input_layernorm",
@@ -9096,6 +10946,32 @@
                       "shape": [
                         "T",
                         "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "qkvz",
+                      "shape": [
+                        "T",
+                        "(2*Nk*Dk+2*Nv*Dv)/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "ba",
+                      "shape": [
+                        "T",
+                        "2*Nv/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "core_out",
+                      "shape": [
+                        "T",
+                        "Nv*Dv/tp"
                       ],
                       "dtype": "bfloat16"
                     }
@@ -9201,7 +11077,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               },
@@ -9233,7 +11110,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.44.post_attention_layernorm",
@@ -9292,6 +11170,56 @@
                   "outputs": [
                     {
                       "name": "hidden_states",
+                      "shape": [
+                        "T",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "router_logits",
+                      "shape": [
+                        "T",
+                        "E"
+                      ],
+                      "dtype": "float32"
+                    },
+                    {
+                      "name": "topk_ids",
+                      "shape": [
+                        "T",
+                        "topk"
+                      ],
+                      "dtype": "int32"
+                    },
+                    {
+                      "name": "topk_weights",
+                      "shape": [
+                        "T",
+                        "topk"
+                      ],
+                      "dtype": "float32"
+                    },
+                    {
+                      "name": "expert_gate_up",
+                      "shape": [
+                        "T*topk",
+                        "2*I_moe/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "expert_down",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "shared_out",
                       "shape": [
                         "T",
                         "H"
@@ -9399,7 +11327,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               }
@@ -9446,7 +11375,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.47.input_layernorm",
@@ -9513,6 +11443,40 @@
                       "shape": [
                         "T",
                         "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "q",
+                      "shape": [
+                        "T",
+                        "2*Hq*D/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "k",
+                      "shape": [
+                        "T",
+                        "Hkv*D/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "v",
+                      "shape": [
+                        "T",
+                        "Hkv*D/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "attn_out",
+                      "shape": [
+                        "T",
+                        "Hq*D/tp"
                       ],
                       "dtype": "bfloat16"
                     }
@@ -9594,7 +11558,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               },
@@ -9626,7 +11591,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": {
                   "path": "model.layers.47.post_attention_layernorm",
@@ -9685,6 +11651,56 @@
                   "outputs": [
                     {
                       "name": "hidden_states",
+                      "shape": [
+                        "T",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "name": "router_logits",
+                      "shape": [
+                        "T",
+                        "E"
+                      ],
+                      "dtype": "float32"
+                    },
+                    {
+                      "name": "topk_ids",
+                      "shape": [
+                        "T",
+                        "topk"
+                      ],
+                      "dtype": "int32"
+                    },
+                    {
+                      "name": "topk_weights",
+                      "shape": [
+                        "T",
+                        "topk"
+                      ],
+                      "dtype": "float32"
+                    },
+                    {
+                      "name": "expert_gate_up",
+                      "shape": [
+                        "T*topk",
+                        "2*I_moe/tp"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "expert_down",
+                      "shape": [
+                        "T*topk",
+                        "H"
+                      ],
+                      "dtype": "bfloat16"
+                    },
+                    {
+                      "name": "shared_out",
                       "shape": [
                         "T",
                         "H"
@@ -9792,7 +11808,8 @@
                       ],
                       "dtype": "bfloat16"
                     }
-                  ]
+                  ],
+                  "internals": []
                 },
                 "module": null
               }
@@ -9858,7 +11875,8 @@
             ],
             "dtype": "bfloat16"
           }
-        ]
+        ],
+        "internals": []
       }
     },
     {
@@ -9912,7 +11930,8 @@
             ],
             "dtype": "bfloat16"
           }
-        ]
+        ],
+        "internals": []
       }
     }
   ],
@@ -9925,75 +11944,15 @@
     },
     {
       "severity": "warn",
-      "target": "linear_0_2/linear_attn",
-      "text": "vllm-ascend patches the Gated DeltaNet chunk kernels (triton fla ops); no reviewed annotation yet.",
+      "target": "layers",
+      "text": "QwenGatedDeltaNetAttention: vllm-ascend patches the Gated DeltaNet chunk kernels (triton fla ops); no reviewed annotation yet (36 layers).",
       "triage_kind": "unannotated_override"
     },
     {
-      "severity": "warn",
-      "target": "linear_4_6/linear_attn",
-      "text": "vllm-ascend patches the Gated DeltaNet chunk kernels (triton fla ops); no reviewed annotation yet.",
-      "triage_kind": "unannotated_override"
-    },
-    {
-      "severity": "warn",
-      "target": "linear_8_10/linear_attn",
-      "text": "vllm-ascend patches the Gated DeltaNet chunk kernels (triton fla ops); no reviewed annotation yet.",
-      "triage_kind": "unannotated_override"
-    },
-    {
-      "severity": "warn",
-      "target": "linear_12_14/linear_attn",
-      "text": "vllm-ascend patches the Gated DeltaNet chunk kernels (triton fla ops); no reviewed annotation yet.",
-      "triage_kind": "unannotated_override"
-    },
-    {
-      "severity": "warn",
-      "target": "linear_16_18/linear_attn",
-      "text": "vllm-ascend patches the Gated DeltaNet chunk kernels (triton fla ops); no reviewed annotation yet.",
-      "triage_kind": "unannotated_override"
-    },
-    {
-      "severity": "warn",
-      "target": "linear_20_22/linear_attn",
-      "text": "vllm-ascend patches the Gated DeltaNet chunk kernels (triton fla ops); no reviewed annotation yet.",
-      "triage_kind": "unannotated_override"
-    },
-    {
-      "severity": "warn",
-      "target": "linear_24_26/linear_attn",
-      "text": "vllm-ascend patches the Gated DeltaNet chunk kernels (triton fla ops); no reviewed annotation yet.",
-      "triage_kind": "unannotated_override"
-    },
-    {
-      "severity": "warn",
-      "target": "linear_28_30/linear_attn",
-      "text": "vllm-ascend patches the Gated DeltaNet chunk kernels (triton fla ops); no reviewed annotation yet.",
-      "triage_kind": "unannotated_override"
-    },
-    {
-      "severity": "warn",
-      "target": "linear_32_34/linear_attn",
-      "text": "vllm-ascend patches the Gated DeltaNet chunk kernels (triton fla ops); no reviewed annotation yet.",
-      "triage_kind": "unannotated_override"
-    },
-    {
-      "severity": "warn",
-      "target": "linear_36_38/linear_attn",
-      "text": "vllm-ascend patches the Gated DeltaNet chunk kernels (triton fla ops); no reviewed annotation yet.",
-      "triage_kind": "unannotated_override"
-    },
-    {
-      "severity": "warn",
-      "target": "linear_40_42/linear_attn",
-      "text": "vllm-ascend patches the Gated DeltaNet chunk kernels (triton fla ops); no reviewed annotation yet.",
-      "triage_kind": "unannotated_override"
-    },
-    {
-      "severity": "warn",
-      "target": "linear_44_46/linear_attn",
-      "text": "vllm-ascend patches the Gated DeltaNet chunk kernels (triton fla ops); no reviewed annotation yet.",
-      "triage_kind": "unannotated_override"
+      "severity": "info",
+      "target": "layers",
+      "text": "SharedFusedMoE → AscendSharedFusedMoE (annotated).",
+      "triage_kind": "conditional_override"
     }
   ]
 }

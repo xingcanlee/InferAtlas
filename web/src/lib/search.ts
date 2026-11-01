@@ -71,6 +71,10 @@ export function paramOverrides(
 
 export const homeSearchSchema = z.object({
   device: z.string().optional().catch(undefined),
+  /** Free-text model filter (label, id, HF id, family). */
+  q: z.string().optional().catch(undefined),
+  /** Model family filter (dense / moe / mla / hybrid / …). */
+  family: z.string().optional().catch(undefined),
 });
 
 export const diffSearchSchema = z.object({

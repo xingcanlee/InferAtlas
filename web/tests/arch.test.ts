@@ -3,15 +3,24 @@ import { describe, expect, it } from "vitest";
 import {
   allBands,
   archEnv,
+  attentionLabel,
   bandForLayer,
   bandOrdinal,
   blockSegments,
+  blockSignature,
+  canonicalStages,
+  compactFocus,
   evaluator,
+  groupNotes,
+  isMhc,
+  keyInternals,
   layerCount,
   layerPath,
   MAX_STACK_COLUMNS,
+  modelNotes,
   noteMarker,
   notesFor,
+  primaryStack,
   representative,
   represented,
   shortClass,
@@ -22,6 +31,8 @@ import {
 } from "@/lib/arch";
 import type { Arch, ArchBand, ArchBlock, ArchStackStage } from "@/lib/arch-types";
 import deepseekJson from "../../fixtures/arch-ui/deepseek-v3/arch.json";
+import v4Json from "../../fixtures/arch-ui/deepseek-v4-flash/arch.json";
+import ossJson from "../../fixtures/arch-ui/gpt-oss-120b/arch.json";
 import denseJson from "../../fixtures/arch-ui/qwen3-8b/arch.json";
 import moeJson from "../../fixtures/arch-ui/qwen3-30b-a3b/arch.json";
 import nextJson from "../../fixtures/arch-ui/qwen3-next-80b-a3b/arch.json";
@@ -30,7 +41,9 @@ const dense = denseJson as unknown as Arch;
 const moe = moeJson as unknown as Arch;
 const deepseek = deepseekJson as unknown as Arch;
 const next = nextJson as unknown as Arch;
-const FIXTURES = { dense, moe, deepseek, next };
+const v4 = v4Json as unknown as Arch;
+const oss = ossJson as unknown as Arch;
+const FIXTURES = { dense, moe, deepseek, next, v4, oss };
 
 describe("fixtures follow the contract", () => {
   for (const [name, arch] of Object.entries(FIXTURES)) {
@@ -43,6 +56,7 @@ describe("fixtures follow the contract", () => {
             for (const sub of b.block.sublayers) {
               shapes.push(...sub.io.inputs.map((t) => t.shape));
               shapes.push(...sub.io.outputs.map((t) => t.shape));
+              shapes.push(...(sub.io.internals ?? []).map((t) => t.shape));
               shapes.push(...(sub.module?.params ?? []).map((p) => p.shape));
             }
         else shapes.push(...s.io.inputs.map((t) => t.shape), ...s.io.outputs.map((t) => t.shape));
@@ -238,12 +252,119 @@ describe("symbols, paths and notes", () => {
   it("collects notes per target and summarises their severity", () => {
     const n = notesFor(deepseek, ["moe/mlp"]);
     expect(n).toHaveLength(2);
-    expect(noteMarker(n)).toEqual({ severity: "warn", count: 2 });
-    // Qwen3-Next repeats the same note on every linear band: counted once.
+    // v1.2: figure badges count targeted warn notes only (the info note is panel-only).
+    expect(noteMarker(n)).toEqual({ severity: "warn", count: 1 });
+    expect(noteMarker(n.filter((x) => x.severity === "info"))).toBeUndefined();
+    // Qwen3-Next's de-duplicated GDN note is stack-level: no per-band badge.
     const items = stackItems(stacks(next)[0]?.bands ?? []);
     const g = items[0];
     if (g?.kind !== "pattern") throw new Error("pattern");
     const targets = represented(items, g.period[0] as never).map((b) => `${b.id}/linear_attn`);
-    expect(noteMarker(notesFor(next, targets))).toEqual({ severity: "warn", count: 1 });
+    expect(noteMarker(notesFor(next, targets))).toBeUndefined();
+    expect(modelNotes(next).map((x) => x.triage_kind)).toContain("unannotated_override");
+  });
+
+  it("groups notes by triage_kind, warn groups first, plain notes last", () => {
+    const groups = groupNotes(v4.notes);
+    expect(groups.map((g) => g.kind)).toEqual([
+      "unknown_layer_class",
+      "conditional_override",
+      null,
+    ]);
+    expect(groups[0]?.warn).toBe(1);
+    expect(groups.at(-1)?.notes).toHaveLength(2);
+  });
+});
+
+describe("contract v1.2", () => {
+  it("DeepSeek-V4-Flash folds by compression ratio + indexer and goes compact", () => {
+    const items = stackItems(stacks(v4)[0]?.bands ?? []);
+    expect(items.map((it) => (it.kind === "band" ? it.band.id : `${it.repeats}×`))).toEqual([
+      "swa_hash",
+      "c4_hash",
+      "20×",
+    ]);
+    const g = items[2];
+    if (g?.kind !== "pattern") throw new Error("pattern");
+    expect(g.period.map((b) => b.id)).toEqual(["c128_3", "c4_4"]);
+    expect(g.label).toBe("1× KV ÷128 + 1× KV ÷4 + indexer");
+    // Hash-routed layer 2 differs from the learned-router ÷4 layers.
+    expect(blockSignature((items[1] as { band: ArchBand }).band.block)).not.toBe(
+      blockSignature(g.period[1]?.block as ArchBlock),
+    );
+    const attn = g.period[1]?.block.sublayers.find((x) => x.role === "mixer")?.component;
+    if (attn?.kind !== "attention") throw new Error("attention");
+    expect(attentionLabel(attn)).toBe("MQA attn ÷4 + indexer");
+    expect(stackColumns(items)).toBeGreaterThan(MAX_STACK_COLUMNS);
+    expect(compactFocus(items, undefined)).toBe(g);
+    expect(compactFocus(items, bandForLayer(v4, 1))).toBe(items[0]);
+  });
+
+  it("hyper-connection blocks split into mHC segments in dataflow order", () => {
+    const block = bandForLayer(v4, 10)?.block as ArchBlock;
+    expect(block.residual).toBe("hyper_connection");
+    const segs = blockSegments(block);
+    expect(segs).toHaveLength(2);
+    expect(
+      segs.map((s) =>
+        s.kind === "hyper" ? [s.pre?.id, s.body.map((b) => b.id), s.post?.id] : s.kind,
+      ),
+    ).toEqual([
+      ["mhc_attn_pre", ["attn_norm", "attn"], "mhc_attn_post"],
+      ["mhc_ffn_pre", ["ffn_norm", "ffn"], "mhc_ffn_post"],
+    ]);
+    expect(block.sublayers.filter(isMhc)).toHaveLength(4);
+    // A fused post/pre sublayer closes one segment and opens the next.
+    const fused: ArchBlock = {
+      ...block,
+      sublayers: block.sublayers
+        .filter((s) => s.id !== "mhc_ffn_pre")
+        .map((s) => (s.id === "mhc_attn_post" ? { ...s, id: "mhc_fused_post_pre" } : s)),
+    };
+    expect(blockSegments(fused).map((s) => s.kind)).toEqual(["hyper", "hyper"]);
+  });
+
+  it("gpt-oss alternates sliding / full attention", () => {
+    const items = stackItems(stacks(oss)[0]?.bands ?? []);
+    expect(items).toHaveLength(1);
+    const g = items[0];
+    if (g?.kind !== "pattern") throw new Error("pattern");
+    expect(g.repeats).toBe(18);
+    expect(
+      g.period.map(
+        (b) =>
+          b.block.sublayers[1]?.component?.kind === "attention" &&
+          (b.block.sublayers[1].component as { variant: string }).variant,
+      ),
+    ).toEqual(["sliding_window", "gqa"]);
+  });
+
+  it("canonical stage order and the primary stack", () => {
+    const shuffled: Arch = { ...v4, stages: [...v4.stages].reverse() };
+    expect(canonicalStages(shuffled).map((s) => s.id)).toEqual([
+      "embed",
+      "layers",
+      "final_norm",
+      "lm_head",
+      "mtp",
+    ]);
+    const stack = stacks(dense)[0] as ArchStackStage;
+    const vision: Arch = {
+      ...dense,
+      stages: [{ ...stack, id: "vision", label: "Vision encoder" }, ...dense.stages],
+    };
+    expect(primaryStack(vision)?.id).toBe("layers");
+  });
+
+  it("internals: outputs stay [T, H]; key internals pick q/k/v and routing", () => {
+    const attn = bandForLayer(moe, 0)?.block.sublayers.find((x) => x.id === "self_attn");
+    expect(attn?.io.outputs.map((t) => t.shape)).toEqual([["T", "H"]]);
+    expect(keyInternals(attn as never).map((t) => t.name)).toEqual(["q", "k", "v"]);
+    const ffn = bandForLayer(moe, 0)?.block.sublayers.find((x) => x.id === "mlp");
+    expect(keyInternals(ffn as never).map((t) => t.name)).toEqual([
+      "router_logits",
+      "topk_ids",
+      "topk_weights",
+    ]);
   });
 });

@@ -97,6 +97,7 @@ export function ArchitectureView({ arch }: { arch: Arch }) {
 
   const [symbolsOpen, setSymbolsOpen] = useState(false);
   const [fit, setFit] = useState(true);
+  const [internals, setInternals] = useState(false);
   const [scale, setScale] = useState(1);
 
   return (
@@ -122,6 +123,17 @@ export function ArchitectureView({ arch }: { arch: Arch }) {
           <Button
             variant="outline"
             size="sm"
+            className={cn("h-7 shrink-0 px-2 text-[12px]", internals && "bg-accent")}
+            aria-pressed={internals}
+            onClick={() => setInternals((v) => !v)}
+            title="Show key internal tensors (q/k/v, latents, routing) inside the figure"
+            data-testid="internals-toggle"
+          >
+            Internals
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             className="h-7 shrink-0 gap-1.5 px-2 text-[12px]"
             aria-pressed={fit}
             onClick={() => setFit((f) => !f)}
@@ -141,6 +153,7 @@ export function ArchitectureView({ arch }: { arch: Arch }) {
             onSelectSub={onSelectSub}
             onSelectStage={onSelectStage}
             detailId={DETAIL_ID}
+            showInternals={internals}
           />
         </FitBox>
       </div>
