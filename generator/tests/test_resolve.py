@@ -106,6 +106,24 @@ def test_pairing_reads_selected_revision_and_not_working_tree(tmp_path):
         assert tuple(revision.commit for revision in actual) == expected
 
 
+def test_dispatch_pins_do_not_resolve_moving_refs(tmp_path, monkeypatch):
+    monkeypatch.setenv("INFERATLAS_VLLM_COMMIT", "a" * 40)
+    monkeypatch.setenv("INFERATLAS_ASCEND_COMMIT", "b" * 40)
+    monkeypatch.setattr(resolver, "_revision", lambda *args: pytest.fail("must not resolve main"))
+    actual = resolve_version_pair(src=tmp_path)
+    assert [(r.tag, r.commit) for r in actual] == [("main", "a" * 40), ("main", "b" * 40)]
+
+
+@pytest.mark.parametrize("vllm,ascend", [("a" * 40, None), (None, "b" * 40), ("main", "b" * 40)])
+def test_dispatch_rejects_partial_or_mutable_pins(monkeypatch, vllm, ascend):
+    for name, pin in [("VLLM", vllm), ("ASCEND", ascend)]:
+        monkeypatch.delenv(f"INFERATLAS_{name}_COMMIT", raising=False)
+        if pin is not None:
+            monkeypatch.setenv(f"INFERATLAS_{name}_COMMIT", pin)
+    with pytest.raises(ValueError, match="both full lowercase"):
+        resolve_version_pair()
+
+
 def test_checkout_fetches_one_commit_then_works_without_remote(tmp_path):
     remote = init_repo(tmp_path / "remote")
     commit(remote, {"first": "old"})

@@ -168,8 +168,10 @@ def resolve_stage(model: str, device: str, pair: str) -> Snapshot:
             snapshot.model.hf_id != selected.hf_id
             or snapshot.model.config_rev != selected.config_rev
             or snapshot.device != device
-            or version.vllm not in (snapshot.vllm.tag, snapshot.vllm.commit)
-            or version.ascend not in (snapshot.ascend.tag, snapshot.ascend.commit)
+            or os.environ.get("INFERATLAS_VLLM_COMMIT", version.vllm)
+            not in (snapshot.vllm.tag, snapshot.vllm.commit)
+            or os.environ.get("INFERATLAS_ASCEND_COMMIT", version.ascend)
+            not in (snapshot.ascend.tag, snapshot.ascend.commit)
         ):
             raise ValueError("resolved snapshot disagrees with requested catalog identity")
         return snapshot
@@ -188,6 +190,17 @@ def resolve_stage(model: str, device: str, pair: str) -> Snapshot:
 def extract_stage(snapshot: Snapshot, tp: int, ep: bool = False) -> Extract:
     if tp < 1:
         raise ValueError("tp must be positive")
+    data = catalog()
+    device = next(d for d in data.devices if d.id == snapshot.device)
+    preset = next(p for p in data.hardware_presets if p.id == device.hardware_preset)
+    if preset.hbm_gb is None:
+        raise ExtractionError(
+            f"{snapshot.device} preset {preset.id} has no confirmed device memory capacity; "
+            "device-qualified extraction is blocked until a board SKU/capacity is pinned. "
+            "Refusing the generic 64 GB modelling fallback.",
+            "NotImplementedError",
+            structured=True,
+        )
     if function := optional("extract", "extract"):
         value = function(
             snapshot,

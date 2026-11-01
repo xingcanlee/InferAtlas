@@ -168,6 +168,23 @@ def test_attrs_reject_mock_contamination():
     assert worker.json_attr((1, [2], None)) == [1, [2], None]
 
 
+@pytest.mark.parametrize("tag,expected", [("main", "0.33.dev1"), ("v0.32.0", "0.32.0")])
+def test_ascend_source_only_version_uses_scm_or_explicit_release(monkeypatch, tag, expected):
+    calls = []
+
+    def version(**kwargs):
+        calls.append(kwargs)
+        return "0.33.dev1"
+
+    monkeypatch.setitem(sys.modules, "setuptools_scm", SimpleNamespace(get_version=version))
+    monkeypatch.setenv("VLLM_VERSION", "stale-generated-version")
+    worker.ascend_version({"snapshot": {"vllm": {"tag": tag}}, "sources": {"vllm": "/source"}})
+    assert os.environ["VLLM_VERSION"] == expected
+    assert calls == (
+        [dict(root="/source", local_scheme="no-local-version")] if tag == "main" else []
+    )
+
+
 def test_sample_matches_current_pinned_moe_config(sample):
     assert sample.config == get_model("qwen3-30b-a3b").config
     assert sample.snapshot.model.config_rev == get_model("qwen3-30b-a3b").config_rev

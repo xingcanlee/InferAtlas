@@ -244,6 +244,58 @@ def test_real_contract_cell_turns_golden_drift_into_actionable_triage(
         }
 
 
+@pytest.mark.parametrize("code,blocked", [(2, True), (3, True), (3, False), (2, False), (0, True)])
+def test_cell_preserves_failure_identity_and_checks_exit_contract(
+    tmp_path, monkeypatch, code, blocked
+):
+    import shutil
+
+    fixture = pipeline.ROOT / "fixtures/qwen3-30b-a3b/triage.json"
+    triage = json.loads(fixture.read_text())
+    snapshot = triage["snapshot"]
+    current = dict(
+        id="qwen3-30b-a3b",
+        model=snapshot["model"]["hf_id"],
+        config_rev=snapshot["model"]["config_rev"],
+        device=snapshot["device"],
+    )
+    triage["items"] = (
+        [
+            dict(
+                kind="extraction_failure",
+                stage="extract",
+                exception_type="NotImplementedError",
+                message="NPU allocation unavailable under CPU mocks",
+                model=current["model"],
+                device=current["device"],
+                version="main-verified",
+            )
+        ]
+        if blocked
+        else []
+    )
+    monkeypatch.setattr(pipeline, "CACHE", tmp_path)
+    monkeypatch.setenv("CELL", json.dumps(current))
+    for name in ("vllm", "ascend"):
+        monkeypatch.setenv(f"INFERATLAS_{name.upper()}_COMMIT", snapshot[name]["commit"])
+
+    def run(arguments, log):
+        assert arguments[0] == "build"
+        shutil.rmtree(tmp_path / "cell")
+        pipeline.write_json(tmp_path / "cell/triage.json", triage)
+        return code
+
+    monkeypatch.setattr(pipeline, "run_cli", run)
+    if code == 2 and blocked:
+        pipeline.cell()
+    else:
+        with pytest.raises(RuntimeError, match="Build exit"):
+            pipeline.cell()
+    result = json.loads((tmp_path / "cell/result.json").read_text())
+    assert result.items() >= current.items()
+    assert result["status"] == ("triage" if code == 2 and blocked else "error")
+
+
 @pytest.mark.parametrize("production", [False, True])
 def test_retained_renderer_validates_provenance_and_exports_only_current_cells(
     tmp_path, monkeypatch, production

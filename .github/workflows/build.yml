@@ -112,6 +112,8 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
       - uses: ./.github/actions/setup
+      - name: Build expression and layout packages
+        run: pnpm --filter '@inferatlas/*' -r build
       - uses: ./.github/actions/cpu-extract
       - name: Build and gate this model and device
         env:

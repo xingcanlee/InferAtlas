@@ -183,8 +183,14 @@ def cell() -> None:
         ],
         dest / "build.log",
     )
+    # Atomic build publication replaces result.json too; retain hard-failure identity.
+    write_json(dest / "result.json", result)
+    if code not in (0, 2):
+        raise RuntimeError(f"Build exited {code}; inspect build.log")
     triage = load_contract(dest / "triage.json", "triage")
     check_identity(triage["snapshot"], current, pair)
+    if bool(triage["items"]) != (code == 2):
+        raise RuntimeError("Build exit code disagrees with blocking triage")
     if not triage["items"]:
         if code:
             raise RuntimeError("Build failed without actionable triage")

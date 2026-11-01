@@ -254,6 +254,19 @@ def install_mock(root, device):
     return namespace
 
 
+def ascend_version(request):
+    from setuptools_scm import get_version
+
+    revision = request["snapshot"]["vllm"]
+    # Fresh source-only checkouts lack _version.py; use upstream's SCM versioning.
+    # Ignore stale generated metadata and omit local build dates/dirty suffixes.
+    os.environ["VLLM_VERSION"] = (
+        get_version(root=request["sources"]["vllm"], local_scheme="no-local-version")
+        if revision["tag"] == "main"
+        else revision["tag"].removeprefix("v")
+    )
+
+
 def origin(obj, root):
     try:
         code = getattr(obj, "__code__", None)
@@ -348,6 +361,7 @@ def run(request):
     if request["device"]:
         import vllm.distributed.parallel_state as ps
 
+        ascend_version(request)
         # Recreate groups after patching, matching exp3's patch-before-init order.
         ps.destroy_model_parallel()
         ps.destroy_distributed_environment()

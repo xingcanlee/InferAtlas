@@ -66,7 +66,10 @@ def main() -> None:
         if subprocess.run([*install, requirement], check=False).returncode:
             print(f"::warning::CPU-only extraction skipped optional dependency: {requirement}")
             skipped.append(requirement)
-    subprocess.run([*install, "pytest", "runai-model-streamer", "librosa", "soundfile"], check=True)
+    subprocess.run(
+        [*install, "pytest", "setuptools-scm>=8", "runai-model-streamer", "librosa", "soundfile"],
+        check=True,
+    )
     (scratch / "skipped.txt").write_text("".join(f"{item}\n" for item in sorted(skipped)))
     purelib = subprocess.check_output(
         [str(python), "-I", "-c", "import sysconfig; print(sysconfig.get_paths()['purelib'])"],

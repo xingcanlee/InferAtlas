@@ -97,6 +97,24 @@ def test_null_snapshot_only_allowed_for_resolve_failures():
         Triage.model_validate(value)
 
 
+def test_unknown_device_capacity_blocks_before_worker_and_site_numeric_data(tmp_path, monkeypatch):
+    snapshot = Snapshot.model_validate(read_json(FIXTURE / "snapshot.json"))
+    snapshot.device = "A5"
+    monkeypatch.setattr(cli, "resolve_stage", lambda *args: snapshot)
+    monkeypatch.setattr(cli, "optional", lambda *args: pytest.fail("worker must not run"))
+    output = tmp_path / "build"
+    invoke("build", "--device", "A5", "--output", output, code=2)
+    triage = Triage.model_validate(read_json(output / "triage.json"))
+    item = triage.items[0]
+    assert (item.kind, item.stage, item.exception_type) == (
+        "extraction_failure",
+        "extract",
+        "NotImplementedError",
+    )
+    assert "atlas-a5-unconfirmed" in item.message and "64 GB" in item.message
+    assert sorted(p.name for p in output.iterdir()) == ["snapshot.json", "triage.json"]
+
+
 def manifest(directory, model, device, status, code, count=0, exists=False):
     filename = f"inferatlas-{model}-{device.lower()}.html"
     value = ExportManifest(
