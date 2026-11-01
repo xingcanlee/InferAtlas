@@ -109,7 +109,7 @@ linear notes bind projections.
 
 These are explicit declarations integration must derive from facts, not
 environment-name heuristics. Missing context is an error/conditional triage,
-never false. Bind booleans as DSL boolean literals in symbols/context. Runtime
+unless the fixed-worker defaults below explicitly apply. Bind booleans as DSL boolean literals in symbols/context. Runtime
 dependent selection must be recomputed when the corresponding setting changes.
 
 | Predicate | Source-backed meaning |
@@ -125,6 +125,30 @@ dependent selection must be recomputed when the corresponding setting changes.
 | `use_mrope` | Actual attention rotary implementation is AscendMRotaryEmbedding. The Qwen text model uses the ordinary branch. |
 | `capture_routing` | RoutedExpertsCapturer is bound/enabled in the active model execution. The function being patched alone does not prove it runs. |
 | `redundant_experts` | Active EPLB configuration allocates redundant physical experts. |
+
+### Fixed CPU/meta worker defaults
+
+For the pinned `544f182` / `24a76e8` pair and T1's current worker, which accepts
+TP/EP but supplies no user `additional_config`, speculative model or routing
+capturer, integration may use these conservative constructor defaults until T1
+exports the resolved settings: independent o_proj/MLP/vocabulary parallelism,
+MTP draft execution, routing capture and fused MC2 are disabled; configurable NZ
+uses `weight_nz_mode=1`. Thus BF16/FP16 linear weights stay ND on A2's extracted
+`CONFIGURABLE` profile. A `FORCE_NZ` profile instead selects NZ for eligible
+weights; FP32, singleton matrix dimensions and explicit conversion skip flags
+exclude conversion. This describes intended loaded weights, not meta conversion.
+Use the node's prefix and selector settings for custom parallelism: Qwen's
+`o_proj` requires independent o_proj TP; `gate_up_proj` requires independent MLP
+TP. QKV never inherits either lane. Use each embedding/head's actual parallel
+plan for vocabulary overrides (and the head plan for logits).
+
+Quantization config and extracted quantization methods establish `unquantized`;
+the rotary replacement establishes `use_mrope`; extracted global expert count
+above the config's logical count establishes `redundant_experts`. Fused MC2 is
+an execution setting, not proof supplied by an MC2 hardware capability. Do not
+apply these defaults to arbitrary serving configurations or future workers that
+accept additional settings. Unknown profile policies and any other missing
+predicate remain conditional triage. See `docs/requests/T6.md` for requested facts.
 
 Conditional custom-parallel and vocabulary notes summarize the possible changes
 and require integration's actual branch to supply formulas. They are not evidence

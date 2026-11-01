@@ -6,6 +6,8 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+from t6_runtime import node_backend as node_backend
+from t6_runtime import runtime as runtime
 from typer.testing import CliRunner
 
 import inferatlas.annotations
@@ -28,6 +30,28 @@ def isolated_sources(monkeypatch, tmp_path):
     monkeypatch.setenv("INFERATLAS_ALLOW_FIXTURES", "1")
     monkeypatch.setattr(cli, "source_root", lambda root: tmp_path / "sources")
     monkeypatch.setattr(verification, "check_sources", lambda *args: [])
+    for module, name in (
+        (inferatlas.resolve, "resolve"),
+        (inferatlas.extract, "extract"),
+        (inferatlas.lower, "lower"),
+        (inferatlas.annotations, "load_annotations"),
+    ):
+        monkeypatch.setattr(module, name, None)
+
+    is_file, is_dir = Path.is_file, Path.is_dir
+    monkeypatch.setattr(
+        Path,
+        "is_file",
+        lambda path: path != ROOT / "packages/layout/dist/cli.js" and is_file(path),
+    )
+    monkeypatch.setattr(
+        Path,
+        "is_dir",
+        lambda path: path != ROOT / "packages/layout/src" and is_dir(path),
+    )
+    missing = Evaluator(tmp_path, lambda message: None)
+    monkeypatch.setattr(missing, "backend", "fixture")
+    monkeypatch.setattr(cli, "Evaluator", lambda *args: missing)
 
 
 def invoke(*args, code=0):
@@ -186,7 +210,8 @@ def test_lower_exact_single_extract_api(monkeypatch):
         cli.lower_stage(extracts[:1])
 
 
-def test_annotations_exact_apis_bind_observed_swaps_and_keep_stale(monkeypatch):
+def test_annotations_exact_apis_bind_observed_swaps_and_keep_stale(monkeypatch, runtime):
+    monkeypatch.setattr(cli, "Evaluator", lambda *args: runtime)
     ir = IR.model_validate(read_json(FIXTURE / "ir.json"))
     extracts = [Extract.model_validate(read_json(FIXTURE / "extract.json"))]
     node = next(node for node in ir.nodes if node.id == "attn.qkv")
@@ -340,7 +365,10 @@ def test_single_blocked_gate_and_handoff(tmp_path, monkeypatch):
 def test_golden_missing_runtime_is_skipped_and_update_refuses(tmp_path, monkeypatch):
     monkeypatch.delenv("INFERATLAS_ALLOW_FIXTURES")
     monkeypatch.setattr(cli, "Evaluator", lambda *args: Evaluator(tmp_path, cli.warning))
-    args = ["golden", "check", "--ir", FIXTURE / "ir.json"]
+    directory = tmp_path / "baseline"
+    for name in ("ir", "eval"):
+        write_json(directory / f"{name}.json", read_json(FIXTURE / f"{name}.json"))
+    args = ["golden", "check", "--ir", FIXTURE / "ir.json", "--directory", directory]
     assert "SKIPPED" in invoke(*args, code=3).output
     assert "SKIPPED" in invoke(*args, "--allow-fixtures").output
     assert (
@@ -358,9 +386,10 @@ def test_golden_missing_runtime_is_skipped_and_update_refuses(tmp_path, monkeypa
     assert not (tmp_path / "golden").exists()
 
 
-def test_verify_calibration_env_command(tmp_path):
+def test_verify_calibration_env_command(tmp_path, monkeypatch, runtime):
+    monkeypatch.setattr(cli, "Evaluator", lambda *args: runtime)
     ir = IR.model_validate(read_json(FIXTURE / "ir.json"))
-    evaluator = Evaluator()
+    evaluator = runtime
     env = evaluator.bind(ir, {"tp": 4, "gpu_memory_utilization": 0.8})
     weights, tokens = evaluator.many([ir.memory.weights, ir.memory.kv_tokens], env)
     write_json(tmp_path / "calibration.json", {"weight_bytes": weights, "kv_tokens": tokens})
@@ -431,3 +460,127 @@ def test_site_failed_cell_takes_precedence_over_blocked_cell(tmp_path, monkeypat
     monkeypatch.setattr(cli.subprocess, "run", lambda *args, **kwargs: pytest.fail("web ran"))
     invoke("site", "--build-root", tmp_path / "build", "--data-dir", tmp_path / "data", code=3)
     assert not (tmp_path / "data").exists()
+
+
+def test_non_ascend_skips_annotations_entirely(monkeypatch):
+    ir = IR.model_validate(read_json(FIXTURE / "ir.json"))
+    ir.snapshot.device = "H100"
+    triage = Triage(snapshot=ir.snapshot, items=[])
+    monkeypatch.setattr(cli, "optional", lambda *args: pytest.fail("annotation module loaded"))
+    monkeypatch.setattr(cli, "Evaluator", lambda *args: pytest.fail("evaluator loaded"))
+    assert cli.annotate_stage(ir, [], triage) == (ir, triage)
+
+
+def test_ascend_annotations_require_extraction_facts(monkeypatch):
+    ir = IR.model_validate(read_json(FIXTURE / "ir.json"))
+    monkeypatch.setattr(inferatlas.annotations, "load_annotations", lambda path: [])
+    with pytest.raises(ValueError, match="supply --extract"):
+        cli.annotate_stage(ir, [], Triage(snapshot=ir.snapshot, items=[]))
+
+
+def test_annotation_context_uses_facts_and_node_scoped_selectors():
+    primary = Extract.model_validate(read_json(FIXTURE / "extract.json"))
+    primary.ascend.profile.update(
+        weight_layout_policy="WeightLayoutPolicy.CONFIGURABLE",
+        finegrained_tp_config={"oproj_tensor_parallel_size": 2, "mlp_tensor_parallel_size": 2},
+    )
+    row = next(m for m in primary.modules if m.path.endswith("o_proj"))
+    qkv = next(m for m in primary.modules if m.path.endswith("qkv_proj"))
+    assert cli.annotation_context(primary, row)["custom_parallel"]
+    assert not cli.annotation_context(primary, qkv)["custom_parallel"]
+    column = qkv.model_copy(update={"path": "model.layers.0.mlp.gate_up_proj"})
+    assert cli.annotation_context(primary, column)["custom_parallel"]
+    context = cli.annotation_context(primary, row)
+    assert context["unquantized"] and not context["linear_nz"]
+    assert not context["fused_mc2"]  # Hardware capability alone cannot enable it.
+    primary.ascend.profile["weight_nz_mode"] = 2
+    assert cli.annotation_context(primary, row)["linear_nz"]
+    row.attrs["skip_weight_nz_conversion"] = True
+    assert not cli.annotation_context(primary, row)["linear_nz"]
+    row.attrs.pop("skip_weight_nz_conversion")
+    primary.ascend.profile["weight_layout_policy"] = "WeightLayoutPolicy.FORCE_NZ"
+    primary.ascend.profile["weight_nz_mode"] = 0
+    assert cli.annotation_context(primary, row)["linear_nz"]
+    primary.config["quantization_config"] = {"quant_method": "awq"}
+    assert not cli.annotation_context(primary, row)["unquantized"]
+    primary.ascend.profile["weight_layout_policy"] = "UNKNOWN"
+    assert "linear_nz" not in cli.annotation_context(primary, row)
+    primary.snapshot.ascend.commit = "f" * 40
+    context = cli.annotation_context(primary, row)
+    assert "capture_routing" not in context and "custom_parallel" not in context
+
+
+def test_annotations_select_per_node_and_keep_collisions(monkeypatch, runtime):
+    ir = IR.model_validate(read_json(FIXTURE / "ir.json"))
+    primary = Extract.model_validate(read_json(FIXTURE / "extract.json"))
+    primary.ascend.profile.update(
+        weight_layout_policy="CONFIGURABLE",
+        finegrained_tp_config={"oproj_tensor_parallel_size": 2},
+    )
+    row = next(m for m in primary.modules if m.path.endswith("o_proj"))
+    primary.modules.append(row.model_copy(update={"path": "model.layers.0.mlp.down_proj"}))
+    node = next(n for n in ir.nodes if n.id == "attn.o")
+    ir.nodes.append(node.model_copy(update={"id": "mlp.down", "label": "mlp.down"}))
+    replacement = row.ascend.class_name
+    resolved = [
+        SimpleNamespace(
+            annotation=SimpleNamespace(
+                id=name,
+                target=replacement,
+                resolves_to=replacement,
+                applies_when=condition,
+            ),
+            src=[],
+        )
+        for name, condition in (("parallel", "custom_parallel"), ("kernel", "!custom_parallel"))
+    ]
+    calls = []
+    monkeypatch.setattr(cli, "Evaluator", lambda *args: runtime)
+    monkeypatch.setattr(inferatlas.annotations, "load_annotations", lambda path: [])
+    monkeypatch.setattr(inferatlas.annotations, "check_annotations", lambda *args: (resolved, []))
+    monkeypatch.setattr(
+        inferatlas.annotations,
+        "apply_annotations",
+        lambda graph, anns, **kw: calls.append(kw) or graph,
+    )
+    _, triage = cli.annotate_stage(ir, [primary], Triage(snapshot=ir.snapshot, items=[]))
+    assert not triage.items
+    assert calls[-1]["bindings"]["attn.o"] == "parallel"
+    assert calls[-1]["bindings"]["mlp.down"] == "kernel"
+    resolved.append(
+        SimpleNamespace(
+            annotation=SimpleNamespace(
+                id="collision",
+                target=replacement,
+                resolves_to=replacement,
+                applies_when="custom_parallel",
+            ),
+            src=[],
+        )
+    )
+    _, triage = cli.annotate_stage(ir, [primary], Triage(snapshot=ir.snapshot, items=[]))
+    assert "attn.o" not in calls[-1]["bindings"]
+    assert any(len(item.candidates) == 2 for item in triage.items)
+
+
+def test_optional_does_not_hide_a_broken_installed_stage(monkeypatch):
+    def broken_import(name):
+        raise ModuleNotFoundError("missing stage dependency", name="missing_dependency")
+
+    monkeypatch.setattr(cli.importlib, "import_module", broken_import)
+    with pytest.raises(ModuleNotFoundError, match="stage dependency"):
+        cli.optional("extract", "extract")
+
+
+def test_site_reports_the_reason_for_refusal(tmp_path, monkeypatch):
+    directory = site_build(tmp_path, 3)
+    monkeypatch.setattr(cli.subprocess, "run", lambda *args, **kwargs: pytest.fail("web ran"))
+    args = ["site", "--build-root", tmp_path / "build", "--data-dir", tmp_path / "data"]
+    (directory / "view.json").unlink()
+    assert "failed verification" in invoke(*args, code=3).output
+    report = read_json(directory / "report.json")
+    report["checks"][0]["status"] = "fail"
+    write_json(directory / "report.json", report)
+    assert "fixture or unverified provenance" in invoke(*args, code=3).output
+    site_build(tmp_path, 2)
+    assert "blocked by triage" in invoke(*args, code=2).output

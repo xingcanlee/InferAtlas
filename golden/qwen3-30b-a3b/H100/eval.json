@@ -1,0 +1,2265 @@
+{
+  "cases": [
+    {
+      "env": {
+        "tp": 1.0
+      },
+      "expected": {
+        "/memory/activation_peak": 855703552.0,
+        "/memory/kv_per_token": 98304.0,
+        "/memory/kv_tokens": 0.0,
+        "/memory/non_torch": 0.0,
+        "/memory/reserved": 0.0,
+        "/memory/weights": 61064245248.0,
+        "/nodes/attn.core/bytes_moved/decode": 8407040.0,
+        "/nodes/attn.core/bytes_moved/prefill": 83886080.0,
+        "/nodes/attn.core/flops/decode": 67125248.0,
+        "/nodes/attn.core/flops/prefill": 137472507904.0,
+        "/nodes/attn.core/in/0/shape": [
+          4096.0,
+          32.0,
+          128.0
+        ],
+        "/nodes/attn.core/in/1/shape": [
+          4096.0,
+          4.0,
+          128.0
+        ],
+        "/nodes/attn.core/in/2/shape": [
+          4096.0,
+          4.0,
+          128.0
+        ],
+        "/nodes/attn.core/out/0/shape": [
+          4096.0,
+          4096.0
+        ],
+        "/nodes/attn.core/weight_bytes": 0.0,
+        "/nodes/attn.k_norm/bytes_moved/decode": 2304.0,
+        "/nodes/attn.k_norm/bytes_moved/prefill": 8388864.0,
+        "/nodes/attn.k_norm/flops/decode": 2560.0,
+        "/nodes/attn.k_norm/flops/prefill": 10485760.0,
+        "/nodes/attn.k_norm/in/0/shape": [
+          4096.0,
+          512.0
+        ],
+        "/nodes/attn.k_norm/in/1/shape": [
+          128.0
+        ],
+        "/nodes/attn.k_norm/out/0/shape": [
+          4096.0,
+          512.0
+        ],
+        "/nodes/attn.k_norm/weight_bytes": 256.0,
+        "/nodes/attn.o.reduce/bytes_moved/decode": 0.0,
+        "/nodes/attn.o.reduce/bytes_moved/prefill": 0.0,
+        "/nodes/attn.o.reduce/comm/bus_bytes/decode": 0.0,
+        "/nodes/attn.o.reduce/comm/bus_bytes/prefill": 0.0,
+        "/nodes/attn.o.reduce/comm/logical_bytes/decode": 4096.0,
+        "/nodes/attn.o.reduce/comm/logical_bytes/prefill": 16777216.0,
+        "/nodes/attn.o.reduce/comm/when": 0.0,
+        "/nodes/attn.o.reduce/flops/decode": 0.0,
+        "/nodes/attn.o.reduce/flops/prefill": 0.0,
+        "/nodes/attn.o.reduce/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/attn.o.reduce/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/attn.o.reduce/weight_bytes": 0.0,
+        "/nodes/attn.o/bytes_moved/decode": 16789504.0,
+        "/nodes/attn.o/bytes_moved/prefill": 67108864.0,
+        "/nodes/attn.o/flops/decode": 16777216.0,
+        "/nodes/attn.o/flops/prefill": 68719476736.0,
+        "/nodes/attn.o/in/0/shape": [
+          4096.0,
+          4096.0
+        ],
+        "/nodes/attn.o/in/1/shape": [
+          2048.0,
+          4096.0
+        ],
+        "/nodes/attn.o/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/attn.o/weight_bytes": 16777216.0,
+        "/nodes/attn.q_norm/bytes_moved/decode": 16640.0,
+        "/nodes/attn.q_norm/bytes_moved/prefill": 67109120.0,
+        "/nodes/attn.q_norm/flops/decode": 20480.0,
+        "/nodes/attn.q_norm/flops/prefill": 83886080.0,
+        "/nodes/attn.q_norm/in/0/shape": [
+          4096.0,
+          4096.0
+        ],
+        "/nodes/attn.q_norm/in/1/shape": [
+          128.0
+        ],
+        "/nodes/attn.q_norm/out/0/shape": [
+          4096.0,
+          4096.0
+        ],
+        "/nodes/attn.q_norm/weight_bytes": 256.0,
+        "/nodes/attn.qkv/bytes_moved/decode": 20985856.0,
+        "/nodes/attn.qkv/bytes_moved/prefill": 79691776.0,
+        "/nodes/attn.qkv/flops/decode": 20971520.0,
+        "/nodes/attn.qkv/flops/prefill": 85899345920.0,
+        "/nodes/attn.qkv/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/attn.qkv/in/1/shape": [
+          5120.0,
+          2048.0
+        ],
+        "/nodes/attn.qkv/out/0/shape": [
+          4096.0,
+          5120.0
+        ],
+        "/nodes/attn.qkv/weight_bytes": 20971520.0,
+        "/nodes/attn.rope.apply/bytes_moved/decode": 18432.0,
+        "/nodes/attn.rope.apply/bytes_moved/prefill": 75497472.0,
+        "/nodes/attn.rope.apply/flops/decode": 13824.0,
+        "/nodes/attn.rope.apply/flops/prefill": 56623104.0,
+        "/nodes/attn.rope.apply/in/0/shape": [
+          4096.0,
+          32.0,
+          128.0
+        ],
+        "/nodes/attn.rope.apply/in/1/shape": [
+          4096.0,
+          4.0,
+          128.0
+        ],
+        "/nodes/attn.rope.apply/out/0/shape": [
+          4096.0,
+          32.0,
+          128.0
+        ],
+        "/nodes/attn.rope.apply/out/1/shape": [
+          4096.0,
+          4.0,
+          128.0
+        ],
+        "/nodes/attn.rope.apply/weight_bytes": 0.0,
+        "/nodes/attn.rope/bytes_moved/decode": 18432.0,
+        "/nodes/attn.rope/bytes_moved/prefill": 75497472.0,
+        "/nodes/attn.rope/flops/decode": 13824.0,
+        "/nodes/attn.rope/flops/prefill": 56623104.0,
+        "/nodes/attn.rope/in/0/shape": [
+          4096.0,
+          32.0,
+          128.0
+        ],
+        "/nodes/attn.rope/in/1/shape": [
+          4096.0,
+          4.0,
+          128.0
+        ],
+        "/nodes/attn.rope/out/0/shape": [
+          4096.0,
+          32.0,
+          128.0
+        ],
+        "/nodes/attn.rope/out/1/shape": [
+          4096.0,
+          4.0,
+          128.0
+        ],
+        "/nodes/attn.rope/weight_bytes": 0.0,
+        "/nodes/attn/bytes_moved/decode": 46219776.0,
+        "/nodes/attn/bytes_moved/prefill": 381682176.0,
+        "/nodes/attn/flops/decode": 104910848.0,
+        "/nodes/attn/flops/prefill": 292242325504.0,
+        "/nodes/attn/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/attn/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/attn/weight_bytes": 37749248.0,
+        "/nodes/decoder/bytes_moved/decode": 5875666944.0,
+        "/nodes/decoder/bytes_moved/prefill": 107785641984.0,
+        "/nodes/decoder/flops/decode": 8686927872.0,
+        "/nodes/decoder/flops/prefill": 28982976184320.0,
+        "/nodes/decoder/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/decoder/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/decoder/weight_bytes": 59819581440.0,
+        "/nodes/embed.reduce/bytes_moved/decode": 0.0,
+        "/nodes/embed.reduce/bytes_moved/prefill": 0.0,
+        "/nodes/embed.reduce/comm/bus_bytes/decode": 0.0,
+        "/nodes/embed.reduce/comm/bus_bytes/prefill": 0.0,
+        "/nodes/embed.reduce/comm/logical_bytes/decode": 4096.0,
+        "/nodes/embed.reduce/comm/logical_bytes/prefill": 16777216.0,
+        "/nodes/embed.reduce/comm/when": 0.0,
+        "/nodes/embed.reduce/flops/decode": 0.0,
+        "/nodes/embed.reduce/flops/prefill": 0.0,
+        "/nodes/embed.reduce/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/embed.reduce/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/embed.reduce/weight_bytes": 0.0,
+        "/nodes/embed/bytes_moved/decode": 8192.0,
+        "/nodes/embed/bytes_moved/prefill": 33554432.0,
+        "/nodes/embed/flops/decode": 0.0,
+        "/nodes/embed/flops/prefill": 0.0,
+        "/nodes/embed/in/0/shape": [
+          4096.0
+        ],
+        "/nodes/embed/in/1/shape": [
+          151936.0,
+          2048.0
+        ],
+        "/nodes/embed/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/embed/weight_bytes": 622329856.0,
+        "/nodes/final_norm/bytes_moved/decode": 12288.0,
+        "/nodes/final_norm/bytes_moved/prefill": 33558528.0,
+        "/nodes/final_norm/flops/decode": 10240.0,
+        "/nodes/final_norm/flops/prefill": 41943040.0,
+        "/nodes/final_norm/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/final_norm/in/1/shape": [
+          2048.0
+        ],
+        "/nodes/final_norm/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/final_norm/weight_bytes": 4096.0,
+        "/nodes/kv_cache/bytes_moved/decode": 0.0,
+        "/nodes/kv_cache/bytes_moved/prefill": 0.0,
+        "/nodes/kv_cache/flops/decode": 0.0,
+        "/nodes/kv_cache/flops/prefill": 0.0,
+        "/nodes/kv_cache/out/0/shape": [
+          2.0,
+          1.0,
+          4096.0,
+          4.0,
+          128.0
+        ],
+        "/nodes/kv_cache/weight_bytes": 0.0,
+        "/nodes/lm_head/bytes_moved/decode": 622637824.0,
+        "/nodes/lm_head/bytes_moved/prefill": 622637824.0,
+        "/nodes/lm_head/flops/decode": 622329856.0,
+        "/nodes/lm_head/flops/prefill": 622329856.0,
+        "/nodes/lm_head/in/0/shape/decode": [
+          1.0,
+          2048.0
+        ],
+        "/nodes/lm_head/in/0/shape/prefill": [
+          1.0,
+          2048.0
+        ],
+        "/nodes/lm_head/in/1/shape": [
+          151936.0,
+          2048.0
+        ],
+        "/nodes/lm_head/out/0/shape/decode": [
+          1.0,
+          151936.0
+        ],
+        "/nodes/lm_head/out/0/shape/prefill": [
+          1.0,
+          151936.0
+        ],
+        "/nodes/lm_head/weight_bytes": 622329856.0,
+        "/nodes/logits.gather/bytes_moved/decode": 0.0,
+        "/nodes/logits.gather/bytes_moved/prefill": 0.0,
+        "/nodes/logits.gather/comm/bus_bytes/decode": 0.0,
+        "/nodes/logits.gather/comm/bus_bytes/prefill": 0.0,
+        "/nodes/logits.gather/comm/logical_bytes/decode": 303872.0,
+        "/nodes/logits.gather/comm/logical_bytes/prefill": 303872.0,
+        "/nodes/logits.gather/comm/when": 0.0,
+        "/nodes/logits.gather/flops/decode": 0.0,
+        "/nodes/logits.gather/flops/prefill": 0.0,
+        "/nodes/logits.gather/in/0/shape/decode": [
+          1.0,
+          151936.0
+        ],
+        "/nodes/logits.gather/in/0/shape/prefill": [
+          1.0,
+          151936.0
+        ],
+        "/nodes/logits.gather/out/0/shape/decode": [
+          1.0,
+          151936.0
+        ],
+        "/nodes/logits.gather/out/0/shape/prefill": [
+          1.0,
+          151936.0
+        ],
+        "/nodes/logits.gather/weight_bytes": 0.0,
+        "/nodes/logits/bytes_moved/decode": 607744.0,
+        "/nodes/logits/bytes_moved/prefill": 607744.0,
+        "/nodes/logits/flops/decode": 0.0,
+        "/nodes/logits/flops/prefill": 0.0,
+        "/nodes/logits/in/0/shape/decode": [
+          1.0,
+          151936.0
+        ],
+        "/nodes/logits/in/0/shape/prefill": [
+          1.0,
+          151936.0
+        ],
+        "/nodes/logits/out/0/shape/decode": [
+          1.0,
+          151936.0
+        ],
+        "/nodes/logits/out/0/shape/prefill": [
+          1.0,
+          151936.0
+        ],
+        "/nodes/logits/weight_bytes": 0.0,
+        "/nodes/moe.act/bytes_moved/decode": 36864.0,
+        "/nodes/moe.act/bytes_moved/prefill": 150994944.0,
+        "/nodes/moe.act/flops/decode": 24576.0,
+        "/nodes/moe.act/flops/prefill": 100663296.0,
+        "/nodes/moe.act/in/0/shape": [
+          32768.0,
+          1536.0
+        ],
+        "/nodes/moe.act/out/0/shape": [
+          32768.0,
+          768.0
+        ],
+        "/nodes/moe.act/weight_bytes": 0.0,
+        "/nodes/moe.experts.combine/bytes_moved/decode": 0.0,
+        "/nodes/moe.experts.combine/bytes_moved/prefill": 0.0,
+        "/nodes/moe.experts.combine/comm/bus_bytes/decode": 0.0,
+        "/nodes/moe.experts.combine/comm/bus_bytes/prefill": 0.0,
+        "/nodes/moe.experts.combine/comm/logical_bytes/decode": 4096.0,
+        "/nodes/moe.experts.combine/comm/logical_bytes/prefill": 16777216.0,
+        "/nodes/moe.experts.combine/comm/when": 0.0,
+        "/nodes/moe.experts.combine/flops/decode": 0.0,
+        "/nodes/moe.experts.combine/flops/prefill": 0.0,
+        "/nodes/moe.experts.combine/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe.experts.combine/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe.experts.combine/weight_bytes": 0.0,
+        "/nodes/moe.experts.dispatch/bytes_moved/decode": 0.0,
+        "/nodes/moe.experts.dispatch/bytes_moved/prefill": 0.0,
+        "/nodes/moe.experts.dispatch/comm/bus_bytes/decode": 0.0,
+        "/nodes/moe.experts.dispatch/comm/bus_bytes/prefill": 0.0,
+        "/nodes/moe.experts.dispatch/comm/logical_bytes/decode": 4096.0,
+        "/nodes/moe.experts.dispatch/comm/logical_bytes/prefill": 16777216.0,
+        "/nodes/moe.experts.dispatch/comm/when": 0.0,
+        "/nodes/moe.experts.dispatch/flops/decode": 0.0,
+        "/nodes/moe.experts.dispatch/flops/prefill": 0.0,
+        "/nodes/moe.experts.dispatch/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe.experts.dispatch/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe.experts.dispatch/weight_bytes": 0.0,
+        "/nodes/moe.experts.method/bytes_moved/decode": 0.0,
+        "/nodes/moe.experts.method/bytes_moved/prefill": 0.0,
+        "/nodes/moe.experts.method/flops/decode": 0.0,
+        "/nodes/moe.experts.method/flops/prefill": 0.0,
+        "/nodes/moe.experts.method/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe.experts.method/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe.experts.method/weight_bytes": 0.0,
+        "/nodes/moe.experts.reduce/bytes_moved/decode": 0.0,
+        "/nodes/moe.experts.reduce/bytes_moved/prefill": 0.0,
+        "/nodes/moe.experts.reduce/comm/bus_bytes/decode": 0.0,
+        "/nodes/moe.experts.reduce/comm/bus_bytes/prefill": 0.0,
+        "/nodes/moe.experts.reduce/comm/logical_bytes/decode": 4096.0,
+        "/nodes/moe.experts.reduce/comm/logical_bytes/prefill": 16777216.0,
+        "/nodes/moe.experts.reduce/comm/when": 0.0,
+        "/nodes/moe.experts.reduce/flops/decode": 0.0,
+        "/nodes/moe.experts.reduce/flops/prefill": 0.0,
+        "/nodes/moe.experts.reduce/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe.experts.reduce/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe.experts.reduce/weight_bytes": 0.0,
+        "/nodes/moe.experts.weights/bytes_moved/decode": 75636736.0,
+        "/nodes/moe.experts.weights/bytes_moved/prefill": 1778384896.0,
+        "/nodes/moe.experts.weights/flops/decode": 75522048.0,
+        "/nodes/moe.experts.weights/flops/prefill": 309338308608.0,
+        "/nodes/moe.experts.weights/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe.experts.weights/in/1/shape": [
+          128.0,
+          1536.0,
+          2048.0
+        ],
+        "/nodes/moe.experts.weights/in/2/shape": [
+          128.0,
+          2048.0,
+          768.0
+        ],
+        "/nodes/moe.experts.weights/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe.experts.weights/weight_bytes": 1207959552.0,
+        "/nodes/moe.experts/bytes_moved/decode": 75636736.0,
+        "/nodes/moe.experts/bytes_moved/prefill": 1778384896.0,
+        "/nodes/moe.experts/flops/decode": 75522048.0,
+        "/nodes/moe.experts/flops/prefill": 309338308608.0,
+        "/nodes/moe.experts/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe.experts/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe.experts/weight_bytes": 1207959552.0,
+        "/nodes/moe.gate/bytes_moved/decode": 528640.0,
+        "/nodes/moe.gate/bytes_moved/prefill": 18350080.0,
+        "/nodes/moe.gate/flops/decode": 524288.0,
+        "/nodes/moe.gate/flops/prefill": 2147483648.0,
+        "/nodes/moe.gate/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe.gate/in/1/shape": [
+          128.0,
+          2048.0
+        ],
+        "/nodes/moe.gate/out/0/shape": [
+          4096.0,
+          128.0
+        ],
+        "/nodes/moe.gate/weight_bytes": 524288.0,
+        "/nodes/moe.w13/bytes_moved/decode": 50388992.0,
+        "/nodes/moe.w13/bytes_moved/prefill": 1040187392.0,
+        "/nodes/moe.w13/flops/decode": 50331648.0,
+        "/nodes/moe.w13/flops/prefill": 206158430208.0,
+        "/nodes/moe.w13/in/0/shape": [
+          32768.0,
+          2048.0
+        ],
+        "/nodes/moe.w13/in/1/shape": [
+          128.0,
+          1536.0,
+          2048.0
+        ],
+        "/nodes/moe.w13/out/0/shape": [
+          32768.0,
+          1536.0
+        ],
+        "/nodes/moe.w13/weight_bytes": 805306368.0,
+        "/nodes/moe.w2/bytes_moved/decode": 25210880.0,
+        "/nodes/moe.w2/bytes_moved/prefill": 587202560.0,
+        "/nodes/moe.w2/flops/decode": 25165824.0,
+        "/nodes/moe.w2/flops/prefill": 103079215104.0,
+        "/nodes/moe.w2/in/0/shape": [
+          32768.0,
+          768.0
+        ],
+        "/nodes/moe.w2/in/1/shape": [
+          128.0,
+          2048.0,
+          768.0
+        ],
+        "/nodes/moe.w2/out/0/shape": [
+          32768.0,
+          2048.0
+        ],
+        "/nodes/moe.w2/weight_bytes": 402653184.0,
+        "/nodes/moe/bytes_moved/decode": 76165376.0,
+        "/nodes/moe/bytes_moved/prefill": 1796734976.0,
+        "/nodes/moe/flops/decode": 76046336.0,
+        "/nodes/moe/flops/prefill": 311485792256.0,
+        "/nodes/moe/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe/weight_bytes": 1208483840.0,
+        "/nodes/norm.input/bytes_moved/decode": 12288.0,
+        "/nodes/norm.input/bytes_moved/prefill": 33558528.0,
+        "/nodes/norm.input/flops/decode": 10240.0,
+        "/nodes/norm.input/flops/prefill": 41943040.0,
+        "/nodes/norm.input/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/norm.input/in/1/shape": [
+          2048.0
+        ],
+        "/nodes/norm.input/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/norm.input/weight_bytes": 4096.0,
+        "/nodes/norm.post/bytes_moved/decode": 12288.0,
+        "/nodes/norm.post/bytes_moved/prefill": 33558528.0,
+        "/nodes/norm.post/flops/decode": 10240.0,
+        "/nodes/norm.post/flops/prefill": 41943040.0,
+        "/nodes/norm.post/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/norm.post/in/1/shape": [
+          2048.0
+        ],
+        "/nodes/norm.post/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/norm.post/weight_bytes": 4096.0,
+        "/nodes/output/bytes_moved/decode": 0.0,
+        "/nodes/output/bytes_moved/prefill": 0.0,
+        "/nodes/output/flops/decode": 0.0,
+        "/nodes/output/flops/prefill": 0.0,
+        "/nodes/output/in/0/shape/decode": [
+          1.0,
+          151936.0
+        ],
+        "/nodes/output/in/0/shape/prefill": [
+          1.0,
+          151936.0
+        ],
+        "/nodes/output/out/0/shape/decode": [
+          1.0
+        ],
+        "/nodes/output/out/0/shape/prefill": [
+          1.0
+        ],
+        "/nodes/output/weight_bytes": 0.0
+      },
+      "id": "tp1-bf16"
+    },
+    {
+      "env": {
+        "tp": 2.0
+      },
+      "expected": {
+        "/memory/activation_peak": 855703552.0,
+        "/memory/kv_per_token": 49152.0,
+        "/memory/kv_tokens": 532992.0,
+        "/memory/non_torch": 0.0,
+        "/memory/reserved": 0.0,
+        "/memory/weights": 30544916480.0,
+        "/nodes/attn.core/bytes_moved/decode": 4203520.0,
+        "/nodes/attn.core/bytes_moved/prefill": 41943040.0,
+        "/nodes/attn.core/flops/decode": 33562624.0,
+        "/nodes/attn.core/flops/prefill": 68736253952.0,
+        "/nodes/attn.core/in/0/shape": [
+          4096.0,
+          16.0,
+          128.0
+        ],
+        "/nodes/attn.core/in/1/shape": [
+          4096.0,
+          2.0,
+          128.0
+        ],
+        "/nodes/attn.core/in/2/shape": [
+          4096.0,
+          2.0,
+          128.0
+        ],
+        "/nodes/attn.core/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/attn.core/weight_bytes": 0.0,
+        "/nodes/attn.k_norm/bytes_moved/decode": 1280.0,
+        "/nodes/attn.k_norm/bytes_moved/prefill": 4194560.0,
+        "/nodes/attn.k_norm/flops/decode": 1280.0,
+        "/nodes/attn.k_norm/flops/prefill": 5242880.0,
+        "/nodes/attn.k_norm/in/0/shape": [
+          4096.0,
+          256.0
+        ],
+        "/nodes/attn.k_norm/in/1/shape": [
+          128.0
+        ],
+        "/nodes/attn.k_norm/out/0/shape": [
+          4096.0,
+          256.0
+        ],
+        "/nodes/attn.k_norm/weight_bytes": 256.0,
+        "/nodes/attn.o.reduce/bytes_moved/decode": 0.0,
+        "/nodes/attn.o.reduce/bytes_moved/prefill": 0.0,
+        "/nodes/attn.o.reduce/comm/bus_bytes/decode": 4096.0,
+        "/nodes/attn.o.reduce/comm/bus_bytes/prefill": 16777216.0,
+        "/nodes/attn.o.reduce/comm/logical_bytes/decode": 4096.0,
+        "/nodes/attn.o.reduce/comm/logical_bytes/prefill": 16777216.0,
+        "/nodes/attn.o.reduce/comm/when": 1.0,
+        "/nodes/attn.o.reduce/flops/decode": 0.0,
+        "/nodes/attn.o.reduce/flops/prefill": 0.0,
+        "/nodes/attn.o.reduce/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/attn.o.reduce/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/attn.o.reduce/weight_bytes": 0.0,
+        "/nodes/attn.o/bytes_moved/decode": 8396800.0,
+        "/nodes/attn.o/bytes_moved/prefill": 41943040.0,
+        "/nodes/attn.o/flops/decode": 8388608.0,
+        "/nodes/attn.o/flops/prefill": 34359738368.0,
+        "/nodes/attn.o/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/attn.o/in/1/shape": [
+          2048.0,
+          2048.0
+        ],
+        "/nodes/attn.o/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/attn.o/weight_bytes": 8388608.0,
+        "/nodes/attn.q_norm/bytes_moved/decode": 8448.0,
+        "/nodes/attn.q_norm/bytes_moved/prefill": 33554688.0,
+        "/nodes/attn.q_norm/flops/decode": 10240.0,
+        "/nodes/attn.q_norm/flops/prefill": 41943040.0,
+        "/nodes/attn.q_norm/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/attn.q_norm/in/1/shape": [
+          128.0
+        ],
+        "/nodes/attn.q_norm/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/attn.q_norm/weight_bytes": 256.0,
+        "/nodes/attn.qkv/bytes_moved/decode": 10494976.0,
+        "/nodes/attn.qkv/bytes_moved/prefill": 48234496.0,
+        "/nodes/attn.qkv/flops/decode": 10485760.0,
+        "/nodes/attn.qkv/flops/prefill": 42949672960.0,
+        "/nodes/attn.qkv/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/attn.qkv/in/1/shape": [
+          2560.0,
+          2048.0
+        ],
+        "/nodes/attn.qkv/out/0/shape": [
+          4096.0,
+          2560.0
+        ],
+        "/nodes/attn.qkv/weight_bytes": 10485760.0,
+        "/nodes/attn.rope.apply/bytes_moved/decode": 9216.0,
+        "/nodes/attn.rope.apply/bytes_moved/prefill": 37748736.0,
+        "/nodes/attn.rope.apply/flops/decode": 6912.0,
+        "/nodes/attn.rope.apply/flops/prefill": 28311552.0,
+        "/nodes/attn.rope.apply/in/0/shape": [
+          4096.0,
+          16.0,
+          128.0
+        ],
+        "/nodes/attn.rope.apply/in/1/shape": [
+          4096.0,
+          2.0,
+          128.0
+        ],
+        "/nodes/attn.rope.apply/out/0/shape": [
+          4096.0,
+          16.0,
+          128.0
+        ],
+        "/nodes/attn.rope.apply/out/1/shape": [
+          4096.0,
+          2.0,
+          128.0
+        ],
+        "/nodes/attn.rope.apply/weight_bytes": 0.0,
+        "/nodes/attn.rope/bytes_moved/decode": 9216.0,
+        "/nodes/attn.rope/bytes_moved/prefill": 37748736.0,
+        "/nodes/attn.rope/flops/decode": 6912.0,
+        "/nodes/attn.rope/flops/prefill": 28311552.0,
+        "/nodes/attn.rope/in/0/shape": [
+          4096.0,
+          16.0,
+          128.0
+        ],
+        "/nodes/attn.rope/in/1/shape": [
+          4096.0,
+          2.0,
+          128.0
+        ],
+        "/nodes/attn.rope/out/0/shape": [
+          4096.0,
+          16.0,
+          128.0
+        ],
+        "/nodes/attn.rope/out/1/shape": [
+          4096.0,
+          2.0,
+          128.0
+        ],
+        "/nodes/attn.rope/weight_bytes": 0.0,
+        "/nodes/attn/bytes_moved/decode": 23114240.0,
+        "/nodes/attn/bytes_moved/prefill": 207618560.0,
+        "/nodes/attn/flops/decode": 52455424.0,
+        "/nodes/attn/flops/prefill": 146121162752.0,
+        "/nodes/attn/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/attn/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/attn/weight_bytes": 18874880.0,
+        "/nodes/decoder/bytes_moved/decode": 2952892416.0,
+        "/nodes/decoder/bytes_moved/prefill": 63191801856.0,
+        "/nodes/decoder/flops/decode": 4356538368.0,
+        "/nodes/decoder/flops/prefill": 14545040965632.0,
+        "/nodes/decoder/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/decoder/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/decoder/weight_bytes": 29922582528.0,
+        "/nodes/embed.reduce/bytes_moved/decode": 0.0,
+        "/nodes/embed.reduce/bytes_moved/prefill": 0.0,
+        "/nodes/embed.reduce/comm/bus_bytes/decode": 4096.0,
+        "/nodes/embed.reduce/comm/bus_bytes/prefill": 16777216.0,
+        "/nodes/embed.reduce/comm/logical_bytes/decode": 4096.0,
+        "/nodes/embed.reduce/comm/logical_bytes/prefill": 16777216.0,
+        "/nodes/embed.reduce/comm/when": 1.0,
+        "/nodes/embed.reduce/flops/decode": 0.0,
+        "/nodes/embed.reduce/flops/prefill": 0.0,
+        "/nodes/embed.reduce/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/embed.reduce/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/embed.reduce/weight_bytes": 0.0,
+        "/nodes/embed/bytes_moved/decode": 8192.0,
+        "/nodes/embed/bytes_moved/prefill": 33554432.0,
+        "/nodes/embed/flops/decode": 0.0,
+        "/nodes/embed/flops/prefill": 0.0,
+        "/nodes/embed/in/0/shape": [
+          4096.0
+        ],
+        "/nodes/embed/in/1/shape": [
+          75968.0,
+          2048.0
+        ],
+        "/nodes/embed/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/embed/weight_bytes": 311164928.0,
+        "/nodes/final_norm/bytes_moved/decode": 12288.0,
+        "/nodes/final_norm/bytes_moved/prefill": 33558528.0,
+        "/nodes/final_norm/flops/decode": 10240.0,
+        "/nodes/final_norm/flops/prefill": 41943040.0,
+        "/nodes/final_norm/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/final_norm/in/1/shape": [
+          2048.0
+        ],
+        "/nodes/final_norm/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/final_norm/weight_bytes": 4096.0,
+        "/nodes/kv_cache/bytes_moved/decode": 0.0,
+        "/nodes/kv_cache/bytes_moved/prefill": 0.0,
+        "/nodes/kv_cache/flops/decode": 0.0,
+        "/nodes/kv_cache/flops/prefill": 0.0,
+        "/nodes/kv_cache/out/0/shape": [
+          2.0,
+          1.0,
+          4096.0,
+          2.0,
+          128.0
+        ],
+        "/nodes/kv_cache/weight_bytes": 0.0,
+        "/nodes/lm_head/bytes_moved/decode": 311320960.0,
+        "/nodes/lm_head/bytes_moved/prefill": 311320960.0,
+        "/nodes/lm_head/flops/decode": 311164928.0,
+        "/nodes/lm_head/flops/prefill": 311164928.0,
+        "/nodes/lm_head/in/0/shape/decode": [
+          1.0,
+          2048.0
+        ],
+        "/nodes/lm_head/in/0/shape/prefill": [
+          1.0,
+          2048.0
+        ],
+        "/nodes/lm_head/in/1/shape": [
+          75968.0,
+          2048.0
+        ],
+        "/nodes/lm_head/out/0/shape/decode": [
+          1.0,
+          75968.0
+        ],
+        "/nodes/lm_head/out/0/shape/prefill": [
+          1.0,
+          75968.0
+        ],
+        "/nodes/lm_head/weight_bytes": 311164928.0,
+        "/nodes/logits.gather/bytes_moved/decode": 0.0,
+        "/nodes/logits.gather/bytes_moved/prefill": 0.0,
+        "/nodes/logits.gather/comm/bus_bytes/decode": 75968.0,
+        "/nodes/logits.gather/comm/bus_bytes/prefill": 75968.0,
+        "/nodes/logits.gather/comm/logical_bytes/decode": 151936.0,
+        "/nodes/logits.gather/comm/logical_bytes/prefill": 151936.0,
+        "/nodes/logits.gather/comm/when": 1.0,
+        "/nodes/logits.gather/flops/decode": 0.0,
+        "/nodes/logits.gather/flops/prefill": 0.0,
+        "/nodes/logits.gather/in/0/shape/decode": [
+          1.0,
+          75968.0
+        ],
+        "/nodes/logits.gather/in/0/shape/prefill": [
+          1.0,
+          75968.0
+        ],
+        "/nodes/logits.gather/out/0/shape/decode": [
+          1.0,
+          151936.0
+        ],
+        "/nodes/logits.gather/out/0/shape/prefill": [
+          1.0,
+          151936.0
+        ],
+        "/nodes/logits.gather/weight_bytes": 0.0,
+        "/nodes/logits/bytes_moved/decode": 607744.0,
+        "/nodes/logits/bytes_moved/prefill": 607744.0,
+        "/nodes/logits/flops/decode": 0.0,
+        "/nodes/logits/flops/prefill": 0.0,
+        "/nodes/logits/in/0/shape/decode": [
+          1.0,
+          151936.0
+        ],
+        "/nodes/logits/in/0/shape/prefill": [
+          1.0,
+          151936.0
+        ],
+        "/nodes/logits/out/0/shape/decode": [
+          1.0,
+          151936.0
+        ],
+        "/nodes/logits/out/0/shape/prefill": [
+          1.0,
+          151936.0
+        ],
+        "/nodes/logits/weight_bytes": 0.0,
+        "/nodes/moe.act/bytes_moved/decode": 18432.0,
+        "/nodes/moe.act/bytes_moved/prefill": 75497472.0,
+        "/nodes/moe.act/flops/decode": 12288.0,
+        "/nodes/moe.act/flops/prefill": 50331648.0,
+        "/nodes/moe.act/in/0/shape": [
+          32768.0,
+          768.0
+        ],
+        "/nodes/moe.act/out/0/shape": [
+          32768.0,
+          384.0
+        ],
+        "/nodes/moe.act/weight_bytes": 0.0,
+        "/nodes/moe.experts.combine/bytes_moved/decode": 0.0,
+        "/nodes/moe.experts.combine/bytes_moved/prefill": 0.0,
+        "/nodes/moe.experts.combine/comm/bus_bytes/decode": 0.0,
+        "/nodes/moe.experts.combine/comm/bus_bytes/prefill": 0.0,
+        "/nodes/moe.experts.combine/comm/logical_bytes/decode": 4096.0,
+        "/nodes/moe.experts.combine/comm/logical_bytes/prefill": 16777216.0,
+        "/nodes/moe.experts.combine/comm/when": 0.0,
+        "/nodes/moe.experts.combine/flops/decode": 0.0,
+        "/nodes/moe.experts.combine/flops/prefill": 0.0,
+        "/nodes/moe.experts.combine/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe.experts.combine/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe.experts.combine/weight_bytes": 0.0,
+        "/nodes/moe.experts.dispatch/bytes_moved/decode": 0.0,
+        "/nodes/moe.experts.dispatch/bytes_moved/prefill": 0.0,
+        "/nodes/moe.experts.dispatch/comm/bus_bytes/decode": 0.0,
+        "/nodes/moe.experts.dispatch/comm/bus_bytes/prefill": 0.0,
+        "/nodes/moe.experts.dispatch/comm/logical_bytes/decode": 4096.0,
+        "/nodes/moe.experts.dispatch/comm/logical_bytes/prefill": 16777216.0,
+        "/nodes/moe.experts.dispatch/comm/when": 0.0,
+        "/nodes/moe.experts.dispatch/flops/decode": 0.0,
+        "/nodes/moe.experts.dispatch/flops/prefill": 0.0,
+        "/nodes/moe.experts.dispatch/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe.experts.dispatch/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe.experts.dispatch/weight_bytes": 0.0,
+        "/nodes/moe.experts.method/bytes_moved/decode": 0.0,
+        "/nodes/moe.experts.method/bytes_moved/prefill": 0.0,
+        "/nodes/moe.experts.method/flops/decode": 0.0,
+        "/nodes/moe.experts.method/flops/prefill": 0.0,
+        "/nodes/moe.experts.method/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe.experts.method/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe.experts.method/weight_bytes": 0.0,
+        "/nodes/moe.experts.reduce/bytes_moved/decode": 0.0,
+        "/nodes/moe.experts.reduce/bytes_moved/prefill": 0.0,
+        "/nodes/moe.experts.reduce/comm/bus_bytes/decode": 4096.0,
+        "/nodes/moe.experts.reduce/comm/bus_bytes/prefill": 16777216.0,
+        "/nodes/moe.experts.reduce/comm/logical_bytes/decode": 4096.0,
+        "/nodes/moe.experts.reduce/comm/logical_bytes/prefill": 16777216.0,
+        "/nodes/moe.experts.reduce/comm/when": 1.0,
+        "/nodes/moe.experts.reduce/flops/decode": 0.0,
+        "/nodes/moe.experts.reduce/flops/prefill": 0.0,
+        "/nodes/moe.experts.reduce/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe.experts.reduce/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe.experts.reduce/weight_bytes": 0.0,
+        "/nodes/moe.experts.weights/bytes_moved/decode": 37851136.0,
+        "/nodes/moe.experts.weights/bytes_moved/prefill": 1023410176.0,
+        "/nodes/moe.experts.weights/flops/decode": 37761024.0,
+        "/nodes/moe.experts.weights/flops/prefill": 154669154304.0,
+        "/nodes/moe.experts.weights/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe.experts.weights/in/1/shape": [
+          128.0,
+          768.0,
+          2048.0
+        ],
+        "/nodes/moe.experts.weights/in/2/shape": [
+          128.0,
+          2048.0,
+          384.0
+        ],
+        "/nodes/moe.experts.weights/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe.experts.weights/weight_bytes": 603979776.0,
+        "/nodes/moe.experts/bytes_moved/decode": 37851136.0,
+        "/nodes/moe.experts/bytes_moved/prefill": 1023410176.0,
+        "/nodes/moe.experts/flops/decode": 37761024.0,
+        "/nodes/moe.experts/flops/prefill": 154669154304.0,
+        "/nodes/moe.experts/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe.experts/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe.experts/weight_bytes": 603979776.0,
+        "/nodes/moe.gate/bytes_moved/decode": 528640.0,
+        "/nodes/moe.gate/bytes_moved/prefill": 18350080.0,
+        "/nodes/moe.gate/flops/decode": 524288.0,
+        "/nodes/moe.gate/flops/prefill": 2147483648.0,
+        "/nodes/moe.gate/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe.gate/in/1/shape": [
+          128.0,
+          2048.0
+        ],
+        "/nodes/moe.gate/out/0/shape": [
+          4096.0,
+          128.0
+        ],
+        "/nodes/moe.gate/weight_bytes": 524288.0,
+        "/nodes/moe.w13/bytes_moved/decode": 25210880.0,
+        "/nodes/moe.w13/bytes_moved/prefill": 587202560.0,
+        "/nodes/moe.w13/flops/decode": 25165824.0,
+        "/nodes/moe.w13/flops/prefill": 103079215104.0,
+        "/nodes/moe.w13/in/0/shape": [
+          32768.0,
+          2048.0
+        ],
+        "/nodes/moe.w13/in/1/shape": [
+          128.0,
+          768.0,
+          2048.0
+        ],
+        "/nodes/moe.w13/out/0/shape": [
+          32768.0,
+          768.0
+        ],
+        "/nodes/moe.w13/weight_bytes": 402653184.0,
+        "/nodes/moe.w2/bytes_moved/decode": 12621824.0,
+        "/nodes/moe.w2/bytes_moved/prefill": 360710144.0,
+        "/nodes/moe.w2/flops/decode": 12582912.0,
+        "/nodes/moe.w2/flops/prefill": 51539607552.0,
+        "/nodes/moe.w2/in/0/shape": [
+          32768.0,
+          384.0
+        ],
+        "/nodes/moe.w2/in/1/shape": [
+          128.0,
+          2048.0,
+          384.0
+        ],
+        "/nodes/moe.w2/out/0/shape": [
+          32768.0,
+          2048.0
+        ],
+        "/nodes/moe.w2/weight_bytes": 201326592.0,
+        "/nodes/moe/bytes_moved/decode": 38379776.0,
+        "/nodes/moe/bytes_moved/prefill": 1041760256.0,
+        "/nodes/moe/flops/decode": 38285312.0,
+        "/nodes/moe/flops/prefill": 156816637952.0,
+        "/nodes/moe/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe/weight_bytes": 604504064.0,
+        "/nodes/norm.input/bytes_moved/decode": 12288.0,
+        "/nodes/norm.input/bytes_moved/prefill": 33558528.0,
+        "/nodes/norm.input/flops/decode": 10240.0,
+        "/nodes/norm.input/flops/prefill": 41943040.0,
+        "/nodes/norm.input/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/norm.input/in/1/shape": [
+          2048.0
+        ],
+        "/nodes/norm.input/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/norm.input/weight_bytes": 4096.0,
+        "/nodes/norm.post/bytes_moved/decode": 12288.0,
+        "/nodes/norm.post/bytes_moved/prefill": 33558528.0,
+        "/nodes/norm.post/flops/decode": 10240.0,
+        "/nodes/norm.post/flops/prefill": 41943040.0,
+        "/nodes/norm.post/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/norm.post/in/1/shape": [
+          2048.0
+        ],
+        "/nodes/norm.post/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/norm.post/weight_bytes": 4096.0,
+        "/nodes/output/bytes_moved/decode": 0.0,
+        "/nodes/output/bytes_moved/prefill": 0.0,
+        "/nodes/output/flops/decode": 0.0,
+        "/nodes/output/flops/prefill": 0.0,
+        "/nodes/output/in/0/shape/decode": [
+          1.0,
+          151936.0
+        ],
+        "/nodes/output/in/0/shape/prefill": [
+          1.0,
+          151936.0
+        ],
+        "/nodes/output/out/0/shape/decode": [
+          1.0
+        ],
+        "/nodes/output/out/0/shape/prefill": [
+          1.0
+        ],
+        "/nodes/output/weight_bytes": 0.0
+      },
+      "id": "tp2-bf16"
+    },
+    {
+      "env": {
+        "tp": 4.0
+      },
+      "expected": {
+        "/memory/activation_peak": 855703552.0,
+        "/memory/kv_per_token": 24576.0,
+        "/memory/kv_tokens": 1686912.0,
+        "/memory/non_torch": 0.0,
+        "/memory/reserved": 0.0,
+        "/memory/weights": 15285252096.0,
+        "/nodes/attn.core/bytes_moved/decode": 2101760.0,
+        "/nodes/attn.core/bytes_moved/prefill": 20971520.0,
+        "/nodes/attn.core/flops/decode": 16781312.0,
+        "/nodes/attn.core/flops/prefill": 34368126976.0,
+        "/nodes/attn.core/in/0/shape": [
+          4096.0,
+          8.0,
+          128.0
+        ],
+        "/nodes/attn.core/in/1/shape": [
+          4096.0,
+          1.0,
+          128.0
+        ],
+        "/nodes/attn.core/in/2/shape": [
+          4096.0,
+          1.0,
+          128.0
+        ],
+        "/nodes/attn.core/out/0/shape": [
+          4096.0,
+          1024.0
+        ],
+        "/nodes/attn.core/weight_bytes": 0.0,
+        "/nodes/attn.k_norm/bytes_moved/decode": 768.0,
+        "/nodes/attn.k_norm/bytes_moved/prefill": 2097408.0,
+        "/nodes/attn.k_norm/flops/decode": 640.0,
+        "/nodes/attn.k_norm/flops/prefill": 2621440.0,
+        "/nodes/attn.k_norm/in/0/shape": [
+          4096.0,
+          128.0
+        ],
+        "/nodes/attn.k_norm/in/1/shape": [
+          128.0
+        ],
+        "/nodes/attn.k_norm/out/0/shape": [
+          4096.0,
+          128.0
+        ],
+        "/nodes/attn.k_norm/weight_bytes": 256.0,
+        "/nodes/attn.o.reduce/bytes_moved/decode": 0.0,
+        "/nodes/attn.o.reduce/bytes_moved/prefill": 0.0,
+        "/nodes/attn.o.reduce/comm/bus_bytes/decode": 6144.0,
+        "/nodes/attn.o.reduce/comm/bus_bytes/prefill": 25165824.0,
+        "/nodes/attn.o.reduce/comm/logical_bytes/decode": 4096.0,
+        "/nodes/attn.o.reduce/comm/logical_bytes/prefill": 16777216.0,
+        "/nodes/attn.o.reduce/comm/when": 1.0,
+        "/nodes/attn.o.reduce/flops/decode": 0.0,
+        "/nodes/attn.o.reduce/flops/prefill": 0.0,
+        "/nodes/attn.o.reduce/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/attn.o.reduce/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/attn.o.reduce/weight_bytes": 0.0,
+        "/nodes/attn.o/bytes_moved/decode": 4200448.0,
+        "/nodes/attn.o/bytes_moved/prefill": 29360128.0,
+        "/nodes/attn.o/flops/decode": 4194304.0,
+        "/nodes/attn.o/flops/prefill": 17179869184.0,
+        "/nodes/attn.o/in/0/shape": [
+          4096.0,
+          1024.0
+        ],
+        "/nodes/attn.o/in/1/shape": [
+          2048.0,
+          1024.0
+        ],
+        "/nodes/attn.o/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/attn.o/weight_bytes": 4194304.0,
+        "/nodes/attn.q_norm/bytes_moved/decode": 4352.0,
+        "/nodes/attn.q_norm/bytes_moved/prefill": 16777472.0,
+        "/nodes/attn.q_norm/flops/decode": 5120.0,
+        "/nodes/attn.q_norm/flops/prefill": 20971520.0,
+        "/nodes/attn.q_norm/in/0/shape": [
+          4096.0,
+          1024.0
+        ],
+        "/nodes/attn.q_norm/in/1/shape": [
+          128.0
+        ],
+        "/nodes/attn.q_norm/out/0/shape": [
+          4096.0,
+          1024.0
+        ],
+        "/nodes/attn.q_norm/weight_bytes": 256.0,
+        "/nodes/attn.qkv/bytes_moved/decode": 5249536.0,
+        "/nodes/attn.qkv/bytes_moved/prefill": 32505856.0,
+        "/nodes/attn.qkv/flops/decode": 5242880.0,
+        "/nodes/attn.qkv/flops/prefill": 21474836480.0,
+        "/nodes/attn.qkv/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/attn.qkv/in/1/shape": [
+          1280.0,
+          2048.0
+        ],
+        "/nodes/attn.qkv/out/0/shape": [
+          4096.0,
+          1280.0
+        ],
+        "/nodes/attn.qkv/weight_bytes": 5242880.0,
+        "/nodes/attn.rope.apply/bytes_moved/decode": 4608.0,
+        "/nodes/attn.rope.apply/bytes_moved/prefill": 18874368.0,
+        "/nodes/attn.rope.apply/flops/decode": 3456.0,
+        "/nodes/attn.rope.apply/flops/prefill": 14155776.0,
+        "/nodes/attn.rope.apply/in/0/shape": [
+          4096.0,
+          8.0,
+          128.0
+        ],
+        "/nodes/attn.rope.apply/in/1/shape": [
+          4096.0,
+          1.0,
+          128.0
+        ],
+        "/nodes/attn.rope.apply/out/0/shape": [
+          4096.0,
+          8.0,
+          128.0
+        ],
+        "/nodes/attn.rope.apply/out/1/shape": [
+          4096.0,
+          1.0,
+          128.0
+        ],
+        "/nodes/attn.rope.apply/weight_bytes": 0.0,
+        "/nodes/attn.rope/bytes_moved/decode": 4608.0,
+        "/nodes/attn.rope/bytes_moved/prefill": 18874368.0,
+        "/nodes/attn.rope/flops/decode": 3456.0,
+        "/nodes/attn.rope/flops/prefill": 14155776.0,
+        "/nodes/attn.rope/in/0/shape": [
+          4096.0,
+          8.0,
+          128.0
+        ],
+        "/nodes/attn.rope/in/1/shape": [
+          4096.0,
+          1.0,
+          128.0
+        ],
+        "/nodes/attn.rope/out/0/shape": [
+          4096.0,
+          8.0,
+          128.0
+        ],
+        "/nodes/attn.rope/out/1/shape": [
+          4096.0,
+          1.0,
+          128.0
+        ],
+        "/nodes/attn.rope/weight_bytes": 0.0,
+        "/nodes/attn/bytes_moved/decode": 11561472.0,
+        "/nodes/attn/bytes_moved/prefill": 120586752.0,
+        "/nodes/attn/flops/decode": 26227712.0,
+        "/nodes/attn/flops/prefill": 73060581376.0,
+        "/nodes/attn/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/attn/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/attn/weight_bytes": 9437696.0,
+        "/nodes/decoder/bytes_moved/decode": 1491505152.0,
+        "/nodes/decoder/bytes_moved/prefill": 40894881792.0,
+        "/nodes/decoder/flops/decode": 2191343616.0,
+        "/nodes/decoder/flops/prefill": 7326073356288.0,
+        "/nodes/decoder/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/decoder/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/decoder/weight_bytes": 14974083072.0,
+        "/nodes/embed.reduce/bytes_moved/decode": 0.0,
+        "/nodes/embed.reduce/bytes_moved/prefill": 0.0,
+        "/nodes/embed.reduce/comm/bus_bytes/decode": 6144.0,
+        "/nodes/embed.reduce/comm/bus_bytes/prefill": 25165824.0,
+        "/nodes/embed.reduce/comm/logical_bytes/decode": 4096.0,
+        "/nodes/embed.reduce/comm/logical_bytes/prefill": 16777216.0,
+        "/nodes/embed.reduce/comm/when": 1.0,
+        "/nodes/embed.reduce/flops/decode": 0.0,
+        "/nodes/embed.reduce/flops/prefill": 0.0,
+        "/nodes/embed.reduce/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/embed.reduce/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/embed.reduce/weight_bytes": 0.0,
+        "/nodes/embed/bytes_moved/decode": 8192.0,
+        "/nodes/embed/bytes_moved/prefill": 33554432.0,
+        "/nodes/embed/flops/decode": 0.0,
+        "/nodes/embed/flops/prefill": 0.0,
+        "/nodes/embed/in/0/shape": [
+          4096.0
+        ],
+        "/nodes/embed/in/1/shape": [
+          37984.0,
+          2048.0
+        ],
+        "/nodes/embed/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/embed/weight_bytes": 155582464.0,
+        "/nodes/final_norm/bytes_moved/decode": 12288.0,
+        "/nodes/final_norm/bytes_moved/prefill": 33558528.0,
+        "/nodes/final_norm/flops/decode": 10240.0,
+        "/nodes/final_norm/flops/prefill": 41943040.0,
+        "/nodes/final_norm/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/final_norm/in/1/shape": [
+          2048.0
+        ],
+        "/nodes/final_norm/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/final_norm/weight_bytes": 4096.0,
+        "/nodes/kv_cache/bytes_moved/decode": 0.0,
+        "/nodes/kv_cache/bytes_moved/prefill": 0.0,
+        "/nodes/kv_cache/flops/decode": 0.0,
+        "/nodes/kv_cache/flops/prefill": 0.0,
+        "/nodes/kv_cache/out/0/shape": [
+          2.0,
+          1.0,
+          4096.0,
+          1.0,
+          128.0
+        ],
+        "/nodes/kv_cache/weight_bytes": 0.0,
+        "/nodes/lm_head/bytes_moved/decode": 155662528.0,
+        "/nodes/lm_head/bytes_moved/prefill": 155662528.0,
+        "/nodes/lm_head/flops/decode": 155582464.0,
+        "/nodes/lm_head/flops/prefill": 155582464.0,
+        "/nodes/lm_head/in/0/shape/decode": [
+          1.0,
+          2048.0
+        ],
+        "/nodes/lm_head/in/0/shape/prefill": [
+          1.0,
+          2048.0
+        ],
+        "/nodes/lm_head/in/1/shape": [
+          37984.0,
+          2048.0
+        ],
+        "/nodes/lm_head/out/0/shape/decode": [
+          1.0,
+          37984.0
+        ],
+        "/nodes/lm_head/out/0/shape/prefill": [
+          1.0,
+          37984.0
+        ],
+        "/nodes/lm_head/weight_bytes": 155582464.0,
+        "/nodes/logits.gather/bytes_moved/decode": 0.0,
+        "/nodes/logits.gather/bytes_moved/prefill": 0.0,
+        "/nodes/logits.gather/comm/bus_bytes/decode": 56976.0,
+        "/nodes/logits.gather/comm/bus_bytes/prefill": 56976.0,
+        "/nodes/logits.gather/comm/logical_bytes/decode": 75968.0,
+        "/nodes/logits.gather/comm/logical_bytes/prefill": 75968.0,
+        "/nodes/logits.gather/comm/when": 1.0,
+        "/nodes/logits.gather/flops/decode": 0.0,
+        "/nodes/logits.gather/flops/prefill": 0.0,
+        "/nodes/logits.gather/in/0/shape/decode": [
+          1.0,
+          37984.0
+        ],
+        "/nodes/logits.gather/in/0/shape/prefill": [
+          1.0,
+          37984.0
+        ],
+        "/nodes/logits.gather/out/0/shape/decode": [
+          1.0,
+          151936.0
+        ],
+        "/nodes/logits.gather/out/0/shape/prefill": [
+          1.0,
+          151936.0
+        ],
+        "/nodes/logits.gather/weight_bytes": 0.0,
+        "/nodes/logits/bytes_moved/decode": 607744.0,
+        "/nodes/logits/bytes_moved/prefill": 607744.0,
+        "/nodes/logits/flops/decode": 0.0,
+        "/nodes/logits/flops/prefill": 0.0,
+        "/nodes/logits/in/0/shape/decode": [
+          1.0,
+          151936.0
+        ],
+        "/nodes/logits/in/0/shape/prefill": [
+          1.0,
+          151936.0
+        ],
+        "/nodes/logits/out/0/shape/decode": [
+          1.0,
+          151936.0
+        ],
+        "/nodes/logits/out/0/shape/prefill": [
+          1.0,
+          151936.0
+        ],
+        "/nodes/logits/weight_bytes": 0.0,
+        "/nodes/moe.act/bytes_moved/decode": 9216.0,
+        "/nodes/moe.act/bytes_moved/prefill": 37748736.0,
+        "/nodes/moe.act/flops/decode": 6144.0,
+        "/nodes/moe.act/flops/prefill": 25165824.0,
+        "/nodes/moe.act/in/0/shape": [
+          32768.0,
+          384.0
+        ],
+        "/nodes/moe.act/out/0/shape": [
+          32768.0,
+          192.0
+        ],
+        "/nodes/moe.act/weight_bytes": 0.0,
+        "/nodes/moe.experts.combine/bytes_moved/decode": 0.0,
+        "/nodes/moe.experts.combine/bytes_moved/prefill": 0.0,
+        "/nodes/moe.experts.combine/comm/bus_bytes/decode": 0.0,
+        "/nodes/moe.experts.combine/comm/bus_bytes/prefill": 0.0,
+        "/nodes/moe.experts.combine/comm/logical_bytes/decode": 4096.0,
+        "/nodes/moe.experts.combine/comm/logical_bytes/prefill": 16777216.0,
+        "/nodes/moe.experts.combine/comm/when": 0.0,
+        "/nodes/moe.experts.combine/flops/decode": 0.0,
+        "/nodes/moe.experts.combine/flops/prefill": 0.0,
+        "/nodes/moe.experts.combine/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe.experts.combine/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe.experts.combine/weight_bytes": 0.0,
+        "/nodes/moe.experts.dispatch/bytes_moved/decode": 0.0,
+        "/nodes/moe.experts.dispatch/bytes_moved/prefill": 0.0,
+        "/nodes/moe.experts.dispatch/comm/bus_bytes/decode": 0.0,
+        "/nodes/moe.experts.dispatch/comm/bus_bytes/prefill": 0.0,
+        "/nodes/moe.experts.dispatch/comm/logical_bytes/decode": 4096.0,
+        "/nodes/moe.experts.dispatch/comm/logical_bytes/prefill": 16777216.0,
+        "/nodes/moe.experts.dispatch/comm/when": 0.0,
+        "/nodes/moe.experts.dispatch/flops/decode": 0.0,
+        "/nodes/moe.experts.dispatch/flops/prefill": 0.0,
+        "/nodes/moe.experts.dispatch/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe.experts.dispatch/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe.experts.dispatch/weight_bytes": 0.0,
+        "/nodes/moe.experts.method/bytes_moved/decode": 0.0,
+        "/nodes/moe.experts.method/bytes_moved/prefill": 0.0,
+        "/nodes/moe.experts.method/flops/decode": 0.0,
+        "/nodes/moe.experts.method/flops/prefill": 0.0,
+        "/nodes/moe.experts.method/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe.experts.method/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe.experts.method/weight_bytes": 0.0,
+        "/nodes/moe.experts.reduce/bytes_moved/decode": 0.0,
+        "/nodes/moe.experts.reduce/bytes_moved/prefill": 0.0,
+        "/nodes/moe.experts.reduce/comm/bus_bytes/decode": 6144.0,
+        "/nodes/moe.experts.reduce/comm/bus_bytes/prefill": 25165824.0,
+        "/nodes/moe.experts.reduce/comm/logical_bytes/decode": 4096.0,
+        "/nodes/moe.experts.reduce/comm/logical_bytes/prefill": 16777216.0,
+        "/nodes/moe.experts.reduce/comm/when": 1.0,
+        "/nodes/moe.experts.reduce/flops/decode": 0.0,
+        "/nodes/moe.experts.reduce/flops/prefill": 0.0,
+        "/nodes/moe.experts.reduce/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe.experts.reduce/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe.experts.reduce/weight_bytes": 0.0,
+        "/nodes/moe.experts.weights/bytes_moved/decode": 18958336.0,
+        "/nodes/moe.experts.weights/bytes_moved/prefill": 645922816.0,
+        "/nodes/moe.experts.weights/flops/decode": 18880512.0,
+        "/nodes/moe.experts.weights/flops/prefill": 77334577152.0,
+        "/nodes/moe.experts.weights/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe.experts.weights/in/1/shape": [
+          128.0,
+          384.0,
+          2048.0
+        ],
+        "/nodes/moe.experts.weights/in/2/shape": [
+          128.0,
+          2048.0,
+          192.0
+        ],
+        "/nodes/moe.experts.weights/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe.experts.weights/weight_bytes": 301989888.0,
+        "/nodes/moe.experts/bytes_moved/decode": 18958336.0,
+        "/nodes/moe.experts/bytes_moved/prefill": 645922816.0,
+        "/nodes/moe.experts/flops/decode": 18880512.0,
+        "/nodes/moe.experts/flops/prefill": 77334577152.0,
+        "/nodes/moe.experts/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe.experts/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe.experts/weight_bytes": 301989888.0,
+        "/nodes/moe.gate/bytes_moved/decode": 528640.0,
+        "/nodes/moe.gate/bytes_moved/prefill": 18350080.0,
+        "/nodes/moe.gate/flops/decode": 524288.0,
+        "/nodes/moe.gate/flops/prefill": 2147483648.0,
+        "/nodes/moe.gate/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe.gate/in/1/shape": [
+          128.0,
+          2048.0
+        ],
+        "/nodes/moe.gate/out/0/shape": [
+          4096.0,
+          128.0
+        ],
+        "/nodes/moe.gate/weight_bytes": 524288.0,
+        "/nodes/moe.w13/bytes_moved/decode": 12621824.0,
+        "/nodes/moe.w13/bytes_moved/prefill": 360710144.0,
+        "/nodes/moe.w13/flops/decode": 12582912.0,
+        "/nodes/moe.w13/flops/prefill": 51539607552.0,
+        "/nodes/moe.w13/in/0/shape": [
+          32768.0,
+          2048.0
+        ],
+        "/nodes/moe.w13/in/1/shape": [
+          128.0,
+          384.0,
+          2048.0
+        ],
+        "/nodes/moe.w13/out/0/shape": [
+          32768.0,
+          384.0
+        ],
+        "/nodes/moe.w13/weight_bytes": 201326592.0,
+        "/nodes/moe.w2/bytes_moved/decode": 6327296.0,
+        "/nodes/moe.w2/bytes_moved/prefill": 247463936.0,
+        "/nodes/moe.w2/flops/decode": 6291456.0,
+        "/nodes/moe.w2/flops/prefill": 25769803776.0,
+        "/nodes/moe.w2/in/0/shape": [
+          32768.0,
+          192.0
+        ],
+        "/nodes/moe.w2/in/1/shape": [
+          128.0,
+          2048.0,
+          192.0
+        ],
+        "/nodes/moe.w2/out/0/shape": [
+          32768.0,
+          2048.0
+        ],
+        "/nodes/moe.w2/weight_bytes": 100663296.0,
+        "/nodes/moe/bytes_moved/decode": 19486976.0,
+        "/nodes/moe/bytes_moved/prefill": 664272896.0,
+        "/nodes/moe/flops/decode": 19404800.0,
+        "/nodes/moe/flops/prefill": 79482060800.0,
+        "/nodes/moe/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe/weight_bytes": 302514176.0,
+        "/nodes/norm.input/bytes_moved/decode": 12288.0,
+        "/nodes/norm.input/bytes_moved/prefill": 33558528.0,
+        "/nodes/norm.input/flops/decode": 10240.0,
+        "/nodes/norm.input/flops/prefill": 41943040.0,
+        "/nodes/norm.input/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/norm.input/in/1/shape": [
+          2048.0
+        ],
+        "/nodes/norm.input/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/norm.input/weight_bytes": 4096.0,
+        "/nodes/norm.post/bytes_moved/decode": 12288.0,
+        "/nodes/norm.post/bytes_moved/prefill": 33558528.0,
+        "/nodes/norm.post/flops/decode": 10240.0,
+        "/nodes/norm.post/flops/prefill": 41943040.0,
+        "/nodes/norm.post/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/norm.post/in/1/shape": [
+          2048.0
+        ],
+        "/nodes/norm.post/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/norm.post/weight_bytes": 4096.0,
+        "/nodes/output/bytes_moved/decode": 0.0,
+        "/nodes/output/bytes_moved/prefill": 0.0,
+        "/nodes/output/flops/decode": 0.0,
+        "/nodes/output/flops/prefill": 0.0,
+        "/nodes/output/in/0/shape/decode": [
+          1.0,
+          151936.0
+        ],
+        "/nodes/output/in/0/shape/prefill": [
+          1.0,
+          151936.0
+        ],
+        "/nodes/output/out/0/shape/decode": [
+          1.0
+        ],
+        "/nodes/output/out/0/shape/prefill": [
+          1.0
+        ],
+        "/nodes/output/weight_bytes": 0.0
+      },
+      "id": "tp4-bf16"
+    },
+    {
+      "env": {
+        "tp": 8.0
+      },
+      "expected": {
+        "/memory/activation_peak": 855703552.0,
+        "/memory/kv_per_token": 24576.0,
+        "/memory/kv_tokens": 1996288.0,
+        "/memory/non_torch": 0.0,
+        "/memory/reserved": 0.0,
+        "/memory/weights": 7680585728.0,
+        "/nodes/attn.core/bytes_moved/decode": 2099712.0,
+        "/nodes/attn.core/bytes_moved/prefill": 12582912.0,
+        "/nodes/attn.core/flops/decode": 8390656.0,
+        "/nodes/attn.core/flops/prefill": 17184063488.0,
+        "/nodes/attn.core/in/0/shape": [
+          4096.0,
+          4.0,
+          128.0
+        ],
+        "/nodes/attn.core/in/1/shape": [
+          4096.0,
+          1.0,
+          128.0
+        ],
+        "/nodes/attn.core/in/2/shape": [
+          4096.0,
+          1.0,
+          128.0
+        ],
+        "/nodes/attn.core/out/0/shape": [
+          4096.0,
+          512.0
+        ],
+        "/nodes/attn.core/weight_bytes": 0.0,
+        "/nodes/attn.k_norm/bytes_moved/decode": 768.0,
+        "/nodes/attn.k_norm/bytes_moved/prefill": 2097408.0,
+        "/nodes/attn.k_norm/flops/decode": 640.0,
+        "/nodes/attn.k_norm/flops/prefill": 2621440.0,
+        "/nodes/attn.k_norm/in/0/shape": [
+          4096.0,
+          128.0
+        ],
+        "/nodes/attn.k_norm/in/1/shape": [
+          128.0
+        ],
+        "/nodes/attn.k_norm/out/0/shape": [
+          4096.0,
+          128.0
+        ],
+        "/nodes/attn.k_norm/weight_bytes": 256.0,
+        "/nodes/attn.o.reduce/bytes_moved/decode": 0.0,
+        "/nodes/attn.o.reduce/bytes_moved/prefill": 0.0,
+        "/nodes/attn.o.reduce/comm/bus_bytes/decode": 7168.0,
+        "/nodes/attn.o.reduce/comm/bus_bytes/prefill": 29360128.0,
+        "/nodes/attn.o.reduce/comm/logical_bytes/decode": 4096.0,
+        "/nodes/attn.o.reduce/comm/logical_bytes/prefill": 16777216.0,
+        "/nodes/attn.o.reduce/comm/when": 1.0,
+        "/nodes/attn.o.reduce/flops/decode": 0.0,
+        "/nodes/attn.o.reduce/flops/prefill": 0.0,
+        "/nodes/attn.o.reduce/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/attn.o.reduce/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/attn.o.reduce/weight_bytes": 0.0,
+        "/nodes/attn.o/bytes_moved/decode": 2102272.0,
+        "/nodes/attn.o/bytes_moved/prefill": 23068672.0,
+        "/nodes/attn.o/flops/decode": 2097152.0,
+        "/nodes/attn.o/flops/prefill": 8589934592.0,
+        "/nodes/attn.o/in/0/shape": [
+          4096.0,
+          512.0
+        ],
+        "/nodes/attn.o/in/1/shape": [
+          2048.0,
+          512.0
+        ],
+        "/nodes/attn.o/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/attn.o/weight_bytes": 2097152.0,
+        "/nodes/attn.q_norm/bytes_moved/decode": 2304.0,
+        "/nodes/attn.q_norm/bytes_moved/prefill": 8388864.0,
+        "/nodes/attn.q_norm/flops/decode": 2560.0,
+        "/nodes/attn.q_norm/flops/prefill": 10485760.0,
+        "/nodes/attn.q_norm/in/0/shape": [
+          4096.0,
+          512.0
+        ],
+        "/nodes/attn.q_norm/in/1/shape": [
+          128.0
+        ],
+        "/nodes/attn.q_norm/out/0/shape": [
+          4096.0,
+          512.0
+        ],
+        "/nodes/attn.q_norm/weight_bytes": 256.0,
+        "/nodes/attn.qkv/bytes_moved/decode": 3151360.0,
+        "/nodes/attn.qkv/bytes_moved/prefill": 26214400.0,
+        "/nodes/attn.qkv/flops/decode": 3145728.0,
+        "/nodes/attn.qkv/flops/prefill": 12884901888.0,
+        "/nodes/attn.qkv/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/attn.qkv/in/1/shape": [
+          768.0,
+          2048.0
+        ],
+        "/nodes/attn.qkv/out/0/shape": [
+          4096.0,
+          768.0
+        ],
+        "/nodes/attn.qkv/weight_bytes": 3145728.0,
+        "/nodes/attn.rope.apply/bytes_moved/decode": 2560.0,
+        "/nodes/attn.rope.apply/bytes_moved/prefill": 10485760.0,
+        "/nodes/attn.rope.apply/flops/decode": 1920.0,
+        "/nodes/attn.rope.apply/flops/prefill": 7864320.0,
+        "/nodes/attn.rope.apply/in/0/shape": [
+          4096.0,
+          4.0,
+          128.0
+        ],
+        "/nodes/attn.rope.apply/in/1/shape": [
+          4096.0,
+          1.0,
+          128.0
+        ],
+        "/nodes/attn.rope.apply/out/0/shape": [
+          4096.0,
+          4.0,
+          128.0
+        ],
+        "/nodes/attn.rope.apply/out/1/shape": [
+          4096.0,
+          1.0,
+          128.0
+        ],
+        "/nodes/attn.rope.apply/weight_bytes": 0.0,
+        "/nodes/attn.rope/bytes_moved/decode": 2560.0,
+        "/nodes/attn.rope/bytes_moved/prefill": 10485760.0,
+        "/nodes/attn.rope/flops/decode": 1920.0,
+        "/nodes/attn.rope/flops/prefill": 7864320.0,
+        "/nodes/attn.rope/in/0/shape": [
+          4096.0,
+          4.0,
+          128.0
+        ],
+        "/nodes/attn.rope/in/1/shape": [
+          4096.0,
+          1.0,
+          128.0
+        ],
+        "/nodes/attn.rope/out/0/shape": [
+          4096.0,
+          4.0,
+          128.0
+        ],
+        "/nodes/attn.rope/out/1/shape": [
+          4096.0,
+          1.0,
+          128.0
+        ],
+        "/nodes/attn.rope/weight_bytes": 0.0,
+        "/nodes/attn/bytes_moved/decode": 7358976.0,
+        "/nodes/attn/bytes_moved/prefill": 82838016.0,
+        "/nodes/attn/flops/decode": 13638656.0,
+        "/nodes/attn/flops/prefill": 38679871488.0,
+        "/nodes/attn/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/attn/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/attn/weight_bytes": 5243392.0,
+        "/nodes/decoder/bytes_moved/decode": 836358144.0,
+        "/nodes/decoder/bytes_moved/prefill": 30023245824.0,
+        "/nodes/decoder/flops/decode": 1133936640.0,
+        "/nodes/decoder/flops/prefill": 3819769430016.0,
+        "/nodes/decoder/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/decoder/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/decoder/weight_bytes": 7524999168.0,
+        "/nodes/embed.reduce/bytes_moved/decode": 0.0,
+        "/nodes/embed.reduce/bytes_moved/prefill": 0.0,
+        "/nodes/embed.reduce/comm/bus_bytes/decode": 7168.0,
+        "/nodes/embed.reduce/comm/bus_bytes/prefill": 29360128.0,
+        "/nodes/embed.reduce/comm/logical_bytes/decode": 4096.0,
+        "/nodes/embed.reduce/comm/logical_bytes/prefill": 16777216.0,
+        "/nodes/embed.reduce/comm/when": 1.0,
+        "/nodes/embed.reduce/flops/decode": 0.0,
+        "/nodes/embed.reduce/flops/prefill": 0.0,
+        "/nodes/embed.reduce/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/embed.reduce/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/embed.reduce/weight_bytes": 0.0,
+        "/nodes/embed/bytes_moved/decode": 8192.0,
+        "/nodes/embed/bytes_moved/prefill": 33554432.0,
+        "/nodes/embed/flops/decode": 0.0,
+        "/nodes/embed/flops/prefill": 0.0,
+        "/nodes/embed/in/0/shape": [
+          4096.0
+        ],
+        "/nodes/embed/in/1/shape": [
+          18992.0,
+          2048.0
+        ],
+        "/nodes/embed/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/embed/weight_bytes": 77791232.0,
+        "/nodes/final_norm/bytes_moved/decode": 12288.0,
+        "/nodes/final_norm/bytes_moved/prefill": 33558528.0,
+        "/nodes/final_norm/flops/decode": 10240.0,
+        "/nodes/final_norm/flops/prefill": 41943040.0,
+        "/nodes/final_norm/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/final_norm/in/1/shape": [
+          2048.0
+        ],
+        "/nodes/final_norm/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/final_norm/weight_bytes": 4096.0,
+        "/nodes/kv_cache/bytes_moved/decode": 0.0,
+        "/nodes/kv_cache/bytes_moved/prefill": 0.0,
+        "/nodes/kv_cache/flops/decode": 0.0,
+        "/nodes/kv_cache/flops/prefill": 0.0,
+        "/nodes/kv_cache/out/0/shape": [
+          2.0,
+          1.0,
+          4096.0,
+          1.0,
+          128.0
+        ],
+        "/nodes/kv_cache/weight_bytes": 0.0,
+        "/nodes/lm_head/bytes_moved/decode": 77833312.0,
+        "/nodes/lm_head/bytes_moved/prefill": 77833312.0,
+        "/nodes/lm_head/flops/decode": 77791232.0,
+        "/nodes/lm_head/flops/prefill": 77791232.0,
+        "/nodes/lm_head/in/0/shape/decode": [
+          1.0,
+          2048.0
+        ],
+        "/nodes/lm_head/in/0/shape/prefill": [
+          1.0,
+          2048.0
+        ],
+        "/nodes/lm_head/in/1/shape": [
+          18992.0,
+          2048.0
+        ],
+        "/nodes/lm_head/out/0/shape/decode": [
+          1.0,
+          18992.0
+        ],
+        "/nodes/lm_head/out/0/shape/prefill": [
+          1.0,
+          18992.0
+        ],
+        "/nodes/lm_head/weight_bytes": 77791232.0,
+        "/nodes/logits.gather/bytes_moved/decode": 0.0,
+        "/nodes/logits.gather/bytes_moved/prefill": 0.0,
+        "/nodes/logits.gather/comm/bus_bytes/decode": 33236.0,
+        "/nodes/logits.gather/comm/bus_bytes/prefill": 33236.0,
+        "/nodes/logits.gather/comm/logical_bytes/decode": 37984.0,
+        "/nodes/logits.gather/comm/logical_bytes/prefill": 37984.0,
+        "/nodes/logits.gather/comm/when": 1.0,
+        "/nodes/logits.gather/flops/decode": 0.0,
+        "/nodes/logits.gather/flops/prefill": 0.0,
+        "/nodes/logits.gather/in/0/shape/decode": [
+          1.0,
+          18992.0
+        ],
+        "/nodes/logits.gather/in/0/shape/prefill": [
+          1.0,
+          18992.0
+        ],
+        "/nodes/logits.gather/out/0/shape/decode": [
+          1.0,
+          151936.0
+        ],
+        "/nodes/logits.gather/out/0/shape/prefill": [
+          1.0,
+          151936.0
+        ],
+        "/nodes/logits.gather/weight_bytes": 0.0,
+        "/nodes/logits/bytes_moved/decode": 607744.0,
+        "/nodes/logits/bytes_moved/prefill": 607744.0,
+        "/nodes/logits/flops/decode": 0.0,
+        "/nodes/logits/flops/prefill": 0.0,
+        "/nodes/logits/in/0/shape/decode": [
+          1.0,
+          151936.0
+        ],
+        "/nodes/logits/in/0/shape/prefill": [
+          1.0,
+          151936.0
+        ],
+        "/nodes/logits/out/0/shape/decode": [
+          1.0,
+          151936.0
+        ],
+        "/nodes/logits/out/0/shape/prefill": [
+          1.0,
+          151936.0
+        ],
+        "/nodes/logits/weight_bytes": 0.0,
+        "/nodes/moe.act/bytes_moved/decode": 4608.0,
+        "/nodes/moe.act/bytes_moved/prefill": 18874368.0,
+        "/nodes/moe.act/flops/decode": 3072.0,
+        "/nodes/moe.act/flops/prefill": 12582912.0,
+        "/nodes/moe.act/in/0/shape": [
+          32768.0,
+          192.0
+        ],
+        "/nodes/moe.act/out/0/shape": [
+          32768.0,
+          96.0
+        ],
+        "/nodes/moe.act/weight_bytes": 0.0,
+        "/nodes/moe.experts.combine/bytes_moved/decode": 0.0,
+        "/nodes/moe.experts.combine/bytes_moved/prefill": 0.0,
+        "/nodes/moe.experts.combine/comm/bus_bytes/decode": 0.0,
+        "/nodes/moe.experts.combine/comm/bus_bytes/prefill": 0.0,
+        "/nodes/moe.experts.combine/comm/logical_bytes/decode": 4096.0,
+        "/nodes/moe.experts.combine/comm/logical_bytes/prefill": 16777216.0,
+        "/nodes/moe.experts.combine/comm/when": 0.0,
+        "/nodes/moe.experts.combine/flops/decode": 0.0,
+        "/nodes/moe.experts.combine/flops/prefill": 0.0,
+        "/nodes/moe.experts.combine/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe.experts.combine/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe.experts.combine/weight_bytes": 0.0,
+        "/nodes/moe.experts.dispatch/bytes_moved/decode": 0.0,
+        "/nodes/moe.experts.dispatch/bytes_moved/prefill": 0.0,
+        "/nodes/moe.experts.dispatch/comm/bus_bytes/decode": 0.0,
+        "/nodes/moe.experts.dispatch/comm/bus_bytes/prefill": 0.0,
+        "/nodes/moe.experts.dispatch/comm/logical_bytes/decode": 4096.0,
+        "/nodes/moe.experts.dispatch/comm/logical_bytes/prefill": 16777216.0,
+        "/nodes/moe.experts.dispatch/comm/when": 0.0,
+        "/nodes/moe.experts.dispatch/flops/decode": 0.0,
+        "/nodes/moe.experts.dispatch/flops/prefill": 0.0,
+        "/nodes/moe.experts.dispatch/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe.experts.dispatch/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe.experts.dispatch/weight_bytes": 0.0,
+        "/nodes/moe.experts.method/bytes_moved/decode": 0.0,
+        "/nodes/moe.experts.method/bytes_moved/prefill": 0.0,
+        "/nodes/moe.experts.method/flops/decode": 0.0,
+        "/nodes/moe.experts.method/flops/prefill": 0.0,
+        "/nodes/moe.experts.method/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe.experts.method/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe.experts.method/weight_bytes": 0.0,
+        "/nodes/moe.experts.reduce/bytes_moved/decode": 0.0,
+        "/nodes/moe.experts.reduce/bytes_moved/prefill": 0.0,
+        "/nodes/moe.experts.reduce/comm/bus_bytes/decode": 7168.0,
+        "/nodes/moe.experts.reduce/comm/bus_bytes/prefill": 29360128.0,
+        "/nodes/moe.experts.reduce/comm/logical_bytes/decode": 4096.0,
+        "/nodes/moe.experts.reduce/comm/logical_bytes/prefill": 16777216.0,
+        "/nodes/moe.experts.reduce/comm/when": 1.0,
+        "/nodes/moe.experts.reduce/flops/decode": 0.0,
+        "/nodes/moe.experts.reduce/flops/prefill": 0.0,
+        "/nodes/moe.experts.reduce/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe.experts.reduce/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe.experts.reduce/weight_bytes": 0.0,
+        "/nodes/moe.experts.weights/bytes_moved/decode": 9511936.0,
+        "/nodes/moe.experts.weights/bytes_moved/prefill": 457179136.0,
+        "/nodes/moe.experts.weights/flops/decode": 9440256.0,
+        "/nodes/moe.experts.weights/flops/prefill": 38667288576.0,
+        "/nodes/moe.experts.weights/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe.experts.weights/in/1/shape": [
+          128.0,
+          192.0,
+          2048.0
+        ],
+        "/nodes/moe.experts.weights/in/2/shape": [
+          128.0,
+          2048.0,
+          96.0
+        ],
+        "/nodes/moe.experts.weights/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe.experts.weights/weight_bytes": 150994944.0,
+        "/nodes/moe.experts/bytes_moved/decode": 9511936.0,
+        "/nodes/moe.experts/bytes_moved/prefill": 457179136.0,
+        "/nodes/moe.experts/flops/decode": 9440256.0,
+        "/nodes/moe.experts/flops/prefill": 38667288576.0,
+        "/nodes/moe.experts/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe.experts/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe.experts/weight_bytes": 150994944.0,
+        "/nodes/moe.gate/bytes_moved/decode": 528640.0,
+        "/nodes/moe.gate/bytes_moved/prefill": 18350080.0,
+        "/nodes/moe.gate/flops/decode": 524288.0,
+        "/nodes/moe.gate/flops/prefill": 2147483648.0,
+        "/nodes/moe.gate/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe.gate/in/1/shape": [
+          128.0,
+          2048.0
+        ],
+        "/nodes/moe.gate/out/0/shape": [
+          4096.0,
+          128.0
+        ],
+        "/nodes/moe.gate/weight_bytes": 524288.0,
+        "/nodes/moe.w13/bytes_moved/decode": 6327296.0,
+        "/nodes/moe.w13/bytes_moved/prefill": 247463936.0,
+        "/nodes/moe.w13/flops/decode": 6291456.0,
+        "/nodes/moe.w13/flops/prefill": 25769803776.0,
+        "/nodes/moe.w13/in/0/shape": [
+          32768.0,
+          2048.0
+        ],
+        "/nodes/moe.w13/in/1/shape": [
+          128.0,
+          192.0,
+          2048.0
+        ],
+        "/nodes/moe.w13/out/0/shape": [
+          32768.0,
+          192.0
+        ],
+        "/nodes/moe.w13/weight_bytes": 100663296.0,
+        "/nodes/moe.w2/bytes_moved/decode": 3180032.0,
+        "/nodes/moe.w2/bytes_moved/prefill": 190840832.0,
+        "/nodes/moe.w2/flops/decode": 3145728.0,
+        "/nodes/moe.w2/flops/prefill": 12884901888.0,
+        "/nodes/moe.w2/in/0/shape": [
+          32768.0,
+          96.0
+        ],
+        "/nodes/moe.w2/in/1/shape": [
+          128.0,
+          2048.0,
+          96.0
+        ],
+        "/nodes/moe.w2/out/0/shape": [
+          32768.0,
+          2048.0
+        ],
+        "/nodes/moe.w2/weight_bytes": 50331648.0,
+        "/nodes/moe/bytes_moved/decode": 10040576.0,
+        "/nodes/moe/bytes_moved/prefill": 475529216.0,
+        "/nodes/moe/flops/decode": 9964544.0,
+        "/nodes/moe/flops/prefill": 40814772224.0,
+        "/nodes/moe/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/moe/weight_bytes": 151519232.0,
+        "/nodes/norm.input/bytes_moved/decode": 12288.0,
+        "/nodes/norm.input/bytes_moved/prefill": 33558528.0,
+        "/nodes/norm.input/flops/decode": 10240.0,
+        "/nodes/norm.input/flops/prefill": 41943040.0,
+        "/nodes/norm.input/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/norm.input/in/1/shape": [
+          2048.0
+        ],
+        "/nodes/norm.input/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/norm.input/weight_bytes": 4096.0,
+        "/nodes/norm.post/bytes_moved/decode": 12288.0,
+        "/nodes/norm.post/bytes_moved/prefill": 33558528.0,
+        "/nodes/norm.post/flops/decode": 10240.0,
+        "/nodes/norm.post/flops/prefill": 41943040.0,
+        "/nodes/norm.post/in/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/norm.post/in/1/shape": [
+          2048.0
+        ],
+        "/nodes/norm.post/out/0/shape": [
+          4096.0,
+          2048.0
+        ],
+        "/nodes/norm.post/weight_bytes": 4096.0,
+        "/nodes/output/bytes_moved/decode": 0.0,
+        "/nodes/output/bytes_moved/prefill": 0.0,
+        "/nodes/output/flops/decode": 0.0,
+        "/nodes/output/flops/prefill": 0.0,
+        "/nodes/output/in/0/shape/decode": [
+          1.0,
+          151936.0
+        ],
+        "/nodes/output/in/0/shape/prefill": [
+          1.0,
+          151936.0
+        ],
+        "/nodes/output/out/0/shape/decode": [
+          1.0
+        ],
+        "/nodes/output/out/0/shape/prefill": [
+          1.0
+        ],
+        "/nodes/output/weight_bytes": 0.0
+      },
+      "id": "tp8-bf16"
+    }
+  ],
+  "model": "Qwen/Qwen3-30B-A3B"
+}

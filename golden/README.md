@@ -1,40 +1,44 @@
 # Golden format
 
-Each model directory contains `ir.json` (the IR contract) and `eval.json` (the Eval
-contract). The initial `qwen3-30b-a3b` baseline is normalized from the reviewed T0
-fixtures, including their six named TP/DP/EP parameter points. TP1 and TP4 include
-rank-local memory, weights, attention shapes/work and communication; the additional
-cases isolate EP/DP communication. This is a curated regression baseline, not NPU
-calibration or complete coverage of all parameter combinations.
+Each `golden/<lowercase-model-basename>/<device>/` directory contains `ir.json`
+(the real pipeline IR) and `eval.json` (fresh Node evaluations). H100 is the
+baseline without Ascend extraction; A2 includes observed Ascend replacements and
+source-anchored annotations. The old fixture-seeded model-level golden is removed.
+These are CPU/meta regression baselines, not measured hardware calibration.
 
+The default grid is derived from the real IR and covers TP 1/2/4/8. It evaluates
+memory expressions, node weights/work/traffic, input/output shapes, collective
+conditions and both prefill/decode communication quantities. Custom grids can add
+EP/DP points; all parameter choices and cross-parameter constraints are enforced.
 Eval `env` values override declared runtime parameters. `expected` keys are JSON
-pointers into an evaluated IR projection whose `nodes` are indexed by id. Dots in
-node ids are literal; escape slashes and tildes as `~1` and `~0`. A pointer selects
-one numeric expression or one array of shape expressions. Comm quantities retain
-their `prefill`/`decode` components. Each case needs at least one pointer.
+pointers into an IR projection whose nodes are indexed by id. Dots are literal;
+escape slashes/tildes as `~1`/`~0`. Each pointer selects an expression or shape array.
 
 From the repository root:
 
 ```sh
-uv run --project generator inferatlas golden check --ir fixtures/qwen3-30b-a3b/ir.json
-uv run --project generator inferatlas golden update --ir path/to/ir.json
-uv run --project generator inferatlas golden update --ir path/to/ir.json --grid path/to/eval.json
+pnpm --filter @inferatlas/contracts build
+pnpm --filter @inferatlas/expr build
+uv run --project generator inferatlas build --model Qwen/Qwen3-30B-A3B --device A2 --output .cache/review
+# A first build without its golden exits 3 and leaves reviewable artifacts.
+uv run --project generator inferatlas golden update --ir .cache/review/ir.json
+uv run --project generator inferatlas golden check --ir .cache/review/ir.json
+# Optional explicit grid or baseline destination:
+uv run --project generator inferatlas golden update --ir .cache/review/ir.json --grid path/to/eval.json --directory path/to/baseline
 ```
 
-`--directory` selects an alternate baseline directory; the default is
-`golden/<lowercase-model-basename>`. Update evaluates all requested pointers before
-writing either file. Check compares the whole IR and re-evaluates the committed
-grid; it prints differences per node/case and field and exits 3 on drift. All JSON
-uses sorted keys, stable case ordering, wire aliases and no timestamps. Inspect and
-commit an update like any other reviewed source change.
+Update reuses an existing grid or derives pointers from the input IR, then evaluates
+all values before writing either file. It never seeds expected numbers from a
+fixture. Check compares the full IR and freshly evaluated committed grid, prints
+field differences, and exits 3 on drift. JSON uses sorted keys, stable ordering,
+wire aliases and no timestamps. Review updates like source changes.
 
-Evaluation first invokes `node packages/expr/dist/cli.js`, then falls back with a
-warning to `inferatlas.expr.evaluate(expression, env)` if available. While both T2
-entry points are absent, it uses the independent `fixtures/.../eval.json` oracle
-only for matching fixture symbols, parameter definitions, expressions and env
-points. It refuses to invent values for changed formulas or new grid points.
-Verification reports this last mode as an evaluation **skip**, never fresh runtime
-evidence. No second DSL evaluator is implemented here.
+`verify/eval.mjs` imports T2's `evaluate` from `packages/expr/dist/index.js`.
+There is no Python evaluator or numeric fixture fallback. An installed but broken
+Node evaluator fails. Missing Node/dist fails verification; explicit fixture mode
+permits structural-only checking, prints SKIPPED, and remains unpublishable.
+`golden update` always refuses that unavailable backend.
 
-The Node CLI protocol and all pipeline integration signatures are recorded in
-`docs/progress/T6.md` and requested in `docs/requests/T6.md`.
+For the 30B BF16 A2 model, TP1 legitimately has zero KV capacity: 56.9 GiB of
+weights exceeds the 53.6 GiB utilization budget. Use TP4 for calibration examples.
+See `docs/progress/T6.md` for the four real builds and exact commands.

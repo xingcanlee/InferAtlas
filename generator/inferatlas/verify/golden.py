@@ -27,9 +27,12 @@ def projection(ir: IR) -> dict:
 
 
 def pointer(document, path: str):
-    for part in path.removeprefix("/").split("/"):
-        part = part.replace("~1", "/").replace("~0", "~")
-        document = document[int(part)] if isinstance(document, list) else document[part]
+    try:
+        for part in path.removeprefix("/").split("/"):
+            part = part.replace("~1", "/").replace("~0", "~")
+            document = document[int(part)] if isinstance(document, list) else document[part]
+    except (KeyError, IndexError, TypeError, ValueError) as error:
+        raise ValueError(f"golden grid pointer unavailable: {path}") from error
     return document
 
 
@@ -204,6 +207,9 @@ class Evaluator:
                 ]
                 if value not in choices:
                     raise ValueError(f"{name} outside parameter choices")
+        for name, param in sorted(ir.params.items()):
+            if param.constraint and not self.scalar(param.constraint, env):
+                raise ValueError(f"{name} violates parameter constraint: {param.constraint}")
         return env
 
 
@@ -241,6 +247,40 @@ def evaluate_grid(ir: IR, grid: Eval, evaluator: Evaluator) -> Eval:
 
 def model_slug(ir: IR) -> str:
     return ir.snapshot.model.hf_id.rsplit("/", 1)[-1].lower()
+
+
+def golden_path(ir: IR) -> Path:
+    return ROOT / "golden" / model_slug(ir) / ir.snapshot.device
+
+
+def default_grid(ir: IR) -> Eval:
+    """Seed pointers from the real IR; expected numbers are always computed by Node."""
+    fields = {}
+
+    def collect(value, path):
+        if isinstance(value, str) or isinstance(value, list):
+            fields[path] = 0 if isinstance(value, str) else [0] * len(value)
+        elif isinstance(value, dict):
+            for key, child in sorted(value.items()):
+                collect(child, f"{path}/{escape(key)}")
+
+    document = projection(ir)
+    for key in ("weights", "kv_per_token", "kv_tokens", "activation_peak", "non_torch", "reserved"):
+        collect(document["memory"][key], f"/memory/{key}")
+    for node in document["nodes"].values():
+        path = f"/nodes/{escape(node['id'])}"
+        for key in ("weight_bytes", "flops", "bytes_moved"):
+            collect(node[key], f"{path}/{key}")
+        if node["comm"]:
+            for key in ("when", "logical_bytes", "bus_bytes"):
+                collect(node["comm"][key], f"{path}/comm/{key}")
+        for key in ("in", "out"):
+            for index, tensor in enumerate(node[key]):
+                collect(tensor["shape"], f"{path}/{key}/{index}/shape")
+    return Eval(
+        model=ir.snapshot.model.hf_id,
+        cases=[EvalCase(id=f"tp{tp}-bf16", env={"tp": tp}, expected=fields) for tp in (1, 2, 4, 8)],
+    )
 
 
 def update_golden(directory: Path, ir: IR, grid: Eval, evaluator: Evaluator) -> Eval:

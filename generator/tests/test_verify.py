@@ -6,17 +6,21 @@ import shutil
 import subprocess
 
 import pytest
+from t6_runtime import node_backend as node_backend
+from t6_runtime import runtime as runtime
 
-from inferatlas.schema import IR, Eval, Report, Snapshot, Triage
+from inferatlas.schema import IR, Eval, Extract, Report, Snapshot, Triage
 from inferatlas.schema.models import Check
 from inferatlas.verify import exit_code, verify_ir
 from inferatlas.verify.calibration import compare_calibration, parse_vllm_logs
 from inferatlas.verify.golden import (
     Evaluator,
     check_golden,
+    default_grid,
     differences,
     evaluate_grid,
     format_diff,
+    golden_path,
     pointer,
     projection,
     update_golden,
@@ -30,13 +34,6 @@ FIXTURE = ROOT / "fixtures/qwen3-30b-a3b"
 @pytest.fixture
 def ir():
     return IR.model_validate(read_json(FIXTURE / "ir.json"))
-
-
-@pytest.fixture
-def runtime():
-    evaluator = Evaluator(ROOT)
-    assert evaluator.backend == "node", "build @inferatlas/contracts and @inferatlas/expr first"
-    return evaluator
 
 
 def git(path, *args):
@@ -249,12 +246,13 @@ def test_calibration_tolerance():
         compare_calibration({}, {"kv_tokens": float("nan")})
 
 
-def test_report_contract_and_exit_precedence(ir, runtime, monkeypatch):
+def test_report_contract_and_exit_precedence(ir, runtime, monkeypatch, tmp_path):
     import inferatlas.verify as verify
 
     monkeypatch.setattr(verify, "check_sources", lambda *args: [])
     triage = Triage.model_validate(read_json(FIXTURE / "triage.json"))
-    report = verify_ir(ir, triage=triage, repos={}, evaluator=runtime)
+    update_golden(tmp_path, ir, Eval.model_validate(read_json(FIXTURE / "eval.json")), runtime)
+    report = verify_ir(ir, triage=triage, repos={}, evaluator=runtime, golden_dir=tmp_path)
     assert Report.model_validate_json(report.model_dump_json()) == report
     assert exit_code(report, triage) == 2
     assert next(c for c in report.checks if c.id == "evaluation").status == "pass"
@@ -304,10 +302,11 @@ def test_missing_runtime_report_and_fixture_provenance(ir, tmp_path, monkeypatch
     assert exit_code(report) == 3
 
 
-def test_calibration_binds_environment_and_available_memory(ir, runtime, monkeypatch):
+def test_calibration_binds_environment_and_available_memory(ir, runtime, monkeypatch, tmp_path):
     import inferatlas.verify as verify
 
     monkeypatch.setattr(verify, "check_sources", lambda *args: [])
+    update_golden(tmp_path, ir, default_grid(ir), runtime)
     overrides = {"tp": 4, "gpu_memory_utilization": 0.8}
     env = runtime.bind(ir, overrides)
     weights, tokens, activation, non_torch, reserved = runtime.many(
@@ -333,8 +332,76 @@ def test_calibration_binds_environment_and_available_memory(ir, runtime, monkeyp
         evaluator=runtime,
         calibration=observed,
         calibration_env={**overrides, "max_model_len": 4096},
+        golden_dir=tmp_path,
     )
     checks = [c for c in report.checks if c.id.startswith("calibration.")]
     assert len(checks) == 4 and all(c.status == "pass" for c in checks)
-    report = verify_ir(ir, repos={}, evaluator=runtime, calibration=observed)
+    report = verify_ir(ir, repos={}, evaluator=runtime, calibration=observed, golden_dir=tmp_path)
     assert any(c.status == "fail" for c in report.checks if c.id.startswith("calibration."))
+
+
+def test_device_specific_golden_and_grid(ir, runtime):
+    a2 = golden_path(ir)
+    ir.snapshot.device = "H100"
+    assert golden_path(ir) != a2
+    assert golden_path(ir).parts[-2:] == ("qwen3-30b-a3b", "H100")
+    ir.snapshot.device = "A2"
+    grid = default_grid(ir)
+    assert [case.env["tp"] for case in grid.cases] == [1, 2, 4, 8]
+    evaluated = evaluate_grid(ir, grid, runtime)
+    assert all(case.expected["/memory/weights"] > 0 for case in evaluated.cases)
+    assert evaluated.cases[0].expected["/memory/kv_tokens"] == 0
+    assert evaluated.cases[2].expected["/memory/kv_tokens"] > 0
+
+
+def test_primary_ir_weight_formula_cross_checks_every_tp(ir, runtime, monkeypatch, tmp_path):
+    import inferatlas.verify as verify
+
+    monkeypatch.setattr(verify, "check_sources", lambda *args: [])
+    update_golden(tmp_path, ir, default_grid(ir), runtime)
+    extracts = [
+        Extract.model_validate(read_json(FIXTURE / name))
+        for name in ("extract.json", "extract-tp4.json")
+    ]
+    # T0 fixtures contain one representative layer; a real extraction contains every layer.
+    for extract in extracts:
+        representative = [m for m in extract.modules if m.path.startswith("model.layers.0.")]
+        extract.modules.extend(
+            module.model_copy(
+                deep=True,
+                update={
+                    "path": module.path.replace("model.layers.0.", f"model.layers.{index}.", 1)
+                },
+            )
+            for index in range(1, extract.config["num_hidden_layers"])
+            for module in representative
+        )
+    report = verify_ir(ir, extracts=extracts, repos={}, evaluator=runtime, golden_dir=tmp_path)
+    checks = [c for c in report.checks if c.id.startswith("weights.")]
+    assert len(checks) == 2 and all(c.status == "pass" for c in checks)
+    param = next(p for m in extracts[1].modules for p in m.params)
+    param.shape[0] += 1
+    report = verify_ir(ir, extracts=extracts, repos={}, evaluator=runtime, golden_dir=tmp_path)
+    assert next(c for c in report.checks if c.id == "weights.tp1").status == "pass"
+    assert next(c for c in report.checks if c.id == "weights.tp4").status == "fail"
+    assert exit_code(report) == 3
+
+
+def test_constraints_reject_invalid_combined_parameters(ir, runtime):
+    ir.params["T"].constraint = "T%batch==0"
+    with pytest.raises(ValueError, match="constraint"):
+        runtime.bind(ir, {"T": 4097, "batch": 2})
+
+
+def test_missing_grid_pointer_is_a_verification_failure(ir, runtime, monkeypatch, tmp_path):
+    import inferatlas.verify as verify
+
+    monkeypatch.setattr(verify, "check_sources", lambda *args: [])
+    grid = default_grid(ir)
+    grid.cases[0].expected["/nodes/attn.qkv/out/999/shape"] = [0]
+    write_json(tmp_path / "ir.json", ir)
+    write_json(tmp_path / "eval.json", grid)
+    report = verify_ir(ir, repos={}, evaluator=runtime, golden_dir=tmp_path)
+    check = next(c for c in report.checks if c.id == "golden")
+    assert check.status == "fail" and "pointer unavailable" in check.message
+    assert exit_code(report) == 3

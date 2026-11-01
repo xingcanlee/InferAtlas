@@ -19,7 +19,13 @@ from inferatlas.expr import validate
 from inferatlas.schema import IR, Catalog, Eval, Extract, Index, Report, Snapshot, Triage, View
 from inferatlas.schema.models import Check, ConditionalOverride
 from inferatlas.verify import Evaluator, exit_code, parse_vllm_logs, verify_ir
-from inferatlas.verify.golden import check_golden, format_diff, model_slug, update_golden
+from inferatlas.verify.golden import (
+    check_golden,
+    default_grid,
+    format_diff,
+    golden_path,
+    update_golden,
+)
 from inferatlas.verify.io import ROOT, publish_directory, read_json, source_root, write_json
 
 app = typer.Typer(
@@ -242,8 +248,75 @@ def lower_stage(extracts: list[Extract]) -> tuple[IR, Triage]:
     return result, issues
 
 
+def annotation_context(primary: Extract, fact) -> dict:
+    """Bind facts plus the pinned worker defaults documented in annotations/README.md."""
+    profile = primary.ascend.profile if primary.ascend else {}
+    attrs = fact.attrs
+    pinned_defaults = (primary.snapshot.vllm.commit, primary.snapshot.ascend.commit) == (
+        "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "24a76e84394ae3427195e3715fc08e90769d398c",
+    )
+    prefix = attrs.get("prefix", fact.path)
+    finegrained = profile.get("finegrained_tp_config", {})
+    custom_parallel = (
+        ("o_proj" in prefix and finegrained.get("oproj_tensor_parallel_size", 0) > 1)
+        or ("gate_up_proj" in prefix and finegrained.get("mlp_tensor_parallel_size", 0) > 1)
+    ) and not attrs.get("disable_tp", False)
+    policy = profile.get("weight_layout_policy", "").rsplit(".", 1)[-1]
+    context = {
+        "is_a2": primary.snapshot.device == "A2",
+        "is_qwen3_moe": primary.config.get("model_type") == "qwen3_moe"
+        or "Qwen3MoeForCausalLM" in primary.config.get("architectures", []),
+        "unquantized": not primary.config.get("quantization_config")
+        and (not attrs.get("quant_method") or "Unquantized" in attrs["quant_method"]),
+        "custom_parallel": custom_parallel,
+        "vocab_parallel_override": attrs.get("parallel_mode", "STANDARD")
+        in ("FINE_GRAINED", "PCP_X_TP"),
+        "mtp_draft": False,
+        "use_mrope": any(
+            module.ascend and module.ascend.class_name.endswith(".AscendMRotaryEmbedding")
+            for module in primary.modules
+        ),
+        "capture_routing": False,
+        "redundant_experts": any(
+            module.attrs.get("global_num_experts", 0) > primary.config.get("num_experts", 0)
+            for module in primary.modules
+        ),
+        "fused_mc2": bool(profile.get("enable_fused_mc2", False)),
+    }
+    if policy in ("FORCE_NZ", "CONFIGURABLE"):
+        context["linear_nz"] = (
+            policy == "FORCE_NZ" or profile.get("weight_nz_mode", 1) == 2
+        ) and not (
+            attrs.get("skip_weight_nz_conversion", False)
+            or "conv1d" in prefix
+            or any(
+                param.dtype == "float32" or 1 in param.shape[-2:]
+                for param in fact.params
+                if param.name == "weight"
+            )
+        )
+    if not pinned_defaults:
+        # These settings are not exported by the current extractor; never guess for new pairs.
+        for name in (
+            "custom_parallel",
+            "vocab_parallel_override",
+            "mtp_draft",
+            "capture_routing",
+            "fused_mc2",
+        ):
+            context.pop(name)
+        if policy != "FORCE_NZ":
+            context.pop("linear_nz", None)
+    return context
+
+
 def annotate_stage(ir: IR, extracts: list[Extract], triage: Triage) -> tuple[IR, Triage]:
+    if ir.snapshot.device == "H100":
+        return ir, triage
     if load := optional("annotations", "load_annotations"):
+        if not extracts:
+            raise ValueError("Ascend annotations require extraction facts; supply --extract")
         module = importlib.import_module("inferatlas.annotations")
         src = source_root(ROOT)
         sources = {
@@ -254,33 +327,27 @@ def annotate_stage(ir: IR, extracts: list[Extract], triage: Triage) -> tuple[IR,
         }
         resolved, stale = module.check_annotations(load(ROOT / "annotations"), sources)
         evaluator = Evaluator(ROOT, warning)
-        primary = min(extracts, key=lambda item: item.parallel.tp) if extracts else None
+        primary = min(extracts, key=lambda item: item.parallel.tp)
         env = evaluator.bind(ir, {})
-        env["is_a2"] = ir.snapshot.device == "A2"
-        if primary:
-            env["is_qwen3_moe"] = primary.config.get("model_type") == "qwen3_moe"
         active = set()
+        evaluated = {}
         pending = list(stale)
-        for item in resolved:
-            ann = item.annotation
-            if set(validate(ann.applies_when)) - env.keys():
-                pending.append(
-                    ConditionalOverride(
-                        kind="conditional_override",
-                        symbol=ann.target,
-                        candidates=[ann.resolves_to],
-                        conditions=[ann.applies_when],
-                    )
-                )
-            elif evaluator.many([ann.applies_when], env)[0]:
-                active.add(ann.id)
         bindings = {}
         for node in ir.nodes:
             observed = set()
+            facts = [m for m in primary.modules if m.class_name == node.class_name]
+            # The same Linear class implements both attention and MLP projections.
+            for label, suffix in (
+                ("attn.o", "o_proj"),
+                ("mlp.gate_up", "gate_up_proj"),
+                ("mlp.down", "down_proj"),
+            ):
+                if f".{label}." in f".{node.id}.":
+                    facts = [m for m in facts if m.path.endswith("." + suffix)]
+            for module_fact in facts:
+                if module_fact.ascend:
+                    observed.add(module_fact.ascend.class_name)
             for extract in extracts:
-                for module_fact in extract.modules:
-                    if module_fact.class_name == node.class_name and module_fact.ascend:
-                        observed.add(module_fact.ascend.class_name)
                 if extract.ascend:
                     for symbol, file in extract.ascend.patched.items():
                         if symbol == node.class_name or symbol.startswith(node.class_name + "."):
@@ -290,13 +357,35 @@ def annotate_stage(ir: IR, extracts: list[Extract], triage: Triage) -> tuple[IR,
                                 for ref in item.src
                                 if ref.repo == "vllm-ascend" and ref.file == file
                             )
-            candidates = [
-                item.annotation
-                for item in resolved
-                if item.annotation.id in active and item.annotation.resolves_to in observed
-            ]
+            candidates = []
+            for item in resolved:
+                ann = item.annotation
+                if ann.resolves_to not in observed:
+                    continue
+                contexts = [{**env, **annotation_context(primary, fact)} for fact in facts]
+                outcomes = set()
+                for context in contexts:
+                    if set(validate(ann.applies_when)) <= context.keys():
+                        key = (ann.applies_when, tuple(sorted(context.items())))
+                        if key not in evaluated:
+                            evaluated[key] = bool(evaluator.many([ann.applies_when], context)[0])
+                        outcomes.add(evaluated[key])
+                    else:
+                        outcomes.add(None)
+                if outcomes == {True}:
+                    candidates.append(ann)
+                elif outcomes != {False}:
+                    pending.append(
+                        ConditionalOverride(
+                            kind="conditional_override",
+                            symbol=node.class_name,
+                            candidates=[ann.resolves_to],
+                            conditions=[ann.applies_when],
+                        )
+                    )
             if len(candidates) == 1:
                 bindings[node.id] = candidates[0].id
+                active.add(candidates[0].id)
             elif len(candidates) > 1:
                 pending.append(
                     ConditionalOverride(
@@ -382,7 +471,7 @@ def report_stage(
         extracts=extracts,
         triage=triage,
         repos={name: src / name for name in ("vllm", "vllm-ascend", "pytorch")},
-        golden_dir=golden_dir or ROOT / "golden" / model_slug(ir),
+        golden_dir=golden_dir or golden_path(ir),
         calibration=read_json(calibration) if calibration else None,
         evaluator=Evaluator(ROOT, warning),
         calibration_env=read_json(calibration_env) if calibration_env else None,
@@ -562,13 +651,11 @@ def golden_update(
 ) -> None:
     """Re-evaluate a grid before replacing committed golden files."""
     graph = IR.model_validate(read_json(ir))
-    directory = directory or ROOT / "golden" / model_slug(graph)
-    grid = grid or (
-        directory / "eval.json"
-        if (directory / "eval.json").is_file()
-        else fixture(graph.snapshot.model.hf_id, "eval.json")
-    )
-    update_golden(directory, graph, Eval.model_validate(read_json(grid)), Evaluator(ROOT, warning))
+    directory = directory or golden_path(graph)
+    if grid is None and (directory / "eval.json").is_file():
+        grid = directory / "eval.json"
+    values = Eval.model_validate(read_json(grid)) if grid else default_grid(graph)
+    update_golden(directory, graph, values, Evaluator(ROOT, warning))
     typer.echo("Golden updated.")
 
 
@@ -580,7 +667,7 @@ def golden_check(
     """Compare IR and fresh evaluations, printing differences per node/field."""
     graph = IR.model_validate(read_json(ir))
     evaluator = Evaluator(ROOT, warning)
-    diffs = check_golden(directory or ROOT / "golden" / model_slug(graph), graph, evaluator)
+    diffs = check_golden(directory or golden_path(graph), graph, evaluator)
     if evaluator.backend != "node":
         typer.echo("SKIPPED numeric golden evaluation.")
         if not allow_fixtures and os.environ.get("INFERATLAS_ALLOW_FIXTURES") != "1":
@@ -646,10 +733,8 @@ def site(
         ir = IR.model_validate(read_json(path))
         report = Report.model_validate(read_json(directory / "report.json"))
         triage = Triage.model_validate(read_json(directory / "triage.json"))
-        view = View.model_validate(read_json(directory / "view.json"))
         if not (ir.snapshot == report.snapshot == triage.snapshot):
             raise ValueError("build artifacts have inconsistent snapshot identities")
-        validate_view(ir, view)
         model = catalog_model(ir.snapshot.model.hf_id)
         pairs = [
             p
@@ -667,8 +752,12 @@ def site(
             raise ValueError("multiple builds occupy the same version/model/device cell")
         status = exit_code(report, triage)
         provenance = [check for check in report.checks if check.id == "provenance"]
-        if status == 3 or not provenance or any(c.status != "pass" for c in provenance):
-            raise ValueError("site refuses failed or fixture/unverified provenance")
+        if not provenance or any(c.status != "pass" for c in provenance):
+            raise ValueError(f"site refuses fixture or unverified provenance: {directory}")
+        if status == 3:
+            raise ValueError(f"site refuses failed verification: {directory}")
+        view = View.model_validate(read_json(directory / "view.json"))
+        validate_view(ir, view)
         code = max(code, status)
         relative = Path(directory.parent.name) / model.id
         for name, value in (("ir", ir), ("view", view), ("report", report)):
@@ -684,6 +773,7 @@ def site(
     if not cells:
         raise ValueError("no build outputs found; run inferatlas build first")
     if code == 2 and not include_blocked:
+        typer.echo("ERROR: site blocked by triage; use --include-blocked for review.", err=True)
         raise typer.Exit(2)
     devices = sorted({device.id for device in data.devices} | {c["device"] for c in cells.values()})
     for pair in data.version_pairs:

@@ -1,5 +1,6 @@
 """Source, golden and optional calibration verification."""
 
+import math
 import subprocess
 from pathlib import Path
 
@@ -7,8 +8,8 @@ from inferatlas.schema import IR, Extract, Report, Triage
 from inferatlas.schema.models import Check
 
 from .calibration import compare_calibration, parse_vllm_logs
-from .golden import Evaluator, check_golden, model_slug
-from .io import ROOT, read_json
+from .golden import Evaluator, check_golden, golden_path
+from .io import read_json
 from .source import check_sources
 
 
@@ -51,9 +52,38 @@ def verify_ir(
         )
     )
     evaluator = evaluator or Evaluator()
+    for extract in sorted(extracts, key=lambda item: item.parallel.tp):
+        check_id = f"weights.tp{extract.parallel.tp}"
+        try:
+            sizes = {"bfloat16": 2, "float16": 2, "float32": 4}
+            observed = sum(
+                math.prod(param.shape) * sizes[param.dtype]
+                for module in extract.modules
+                for param in module.params
+            )
+            env = evaluator.bind(
+                ir,
+                {
+                    "tp": extract.parallel.tp,
+                    "pp": extract.parallel.pp,
+                    "dp": extract.parallel.dp,
+                    "ep": extract.parallel.tp * extract.parallel.dp if extract.parallel.ep else 1,
+                },
+            )
+            predicted = evaluator.many([ir.memory.weights], env)[0]
+            equal = predicted == observed
+            checks.append(
+                Check(
+                    id=check_id,
+                    status="pass" if equal else "fail",
+                    message=f"IR {predicted} bytes; extracted rank-zero parameters {observed} bytes.",
+                )
+            )
+        except (ValueError, KeyError, OSError, RuntimeError, subprocess.SubprocessError) as error:
+            checks.append(Check(id=check_id, status="fail", message=str(error)))
     diffs = []
     try:
-        diffs = check_golden(golden_dir or ROOT / "golden" / model_slug(ir), ir, evaluator)
+        diffs = check_golden(golden_dir or golden_path(ir), ir, evaluator)
         checks.append(
             Check(
                 id="golden",
@@ -61,19 +91,19 @@ def verify_ir(
                 message=f"{len(diffs)} golden differences.",
             )
         )
-        unavailable = evaluator.backend != "node"
-        checks.append(
-            Check(
-                id="evaluation",
-                status=("skip" if allow_fixtures else "fail") if unavailable else "pass",
-                message="SKIPPED numeric evaluation; node/dist unavailable."
-                if unavailable
-                else "Evaluated using node.",
-            )
-        )
     except (OSError, ValueError, KeyError, RuntimeError, subprocess.SubprocessError) as error:
         message = "Golden inputs unavailable." if isinstance(error, OSError) else str(error)
         checks.append(Check(id="golden", status="fail", message=message))
+    unavailable = evaluator.backend != "node"
+    checks.append(
+        Check(
+            id="evaluation",
+            status=("skip" if allow_fixtures else "fail") if unavailable else "pass",
+            message="SKIPPED numeric evaluation; node/dist unavailable."
+            if unavailable
+            else "Evaluated using node.",
+        )
+    )
     if calibration is None:
         checks.append(Check(id="calibration", status="skip", message="No calibration supplied."))
     else:

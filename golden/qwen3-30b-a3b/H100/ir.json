@@ -1,42 +1,12 @@
 {
   "edges": [
     {
-      "from": "attn",
-      "id": "attn->norm.post:data",
-      "kind": "data",
-      "tensor": {
-        "dtype": "dtype_a",
-        "name": "hidden",
-        "shape": [
-          "T",
-          "H"
-        ]
-      },
-      "to": "norm.post"
-    },
-    {
-      "from": "attn.core",
-      "id": "attn.core->attn.core:kv",
-      "kind": "kv",
-      "tensor": {
-        "dtype": "dtype_kv",
-        "name": "hidden",
-        "shape": [
-          "context",
-          "2",
-          "max(1,Hkv/tp)",
-          "D"
-        ]
-      },
-      "to": "attn.core"
-    },
-    {
       "from": "attn.core",
       "id": "attn.core->attn.o:data",
       "kind": "data",
       "tensor": {
         "dtype": "dtype_a",
-        "name": "context",
+        "name": "output",
         "shape": [
           "T",
           "Hq/tp*D"
@@ -45,12 +15,26 @@
       "to": "attn.o"
     },
     {
+      "from": "attn.k_norm",
+      "id": "attn.k_norm->attn.rope:data",
+      "kind": "data",
+      "tensor": {
+        "dtype": "dtype_a",
+        "name": "output",
+        "shape": [
+          "T",
+          "D*max(1,Hkv/tp)"
+        ]
+      },
+      "to": "attn.rope"
+    },
+    {
       "from": "attn.o",
       "id": "attn.o->attn.o.reduce:data",
       "kind": "data",
       "tensor": {
         "dtype": "dtype_a",
-        "name": "hidden",
+        "name": "output",
         "shape": [
           "T",
           "H"
@@ -59,79 +43,74 @@
       "to": "attn.o.reduce"
     },
     {
-      "from": "attn.qk_norm",
-      "id": "attn.qk_norm->attn.rope:data",
+      "from": "attn.o.reduce",
+      "id": "attn.o.reduce->norm.post:data",
       "kind": "data",
       "tensor": {
         "dtype": "dtype_a",
-        "name": "q",
+        "name": "output",
         "shape": [
           "T",
-          "Hq/tp",
-          "D"
+          "H"
+        ]
+      },
+      "to": "norm.post"
+    },
+    {
+      "from": "attn.q_norm",
+      "id": "attn.q_norm->attn.rope:data",
+      "kind": "data",
+      "tensor": {
+        "dtype": "dtype_a",
+        "name": "output",
+        "shape": [
+          "T",
+          "D*Hq/tp"
         ]
       },
       "to": "attn.rope"
     },
     {
-      "from": "attn.qk_norm",
-      "id": "attn.qk_norm->attn.rope:data:k",
+      "from": "attn.qkv",
+      "id": "attn.qkv->attn.k_norm:data",
       "kind": "data",
       "tensor": {
         "dtype": "dtype_a",
-        "name": "k",
+        "name": "output",
         "shape": [
           "T",
-          "max(1,Hkv/tp)",
-          "D"
+          "(Hq/tp+2*max(1,Hkv/tp))*D"
+        ]
+      },
+      "to": "attn.k_norm"
+    },
+    {
+      "from": "attn.qkv",
+      "id": "attn.qkv->attn.q_norm:data",
+      "kind": "data",
+      "tensor": {
+        "dtype": "dtype_a",
+        "name": "output",
+        "shape": [
+          "T",
+          "(Hq/tp+2*max(1,Hkv/tp))*D"
+        ]
+      },
+      "to": "attn.q_norm"
+    },
+    {
+      "from": "attn.qkv",
+      "id": "attn.qkv->attn.rope:data",
+      "kind": "data",
+      "tensor": {
+        "dtype": "dtype_a",
+        "name": "output",
+        "shape": [
+          "T",
+          "(Hq/tp+2*max(1,Hkv/tp))*D"
         ]
       },
       "to": "attn.rope"
-    },
-    {
-      "from": "attn.qkv",
-      "id": "attn.qkv->attn.core:data:v",
-      "kind": "data",
-      "tensor": {
-        "dtype": "dtype_a",
-        "name": "v",
-        "shape": [
-          "T",
-          "max(1,Hkv/tp)",
-          "D"
-        ]
-      },
-      "to": "attn.core"
-    },
-    {
-      "from": "attn.qkv",
-      "id": "attn.qkv->attn.qk_norm:data",
-      "kind": "data",
-      "tensor": {
-        "dtype": "dtype_a",
-        "name": "q",
-        "shape": [
-          "T",
-          "Hq/tp",
-          "D"
-        ]
-      },
-      "to": "attn.qk_norm"
-    },
-    {
-      "from": "attn.qkv",
-      "id": "attn.qkv->attn.qk_norm:data:k",
-      "kind": "data",
-      "tensor": {
-        "dtype": "dtype_a",
-        "name": "k",
-        "shape": [
-          "T",
-          "max(1,Hkv/tp)",
-          "D"
-        ]
-      },
-      "to": "attn.qk_norm"
     },
     {
       "from": "attn.rope",
@@ -149,27 +128,12 @@
       "to": "attn.core"
     },
     {
-      "from": "attn.rope",
-      "id": "attn.rope->attn.core:data:k",
-      "kind": "data",
-      "tensor": {
-        "dtype": "dtype_a",
-        "name": "k",
-        "shape": [
-          "T",
-          "max(1,Hkv/tp)",
-          "D"
-        ]
-      },
-      "to": "attn.core"
-    },
-    {
       "from": "decoder",
       "id": "decoder->final_norm:data",
       "kind": "data",
       "tensor": {
         "dtype": "dtype_a",
-        "name": "hidden",
+        "name": "output",
         "shape": [
           "T",
           "H"
@@ -183,7 +147,7 @@
       "kind": "data",
       "tensor": {
         "dtype": "dtype_a",
-        "name": "hidden",
+        "name": "output",
         "shape": [
           "T",
           "H"
@@ -197,7 +161,7 @@
       "kind": "data",
       "tensor": {
         "dtype": "dtype_a",
-        "name": "hidden",
+        "name": "output",
         "shape": [
           "T",
           "H"
@@ -211,32 +175,30 @@
       "kind": "data",
       "tensor": {
         "dtype": "dtype_a",
-        "name": "selected_hidden",
-        "shape": {
-          "decode": [
-            "S",
-            "H"
-          ],
-          "prefill": [
-            "batch",
-            "H"
-          ]
-        }
+        "name": "output",
+        "shape": [
+          "T",
+          "H*1"
+        ]
       },
       "to": "lm_head"
     },
     {
-      "from": "input",
-      "id": "input->embed:data",
-      "kind": "data",
+      "from": "kv_cache",
+      "id": "kv_cache->attn.core:kv",
+      "kind": "kv",
       "tensor": {
-        "dtype": "dtype_ids",
-        "name": "tokens",
+        "dtype": "dtype_kv",
+        "name": "kv",
         "shape": [
-          "T"
+          "2",
+          "S",
+          "context",
+          "max(1,Hkv/tp)",
+          "D"
         ]
       },
-      "to": "embed"
+      "to": "attn.core"
     },
     {
       "from": "lm_head",
@@ -244,7 +206,7 @@
       "kind": "data",
       "tensor": {
         "dtype": "dtype_a",
-        "name": "logits",
+        "name": "output",
         "shape": {
           "decode": [
             "S",
@@ -259,8 +221,28 @@
       "to": "logits.gather"
     },
     {
+      "from": "logits",
+      "id": "logits->output:data",
+      "kind": "data",
+      "tensor": {
+        "dtype": "dtype_a",
+        "name": "output",
+        "shape": {
+          "decode": [
+            "S",
+            "V"
+          ],
+          "prefill": [
+            "batch",
+            "V"
+          ]
+        }
+      },
+      "to": "output"
+    },
+    {
       "from": "logits.gather",
-      "id": "logits.gather->output:data",
+      "id": "logits.gather->logits:data",
       "kind": "data",
       "tensor": {
         "dtype": "dtype_a",
@@ -276,7 +258,7 @@
           ]
         }
       },
-      "to": "output"
+      "to": "logits"
     },
     {
       "from": "moe.act",
@@ -284,7 +266,7 @@
       "kind": "data",
       "tensor": {
         "dtype": "dtype_a",
-        "name": "routed",
+        "name": "output",
         "shape": [
           "T*dp*topk/(ep>1 ? ep : 1)",
           "I_moe/(ep>1 ? 1 : tp*dp)"
@@ -298,7 +280,7 @@
       "kind": "data",
       "tensor": {
         "dtype": "dtype_a",
-        "name": "hidden",
+        "name": "output",
         "shape": [
           "T",
           "H"
@@ -312,9 +294,9 @@
       "kind": "data",
       "tensor": {
         "dtype": "dtype_a",
-        "name": "routed",
+        "name": "output",
         "shape": [
-          "T*dp*topk/(ep>1 ? ep : 1)",
+          "T",
           "H"
         ]
       },
@@ -326,24 +308,10 @@
       "kind": "data",
       "tensor": {
         "dtype": "dtype_a",
-        "name": "scores",
+        "name": "output",
         "shape": [
           "T",
-          "E"
-        ]
-      },
-      "to": "moe.experts.dispatch"
-    },
-    {
-      "from": "moe.gate",
-      "id": "moe.gate->moe.experts.dispatch:data:hidden",
-      "kind": "data",
-      "tensor": {
-        "dtype": "dtype_a",
-        "name": "hidden",
-        "shape": [
-          "T",
-          "H"
+          "128"
         ]
       },
       "to": "moe.experts.dispatch"
@@ -354,7 +322,7 @@
       "kind": "data",
       "tensor": {
         "dtype": "dtype_a",
-        "name": "routed",
+        "name": "output",
         "shape": [
           "T*dp*topk/(ep>1 ? ep : 1)",
           "2*I_moe/(ep>1 ? 1 : tp*dp)"
@@ -368,7 +336,7 @@
       "kind": "data",
       "tensor": {
         "dtype": "dtype_a",
-        "name": "routed",
+        "name": "output",
         "shape": [
           "T*dp*topk/(ep>1 ? ep : 1)",
           "H"
@@ -378,17 +346,17 @@
     },
     {
       "from": "norm.input",
-      "id": "norm.input->attn:data",
+      "id": "norm.input->attn.qkv:data",
       "kind": "data",
       "tensor": {
         "dtype": "dtype_a",
-        "name": "hidden",
+        "name": "output",
         "shape": [
           "T",
-          "H"
+          "H*1"
         ]
       },
-      "to": "attn"
+      "to": "attn.qkv"
     },
     {
       "from": "norm.input",
@@ -396,27 +364,41 @@
       "kind": "residual",
       "tensor": {
         "dtype": "dtype_a",
-        "name": "hidden",
+        "name": "output",
         "shape": [
           "T",
-          "H"
+          "H*1"
         ]
       },
       "to": "norm.post"
     },
     {
       "from": "norm.post",
-      "id": "norm.post->moe:data",
+      "id": "norm.post->moe.experts.reduce:residual",
+      "kind": "residual",
+      "tensor": {
+        "dtype": "dtype_a",
+        "name": "output",
+        "shape": [
+          "T",
+          "H*1"
+        ]
+      },
+      "to": "moe.experts.reduce"
+    },
+    {
+      "from": "norm.post",
+      "id": "norm.post->moe.gate:data",
       "kind": "data",
       "tensor": {
         "dtype": "dtype_a",
-        "name": "hidden",
+        "name": "output",
         "shape": [
           "T",
-          "H"
+          "H*1"
         ]
       },
-      "to": "moe"
+      "to": "moe.gate"
     }
   ],
   "groups": [
@@ -424,16 +406,16 @@
       "id": "decoder",
       "layers": [
         "0",
-        "L-1"
+        "47"
       ],
       "representative_layer": "0",
       "template": "decoder"
     }
   ],
   "memory": {
-    "activation_peak": "max(max_num_batched_tokens*(4*H+(Hq/tp+2*max(1,Hkv/tp))*D+2*topk*I_moe)*bytes(dtype_a),max_num_seqs*V*bytes(fp32))",
-    "kv_per_token": "2*(L/pp)*max(1,Hkv/tp)*D*bytes(dtype_kv)",
-    "kv_tokens": "floor(max(0,hbm_bytes*gpu_memory_utilization-((((H*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_w))+(H*Hq*D/tp*bytes(dtype_w))+2*D*bytes(dtype_w))+(H*E*bytes(dtype_w)+(3*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w)))+2*H*bytes(dtype_w))*(L/pp)+(pp==1 ? 2*(round_up(V,64)/tp*H*bytes(dtype_w))+H*bytes(dtype_w) : (round_up(V,64)/tp*H*bytes(dtype_w))+H*bytes(dtype_w)))-(max(max_num_batched_tokens*(4*H+(Hq/tp+2*max(1,Hkv/tp))*D+2*topk*I_moe)*bytes(dtype_a),max_num_seqs*V*bytes(fp32)))-non_torch_bytes-reserved_bytes)/((2*(L/pp)*max(1,Hkv/tp)*D*bytes(dtype_kv))*block_size))*block_size",
+    "activation_peak": "max(max_num_batched_tokens*(4*H+(Hq/tp+2*max(1,Hkv/tp))*D+dp*topk/(ep>1 ? ep : 1)*(2*H+3*I_moe/(ep>1 ? 1 : tp*dp))+dp*(H+E))*bytes(dtype_a),max_num_seqs*V*(bytes(dtype_a)+3*bytes(fp32)+bytes(int64)))",
+    "kv_per_token": "(((2*max(1,Hkv/tp)*D*bytes(dtype_kv)))*(48/pp))",
+    "kv_tokens": "((((2*max(1,Hkv/tp)*D*bytes(dtype_kv)))*(48/pp)))>0 ? floor(max(0,hbm_bytes*gpu_memory_utilization-((((H*bytes(dtype_w))+(3*(ep>1 ? E/ep : E)*H*I_moe/(ep>1 ? 1 : tp*dp)*bytes(dtype_w))+((H*128*bytes(dtype_w))+(false ? (128)*bytes(dtype_w) : 0))+(H*bytes(dtype_w))+(D*bytes(dtype_w))+((4096/tp*H*bytes(dtype_w))+(false ? (H)*bytes(dtype_w) : 0))+(D*bytes(dtype_w))+((H*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_w))+(false ? ((Hq/tp+2*max(1,Hkv/tp))*D)*bytes(dtype_w) : 0)))*(48/pp))+((pp==1 ? ((round_up(V,64)/tp*H*bytes(dtype_w))+(false ? 0 : round_up(V,64)/tp*H*bytes(dtype_w))+(H*bytes(dtype_w))) : max((round_up(V,64)/tp*H*bytes(dtype_w)),((false ? 0 : round_up(V,64)/tp*H*bytes(dtype_w))+(H*bytes(dtype_w)))))))-(max(max_num_batched_tokens*(4*H+(Hq/tp+2*max(1,Hkv/tp))*D+dp*topk/(ep>1 ? ep : 1)*(2*H+3*I_moe/(ep>1 ? 1 : tp*dp))+dp*(H+E))*bytes(dtype_a),max_num_seqs*V*(bytes(dtype_a)+3*bytes(fp32)+bytes(int64))))-non_torch_bytes-reserved_bytes)/(((((2*max(1,Hkv/tp)*D*bytes(dtype_kv)))*(48/pp)))*block_size))*block_size : 0",
     "non_torch": "non_torch_bytes",
     "reserved": "reserved_bytes",
     "unmodelled": [
@@ -442,30 +424,30 @@
       "HCCL/NCCL workspace beyond configured non_torch_bytes",
       "RoPE tables and non-parameter buffers",
       "quantization scales/zeros and NZ padding",
-      "DP MoE gather/scatter buffers",
+      "backend-specific MoE transport buffers beyond gathered activations",
       "backend-specific attention scratch space",
       "input/output token index storage"
     ],
-    "weights": "(((H*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_w))+(H*Hq*D/tp*bytes(dtype_w))+2*D*bytes(dtype_w))+(H*E*bytes(dtype_w)+(3*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w)))+2*H*bytes(dtype_w))*(L/pp)+(pp==1 ? 2*(round_up(V,64)/tp*H*bytes(dtype_w))+H*bytes(dtype_w) : (round_up(V,64)/tp*H*bytes(dtype_w))+H*bytes(dtype_w))"
+    "weights": "(((H*bytes(dtype_w))+(3*(ep>1 ? E/ep : E)*H*I_moe/(ep>1 ? 1 : tp*dp)*bytes(dtype_w))+((H*128*bytes(dtype_w))+(false ? (128)*bytes(dtype_w) : 0))+(H*bytes(dtype_w))+(D*bytes(dtype_w))+((4096/tp*H*bytes(dtype_w))+(false ? (H)*bytes(dtype_w) : 0))+(D*bytes(dtype_w))+((H*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_w))+(false ? ((Hq/tp+2*max(1,Hkv/tp))*D)*bytes(dtype_w) : 0)))*(48/pp))+((pp==1 ? ((round_up(V,64)/tp*H*bytes(dtype_w))+(false ? 0 : round_up(V,64)/tp*H*bytes(dtype_w))+(H*bytes(dtype_w))) : max((round_up(V,64)/tp*H*bytes(dtype_w)),((false ? 0 : round_up(V,64)/tp*H*bytes(dtype_w))+(H*bytes(dtype_w))))))"
   },
   "nodes": [
     {
       "ascend": null,
       "bytes_moved": {
-        "decode": "((H*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_w))+S*(H+(Hq/tp+2*max(1,Hkv/tp))*D)*bytes(dtype_a))+((D*bytes(dtype_w)+2*S*(Hq/tp)*D*bytes(dtype_a))+(D*bytes(dtype_w)+2*S*(max(1,Hkv/tp))*D*bytes(dtype_a)))+((2*S*(Hq/tp+max(1,Hkv/tp))*D*bytes(dtype_a)))+(2*S*(context+1)*max(1,Hkv/tp)*D*bytes(dtype_kv)+2*S*Hq/tp*D*bytes(dtype_a))+((H*Hq*D/tp*bytes(dtype_w))+S*(H+Hq*D/tp)*bytes(dtype_a))+(0)",
-        "prefill": "((H*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_w))+T*(H+(Hq/tp+2*max(1,Hkv/tp))*D)*bytes(dtype_a))+((D*bytes(dtype_w)+2*T*(Hq/tp)*D*bytes(dtype_a))+(D*bytes(dtype_w)+2*T*(max(1,Hkv/tp))*D*bytes(dtype_a)))+((2*T*(Hq/tp+max(1,Hkv/tp))*D*bytes(dtype_a)))+(T*(2*Hq/tp+4*max(1,Hkv/tp))*D*bytes(dtype_a))+((H*Hq*D/tp*bytes(dtype_w))+T*(H+Hq*D/tp)*bytes(dtype_a))+(0)"
+        "decode": "(2*S*Hq/tp*D*bytes(dtype_a)+2*S*(context+1)*max(1,Hkv/tp)*D*bytes(dtype_kv))+(D*bytes(dtype_w)+2*S*D*max(1,Hkv/tp)*bytes(dtype_a))+(((4096/tp*H*bytes(dtype_w))+(false ? (H)*bytes(dtype_w) : 0))+S*((4096/tp)+(H))*bytes(dtype_a))+(D*bytes(dtype_w)+2*S*D*Hq/tp*bytes(dtype_a))+(((H*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_w))+(false ? ((Hq/tp+2*max(1,Hkv/tp))*D)*bytes(dtype_w) : 0))+S*((H)+((Hq/tp+2*max(1,Hkv/tp))*D))*bytes(dtype_a))+((2*S*(Hq/tp+max(1,Hkv/tp))*D*bytes(dtype_a)))",
+        "prefill": "(2*T*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_a))+(D*bytes(dtype_w)+2*T*D*max(1,Hkv/tp)*bytes(dtype_a))+(((4096/tp*H*bytes(dtype_w))+(false ? (H)*bytes(dtype_w) : 0))+T*((4096/tp)+(H))*bytes(dtype_a))+(D*bytes(dtype_w)+2*T*D*Hq/tp*bytes(dtype_a))+(((H*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_w))+(false ? ((Hq/tp+2*max(1,Hkv/tp))*D)*bytes(dtype_w) : 0))+T*((H)+((Hq/tp+2*max(1,Hkv/tp))*D))*bytes(dtype_a))+((2*T*(Hq/tp+max(1,Hkv/tp))*D*bytes(dtype_a)))"
       },
       "class": "vllm.model_executor.models.qwen3_moe.Qwen3MoeAttention",
       "comm": null,
       "flops": {
-        "decode": "(2*S*H*(Hq/tp+2*max(1,Hkv/tp))*D)+((5*S*(Hq/tp)*D)+(5*S*(max(1,Hkv/tp))*D))+((3*S*(Hq/tp+max(1,Hkv/tp))*D))+(4*S*(context+1)*Hq/tp*D)+(2*S*Hq*D*H/tp)+(0)",
-        "prefill": "(2*T*H*(Hq/tp+2*max(1,Hkv/tp))*D)+((5*T*(Hq/tp)*D)+(5*T*(max(1,Hkv/tp))*D))+((3*T*(Hq/tp+max(1,Hkv/tp))*D))+(2*T*(T/batch+1)*Hq/tp*D)+(2*T*Hq*D*H/tp)+(0)"
+        "decode": "(4*S*(context+1)*Hq/tp*D)+(5*S*D*max(1,Hkv/tp))+(2*S*4096/tp*H)+(5*S*D*Hq/tp)+(2*S*H*(Hq/tp+2*max(1,Hkv/tp))*D)+((3*S*(Hq/tp+max(1,Hkv/tp))*D))",
+        "prefill": "(2*T*(T/batch+1)*Hq/tp*D)+(5*T*D*max(1,Hkv/tp))+(2*T*4096/tp*H)+(5*T*D*Hq/tp)+(2*T*H*(Hq/tp+2*max(1,Hkv/tp))*D)+((3*T*(Hq/tp+max(1,Hkv/tp))*D))"
       },
       "id": "attn",
       "in": [
         {
           "dtype": "dtype_a",
-          "name": "hidden",
+          "name": "input",
           "shape": [
             "T",
             "H"
@@ -473,12 +455,14 @@
         }
       ],
       "kind": "group",
-      "label": "GQA attention",
-      "notes": [],
+      "label": "attn",
+      "notes": [
+        "Structural container; metrics summarize descendants."
+      ],
       "out": [
         {
           "dtype": "dtype_a",
-          "name": "hidden",
+          "name": "output",
           "shape": [
             "T",
             "H"
@@ -487,7 +471,7 @@
       ],
       "parallel": {},
       "parent": "decoder",
-      "rule": "fixture.attn",
+      "rule": "container.Qwen3MoeAttention",
       "src": {
         "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
         "file": "vllm/model_executor/models/qwen3_moe.py",
@@ -495,13 +479,13 @@
         "repo": "vllm",
         "symbol": "vllm.model_executor.models.qwen3_moe.Qwen3MoeAttention"
       },
-      "weight_bytes": "(H*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_w))+(H*Hq*D/tp*bytes(dtype_w))+2*D*bytes(dtype_w)"
+      "weight_bytes": "(D*bytes(dtype_w))+((4096/tp*H*bytes(dtype_w))+(false ? (H)*bytes(dtype_w) : 0))+(D*bytes(dtype_w))+((H*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_w))+(false ? ((Hq/tp+2*max(1,Hkv/tp))*D)*bytes(dtype_w) : 0))"
     },
     {
       "ascend": null,
       "bytes_moved": {
-        "decode": "2*S*(context+1)*max(1,Hkv/tp)*D*bytes(dtype_kv)+2*S*Hq/tp*D*bytes(dtype_a)",
-        "prefill": "T*(2*Hq/tp+4*max(1,Hkv/tp))*D*bytes(dtype_a)"
+        "decode": "2*S*Hq/tp*D*bytes(dtype_a)+2*S*(context+1)*max(1,Hkv/tp)*D*bytes(dtype_kv)",
+        "prefill": "2*T*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_a)"
       },
       "class": "vllm.model_executor.layers.attention.attention.Attention",
       "comm": null,
@@ -540,24 +524,27 @@
         }
       ],
       "kind": "compute",
-      "label": "Causal attention + KV",
+      "label": "attn.core",
       "notes": [
-        "Prefill assumes equal-length fresh causal sequences, no cached prefix; QK/AV GEMM FLOPs only. Flash attention HBM traffic is an optimistic fused-kernel estimate; softmax costs and repeated tiles excluded.",
-        "Decode reads context+1 keys/values and appends one KV token per sequence."
+        "Prefill uses equal-length causal sequences; T/batch tokens per sequence. Decode reads context+1 tokens. Softmax work and backend scratch are excluded."
       ],
       "out": [
         {
           "dtype": "dtype_a",
-          "name": "context",
+          "name": "output",
           "shape": [
             "T",
             "Hq/tp*D"
           ]
         }
       ],
-      "parallel": {},
+      "parallel": {
+        "tp": {
+          "dim": "heads"
+        }
+      },
       "parent": "attn",
-      "rule": "fixture.attn.core",
+      "rule": "attention",
       "src": {
         "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
         "file": "vllm/model_executor/layers/attention/attention.py",
@@ -568,62 +555,55 @@
       "weight_bytes": "0"
     },
     {
-      "ascend": {
-        "annotation_id": "fixture.ascend.attn.k_norm",
-        "level": "KERNEL",
-        "note": "A2 CPU/mock CustomOp replacement preserves the observed bf16 parameter shapes. Hardware-only kernel behavior is uncalibrated.",
-        "src": [
-          {
-            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
-            "file": "vllm_ascend/ops/layernorm.py",
-            "line": 47,
-            "repo": "vllm-ascend",
-            "symbol": "vllm_ascend.ops.layernorm.AscendRMSNorm"
-          }
-        ],
-        "tag": [
-          "OOT"
-        ]
-      },
+      "ascend": null,
       "bytes_moved": {
-        "decode": "D*bytes(dtype_w)+2*S*(max(1,Hkv/tp))*D*bytes(dtype_a)",
-        "prefill": "D*bytes(dtype_w)+2*T*(max(1,Hkv/tp))*D*bytes(dtype_a)"
+        "decode": "D*bytes(dtype_w)+2*S*D*max(1,Hkv/tp)*bytes(dtype_a)",
+        "prefill": "D*bytes(dtype_w)+2*T*D*max(1,Hkv/tp)*bytes(dtype_a)"
       },
       "class": "vllm.model_executor.layers.layernorm.RMSNorm",
       "comm": null,
       "flops": {
-        "decode": "5*S*(max(1,Hkv/tp))*D",
-        "prefill": "5*T*(max(1,Hkv/tp))*D"
+        "decode": "5*S*D*max(1,Hkv/tp)",
+        "prefill": "5*T*D*max(1,Hkv/tp)"
       },
       "id": "attn.k_norm",
       "in": [
         {
           "dtype": "dtype_a",
-          "name": "k",
+          "name": "input",
           "shape": [
             "T",
-            "max(1,Hkv/tp)",
+            "D*(max(1,Hkv/tp))"
+          ]
+        },
+        {
+          "dtype": "dtype_w",
+          "name": "weight",
+          "shape": [
             "D"
           ]
         }
       ],
       "kind": "compute",
-      "label": "K RMSNorm",
+      "label": "attn.k_norm",
       "notes": [],
       "out": [
         {
           "dtype": "dtype_a",
-          "name": "k",
+          "name": "output",
           "shape": [
             "T",
-            "max(1,Hkv/tp)",
-            "D"
+            "D*max(1,Hkv/tp)"
           ]
         }
       ],
-      "parallel": {},
-      "parent": "attn.qk_norm",
-      "rule": "fixture.attn.k_norm",
+      "parallel": {
+        "tp": {
+          "dim": "replicated"
+        }
+      },
+      "parent": "attn",
+      "rule": "norm.rms",
       "src": {
         "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
         "file": "vllm/model_executor/layers/layernorm.py",
@@ -634,51 +614,43 @@
       "weight_bytes": "D*bytes(dtype_w)"
     },
     {
-      "ascend": {
-        "annotation_id": "fixture.ascend.attn.o",
-        "level": "KERNEL",
-        "note": "A2 CPU/mock CustomOp replacement preserves the observed bf16 parameter shapes. Hardware-only kernel behavior is uncalibrated.",
-        "src": [
-          {
-            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
-            "file": "vllm_ascend/ops/linear.py",
-            "line": 309,
-            "repo": "vllm-ascend",
-            "symbol": "vllm_ascend.ops.linear.AscendRowParallelLinear"
-          }
-        ],
-        "tag": [
-          "OOT"
-        ]
-      },
+      "ascend": null,
       "bytes_moved": {
-        "decode": "(H*Hq*D/tp*bytes(dtype_w))+S*(H+Hq*D/tp)*bytes(dtype_a)",
-        "prefill": "(H*Hq*D/tp*bytes(dtype_w))+T*(H+Hq*D/tp)*bytes(dtype_a)"
+        "decode": "((4096/tp*H*bytes(dtype_w))+(false ? (H)*bytes(dtype_w) : 0))+S*((4096/tp)+(H))*bytes(dtype_a)",
+        "prefill": "((4096/tp*H*bytes(dtype_w))+(false ? (H)*bytes(dtype_w) : 0))+T*((4096/tp)+(H))*bytes(dtype_a)"
       },
       "class": "vllm.model_executor.layers.linear.RowParallelLinear",
       "comm": null,
       "flops": {
-        "decode": "2*S*Hq*D*H/tp",
-        "prefill": "2*T*Hq*D*H/tp"
+        "decode": "2*S*4096/tp*H",
+        "prefill": "2*T*4096/tp*H"
       },
       "id": "attn.o",
       "in": [
         {
           "dtype": "dtype_a",
-          "name": "context",
+          "name": "input",
           "shape": [
             "T",
-            "Hq/tp*D"
+            "4096/tp"
+          ]
+        },
+        {
+          "dtype": "dtype_w",
+          "name": "weight",
+          "shape": [
+            "H",
+            "4096/tp"
           ]
         }
       ],
       "kind": "compute",
-      "label": "Output projection",
+      "label": "attn.o",
       "notes": [],
       "out": [
         {
           "dtype": "dtype_a",
-          "name": "hidden",
+          "name": "output",
           "shape": [
             "T",
             "H"
@@ -691,7 +663,7 @@
         }
       },
       "parent": "attn",
-      "rule": "fixture.linear.row",
+      "rule": "linear.row",
       "src": {
         "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
         "file": "vllm/model_executor/layers/linear.py",
@@ -699,7 +671,7 @@
         "repo": "vllm",
         "symbol": "vllm.model_executor.layers.linear.RowParallelLinear"
       },
-      "weight_bytes": "H*Hq*D/tp*bytes(dtype_w)"
+      "weight_bytes": "(4096/tp*H*bytes(dtype_w))+(false ? (H)*bytes(dtype_w) : 0)"
     },
     {
       "ascend": null,
@@ -710,17 +682,19 @@
       "class": "vllm.model_executor.layers.linear.RowParallelLinear",
       "comm": {
         "bus_bytes": {
-          "decode": "tp>1 ? 2*(tp-1)/tp*S*H*bytes(dtype_a) : 0",
-          "prefill": "tp>1 ? 2*(tp-1)/tp*T*H*bytes(dtype_a) : 0"
+          "decode": "true && tp>1 ? (2*(tp-1)/tp)*(S*H*bytes(dtype_a)) : 0",
+          "prefill": "true && tp>1 ? (2*(tp-1)/tp)*(T*H*bytes(dtype_a)) : 0"
         },
         "group": "tp",
         "logical_bytes": {
           "decode": "S*H*bytes(dtype_a)",
           "prefill": "T*H*bytes(dtype_a)"
         },
-        "notes": [],
+        "notes": [
+          "Ring estimate; logical bytes describe the tensor even when inactive."
+        ],
         "op": "all_reduce",
-        "when": "tp>1"
+        "when": "true && tp>1"
       },
       "flops": {
         "decode": "0",
@@ -730,7 +704,7 @@
       "in": [
         {
           "dtype": "dtype_a",
-          "name": "hidden",
+          "name": "output",
           "shape": [
             "T",
             "H"
@@ -738,12 +712,12 @@
         }
       ],
       "kind": "comm",
-      "label": "TP all-reduce",
+      "label": "all_reduce",
       "notes": [],
       "out": [
         {
           "dtype": "dtype_a",
-          "name": "hidden",
+          "name": "output",
           "shape": [
             "T",
             "H"
@@ -752,7 +726,7 @@
       ],
       "parallel": {},
       "parent": "attn",
-      "rule": "fixture.linear.row",
+      "rule": "linear.row",
       "src": {
         "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
         "file": "vllm/model_executor/layers/linear.py",
@@ -763,62 +737,55 @@
       "weight_bytes": "0"
     },
     {
-      "ascend": {
-        "annotation_id": "fixture.ascend.attn.q_norm",
-        "level": "KERNEL",
-        "note": "A2 CPU/mock CustomOp replacement preserves the observed bf16 parameter shapes. Hardware-only kernel behavior is uncalibrated.",
-        "src": [
-          {
-            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
-            "file": "vllm_ascend/ops/layernorm.py",
-            "line": 47,
-            "repo": "vllm-ascend",
-            "symbol": "vllm_ascend.ops.layernorm.AscendRMSNorm"
-          }
-        ],
-        "tag": [
-          "OOT"
-        ]
-      },
+      "ascend": null,
       "bytes_moved": {
-        "decode": "D*bytes(dtype_w)+2*S*(Hq/tp)*D*bytes(dtype_a)",
-        "prefill": "D*bytes(dtype_w)+2*T*(Hq/tp)*D*bytes(dtype_a)"
+        "decode": "D*bytes(dtype_w)+2*S*D*Hq/tp*bytes(dtype_a)",
+        "prefill": "D*bytes(dtype_w)+2*T*D*Hq/tp*bytes(dtype_a)"
       },
       "class": "vllm.model_executor.layers.layernorm.RMSNorm",
       "comm": null,
       "flops": {
-        "decode": "5*S*(Hq/tp)*D",
-        "prefill": "5*T*(Hq/tp)*D"
+        "decode": "5*S*D*Hq/tp",
+        "prefill": "5*T*D*Hq/tp"
       },
       "id": "attn.q_norm",
       "in": [
         {
           "dtype": "dtype_a",
-          "name": "q",
+          "name": "input",
           "shape": [
             "T",
-            "Hq/tp",
+            "D*(Hq/tp)"
+          ]
+        },
+        {
+          "dtype": "dtype_w",
+          "name": "weight",
+          "shape": [
             "D"
           ]
         }
       ],
       "kind": "compute",
-      "label": "Q RMSNorm",
+      "label": "attn.q_norm",
       "notes": [],
       "out": [
         {
           "dtype": "dtype_a",
-          "name": "q",
+          "name": "output",
           "shape": [
             "T",
-            "Hq/tp",
-            "D"
+            "D*Hq/tp"
           ]
         }
       ],
-      "parallel": {},
-      "parent": "attn.qk_norm",
-      "rule": "fixture.attn.q_norm",
+      "parallel": {
+        "tp": {
+          "dim": "replicated"
+        }
+      },
+      "parent": "attn",
+      "rule": "norm.rms",
       "src": {
         "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
         "file": "vllm/model_executor/layers/layernorm.py",
@@ -831,92 +798,8 @@
     {
       "ascend": null,
       "bytes_moved": {
-        "decode": "(D*bytes(dtype_w)+2*S*(Hq/tp)*D*bytes(dtype_a))+(D*bytes(dtype_w)+2*S*(max(1,Hkv/tp))*D*bytes(dtype_a))",
-        "prefill": "(D*bytes(dtype_w)+2*T*(Hq/tp)*D*bytes(dtype_a))+(D*bytes(dtype_w)+2*T*(max(1,Hkv/tp))*D*bytes(dtype_a))"
-      },
-      "class": "vllm.model_executor.models.qwen3_moe.Qwen3MoeAttention",
-      "comm": null,
-      "flops": {
-        "decode": "(5*S*(Hq/tp)*D)+(5*S*(max(1,Hkv/tp))*D)",
-        "prefill": "(5*T*(Hq/tp)*D)+(5*T*(max(1,Hkv/tp))*D)"
-      },
-      "id": "attn.qk_norm",
-      "in": [
-        {
-          "dtype": "dtype_a",
-          "name": "q",
-          "shape": [
-            "T",
-            "Hq/tp",
-            "D"
-          ]
-        },
-        {
-          "dtype": "dtype_a",
-          "name": "k",
-          "shape": [
-            "T",
-            "max(1,Hkv/tp)",
-            "D"
-          ]
-        }
-      ],
-      "kind": "group",
-      "label": "Q/K head norms",
-      "notes": [],
-      "out": [
-        {
-          "dtype": "dtype_a",
-          "name": "q",
-          "shape": [
-            "T",
-            "Hq/tp",
-            "D"
-          ]
-        },
-        {
-          "dtype": "dtype_a",
-          "name": "k",
-          "shape": [
-            "T",
-            "max(1,Hkv/tp)",
-            "D"
-          ]
-        }
-      ],
-      "parallel": {},
-      "parent": "attn",
-      "rule": "fixture.attn.qk_norm",
-      "src": {
-        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
-        "file": "vllm/model_executor/models/qwen3_moe.py",
-        "line": 244,
-        "repo": "vllm",
-        "symbol": "vllm.model_executor.models.qwen3_moe.Qwen3MoeAttention"
-      },
-      "weight_bytes": "2*D*bytes(dtype_w)"
-    },
-    {
-      "ascend": {
-        "annotation_id": "fixture.ascend.attn.qkv",
-        "level": "KERNEL",
-        "note": "A2 CPU/mock CustomOp replacement preserves the observed bf16 parameter shapes. Hardware-only kernel behavior is uncalibrated.",
-        "src": [
-          {
-            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
-            "file": "vllm_ascend/ops/linear.py",
-            "line": 179,
-            "repo": "vllm-ascend",
-            "symbol": "vllm_ascend.ops.linear.AscendQKVParallelLinear"
-          }
-        ],
-        "tag": [
-          "OOT"
-        ]
-      },
-      "bytes_moved": {
-        "decode": "(H*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_w))+S*(H+(Hq/tp+2*max(1,Hkv/tp))*D)*bytes(dtype_a)",
-        "prefill": "(H*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_w))+T*(H+(Hq/tp+2*max(1,Hkv/tp))*D)*bytes(dtype_a)"
+        "decode": "((H*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_w))+(false ? ((Hq/tp+2*max(1,Hkv/tp))*D)*bytes(dtype_w) : 0))+S*((H)+((Hq/tp+2*max(1,Hkv/tp))*D))*bytes(dtype_a)",
+        "prefill": "((H*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_w))+(false ? ((Hq/tp+2*max(1,Hkv/tp))*D)*bytes(dtype_w) : 0))+T*((H)+((Hq/tp+2*max(1,Hkv/tp))*D))*bytes(dtype_a)"
       },
       "class": "vllm.model_executor.layers.linear.QKVParallelLinear",
       "comm": null,
@@ -928,42 +811,33 @@
       "in": [
         {
           "dtype": "dtype_a",
-          "name": "hidden",
+          "name": "input",
           "shape": [
             "T",
+            "H"
+          ]
+        },
+        {
+          "dtype": "dtype_w",
+          "name": "weight",
+          "shape": [
+            "(Hq/tp+2*max(1,Hkv/tp))*D",
             "H"
           ]
         }
       ],
       "kind": "compute",
-      "label": "QKV projection",
-      "notes": [],
+      "label": "attn.qkv",
+      "notes": [
+        "KV heads are replicated when TP exceeds the global KV-head count."
+      ],
       "out": [
         {
           "dtype": "dtype_a",
-          "name": "q",
+          "name": "output",
           "shape": [
             "T",
-            "Hq/tp",
-            "D"
-          ]
-        },
-        {
-          "dtype": "dtype_a",
-          "name": "k",
-          "shape": [
-            "T",
-            "max(1,Hkv/tp)",
-            "D"
-          ]
-        },
-        {
-          "dtype": "dtype_a",
-          "name": "v",
-          "shape": [
-            "T",
-            "max(1,Hkv/tp)",
-            "D"
+            "(Hq/tp+2*max(1,Hkv/tp))*D"
           ]
         }
       ],
@@ -973,7 +847,7 @@
         }
       },
       "parent": "attn",
-      "rule": "fixture.attn.qkv",
+      "rule": "linear.qkv",
       "src": {
         "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
         "file": "vllm/model_executor/layers/linear.py",
@@ -981,26 +855,10 @@
         "repo": "vllm",
         "symbol": "vllm.model_executor.layers.linear.QKVParallelLinear"
       },
-      "weight_bytes": "H*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_w)"
+      "weight_bytes": "(H*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_w))+(false ? ((Hq/tp+2*max(1,Hkv/tp))*D)*bytes(dtype_w) : 0)"
     },
     {
-      "ascend": {
-        "annotation_id": "fixture.ascend.attn.rope",
-        "level": "KERNEL",
-        "note": "A2 CPU/mock CustomOp replacement preserves the observed bf16 parameter shapes. Hardware-only kernel behavior is uncalibrated.",
-        "src": [
-          {
-            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
-            "file": "vllm_ascend/ops/rotary_embedding.py",
-            "line": 299,
-            "repo": "vllm-ascend",
-            "symbol": "vllm_ascend.ops.rotary_embedding.AscendRotaryEmbedding"
-          }
-        ],
-        "tag": [
-          "OOT"
-        ]
-      },
+      "ascend": null,
       "bytes_moved": {
         "decode": "(2*S*(Hq/tp+max(1,Hkv/tp))*D*bytes(dtype_a))",
         "prefill": "(2*T*(Hq/tp+max(1,Hkv/tp))*D*bytes(dtype_a))"
@@ -1033,8 +891,10 @@
         }
       ],
       "kind": "group",
-      "label": "RoPE",
-      "notes": [],
+      "label": "attn.rope",
+      "notes": [
+        "RoPE buffers are excluded from parameter weights. Arithmetic is on ApplyRotaryEmb."
+      ],
       "out": [
         {
           "dtype": "dtype_a",
@@ -1057,7 +917,7 @@
       ],
       "parallel": {},
       "parent": "attn",
-      "rule": "fixture.attn.rope",
+      "rule": "rotary",
       "src": {
         "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
         "file": "vllm/model_executor/layers/rotary_embedding/base.py",
@@ -1068,23 +928,7 @@
       "weight_bytes": "0"
     },
     {
-      "ascend": {
-        "annotation_id": "fixture.ascend.attn.rope.apply",
-        "level": "KERNEL",
-        "note": "A2 CPU/mock CustomOp replacement preserves the observed bf16 parameter shapes. Hardware-only kernel behavior is uncalibrated.",
-        "src": [
-          {
-            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
-            "file": "vllm_ascend/ops/rotary_embedding.py",
-            "line": 729,
-            "repo": "vllm-ascend",
-            "symbol": "vllm_ascend.ops.rotary_embedding.AscendApplyRotaryEmb"
-          }
-        ],
-        "tag": [
-          "OOT"
-        ]
-      },
+      "ascend": null,
       "bytes_moved": {
         "decode": "2*S*(Hq/tp+max(1,Hkv/tp))*D*bytes(dtype_a)",
         "prefill": "2*T*(Hq/tp+max(1,Hkv/tp))*D*bytes(dtype_a)"
@@ -1117,7 +961,7 @@
         }
       ],
       "kind": "compute",
-      "label": "Apply rotary",
+      "label": "attn.rope.apply",
       "notes": [],
       "out": [
         {
@@ -1141,7 +985,7 @@
       ],
       "parallel": {},
       "parent": "attn.rope",
-      "rule": "fixture.attn.rope.apply",
+      "rule": "rotary.apply",
       "src": {
         "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
         "file": "vllm/model_executor/layers/rotary_embedding/common.py",
@@ -1154,20 +998,20 @@
     {
       "ascend": null,
       "bytes_moved": {
-        "decode": "((H*bytes(dtype_w)+2*S*H*bytes(dtype_a))+(((H*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_w))+S*(H+(Hq/tp+2*max(1,Hkv/tp))*D)*bytes(dtype_a))+((D*bytes(dtype_w)+2*S*(Hq/tp)*D*bytes(dtype_a))+(D*bytes(dtype_w)+2*S*(max(1,Hkv/tp))*D*bytes(dtype_a)))+((2*S*(Hq/tp+max(1,Hkv/tp))*D*bytes(dtype_a)))+(2*S*(context+1)*max(1,Hkv/tp)*D*bytes(dtype_kv)+2*S*Hq/tp*D*bytes(dtype_a))+((H*Hq*D/tp*bytes(dtype_w))+S*(H+Hq*D/tp)*bytes(dtype_a))+(0))+(H*bytes(dtype_w)+3*S*H*bytes(dtype_a))+((H*E*bytes(dtype_w)+S*(H+E)*bytes(dtype_a))+(((0)+((2*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w))+(S*dp*topk/(ep>1 ? ep : 1))*((H)+(2*I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a))+((1*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w))+(S*dp*topk/(ep>1 ? ep : 1))*((I_moe/(ep>1 ? 1 : tp*dp))+(H))*bytes(dtype_a))+((0)+(S*dp*topk/(ep>1 ? ep : 1))*((2*I_moe/(ep>1 ? 1 : tp*dp))+(I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a))))+(0)+(0)+(0)))*(L/pp)",
-        "prefill": "((H*bytes(dtype_w)+2*T*H*bytes(dtype_a))+(((H*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_w))+T*(H+(Hq/tp+2*max(1,Hkv/tp))*D)*bytes(dtype_a))+((D*bytes(dtype_w)+2*T*(Hq/tp)*D*bytes(dtype_a))+(D*bytes(dtype_w)+2*T*(max(1,Hkv/tp))*D*bytes(dtype_a)))+((2*T*(Hq/tp+max(1,Hkv/tp))*D*bytes(dtype_a)))+(T*(2*Hq/tp+4*max(1,Hkv/tp))*D*bytes(dtype_a))+((H*Hq*D/tp*bytes(dtype_w))+T*(H+Hq*D/tp)*bytes(dtype_a))+(0))+(H*bytes(dtype_w)+3*T*H*bytes(dtype_a))+((H*E*bytes(dtype_w)+T*(H+E)*bytes(dtype_a))+(((0)+((2*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w))+(T*dp*topk/(ep>1 ? ep : 1))*((H)+(2*I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a))+((1*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w))+(T*dp*topk/(ep>1 ? ep : 1))*((I_moe/(ep>1 ? 1 : tp*dp))+(H))*bytes(dtype_a))+((0)+(T*dp*topk/(ep>1 ? ep : 1))*((2*I_moe/(ep>1 ? 1 : tp*dp))+(I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a))))+(0)+(0)+(0)))*(L/pp)"
+        "decode": "((H*bytes(dtype_w)+2*S*H*1*bytes(dtype_a))+((((2*min(E/(ep>1 ? ep : 1),S*dp*topk/(ep>1 ? ep : 1))*H*(I_moe/(ep>1 ? 1 : tp*dp))*bytes(dtype_w)+((S*dp*topk/(ep>1 ? ep : 1))*((H)+(2*(I_moe/(ep>1 ? 1 : tp*dp))))*bytes(dtype_a)))+((S*dp*topk/(ep>1 ? ep : 1))*((2*(I_moe/(ep>1 ? 1 : tp*dp)))+(I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a))+(1*min(E/(ep>1 ? ep : 1),S*dp*topk/(ep>1 ? ep : 1))*H*(I_moe/(ep>1 ? 1 : tp*dp))*bytes(dtype_w)+((S*dp*topk/(ep>1 ? ep : 1))*((I_moe/(ep>1 ? 1 : tp*dp))+(H))*bytes(dtype_a)))))+(((H*128*bytes(dtype_w))+(false ? (128)*bytes(dtype_w) : 0))+S*((H)+(128))*bytes(dtype_a)))+(H*bytes(dtype_w)+2*S*H*1*bytes(dtype_a))+((2*S*Hq/tp*D*bytes(dtype_a)+2*S*(context+1)*max(1,Hkv/tp)*D*bytes(dtype_kv))+(D*bytes(dtype_w)+2*S*D*max(1,Hkv/tp)*bytes(dtype_a))+(((4096/tp*H*bytes(dtype_w))+(false ? (H)*bytes(dtype_w) : 0))+S*((4096/tp)+(H))*bytes(dtype_a))+(D*bytes(dtype_w)+2*S*D*Hq/tp*bytes(dtype_a))+(((H*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_w))+(false ? ((Hq/tp+2*max(1,Hkv/tp))*D)*bytes(dtype_w) : 0))+S*((H)+((Hq/tp+2*max(1,Hkv/tp))*D))*bytes(dtype_a))+((2*S*(Hq/tp+max(1,Hkv/tp))*D*bytes(dtype_a)))))*(48/pp)",
+        "prefill": "((H*bytes(dtype_w)+2*T*H*1*bytes(dtype_a))+((((2*min(E/(ep>1 ? ep : 1),T*dp*topk/(ep>1 ? ep : 1))*H*(I_moe/(ep>1 ? 1 : tp*dp))*bytes(dtype_w)+((T*dp*topk/(ep>1 ? ep : 1))*((H)+(2*(I_moe/(ep>1 ? 1 : tp*dp))))*bytes(dtype_a)))+((T*dp*topk/(ep>1 ? ep : 1))*((2*(I_moe/(ep>1 ? 1 : tp*dp)))+(I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a))+(1*min(E/(ep>1 ? ep : 1),T*dp*topk/(ep>1 ? ep : 1))*H*(I_moe/(ep>1 ? 1 : tp*dp))*bytes(dtype_w)+((T*dp*topk/(ep>1 ? ep : 1))*((I_moe/(ep>1 ? 1 : tp*dp))+(H))*bytes(dtype_a)))))+(((H*128*bytes(dtype_w))+(false ? (128)*bytes(dtype_w) : 0))+T*((H)+(128))*bytes(dtype_a)))+(H*bytes(dtype_w)+2*T*H*1*bytes(dtype_a))+((2*T*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_a))+(D*bytes(dtype_w)+2*T*D*max(1,Hkv/tp)*bytes(dtype_a))+(((4096/tp*H*bytes(dtype_w))+(false ? (H)*bytes(dtype_w) : 0))+T*((4096/tp)+(H))*bytes(dtype_a))+(D*bytes(dtype_w)+2*T*D*Hq/tp*bytes(dtype_a))+(((H*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_w))+(false ? ((Hq/tp+2*max(1,Hkv/tp))*D)*bytes(dtype_w) : 0))+T*((H)+((Hq/tp+2*max(1,Hkv/tp))*D))*bytes(dtype_a))+((2*T*(Hq/tp+max(1,Hkv/tp))*D*bytes(dtype_a)))))*(48/pp)"
       },
       "class": "vllm.model_executor.models.qwen3_moe.Qwen3MoeDecoderLayer",
       "comm": null,
       "flops": {
-        "decode": "((5*S*H)+((2*S*H*(Hq/tp+2*max(1,Hkv/tp))*D)+((5*S*(Hq/tp)*D)+(5*S*(max(1,Hkv/tp))*D))+((3*S*(Hq/tp+max(1,Hkv/tp))*D))+(4*S*(context+1)*Hq/tp*D)+(2*S*Hq*D*H/tp)+(0))+(6*S*H)+((2*S*H*E)+(((0)+(4*S*dp*topk*H*I_moe/(ep>1 ? ep : tp*dp))+(2*S*dp*topk*H*I_moe/(ep>1 ? ep : tp*dp))+(4*S*dp*topk*I_moe/(ep>1 ? ep : tp*dp))))+(0)+(0)+(0)))*(L/pp)",
-        "prefill": "((5*T*H)+((2*T*H*(Hq/tp+2*max(1,Hkv/tp))*D)+((5*T*(Hq/tp)*D)+(5*T*(max(1,Hkv/tp))*D))+((3*T*(Hq/tp+max(1,Hkv/tp))*D))+(2*T*(T/batch+1)*Hq/tp*D)+(2*T*Hq*D*H/tp)+(0))+(6*T*H)+((2*T*H*E)+(((0)+(4*T*dp*topk*H*I_moe/(ep>1 ? ep : tp*dp))+(2*T*dp*topk*H*I_moe/(ep>1 ? ep : tp*dp))+(4*T*dp*topk*I_moe/(ep>1 ? ep : tp*dp))))+(0)+(0)+(0)))*(L/pp)"
+        "decode": "((5*S*H*1)+((((4*S*dp*topk*H*I_moe/(ep>1 ? ep : tp*dp))+(4*S*dp*topk*I_moe/(ep>1 ? ep : tp*dp))+(2*S*dp*topk*H*I_moe/(ep>1 ? ep : tp*dp))))+(2*S*H*128))+(5*S*H*1)+((4*S*(context+1)*Hq/tp*D)+(5*S*D*max(1,Hkv/tp))+(2*S*4096/tp*H)+(5*S*D*Hq/tp)+(2*S*H*(Hq/tp+2*max(1,Hkv/tp))*D)+((3*S*(Hq/tp+max(1,Hkv/tp))*D))))*(48/pp)",
+        "prefill": "((5*T*H*1)+((((4*T*dp*topk*H*I_moe/(ep>1 ? ep : tp*dp))+(4*T*dp*topk*I_moe/(ep>1 ? ep : tp*dp))+(2*T*dp*topk*H*I_moe/(ep>1 ? ep : tp*dp))))+(2*T*H*128))+(5*T*H*1)+((2*T*(T/batch+1)*Hq/tp*D)+(5*T*D*max(1,Hkv/tp))+(2*T*4096/tp*H)+(5*T*D*Hq/tp)+(2*T*H*(Hq/tp+2*max(1,Hkv/tp))*D)+((3*T*(Hq/tp+max(1,Hkv/tp))*D))))*(48/pp)"
       },
       "id": "decoder",
       "in": [
         {
           "dtype": "dtype_a",
-          "name": "hidden",
+          "name": "input",
           "shape": [
             "T",
             "H"
@@ -1175,14 +1019,14 @@
         }
       ],
       "kind": "group",
-      "label": "MoE decoder × L",
+      "label": "decoder",
       "notes": [
-        "Summary of L/pp resident layers; children describe one representative layer. Never sum this summary with its descendants."
+        "Structural container; metrics summarize descendants."
       ],
       "out": [
         {
           "dtype": "dtype_a",
-          "name": "hidden",
+          "name": "output",
           "shape": [
             "T",
             "H"
@@ -1191,7 +1035,7 @@
       ],
       "parallel": {},
       "parent": null,
-      "rule": "fixture.decoder",
+      "rule": "container.Qwen3MoeDecoderLayer",
       "src": {
         "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
         "file": "vllm/model_executor/models/qwen3_moe.py",
@@ -1199,13 +1043,13 @@
         "repo": "vllm",
         "symbol": "vllm.model_executor.models.qwen3_moe.Qwen3MoeDecoderLayer"
       },
-      "weight_bytes": "(((H*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_w))+(H*Hq*D/tp*bytes(dtype_w))+2*D*bytes(dtype_w))+(H*E*bytes(dtype_w)+(3*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w)))+2*H*bytes(dtype_w))*(L/pp)"
+      "weight_bytes": "((H*bytes(dtype_w))+((((((ep>1 ? E/ep : E))*(2*I_moe/(ep>1 ? 1 : tp*dp))*(H)*bytes(dtype_w))+(((ep>1 ? E/ep : E))*(H)*(I_moe/(ep>1 ? 1 : tp*dp))*bytes(dtype_w))))+((H*128*bytes(dtype_w))+(false ? (128)*bytes(dtype_w) : 0)))+(H*bytes(dtype_w))+((D*bytes(dtype_w))+((4096/tp*H*bytes(dtype_w))+(false ? (H)*bytes(dtype_w) : 0))+(D*bytes(dtype_w))+((H*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_w))+(false ? ((Hq/tp+2*max(1,Hkv/tp))*D)*bytes(dtype_w) : 0))))*(48/pp)"
     },
     {
       "ascend": null,
       "bytes_moved": {
-        "decode": "S*H*bytes(dtype_w)+S*H*bytes(dtype_a)",
-        "prefill": "T*H*bytes(dtype_w)+T*H*bytes(dtype_a)"
+        "decode": "S*H*(bytes(dtype_w)+bytes(dtype_a))",
+        "prefill": "T*H*(bytes(dtype_w)+bytes(dtype_a))"
       },
       "class": "vllm.model_executor.layers.vocab_parallel_embedding.VocabParallelEmbedding",
       "comm": null,
@@ -1221,15 +1065,25 @@
           "shape": [
             "T"
           ]
+        },
+        {
+          "dtype": "dtype_w",
+          "name": "weight",
+          "shape": [
+            "round_up(V,64)/tp",
+            "H"
+          ]
         }
       ],
       "kind": "compute",
-      "label": "Embedding",
-      "notes": [],
+      "label": "embed",
+      "notes": [
+        "Pad vocabulary to a multiple of 64 before TP sharding."
+      ],
       "out": [
         {
           "dtype": "dtype_a",
-          "name": "hidden",
+          "name": "output",
           "shape": [
             "T",
             "H"
@@ -1238,11 +1092,11 @@
       ],
       "parallel": {
         "tp": {
-          "dim": "out"
+          "dim": "vocab"
         }
       },
       "parent": null,
-      "rule": "fixture.embed",
+      "rule": "embedding",
       "src": {
         "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
         "file": "vllm/model_executor/layers/vocab_parallel_embedding.py",
@@ -1261,15 +1115,17 @@
       "class": "vllm.model_executor.layers.vocab_parallel_embedding.VocabParallelEmbedding",
       "comm": {
         "bus_bytes": {
-          "decode": "tp>1 ? 2*(tp-1)/tp*S*H*bytes(dtype_a) : 0",
-          "prefill": "tp>1 ? 2*(tp-1)/tp*T*H*bytes(dtype_a) : 0"
+          "decode": "tp>1 ? (2*(tp-1)/tp)*(S*H*bytes(dtype_a)) : 0",
+          "prefill": "tp>1 ? (2*(tp-1)/tp)*(T*H*bytes(dtype_a)) : 0"
         },
         "group": "tp",
         "logical_bytes": {
           "decode": "S*H*bytes(dtype_a)",
           "prefill": "T*H*bytes(dtype_a)"
         },
-        "notes": [],
+        "notes": [
+          "Ring estimate; logical bytes describe the tensor even when inactive."
+        ],
         "op": "all_reduce",
         "when": "tp>1"
       },
@@ -1281,7 +1137,7 @@
       "in": [
         {
           "dtype": "dtype_a",
-          "name": "hidden",
+          "name": "output",
           "shape": [
             "T",
             "H"
@@ -1289,12 +1145,12 @@
         }
       ],
       "kind": "comm",
-      "label": "Embedding TP all-reduce",
+      "label": "all_reduce",
       "notes": [],
       "out": [
         {
           "dtype": "dtype_a",
-          "name": "hidden",
+          "name": "output",
           "shape": [
             "T",
             "H"
@@ -1303,7 +1159,7 @@
       ],
       "parallel": {},
       "parent": null,
-      "rule": "fixture.embed",
+      "rule": "embedding",
       "src": {
         "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
         "file": "vllm/model_executor/layers/vocab_parallel_embedding.py",
@@ -1316,42 +1172,53 @@
     {
       "ascend": null,
       "bytes_moved": {
-        "decode": "H*bytes(dtype_w)+2*S*H*bytes(dtype_a)",
-        "prefill": "H*bytes(dtype_w)+2*T*H*bytes(dtype_a)"
+        "decode": "H*bytes(dtype_w)+2*S*H*1*bytes(dtype_a)",
+        "prefill": "H*bytes(dtype_w)+2*T*H*1*bytes(dtype_a)"
       },
       "class": "vllm.model_executor.layers.layernorm.RMSNorm",
       "comm": null,
       "flops": {
-        "decode": "5*S*H",
-        "prefill": "5*T*H"
+        "decode": "5*S*H*1",
+        "prefill": "5*T*H*1"
       },
       "id": "final_norm",
       "in": [
         {
           "dtype": "dtype_a",
-          "name": "hidden",
+          "name": "input",
           "shape": [
             "T",
+            "H*(1)"
+          ]
+        },
+        {
+          "dtype": "dtype_w",
+          "name": "weight",
+          "shape": [
             "H"
           ]
         }
       ],
       "kind": "compute",
-      "label": "Final RMSNorm",
+      "label": "final_norm",
       "notes": [],
       "out": [
         {
           "dtype": "dtype_a",
-          "name": "hidden",
+          "name": "output",
           "shape": [
             "T",
-            "H"
+            "H*1"
           ]
         }
       ],
-      "parallel": {},
+      "parallel": {
+        "tp": {
+          "dim": "replicated"
+        }
+      },
       "parent": null,
-      "rule": "fixture.final_norm",
+      "rule": "norm.rms",
       "src": {
         "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
         "file": "vllm/model_executor/layers/layernorm.py",
@@ -1367,53 +1234,53 @@
         "decode": "0",
         "prefill": "0"
       },
-      "class": "vllm.model_executor.models.qwen3_moe.Qwen3MoeModel",
+      "class": "vllm.model_executor.layers.attention.attention.Attention",
       "comm": null,
       "flops": {
         "decode": "0",
         "prefill": "0"
       },
-      "id": "input",
-      "in": [
-        {
-          "dtype": "dtype_ids",
-          "name": "tokens",
-          "shape": [
-            "T"
-          ]
-        }
-      ],
+      "id": "kv_cache",
+      "in": [],
       "kind": "io",
-      "label": "Token IDs",
+      "label": "KV cache",
       "notes": [
-        "Token IDs use dtype_ids (int64 by default); their storage is excluded from the metric ledger."
+        "KV state input; capacity is reported by memory.kv_tokens."
       ],
       "out": [
         {
-          "dtype": "dtype_ids",
-          "name": "tokens",
+          "dtype": "dtype_kv",
+          "name": "kv",
           "shape": [
-            "T"
+            "2",
+            "S",
+            "context",
+            "max(1,Hkv/tp)",
+            "D"
           ]
         }
       ],
-      "parallel": {},
-      "parent": null,
-      "rule": "fixture.input",
+      "parallel": {
+        "tp": {
+          "dim": "heads"
+        }
+      },
+      "parent": "attn",
+      "rule": "attention",
       "src": {
         "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
-        "file": "vllm/model_executor/models/qwen3_moe.py",
-        "line": 435,
+        "file": "vllm/model_executor/layers/attention/attention.py",
+        "line": 229,
         "repo": "vllm",
-        "symbol": "vllm.model_executor.models.qwen3_moe.Qwen3MoeModel"
+        "symbol": "vllm.model_executor.layers.attention.attention.Attention"
       },
       "weight_bytes": "0"
     },
     {
       "ascend": null,
       "bytes_moved": {
-        "decode": "(round_up(V,64)/tp*H*bytes(dtype_w))+S*(H+round_up(V,64)/tp)*bytes(dtype_a)",
-        "prefill": "(round_up(V,64)/tp*H*bytes(dtype_w))+batch*(H+round_up(V,64)/tp)*bytes(dtype_a)"
+        "decode": "round_up(V,64)/tp*H*bytes(dtype_w)+S*(H+round_up(V,64)/tp)*bytes(dtype_a)",
+        "prefill": "round_up(V,64)/tp*H*bytes(dtype_w)+batch*(H+round_up(V,64)/tp)*bytes(dtype_a)"
       },
       "class": "vllm.model_executor.layers.vocab_parallel_embedding.ParallelLMHead",
       "comm": null,
@@ -1425,7 +1292,7 @@
       "in": [
         {
           "dtype": "dtype_a",
-          "name": "selected_hidden",
+          "name": "input",
           "shape": {
             "decode": [
               "S",
@@ -1436,17 +1303,25 @@
               "H"
             ]
           }
+        },
+        {
+          "dtype": "dtype_w",
+          "name": "weight",
+          "shape": [
+            "round_up(V,64)/tp",
+            "H"
+          ]
         }
       ],
       "kind": "compute",
-      "label": "LM head",
+      "label": "lm_head",
       "notes": [
-        "Last-token logits: batch rows in prefill, S in decode. Default head_dtype is model dtype (dtype_a); fp32 sampler workspace is accounted separately."
+        "A tied head shares embedding storage; its compute still runs."
       ],
       "out": [
         {
           "dtype": "dtype_a",
-          "name": "logits",
+          "name": "output",
           "shape": {
             "decode": [
               "S",
@@ -1465,7 +1340,7 @@
         }
       },
       "parent": null,
-      "rule": "fixture.lm_head",
+      "rule": "lm_head",
       "src": {
         "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
         "file": "vllm/model_executor/layers/vocab_parallel_embedding.py",
@@ -1473,7 +1348,69 @@
         "repo": "vllm",
         "symbol": "vllm.model_executor.layers.vocab_parallel_embedding.ParallelLMHead"
       },
-      "weight_bytes": "round_up(V,64)/tp*H*bytes(dtype_w)"
+      "weight_bytes": "false ? 0 : round_up(V,64)/tp*H*bytes(dtype_w)"
+    },
+    {
+      "ascend": null,
+      "bytes_moved": {
+        "decode": "2*S*V*bytes(dtype_a)",
+        "prefill": "2*batch*V*bytes(dtype_a)"
+      },
+      "class": "vllm.model_executor.layers.logits_processor.LogitsProcessor",
+      "comm": null,
+      "flops": {
+        "decode": "0",
+        "prefill": "0"
+      },
+      "id": "logits",
+      "in": [
+        {
+          "dtype": "dtype_a",
+          "name": "logits",
+          "shape": {
+            "decode": [
+              "S",
+              "round_up(V,64)"
+            ],
+            "prefill": [
+              "batch",
+              "round_up(V,64)"
+            ]
+          }
+        }
+      ],
+      "kind": "compute",
+      "label": "logits",
+      "notes": [
+        "Default gather to TP rank zero: bus bytes are rank-average outgoing local-shard bytes. Full-result all_gather uses a different convention."
+      ],
+      "out": [
+        {
+          "dtype": "dtype_a",
+          "name": "output",
+          "shape": {
+            "decode": [
+              "S",
+              "V"
+            ],
+            "prefill": [
+              "batch",
+              "V"
+            ]
+          }
+        }
+      ],
+      "parallel": {},
+      "parent": null,
+      "rule": "logits",
+      "src": {
+        "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
+        "file": "vllm/model_executor/layers/logits_processor.py",
+        "line": 58,
+        "repo": "vllm",
+        "symbol": "vllm.model_executor.layers.logits_processor.LogitsProcessor"
+      },
+      "weight_bytes": "0"
     },
     {
       "ascend": null,
@@ -1484,8 +1421,8 @@
       "class": "vllm.model_executor.layers.logits_processor.LogitsProcessor",
       "comm": {
         "bus_bytes": {
-          "decode": "tp>1 ? (tp-1)/tp*S*round_up(V,64)/tp*bytes(dtype_a) : 0",
-          "prefill": "tp>1 ? (tp-1)/tp*batch*round_up(V,64)/tp*bytes(dtype_a) : 0"
+          "decode": "tp>1 ? ((tp-1)/tp)*(S*round_up(V,64)/tp*bytes(dtype_a)) : 0",
+          "prefill": "tp>1 ? ((tp-1)/tp)*(batch*round_up(V,64)/tp*bytes(dtype_a)) : 0"
         },
         "group": "tp",
         "logical_bytes": {
@@ -1493,7 +1430,7 @@
           "prefill": "batch*round_up(V,64)/tp*bytes(dtype_a)"
         },
         "notes": [
-          "Gather to TP rank 0: logical bytes are one local shard; bus bytes are rank-average outgoing bytes (rank 0 sends zero, others send one shard). Platforms selecting use_all_gather lower op=all_gather and bus=(tp-1)*local logical bytes instead. Truncate padding to V after collection."
+          "Ring estimate; logical bytes describe the tensor even when inactive."
         ],
         "op": "gather",
         "when": "tp>1"
@@ -1506,7 +1443,7 @@
       "in": [
         {
           "dtype": "dtype_a",
-          "name": "local_logits",
+          "name": "logits_shard",
           "shape": {
             "decode": [
               "S",
@@ -1520,7 +1457,7 @@
         }
       ],
       "kind": "comm",
-      "label": "TP logits gather",
+      "label": "gather",
       "notes": [],
       "out": [
         {
@@ -1540,7 +1477,7 @@
       ],
       "parallel": {},
       "parent": null,
-      "rule": "fixture.logits",
+      "rule": "logits",
       "src": {
         "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
         "file": "vllm/model_executor/layers/logits_processor.py",
@@ -1553,20 +1490,20 @@
     {
       "ascend": null,
       "bytes_moved": {
-        "decode": "(H*E*bytes(dtype_w)+S*(H+E)*bytes(dtype_a))+(((0)+((2*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w))+(S*dp*topk/(ep>1 ? ep : 1))*((H)+(2*I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a))+((1*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w))+(S*dp*topk/(ep>1 ? ep : 1))*((I_moe/(ep>1 ? 1 : tp*dp))+(H))*bytes(dtype_a))+((0)+(S*dp*topk/(ep>1 ? ep : 1))*((2*I_moe/(ep>1 ? 1 : tp*dp))+(I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a))))+(0)+(0)+(0)",
-        "prefill": "(H*E*bytes(dtype_w)+T*(H+E)*bytes(dtype_a))+(((0)+((2*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w))+(T*dp*topk/(ep>1 ? ep : 1))*((H)+(2*I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a))+((1*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w))+(T*dp*topk/(ep>1 ? ep : 1))*((I_moe/(ep>1 ? 1 : tp*dp))+(H))*bytes(dtype_a))+((0)+(T*dp*topk/(ep>1 ? ep : 1))*((2*I_moe/(ep>1 ? 1 : tp*dp))+(I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a))))+(0)+(0)+(0)"
+        "decode": "(((2*min(E/(ep>1 ? ep : 1),S*dp*topk/(ep>1 ? ep : 1))*H*(I_moe/(ep>1 ? 1 : tp*dp))*bytes(dtype_w)+((S*dp*topk/(ep>1 ? ep : 1))*((H)+(2*(I_moe/(ep>1 ? 1 : tp*dp))))*bytes(dtype_a)))+((S*dp*topk/(ep>1 ? ep : 1))*((2*(I_moe/(ep>1 ? 1 : tp*dp)))+(I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a))+(1*min(E/(ep>1 ? ep : 1),S*dp*topk/(ep>1 ? ep : 1))*H*(I_moe/(ep>1 ? 1 : tp*dp))*bytes(dtype_w)+((S*dp*topk/(ep>1 ? ep : 1))*((I_moe/(ep>1 ? 1 : tp*dp))+(H))*bytes(dtype_a)))))+(((H*128*bytes(dtype_w))+(false ? (128)*bytes(dtype_w) : 0))+S*((H)+(128))*bytes(dtype_a))",
+        "prefill": "(((2*min(E/(ep>1 ? ep : 1),T*dp*topk/(ep>1 ? ep : 1))*H*(I_moe/(ep>1 ? 1 : tp*dp))*bytes(dtype_w)+((T*dp*topk/(ep>1 ? ep : 1))*((H)+(2*(I_moe/(ep>1 ? 1 : tp*dp))))*bytes(dtype_a)))+((T*dp*topk/(ep>1 ? ep : 1))*((2*(I_moe/(ep>1 ? 1 : tp*dp)))+(I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a))+(1*min(E/(ep>1 ? ep : 1),T*dp*topk/(ep>1 ? ep : 1))*H*(I_moe/(ep>1 ? 1 : tp*dp))*bytes(dtype_w)+((T*dp*topk/(ep>1 ? ep : 1))*((I_moe/(ep>1 ? 1 : tp*dp))+(H))*bytes(dtype_a)))))+(((H*128*bytes(dtype_w))+(false ? (128)*bytes(dtype_w) : 0))+T*((H)+(128))*bytes(dtype_a))"
       },
       "class": "vllm.model_executor.models.qwen3_moe.Qwen3MoeSparseMoeBlock",
       "comm": null,
       "flops": {
-        "decode": "(2*S*H*E)+(((0)+(4*S*dp*topk*H*I_moe/(ep>1 ? ep : tp*dp))+(2*S*dp*topk*H*I_moe/(ep>1 ? ep : tp*dp))+(4*S*dp*topk*I_moe/(ep>1 ? ep : tp*dp))))+(0)+(0)+(0)",
-        "prefill": "(2*T*H*E)+(((0)+(4*T*dp*topk*H*I_moe/(ep>1 ? ep : tp*dp))+(2*T*dp*topk*H*I_moe/(ep>1 ? ep : tp*dp))+(4*T*dp*topk*I_moe/(ep>1 ? ep : tp*dp))))+(0)+(0)+(0)"
+        "decode": "(((4*S*dp*topk*H*I_moe/(ep>1 ? ep : tp*dp))+(4*S*dp*topk*I_moe/(ep>1 ? ep : tp*dp))+(2*S*dp*topk*H*I_moe/(ep>1 ? ep : tp*dp))))+(2*S*H*128)",
+        "prefill": "(((4*T*dp*topk*H*I_moe/(ep>1 ? ep : tp*dp))+(4*T*dp*topk*I_moe/(ep>1 ? ep : tp*dp))+(2*T*dp*topk*H*I_moe/(ep>1 ? ep : tp*dp))))+(2*T*H*128)"
       },
       "id": "moe",
       "in": [
         {
           "dtype": "dtype_a",
-          "name": "hidden",
+          "name": "input",
           "shape": [
             "T",
             "H"
@@ -1574,12 +1511,14 @@
         }
       ],
       "kind": "group",
-      "label": "Sparse MoE · topk / E",
-      "notes": [],
+      "label": "moe",
+      "notes": [
+        "Structural container; metrics summarize descendants."
+      ],
       "out": [
         {
           "dtype": "dtype_a",
-          "name": "hidden",
+          "name": "output",
           "shape": [
             "T",
             "H"
@@ -1588,7 +1527,7 @@
       ],
       "parallel": {},
       "parent": "decoder",
-      "rule": "fixture.moe",
+      "rule": "container.Qwen3MoeSparseMoeBlock",
       "src": {
         "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
         "file": "vllm/model_executor/models/qwen3_moe.py",
@@ -1596,13 +1535,13 @@
         "repo": "vllm",
         "symbol": "vllm.model_executor.models.qwen3_moe.Qwen3MoeSparseMoeBlock"
       },
-      "weight_bytes": "H*E*bytes(dtype_w)+(3*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w))"
+      "weight_bytes": "(((((ep>1 ? E/ep : E))*(2*I_moe/(ep>1 ? 1 : tp*dp))*(H)*bytes(dtype_w))+(((ep>1 ? E/ep : E))*(H)*(I_moe/(ep>1 ? 1 : tp*dp))*bytes(dtype_w))))+((H*128*bytes(dtype_w))+(false ? (128)*bytes(dtype_w) : 0))"
     },
     {
       "ascend": null,
       "bytes_moved": {
-        "decode": "(0)+(S*dp*topk/(ep>1 ? ep : 1))*((2*I_moe/(ep>1 ? 1 : tp*dp))+(I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a)",
-        "prefill": "(0)+(T*dp*topk/(ep>1 ? ep : 1))*((2*I_moe/(ep>1 ? 1 : tp*dp))+(I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a)"
+        "decode": "(S*dp*topk/(ep>1 ? ep : 1))*((2*(I_moe/(ep>1 ? 1 : tp*dp)))+(I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a)",
+        "prefill": "(T*dp*topk/(ep>1 ? ep : 1))*((2*(I_moe/(ep>1 ? 1 : tp*dp)))+(I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a)"
       },
       "class": "vllm.model_executor.layers.fused_moe.routed_experts.RoutedExperts",
       "comm": null,
@@ -1617,28 +1556,35 @@
           "name": "routed",
           "shape": [
             "T*dp*topk/(ep>1 ? ep : 1)",
-            "2*I_moe/(ep>1 ? 1 : tp*dp)"
+            "2*(I_moe/(ep>1 ? 1 : tp*dp))"
           ]
         }
       ],
       "kind": "compute",
-      "label": "SiLU × up",
+      "label": "act",
       "notes": [
-        "Approximate scalar activation operation count; transcendental implementation cost is hardware-dependent."
+        "Curated expert operation; provenance and rule inherited from RoutedExperts."
       ],
       "out": [
         {
           "dtype": "dtype_a",
-          "name": "routed",
+          "name": "output",
           "shape": [
             "T*dp*topk/(ep>1 ? ep : 1)",
             "I_moe/(ep>1 ? 1 : tp*dp)"
           ]
         }
       ],
-      "parallel": {},
+      "parallel": {
+        "ep": {
+          "dim": "experts"
+        },
+        "tp": {
+          "dim": "intermediate"
+        }
+      },
       "parent": "moe.experts.weights",
-      "rule": "fixture.moe.act",
+      "rule": "moe.weights",
       "src": {
         "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
         "file": "vllm/model_executor/layers/fused_moe/routed_experts.py",
@@ -1649,38 +1595,22 @@
       "weight_bytes": "0"
     },
     {
-      "ascend": {
-        "annotation_id": "fixture.ascend.moe.experts",
-        "level": "KERNEL",
-        "note": "A2 CPU/mock CustomOp replacement preserves the observed bf16 parameter shapes. Hardware-only kernel behavior is uncalibrated.",
-        "src": [
-          {
-            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
-            "file": "vllm_ascend/ops/fused_moe/fused_moe.py",
-            "line": 85,
-            "repo": "vllm-ascend",
-            "symbol": "vllm_ascend.ops.fused_moe.fused_moe.AscendMoERunner"
-          }
-        ],
-        "tag": [
-          "OOT"
-        ]
-      },
+      "ascend": null,
       "bytes_moved": {
-        "decode": "((0)+((2*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w))+(S*dp*topk/(ep>1 ? ep : 1))*((H)+(2*I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a))+((1*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w))+(S*dp*topk/(ep>1 ? ep : 1))*((I_moe/(ep>1 ? 1 : tp*dp))+(H))*bytes(dtype_a))+((0)+(S*dp*topk/(ep>1 ? ep : 1))*((2*I_moe/(ep>1 ? 1 : tp*dp))+(I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a)))",
-        "prefill": "((0)+((2*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w))+(T*dp*topk/(ep>1 ? ep : 1))*((H)+(2*I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a))+((1*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w))+(T*dp*topk/(ep>1 ? ep : 1))*((I_moe/(ep>1 ? 1 : tp*dp))+(H))*bytes(dtype_a))+((0)+(T*dp*topk/(ep>1 ? ep : 1))*((2*I_moe/(ep>1 ? 1 : tp*dp))+(I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a)))"
+        "decode": "((2*min(E/(ep>1 ? ep : 1),S*dp*topk/(ep>1 ? ep : 1))*H*(I_moe/(ep>1 ? 1 : tp*dp))*bytes(dtype_w)+((S*dp*topk/(ep>1 ? ep : 1))*((H)+(2*(I_moe/(ep>1 ? 1 : tp*dp))))*bytes(dtype_a)))+((S*dp*topk/(ep>1 ? ep : 1))*((2*(I_moe/(ep>1 ? 1 : tp*dp)))+(I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a))+(1*min(E/(ep>1 ? ep : 1),S*dp*topk/(ep>1 ? ep : 1))*H*(I_moe/(ep>1 ? 1 : tp*dp))*bytes(dtype_w)+((S*dp*topk/(ep>1 ? ep : 1))*((I_moe/(ep>1 ? 1 : tp*dp))+(H))*bytes(dtype_a))))",
+        "prefill": "((2*min(E/(ep>1 ? ep : 1),T*dp*topk/(ep>1 ? ep : 1))*H*(I_moe/(ep>1 ? 1 : tp*dp))*bytes(dtype_w)+((T*dp*topk/(ep>1 ? ep : 1))*((H)+(2*(I_moe/(ep>1 ? 1 : tp*dp))))*bytes(dtype_a)))+((T*dp*topk/(ep>1 ? ep : 1))*((2*(I_moe/(ep>1 ? 1 : tp*dp)))+(I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a))+(1*min(E/(ep>1 ? ep : 1),T*dp*topk/(ep>1 ? ep : 1))*H*(I_moe/(ep>1 ? 1 : tp*dp))*bytes(dtype_w)+((T*dp*topk/(ep>1 ? ep : 1))*((I_moe/(ep>1 ? 1 : tp*dp))+(H))*bytes(dtype_a))))"
       },
       "class": "vllm.model_executor.layers.fused_moe.runner.moe_runner.MoERunner",
       "comm": null,
       "flops": {
-        "decode": "((0)+(4*S*dp*topk*H*I_moe/(ep>1 ? ep : tp*dp))+(2*S*dp*topk*H*I_moe/(ep>1 ? ep : tp*dp))+(4*S*dp*topk*I_moe/(ep>1 ? ep : tp*dp)))",
-        "prefill": "((0)+(4*T*dp*topk*H*I_moe/(ep>1 ? ep : tp*dp))+(2*T*dp*topk*H*I_moe/(ep>1 ? ep : tp*dp))+(4*T*dp*topk*I_moe/(ep>1 ? ep : tp*dp)))"
+        "decode": "((4*S*dp*topk*H*I_moe/(ep>1 ? ep : tp*dp))+(4*S*dp*topk*I_moe/(ep>1 ? ep : tp*dp))+(2*S*dp*topk*H*I_moe/(ep>1 ? ep : tp*dp)))",
+        "prefill": "((4*T*dp*topk*H*I_moe/(ep>1 ? ep : tp*dp))+(4*T*dp*topk*I_moe/(ep>1 ? ep : tp*dp))+(2*T*dp*topk*H*I_moe/(ep>1 ? ep : tp*dp)))"
       },
       "id": "moe.experts",
       "in": [
         {
           "dtype": "dtype_a",
-          "name": "hidden",
+          "name": "input",
           "shape": [
             "T",
             "H"
@@ -1688,12 +1618,14 @@
         }
       ],
       "kind": "group",
-      "label": "MoE runner",
-      "notes": [],
+      "label": "moe.experts",
+      "notes": [
+        "Default unfused final reduction, skip_final_all_reduce=false, PCP=SP=1."
+      ],
       "out": [
         {
           "dtype": "dtype_a",
-          "name": "hidden",
+          "name": "output",
           "shape": [
             "T",
             "H"
@@ -1702,7 +1634,7 @@
       ],
       "parallel": {},
       "parent": "moe",
-      "rule": "fixture.moe.experts",
+      "rule": "moe.runner",
       "src": {
         "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
         "file": "vllm/model_executor/layers/fused_moe/runner/moe_runner.py",
@@ -1710,7 +1642,7 @@
         "repo": "vllm",
         "symbol": "vllm.model_executor.layers.fused_moe.runner.moe_runner.MoERunner"
       },
-      "weight_bytes": "3*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w)"
+      "weight_bytes": "((((ep>1 ? E/ep : E))*(2*I_moe/(ep>1 ? 1 : tp*dp))*(H)*bytes(dtype_w))+(((ep>1 ? E/ep : E))*(H)*(I_moe/(ep>1 ? 1 : tp*dp))*bytes(dtype_w)))"
     },
     {
       "ascend": null,
@@ -1721,17 +1653,19 @@
       "class": "vllm.model_executor.layers.fused_moe.runner.moe_runner.MoERunner",
       "comm": {
         "bus_bytes": {
-          "decode": "ep>1 && dp>1 ? (ep-1)/ep*(S*topk*H*bytes(dtype_a)) : 0",
-          "prefill": "ep>1 && dp>1 ? (ep-1)/ep*(T*topk*H*bytes(dtype_a)) : 0"
+          "decode": "dp>1 ? (dp-1)/dp*(dp*S*H*bytes(dtype_a)) : 0",
+          "prefill": "dp>1 ? (dp-1)/dp*(dp*T*H*bytes(dtype_a)) : 0"
         },
-        "group": "ep",
+        "group": "dp",
         "logical_bytes": {
-          "decode": "S*topk*H*bytes(dtype_a)",
-          "prefill": "T*topk*H*bytes(dtype_a)"
+          "decode": "dp*S*H*bytes(dtype_a)",
+          "prefill": "dp*T*H*bytes(dtype_a)"
         },
-        "notes": [],
-        "op": "all_to_all",
-        "when": "ep>1 && dp>1"
+        "notes": [
+          "Default allgather_reducescatter backend, DP group without sequence parallelism or PCP. Logical bytes describe the full gathered dp*T*H tensor for both collectives; ring bus factor is (dp-1)/dp. Router scores/metadata omitted."
+        ],
+        "op": "reduce_scatter",
+        "when": "dp>1"
       },
       "flops": {
         "decode": "0",
@@ -1741,22 +1675,20 @@
       "in": [
         {
           "dtype": "dtype_a",
-          "name": "routed",
+          "name": "gathered",
           "shape": [
-            "T*dp*topk/(ep>1 ? ep : 1)",
+            "dp*T",
             "H"
           ]
         }
       ],
       "kind": "comm",
-      "label": "EP combine",
-      "notes": [
-        "Uniform routing, equal token counts per attention replica, ideal deduplication across TP replicas; byte count is outgoing per rank and excludes expert IDs/scales/padding. Actual Ascend MoE transport is backend-dependent."
-      ],
+      "label": "reduce_scatter",
+      "notes": [],
       "out": [
         {
           "dtype": "dtype_a",
-          "name": "hidden",
+          "name": "output",
           "shape": [
             "T",
             "H"
@@ -1764,8 +1696,8 @@
         }
       ],
       "parallel": {},
-      "parent": "moe",
-      "rule": "fixture.moe.experts",
+      "parent": "moe.experts",
+      "rule": "moe.runner",
       "src": {
         "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
         "file": "vllm/model_executor/layers/fused_moe/runner/moe_runner.py",
@@ -1784,17 +1716,19 @@
       "class": "vllm.model_executor.layers.fused_moe.runner.moe_runner.MoERunner",
       "comm": {
         "bus_bytes": {
-          "decode": "ep>1 && dp>1 ? (ep-1)/ep*(S*topk*H*bytes(dtype_a)) : 0",
-          "prefill": "ep>1 && dp>1 ? (ep-1)/ep*(T*topk*H*bytes(dtype_a)) : 0"
+          "decode": "dp>1 ? (dp-1)/dp*(dp*S*H*bytes(dtype_a)) : 0",
+          "prefill": "dp>1 ? (dp-1)/dp*(dp*T*H*bytes(dtype_a)) : 0"
         },
-        "group": "ep",
+        "group": "dp",
         "logical_bytes": {
-          "decode": "S*topk*H*bytes(dtype_a)",
-          "prefill": "T*topk*H*bytes(dtype_a)"
+          "decode": "dp*S*H*bytes(dtype_a)",
+          "prefill": "dp*T*H*bytes(dtype_a)"
         },
-        "notes": [],
-        "op": "all_to_all",
-        "when": "ep>1 && dp>1"
+        "notes": [
+          "Default allgather_reducescatter backend, DP group without sequence parallelism or PCP. Logical bytes describe the full gathered dp*T*H tensor for both collectives; ring bus factor is (dp-1)/dp. Router scores/metadata omitted."
+        ],
+        "op": "all_gather",
+        "when": "dp>1"
       },
       "flops": {
         "decode": "0",
@@ -1804,39 +1738,29 @@
       "in": [
         {
           "dtype": "dtype_a",
-          "name": "hidden",
+          "name": "output",
           "shape": [
             "T",
             "H"
           ]
-        },
-        {
-          "dtype": "dtype_a",
-          "name": "scores",
-          "shape": [
-            "T",
-            "E"
-          ]
         }
       ],
       "kind": "comm",
-      "label": "EP dispatch",
-      "notes": [
-        "Uniform routing, equal token counts per attention replica, ideal deduplication across TP replicas; byte count is outgoing per rank and excludes expert IDs/scales/padding. Actual Ascend MoE transport is backend-dependent."
-      ],
+      "label": "all_gather",
+      "notes": [],
       "out": [
         {
           "dtype": "dtype_a",
-          "name": "routed",
+          "name": "output",
           "shape": [
-            "T*dp*topk/(ep>1 ? ep : 1)",
+            "T",
             "H"
           ]
         }
       ],
       "parallel": {},
-      "parent": "moe",
-      "rule": "fixture.moe.experts",
+      "parent": "moe.experts",
+      "rule": "moe.runner",
       "src": {
         "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
         "file": "vllm/model_executor/layers/fused_moe/runner/moe_runner.py",
@@ -1847,23 +1771,7 @@
       "weight_bytes": "0"
     },
     {
-      "ascend": {
-        "annotation_id": "fixture.ascend.moe.experts.method",
-        "level": "KERNEL",
-        "note": "A2 CPU/mock CustomOp replacement preserves the observed bf16 parameter shapes. Hardware-only kernel behavior is uncalibrated.",
-        "src": [
-          {
-            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
-            "file": "vllm_ascend/ops/fused_moe/routed_experts.py",
-            "line": 55,
-            "repo": "vllm-ascend",
-            "symbol": "vllm_ascend.ops.fused_moe.routed_experts.AscendUnquantizedFusedMoEMethod"
-          }
-        ],
-        "tag": [
-          "OOT"
-        ]
-      },
+      "ascend": null,
       "bytes_moved": {
         "decode": "0",
         "prefill": "0"
@@ -1878,7 +1786,7 @@
       "in": [
         {
           "dtype": "dtype_a",
-          "name": "hidden",
+          "name": "input",
           "shape": [
             "T",
             "H"
@@ -1886,14 +1794,12 @@
         }
       ],
       "kind": "compute",
-      "label": "Unquantized MoE method",
-      "notes": [
-        "Execution strategy metadata node; no additional tensors/weights. Not included in data-flow views."
-      ],
+      "label": "moe.experts.method",
+      "notes": [],
       "out": [
         {
           "dtype": "dtype_a",
-          "name": "hidden",
+          "name": "output",
           "shape": [
             "T",
             "H"
@@ -1901,8 +1807,8 @@
         }
       ],
       "parallel": {},
-      "parent": "moe.experts.weights",
-      "rule": "fixture.moe.experts.method",
+      "parent": "moe.experts",
+      "rule": "moe.method",
       "src": {
         "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
         "file": "vllm/model_executor/layers/fused_moe/unquantized_fused_moe_method.py",
@@ -1921,15 +1827,17 @@
       "class": "vllm.model_executor.layers.fused_moe.runner.moe_runner.MoERunner",
       "comm": {
         "bus_bytes": {
-          "decode": "tp>1 || ep>1 ? 2*(tp-1)/tp*S*H*bytes(dtype_a) : 0",
-          "prefill": "tp>1 || ep>1 ? 2*(tp-1)/tp*T*H*bytes(dtype_a) : 0"
+          "decode": "tp>1 || ep>1 ? (2*(tp-1)/tp)*(S*H*bytes(dtype_a)) : 0",
+          "prefill": "tp>1 || ep>1 ? (2*(tp-1)/tp)*(T*H*bytes(dtype_a)) : 0"
         },
         "group": "tp",
         "logical_bytes": {
           "decode": "S*H*bytes(dtype_a)",
           "prefill": "T*H*bytes(dtype_a)"
         },
-        "notes": [],
+        "notes": [
+          "Ring estimate; logical bytes describe the tensor even when inactive."
+        ],
         "op": "all_reduce",
         "when": "tp>1 || ep>1"
       },
@@ -1941,7 +1849,7 @@
       "in": [
         {
           "dtype": "dtype_a",
-          "name": "hidden",
+          "name": "output",
           "shape": [
             "T",
             "H"
@@ -1949,14 +1857,12 @@
         }
       ],
       "kind": "comm",
-      "label": "MoE TP reduce",
-      "notes": [
-        "moe_runner.py output reduction uses the attention TP group, including when EP is enabled; TP=1 has zero bus traffic. DP gather/scatter is excluded."
-      ],
+      "label": "all_reduce",
+      "notes": [],
       "out": [
         {
           "dtype": "dtype_a",
-          "name": "hidden",
+          "name": "output",
           "shape": [
             "T",
             "H"
@@ -1964,8 +1870,8 @@
         }
       ],
       "parallel": {},
-      "parent": "moe",
-      "rule": "fixture.moe.experts",
+      "parent": "moe.experts",
+      "rule": "moe.runner",
       "src": {
         "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
         "file": "vllm/model_executor/layers/fused_moe/runner/moe_runner.py",
@@ -1976,53 +1882,55 @@
       "weight_bytes": "0"
     },
     {
-      "ascend": {
-        "annotation_id": "fixture.ascend.moe.experts.weights",
-        "level": "KERNEL",
-        "note": "A2 CPU/mock CustomOp replacement preserves the observed bf16 parameter shapes. Hardware-only kernel behavior is uncalibrated.",
-        "src": [
-          {
-            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
-            "file": "vllm_ascend/ops/fused_moe/routed_experts.py",
-            "line": 390,
-            "repo": "vllm-ascend",
-            "symbol": "vllm_ascend.ops.fused_moe.routed_experts.AscendRoutedExperts"
-          }
-        ],
-        "tag": [
-          "OOT"
-        ]
-      },
+      "ascend": null,
       "bytes_moved": {
-        "decode": "(0)+((2*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w))+(S*dp*topk/(ep>1 ? ep : 1))*((H)+(2*I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a))+((1*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w))+(S*dp*topk/(ep>1 ? ep : 1))*((I_moe/(ep>1 ? 1 : tp*dp))+(H))*bytes(dtype_a))+((0)+(S*dp*topk/(ep>1 ? ep : 1))*((2*I_moe/(ep>1 ? 1 : tp*dp))+(I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a))",
-        "prefill": "(0)+((2*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w))+(T*dp*topk/(ep>1 ? ep : 1))*((H)+(2*I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a))+((1*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w))+(T*dp*topk/(ep>1 ? ep : 1))*((I_moe/(ep>1 ? 1 : tp*dp))+(H))*bytes(dtype_a))+((0)+(T*dp*topk/(ep>1 ? ep : 1))*((2*I_moe/(ep>1 ? 1 : tp*dp))+(I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a))"
+        "decode": "(2*min(E/(ep>1 ? ep : 1),S*dp*topk/(ep>1 ? ep : 1))*H*(I_moe/(ep>1 ? 1 : tp*dp))*bytes(dtype_w)+((S*dp*topk/(ep>1 ? ep : 1))*((H)+(2*(I_moe/(ep>1 ? 1 : tp*dp))))*bytes(dtype_a)))+((S*dp*topk/(ep>1 ? ep : 1))*((2*(I_moe/(ep>1 ? 1 : tp*dp)))+(I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a))+(1*min(E/(ep>1 ? ep : 1),S*dp*topk/(ep>1 ? ep : 1))*H*(I_moe/(ep>1 ? 1 : tp*dp))*bytes(dtype_w)+((S*dp*topk/(ep>1 ? ep : 1))*((I_moe/(ep>1 ? 1 : tp*dp))+(H))*bytes(dtype_a)))",
+        "prefill": "(2*min(E/(ep>1 ? ep : 1),T*dp*topk/(ep>1 ? ep : 1))*H*(I_moe/(ep>1 ? 1 : tp*dp))*bytes(dtype_w)+((T*dp*topk/(ep>1 ? ep : 1))*((H)+(2*(I_moe/(ep>1 ? 1 : tp*dp))))*bytes(dtype_a)))+((T*dp*topk/(ep>1 ? ep : 1))*((2*(I_moe/(ep>1 ? 1 : tp*dp)))+(I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a))+(1*min(E/(ep>1 ? ep : 1),T*dp*topk/(ep>1 ? ep : 1))*H*(I_moe/(ep>1 ? 1 : tp*dp))*bytes(dtype_w)+((T*dp*topk/(ep>1 ? ep : 1))*((I_moe/(ep>1 ? 1 : tp*dp))+(H))*bytes(dtype_a)))"
       },
       "class": "vllm.model_executor.layers.fused_moe.routed_experts.RoutedExperts",
       "comm": null,
       "flops": {
-        "decode": "(0)+(4*S*dp*topk*H*I_moe/(ep>1 ? ep : tp*dp))+(2*S*dp*topk*H*I_moe/(ep>1 ? ep : tp*dp))+(4*S*dp*topk*I_moe/(ep>1 ? ep : tp*dp))",
-        "prefill": "(0)+(4*T*dp*topk*H*I_moe/(ep>1 ? ep : tp*dp))+(2*T*dp*topk*H*I_moe/(ep>1 ? ep : tp*dp))+(4*T*dp*topk*I_moe/(ep>1 ? ep : tp*dp))"
+        "decode": "(4*S*dp*topk*H*I_moe/(ep>1 ? ep : tp*dp))+(4*S*dp*topk*I_moe/(ep>1 ? ep : tp*dp))+(2*S*dp*topk*H*I_moe/(ep>1 ? ep : tp*dp))",
+        "prefill": "(4*T*dp*topk*H*I_moe/(ep>1 ? ep : tp*dp))+(4*T*dp*topk*I_moe/(ep>1 ? ep : tp*dp))+(2*T*dp*topk*H*I_moe/(ep>1 ? ep : tp*dp))"
       },
       "id": "moe.experts.weights",
       "in": [
         {
           "dtype": "dtype_a",
-          "name": "hidden",
+          "name": "input",
           "shape": [
             "T",
             "H"
           ]
+        },
+        {
+          "dtype": "dtype_w",
+          "name": "w13_weight",
+          "shape": [
+            "(ep>1 ? E/ep : E)",
+            "2*I_moe/(ep>1 ? 1 : tp*dp)",
+            "H"
+          ]
+        },
+        {
+          "dtype": "dtype_w",
+          "name": "w2_weight",
+          "shape": [
+            "(ep>1 ? E/ep : E)",
+            "H",
+            "I_moe/(ep>1 ? 1 : tp*dp)"
+          ]
         }
       ],
       "kind": "group",
-      "label": "Routed experts",
+      "label": "moe.experts.weights",
       "notes": [
-        "Without EP, expert intermediate dimension is partitioned across tp*dp. With EP=tp*dp>1, experts are partitioned by EP and intermediate dimensions stay whole."
+        "Without EP intermediate TP is flattened over tp*dp. With EP whole experts shard over ep. FLOPs assume uniform routed-token ownership."
       ],
       "out": [
         {
           "dtype": "dtype_a",
-          "name": "hidden",
+          "name": "output",
           "shape": [
             "T",
             "H"
@@ -2038,7 +1946,7 @@
         }
       },
       "parent": "moe.experts",
-      "rule": "fixture.moe.experts.weights",
+      "rule": "moe.weights",
       "src": {
         "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
         "file": "vllm/model_executor/layers/fused_moe/routed_experts.py",
@@ -2046,67 +1954,49 @@
         "repo": "vllm",
         "symbol": "vllm.model_executor.layers.fused_moe.routed_experts.RoutedExperts"
       },
-      "weight_bytes": "3*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w)"
+      "weight_bytes": "(((ep>1 ? E/ep : E))*(2*I_moe/(ep>1 ? 1 : tp*dp))*(H)*bytes(dtype_w))+(((ep>1 ? E/ep : E))*(H)*(I_moe/(ep>1 ? 1 : tp*dp))*bytes(dtype_w))"
     },
     {
-      "ascend": {
-        "annotation_id": "fixture.ascend.moe.gate",
-        "level": "KERNEL",
-        "note": "A2 CPU/mock CustomOp replacement preserves the observed bf16 parameter shapes. Hardware-only kernel behavior is uncalibrated.",
-        "src": [
-          {
-            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
-            "file": "vllm_ascend/ops/fused_moe/gate_linear.py",
-            "line": 28,
-            "repo": "vllm-ascend",
-            "symbol": "vllm_ascend.ops.fused_moe.gate_linear.AscendGateLinear"
-          }
-        ],
-        "tag": [
-          "OOT"
-        ]
-      },
+      "ascend": null,
       "bytes_moved": {
-        "decode": "H*E*bytes(dtype_w)+S*(H+E)*bytes(dtype_a)",
-        "prefill": "H*E*bytes(dtype_w)+T*(H+E)*bytes(dtype_a)"
+        "decode": "((H*128*bytes(dtype_w))+(false ? (128)*bytes(dtype_w) : 0))+S*((H)+(128))*bytes(dtype_a)",
+        "prefill": "((H*128*bytes(dtype_w))+(false ? (128)*bytes(dtype_w) : 0))+T*((H)+(128))*bytes(dtype_a)"
       },
       "class": "vllm.model_executor.layers.fused_moe.router.gate_linear.GateLinear",
       "comm": null,
       "flops": {
-        "decode": "2*S*H*E",
-        "prefill": "2*T*H*E"
+        "decode": "2*S*H*128",
+        "prefill": "2*T*H*128"
       },
       "id": "moe.gate",
       "in": [
         {
           "dtype": "dtype_a",
-          "name": "hidden",
+          "name": "input",
           "shape": [
             "T",
+            "H"
+          ]
+        },
+        {
+          "dtype": "dtype_w",
+          "name": "weight",
+          "shape": [
+            "128",
             "H"
           ]
         }
       ],
       "kind": "compute",
-      "label": "Router",
-      "notes": [
-        "Top-k routing metadata and softmax/sigmoid costs excluded; router weights are replicated across TP/EP."
-      ],
+      "label": "moe.gate",
+      "notes": [],
       "out": [
         {
           "dtype": "dtype_a",
-          "name": "scores",
+          "name": "output",
           "shape": [
             "T",
-            "E"
-          ]
-        },
-        {
-          "dtype": "dtype_a",
-          "name": "hidden",
-          "shape": [
-            "T",
-            "H"
+            "128"
           ]
         }
       ],
@@ -2116,7 +2006,7 @@
         }
       },
       "parent": "moe",
-      "rule": "fixture.moe.gate",
+      "rule": "moe.gate",
       "src": {
         "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
         "file": "vllm/model_executor/layers/fused_moe/router/gate_linear.py",
@@ -2124,13 +2014,13 @@
         "repo": "vllm",
         "symbol": "vllm.model_executor.layers.fused_moe.router.gate_linear.GateLinear"
       },
-      "weight_bytes": "H*E*bytes(dtype_w)"
+      "weight_bytes": "(H*128*bytes(dtype_w))+(false ? (128)*bytes(dtype_w) : 0)"
     },
     {
       "ascend": null,
       "bytes_moved": {
-        "decode": "(2*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w))+(S*dp*topk/(ep>1 ? ep : 1))*((H)+(2*I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a)",
-        "prefill": "(2*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w))+(T*dp*topk/(ep>1 ? ep : 1))*((H)+(2*I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a)"
+        "decode": "2*min(E/(ep>1 ? ep : 1),S*dp*topk/(ep>1 ? ep : 1))*H*(I_moe/(ep>1 ? 1 : tp*dp))*bytes(dtype_w)+((S*dp*topk/(ep>1 ? ep : 1))*((H)+(2*(I_moe/(ep>1 ? 1 : tp*dp))))*bytes(dtype_a))",
+        "prefill": "2*min(E/(ep>1 ? ep : 1),T*dp*topk/(ep>1 ? ep : 1))*H*(I_moe/(ep>1 ? 1 : tp*dp))*bytes(dtype_w)+((T*dp*topk/(ep>1 ? ep : 1))*((H)+(2*(I_moe/(ep>1 ? 1 : tp*dp))))*bytes(dtype_a))"
       },
       "class": "vllm.model_executor.layers.fused_moe.routed_experts.RoutedExperts",
       "comm": null,
@@ -2147,26 +2037,42 @@
             "T*dp*topk/(ep>1 ? ep : 1)",
             "H"
           ]
+        },
+        {
+          "dtype": "dtype_w",
+          "name": "w13_weight",
+          "shape": [
+            "(ep>1 ? E/ep : E)",
+            "2*I_moe/(ep>1 ? 1 : tp*dp)",
+            "H"
+          ]
         }
       ],
       "kind": "compute",
-      "label": "Gate/up GEMM",
+      "label": "w13",
       "notes": [
-        "Weight traffic assumes all local expert weights read once; conservative when few experts activate."
+        "Curated expert operation; provenance and rule inherited from RoutedExperts."
       ],
       "out": [
         {
           "dtype": "dtype_a",
-          "name": "routed",
+          "name": "output",
           "shape": [
             "T*dp*topk/(ep>1 ? ep : 1)",
             "2*I_moe/(ep>1 ? 1 : tp*dp)"
           ]
         }
       ],
-      "parallel": {},
+      "parallel": {
+        "ep": {
+          "dim": "experts"
+        },
+        "tp": {
+          "dim": "intermediate"
+        }
+      },
       "parent": "moe.experts.weights",
-      "rule": "fixture.moe.w13",
+      "rule": "moe.weights",
       "src": {
         "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
         "file": "vllm/model_executor/layers/fused_moe/routed_experts.py",
@@ -2174,13 +2080,13 @@
         "repo": "vllm",
         "symbol": "vllm.model_executor.layers.fused_moe.routed_experts.RoutedExperts"
       },
-      "weight_bytes": "2*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w)"
+      "weight_bytes": "((ep>1 ? E/ep : E))*(2*I_moe/(ep>1 ? 1 : tp*dp))*(H)*bytes(dtype_w)"
     },
     {
       "ascend": null,
       "bytes_moved": {
-        "decode": "(1*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w))+(S*dp*topk/(ep>1 ? ep : 1))*((I_moe/(ep>1 ? 1 : tp*dp))+(H))*bytes(dtype_a)",
-        "prefill": "(1*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w))+(T*dp*topk/(ep>1 ? ep : 1))*((I_moe/(ep>1 ? 1 : tp*dp))+(H))*bytes(dtype_a)"
+        "decode": "1*min(E/(ep>1 ? ep : 1),S*dp*topk/(ep>1 ? ep : 1))*H*(I_moe/(ep>1 ? 1 : tp*dp))*bytes(dtype_w)+((S*dp*topk/(ep>1 ? ep : 1))*((I_moe/(ep>1 ? 1 : tp*dp))+(H))*bytes(dtype_a))",
+        "prefill": "1*min(E/(ep>1 ? ep : 1),T*dp*topk/(ep>1 ? ep : 1))*H*(I_moe/(ep>1 ? 1 : tp*dp))*bytes(dtype_w)+((T*dp*topk/(ep>1 ? ep : 1))*((I_moe/(ep>1 ? 1 : tp*dp))+(H))*bytes(dtype_a))"
       },
       "class": "vllm.model_executor.layers.fused_moe.routed_experts.RoutedExperts",
       "comm": null,
@@ -2197,26 +2103,42 @@
             "T*dp*topk/(ep>1 ? ep : 1)",
             "I_moe/(ep>1 ? 1 : tp*dp)"
           ]
+        },
+        {
+          "dtype": "dtype_w",
+          "name": "w2_weight",
+          "shape": [
+            "(ep>1 ? E/ep : E)",
+            "H",
+            "I_moe/(ep>1 ? 1 : tp*dp)"
+          ]
         }
       ],
       "kind": "compute",
-      "label": "Down GEMM",
+      "label": "w2",
       "notes": [
-        "Weight traffic assumes all local expert weights read once; conservative when few experts activate."
+        "Curated expert operation; provenance and rule inherited from RoutedExperts."
       ],
       "out": [
         {
           "dtype": "dtype_a",
-          "name": "routed",
+          "name": "output",
           "shape": [
             "T*dp*topk/(ep>1 ? ep : 1)",
             "H"
           ]
         }
       ],
-      "parallel": {},
+      "parallel": {
+        "ep": {
+          "dim": "experts"
+        },
+        "tp": {
+          "dim": "intermediate"
+        }
+      },
       "parent": "moe.experts.weights",
-      "rule": "fixture.moe.w2",
+      "rule": "moe.weights",
       "src": {
         "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
         "file": "vllm/model_executor/layers/fused_moe/routed_experts.py",
@@ -2224,63 +2146,58 @@
         "repo": "vllm",
         "symbol": "vllm.model_executor.layers.fused_moe.routed_experts.RoutedExperts"
       },
-      "weight_bytes": "1*E*H*I_moe/(ep>1 ? ep : tp*dp)*bytes(dtype_w)"
+      "weight_bytes": "((ep>1 ? E/ep : E))*(H)*(I_moe/(ep>1 ? 1 : tp*dp))*bytes(dtype_w)"
     },
     {
-      "ascend": {
-        "annotation_id": "fixture.ascend.norm.input",
-        "level": "KERNEL",
-        "note": "A2 CPU/mock CustomOp replacement preserves the observed bf16 parameter shapes. Hardware-only kernel behavior is uncalibrated.",
-        "src": [
-          {
-            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
-            "file": "vllm_ascend/ops/layernorm.py",
-            "line": 47,
-            "repo": "vllm-ascend",
-            "symbol": "vllm_ascend.ops.layernorm.AscendRMSNorm"
-          }
-        ],
-        "tag": [
-          "OOT"
-        ]
-      },
+      "ascend": null,
       "bytes_moved": {
-        "decode": "H*bytes(dtype_w)+2*S*H*bytes(dtype_a)",
-        "prefill": "H*bytes(dtype_w)+2*T*H*bytes(dtype_a)"
+        "decode": "H*bytes(dtype_w)+2*S*H*1*bytes(dtype_a)",
+        "prefill": "H*bytes(dtype_w)+2*T*H*1*bytes(dtype_a)"
       },
       "class": "vllm.model_executor.layers.layernorm.RMSNorm",
       "comm": null,
       "flops": {
-        "decode": "5*S*H",
-        "prefill": "5*T*H"
+        "decode": "5*S*H*1",
+        "prefill": "5*T*H*1"
       },
       "id": "norm.input",
       "in": [
         {
           "dtype": "dtype_a",
-          "name": "hidden",
+          "name": "input",
           "shape": [
             "T",
+            "H*(1)"
+          ]
+        },
+        {
+          "dtype": "dtype_w",
+          "name": "weight",
+          "shape": [
             "H"
           ]
         }
       ],
       "kind": "compute",
-      "label": "Input RMSNorm",
+      "label": "norm.input",
       "notes": [],
       "out": [
         {
           "dtype": "dtype_a",
-          "name": "hidden",
+          "name": "output",
           "shape": [
             "T",
-            "H"
+            "H*1"
           ]
         }
       ],
-      "parallel": {},
+      "parallel": {
+        "tp": {
+          "dim": "replicated"
+        }
+      },
       "parent": "decoder",
-      "rule": "fixture.norm.input",
+      "rule": "norm.rms",
       "src": {
         "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
         "file": "vllm/model_executor/layers/layernorm.py",
@@ -2291,60 +2208,55 @@
       "weight_bytes": "H*bytes(dtype_w)"
     },
     {
-      "ascend": {
-        "annotation_id": "fixture.ascend.norm.post",
-        "level": "KERNEL",
-        "note": "A2 CPU/mock CustomOp replacement preserves the observed bf16 parameter shapes. Hardware-only kernel behavior is uncalibrated.",
-        "src": [
-          {
-            "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
-            "file": "vllm_ascend/ops/layernorm.py",
-            "line": 47,
-            "repo": "vllm-ascend",
-            "symbol": "vllm_ascend.ops.layernorm.AscendRMSNorm"
-          }
-        ],
-        "tag": [
-          "OOT"
-        ]
-      },
+      "ascend": null,
       "bytes_moved": {
-        "decode": "H*bytes(dtype_w)+3*S*H*bytes(dtype_a)",
-        "prefill": "H*bytes(dtype_w)+3*T*H*bytes(dtype_a)"
+        "decode": "H*bytes(dtype_w)+2*S*H*1*bytes(dtype_a)",
+        "prefill": "H*bytes(dtype_w)+2*T*H*1*bytes(dtype_a)"
       },
       "class": "vllm.model_executor.layers.layernorm.RMSNorm",
       "comm": null,
       "flops": {
-        "decode": "6*S*H",
-        "prefill": "6*T*H"
+        "decode": "5*S*H*1",
+        "prefill": "5*T*H*1"
       },
       "id": "norm.post",
       "in": [
         {
           "dtype": "dtype_a",
-          "name": "hidden",
+          "name": "input",
           "shape": [
             "T",
+            "H*(1)"
+          ]
+        },
+        {
+          "dtype": "dtype_w",
+          "name": "weight",
+          "shape": [
             "H"
           ]
         }
       ],
       "kind": "compute",
-      "label": "Residual + RMSNorm",
+      "label": "norm.post",
       "notes": [],
       "out": [
         {
           "dtype": "dtype_a",
-          "name": "hidden",
+          "name": "output",
           "shape": [
             "T",
-            "H"
+            "H*1"
           ]
         }
       ],
-      "parallel": {},
+      "parallel": {
+        "tp": {
+          "dim": "replicated"
+        }
+      },
       "parent": "decoder",
-      "rule": "fixture.norm.post",
+      "rule": "norm.rms",
       "src": {
         "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
         "file": "vllm/model_executor/layers/layernorm.py",
@@ -2370,15 +2282,15 @@
       "in": [
         {
           "dtype": "dtype_a",
-          "name": "logits",
+          "name": "output",
           "shape": {
             "decode": [
               "S",
-              "round_up(V,64)"
+              "V"
             ],
             "prefill": [
               "batch",
-              "round_up(V,64)"
+              "V"
             ]
           }
         }
@@ -2386,7 +2298,7 @@
       "kind": "io",
       "label": "Logits / sampling",
       "notes": [
-        "Truncate collected logits to V. Sampler internals excluded from FLOPs; max_num_seqs*V*fp32 included in memory peak."
+        "Sampling internals are outside the extracted model; fp32 workspace is included in activation_peak."
       ],
       "out": [
         {
@@ -2404,7 +2316,7 @@
       ],
       "parallel": {},
       "parent": null,
-      "rule": "fixture.logits",
+      "rule": "logits",
       "src": {
         "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
         "file": "vllm/model_executor/layers/logits_processor.py",
@@ -2416,39 +2328,38 @@
     }
   ],
   "notes": [
-    "Curated fixture, not production extraction/lowering. Per-rank bytes; decimal GB=10^9, GiB=2^30. TP1/TP4 weight totals and shapes match experiment exactly.",
-    "All symbols/metric dimensions are expression strings; source line numbers are provenance integers. T/S are local to one attention DP replica; context is separate cache length.",
-    "Group metrics summarize descendants; decoder summarizes L/pp layers. For totals use memory.weights, never sum all nodes.",
-    "PP choices deliberately divide L; first/last embeddings live on different stages for pp>1. Memory ledger chooses the final stage with the extra final norm as the heaviest equal-size rank.",
-    "EP=1 disables EP; otherwise ep=tp*dp and E must be divisible by ep. EP and dp>1 formulas are uniform-routing estimates, not CPU/mock verified facts.",
-    "TP node weights describe a representative local decoder stage. L0 endpoint weights are whole endpoint tensors; stage residency is applied in memory.weights.",
-    "No latency predictions; bytes_moved, activation peaks and uncalibrated overheads are transparent approximations."
+    "Rank-local metrics; group summaries include children, never sum both.",
+    "Activation peak is a profiling-token liveness estimate including fp32 sampler warmup; uncalibrated.",
+    "Equal PP partitions only; mixed bands restrict PP to one. Runtime EP is a degree, not a boolean."
   ],
   "params": {
     "S": {
       "choices": null,
+      "constraint": null,
       "default": "1",
-      "description": "Local decode sequences; one generated token per sequence per step.",
+      "description": "Local concurrent decode sequences.",
       "kind": "integer",
-      "max": "256",
+      "max": null,
       "min": "1",
       "step": "1"
     },
     "T": {
       "choices": null,
+      "constraint": "T%batch==0",
       "default": "4096",
-      "description": "Local attention tokens in one prefill chunk, independent of cache length.",
+      "description": "Local prefill chunk tokens; divisible by batch.",
       "kind": "integer",
-      "max": "40960",
+      "max": null,
       "min": "1",
       "step": "1"
     },
     "batch": {
       "choices": null,
+      "constraint": null,
       "default": "1",
-      "description": "Equal-length sequences within a prefill chunk. T must be divisible by batch.",
+      "description": "Equal-length prefill sequences, distinct from S.",
       "kind": "integer",
-      "max": "256",
+      "max": null,
       "min": "1",
       "step": "1"
     },
@@ -2459,8 +2370,9 @@
         "64",
         "128"
       ],
+      "constraint": null,
       "default": "128",
-      "description": "KV tokens per cache block; device/backend restrictions apply.",
+      "description": "Cache capacity rounds down to whole blocks.",
       "kind": "integer",
       "max": null,
       "min": null,
@@ -2468,19 +2380,21 @@
     },
     "context": {
       "choices": null,
+      "constraint": null,
       "default": "4096",
-      "description": "Existing cache length per decode sequence in tokens; uniform length approximation.",
+      "description": "Existing cached tokens per decode sequence.",
       "kind": "integer",
-      "max": "40960",
+      "max": null,
       "min": "0",
       "step": "1"
     },
     "dp": {
       "choices": null,
+      "constraint": "ep>1 || I_moe%(tp*dp)==0",
       "default": "1",
-      "description": "Independent attention data parallel replicas; T and S are local to one replica.",
+      "description": "Attention data replicas; expert TP flattens tp*dp.",
       "kind": "integer",
-      "max": "8",
+      "max": null,
       "min": "1",
       "step": "1"
     },
@@ -2490,8 +2404,9 @@
         "fp16",
         "fp32"
       ],
+      "constraint": null,
       "default": "bf16",
-      "description": "Activation dtype; router/logits may internally accumulate in fp32.",
+      "description": "Unquantized scalar dtype; scale/packing overhead excluded.",
       "kind": "dtype",
       "max": null,
       "min": null,
@@ -2502,8 +2417,9 @@
         "int32",
         "int64"
       ],
+      "constraint": null,
       "default": "int64",
-      "description": "Token index dtype; bytes(dtype_ids) is supported; token index storage is excluded from the metric ledger.",
+      "description": "Token index scalar dtype.",
       "kind": "dtype",
       "max": null,
       "min": null,
@@ -2515,8 +2431,9 @@
         "fp16",
         "fp32"
       ],
+      "constraint": null,
       "default": "bf16",
-      "description": "Stored KV dtype; quantized KV scales are not modelled.",
+      "description": "Unquantized scalar dtype; scale/packing overhead excluded.",
       "kind": "dtype",
       "max": null,
       "min": null,
@@ -2528,44 +2445,39 @@
         "fp16",
         "fp32"
       ],
+      "constraint": null,
       "default": "bf16",
-      "description": "Stored weight dtype; fixture excludes quantization scales and packing overhead.",
+      "description": "Unquantized scalar dtype; scale/packing overhead excluded.",
       "kind": "dtype",
       "max": null,
       "min": null,
       "step": null
     },
     "ep": {
-      "choices": [
-        "1",
-        "2",
-        "4",
-        "8",
-        "16",
-        "32",
-        "64",
-        "128"
-      ],
+      "choices": null,
+      "constraint": "ep==1 || (ep==tp*dp && E%ep==0)",
       "default": "1",
-      "description": "Expert parallel degree: 1 disables EP, otherwise must equal tp*dp (vLLM flattened expert group).",
+      "description": "Expert degree: 1 disables EP; otherwise ep must equal tp*dp and divide E.",
       "kind": "integer",
       "max": null,
-      "min": null,
-      "step": null
+      "min": "1",
+      "step": "1"
     },
     "gpu_memory_utilization": {
       "choices": null,
+      "constraint": null,
       "default": "0.9",
-      "description": "Fraction of device memory available to vLLM.",
+      "description": "Fraction of device memory budgeted to vLLM.",
       "kind": "number",
       "max": "1",
       "min": "0.01",
-      "step": "0.01"
+      "step": null
     },
     "hbm_bytes": {
       "choices": null,
+      "constraint": null,
       "default": "64000000000",
-      "description": "Device memory budget in bytes (decimal 64 GB default, user configurable).",
+      "description": "Per-device memory bytes; override with catalog hardware preset.",
       "kind": "number",
       "max": null,
       "min": "1",
@@ -2573,26 +2485,29 @@
     },
     "max_num_batched_tokens": {
       "choices": null,
+      "constraint": null,
       "default": "4096",
-      "description": "Token count used for chunked-prefill memory profiling.",
+      "description": "Profiling prefill token count, independent of context.",
       "kind": "integer",
-      "max": "40960",
+      "max": null,
       "min": "1",
       "step": "1"
     },
     "max_num_seqs": {
       "choices": null,
+      "constraint": null,
       "default": "256",
-      "description": "Sampler warmup concurrent sequence bound.",
+      "description": "Sampler warmup concurrent sequences.",
       "kind": "integer",
-      "max": "256",
+      "max": null,
       "min": "1",
       "step": "1"
     },
     "non_torch_bytes": {
       "choices": null,
+      "constraint": null,
       "default": "0",
-      "description": "Configured non-torch byte deduction; default excludes unknown HCCL workspace.",
+      "description": "Explicit byte deduction; zero excludes unmeasured overhead.",
       "kind": "number",
       "max": null,
       "min": "0",
@@ -2611,8 +2526,9 @@
         "24",
         "48"
       ],
+      "constraint": "L%pp==0",
       "default": "1",
-      "description": "Pipeline stages. Fixture supports equal partitions only; custom/uneven PP needs explicit rank ledgers.",
+      "description": "Equal layer partitions; heaviest stage ledger.",
       "kind": "integer",
       "max": null,
       "min": null,
@@ -2620,8 +2536,9 @@
     },
     "reserved_bytes": {
       "choices": null,
+      "constraint": null,
       "default": "0",
-      "description": "Additional reserved byte deduction; default excludes graph capture and fragmentation.",
+      "description": "Explicit byte deduction; zero excludes unmeasured overhead.",
       "kind": "number",
       "max": null,
       "min": "0",
@@ -2634,8 +2551,9 @@
         "4",
         "8"
       ],
+      "constraint": "Hq%tp==0 && (Hkv%tp==0 || tp%Hkv==0) && round_up(V,64)%tp==0",
       "default": "1",
-      "description": "Attention tensor parallel degree. Must divide Hq and be compatible with Hkv.",
+      "description": "Attention tensor parallel degree.",
       "kind": "integer",
       "max": null,
       "min": null,
@@ -2647,7 +2565,7 @@
       "commit": "24a76e84394ae3427195e3715fc08e90769d398c",
       "tag": "main"
     },
-    "device": "A2",
+    "device": "H100",
     "generator_version": "0.1.0",
     "model": {
       "config_rev": "inline:sha256:ded54c732e9f874de266dfae8d98d409abbbb82cbecaeb1c0efe974cdd02262b",
@@ -2655,7 +2573,7 @@
     },
     "vllm": {
       "commit": "544f182d9f0c9bfe8bd7645525951d5e3692a542",
-      "tag": "main-verified"
+      "tag": "main"
     }
   },
   "symbols": {
@@ -2664,6 +2582,7 @@
     "H": "2048",
     "Hkv": "4",
     "Hq": "32",
+    "I": "6144",
     "I_moe": "768",
     "L": "48",
     "V": "151936",
