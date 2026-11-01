@@ -149,7 +149,7 @@
                     },
                     "theta": 10000.0
                   },
-                  "variant": "sparse"
+                  "variant": "mla"
                 },
                 "id": "self_attn",
                 "io": {
@@ -183,13 +183,18 @@
                     },
                     {
                       "dtype": "bfloat16",
-                      "name": "q_lora_latent",
+                      "name": "q_latent",
                       "shape": ["T", "1536"]
                     },
                     {
                       "dtype": "bfloat16",
-                      "name": "kv_lora_latent",
+                      "name": "kv_latent",
                       "shape": ["T", "512"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "index_scores",
+                      "shape": ["T", "cdiv(T,1)"]
                     },
                     {
                       "dtype": "bfloat16",
@@ -362,18 +367,13 @@
                   "internals": [
                     {
                       "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "18432/tp"]
+                      "name": "gate_up",
+                      "shape": ["T", "2*18432/tp"]
                     },
                     {
                       "dtype": "bfloat16",
-                      "name": "up",
+                      "name": "act",
                       "shape": ["T", "18432/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
-                      "shape": ["T", "H"]
                     }
                   ],
                   "outputs": [
@@ -524,7 +524,7 @@
                     },
                     "theta": 10000.0
                   },
-                  "variant": "sparse"
+                  "variant": "mla"
                 },
                 "id": "self_attn",
                 "io": {
@@ -558,13 +558,18 @@
                     },
                     {
                       "dtype": "bfloat16",
-                      "name": "q_lora_latent",
+                      "name": "q_latent",
                       "shape": ["T", "1536"]
                     },
                     {
                       "dtype": "bfloat16",
-                      "name": "kv_lora_latent",
+                      "name": "kv_latent",
                       "shape": ["T", "512"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "index_scores",
+                      "shape": ["T", "cdiv(T,1)"]
                     },
                     {
                       "dtype": "bfloat16",
@@ -770,26 +775,21 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*2048/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
                     },
                     {
                       "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "2048/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "2048/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
+                      "name": "shared_output",
                       "shape": ["T", "H"]
                     }
                   ],

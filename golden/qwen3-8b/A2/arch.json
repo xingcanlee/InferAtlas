@@ -382,26 +382,18 @@
                   "internals": [
                     {
                       "dtype": "bfloat16",
-                      "name": "gate",
+                      "name": "gate_up",
                       "shape": [
                         "T",
-                        "12288/tp"
+                        "2*12288/tp"
                       ]
                     },
                     {
                       "dtype": "bfloat16",
-                      "name": "up",
+                      "name": "act",
                       "shape": [
                         "T",
                         "12288/tp"
-                      ]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
-                      "shape": [
-                        "T",
-                        "H"
                       ]
                     }
                   ],

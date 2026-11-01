@@ -245,7 +245,7 @@ vllm.model_executor.models.qwen3_next.Qwen3NextSparseMoeBlock:
   kind: moe
 vllm.models.deepseek_v4.cpu.cpu_sparse.DeepseekV4CPUAttention:
   kind: attention
-  variant: sparse
+  variant: mqa
 vllm.models.deepseek_v4.cpu.model.DeepseekV4MoE:
   kind: moe
 vllm.models.minimax_m3.common.vision_tower.MiniMaxVLAttention:

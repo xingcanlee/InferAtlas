@@ -335,18 +335,13 @@
                   "internals": [
                     {
                       "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "12288/tp"]
+                      "name": "gate_up",
+                      "shape": ["T", "2*12288/tp"]
                     },
                     {
                       "dtype": "bfloat16",
-                      "name": "up",
+                      "name": "act",
                       "shape": ["T", "12288/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
-                      "shape": ["T", "H"]
                     }
                   ],
                   "outputs": [
@@ -694,26 +689,21 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*1536/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
                     },
                     {
                       "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "1536/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "1536/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
+                      "name": "shared_output",
                       "shape": ["T", "H"]
                     }
                   ],

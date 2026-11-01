@@ -385,18 +385,13 @@
                   "internals": [
                     {
                       "dtype": "bfloat16",
-                      "name": "gate",
+                      "name": "gate_up",
                       "shape": ["P", "5632/tp"]
                     },
                     {
                       "dtype": "bfloat16",
-                      "name": "up",
+                      "name": "act",
                       "shape": ["P", "5632/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
-                      "shape": ["P", "1408"]
                     }
                   ],
                   "outputs": [
@@ -533,6 +528,91 @@
     },
     {
       "component": {
+        "children": [
+          {
+            "class_name": "vllm.model_executor.models.mllama4.Llama4VisionMLP",
+            "name": "mlp"
+          }
+        ],
+        "class_name": "vllm.model_executor.models.mllama4.Llama4VisionPixelShuffleMLP",
+        "kind": "generic"
+      },
+      "id": "vision_model.vision_adapter",
+      "io": {
+        "inputs": [],
+        "internals": [],
+        "outputs": []
+      },
+      "kind": "other",
+      "label": "vision_model.vision_adapter",
+      "module": {
+        "class_name": "vllm.model_executor.models.mllama4.Llama4VisionPixelShuffleMLP",
+        "flags": [],
+        "params": [
+          {
+            "dtype": "bfloat16",
+            "name": "mlp.fc1.weight",
+            "shape": ["4096/tp", "5632"]
+          },
+          {
+            "dtype": "bfloat16",
+            "name": "mlp.fc2.weight",
+            "shape": ["4096", "4096/tp"]
+          }
+        ],
+        "path": "vision_model.vision_adapter",
+        "replaced": null,
+        "source": {
+          "file": "vllm/model_executor/models/mllama4.py",
+          "line": 211,
+          "url": "https://github.com/vllm-project/vllm/blob/544f182d9f0c9bfe8bd7645525951d5e3692a542/vllm/model_executor/models/mllama4.py#L211"
+        },
+        "status": "generic"
+      },
+      "placement": "spine"
+    },
+    {
+      "component": {
+        "children": [
+          {
+            "class_name": "vllm.model_executor.layers.linear.ColumnParallelLinear",
+            "name": "linear_1"
+          }
+        ],
+        "class_name": "vllm.model_executor.models.mllama4.Llama4MultiModalProjector",
+        "kind": "generic"
+      },
+      "id": "multi_modal_projector",
+      "io": {
+        "inputs": [],
+        "internals": [],
+        "outputs": []
+      },
+      "kind": "other",
+      "label": "multi_modal_projector",
+      "module": {
+        "class_name": "vllm.model_executor.models.mllama4.Llama4MultiModalProjector",
+        "flags": [],
+        "params": [
+          {
+            "dtype": "bfloat16",
+            "name": "linear_1.weight",
+            "shape": ["5120/tp", "4096"]
+          }
+        ],
+        "path": "multi_modal_projector",
+        "replaced": null,
+        "source": {
+          "file": "vllm/model_executor/models/mllama4.py",
+          "line": 164,
+          "url": "https://github.com/vllm-project/vllm/blob/544f182d9f0c9bfe8bd7645525951d5e3692a542/vllm/model_executor/models/mllama4.py#L164"
+        },
+        "status": "generic"
+      },
+      "placement": "spine"
+    },
+    {
+      "component": {
         "hidden": 5120,
         "kind": "embedding",
         "tied": false,
@@ -634,7 +714,7 @@
               {
                 "component": {
                   "extras": {
-                    "attention_chunk_size": 8192,
+                    "chunk_size": 8192,
                     "kind": "chunked_local"
                   },
                   "head_dim": 128,
@@ -842,26 +922,21 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*8192/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
                     },
                     {
                       "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "8192/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "8192/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
+                      "name": "shared_output",
                       "shape": ["T", "H"]
                     }
                   ],
@@ -947,7 +1022,7 @@
           "count": 3,
           "id": "language_model.model.layers:band:0",
           "layers": [0, 2],
-          "pattern": "3× chunked + 1× GQA attn"
+          "pattern": "3× GQA chunk 8192 + 1× GQA"
         },
         {
           "block": {
@@ -1196,26 +1271,21 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*8192/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
                     },
                     {
                       "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "8192/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "8192/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
+                      "name": "shared_output",
                       "shape": ["T", "H"]
                     }
                   ],
@@ -1301,7 +1371,7 @@
           "count": 1,
           "id": "language_model.model.layers:band:3",
           "layers": [3, 3],
-          "pattern": "3× chunked + 1× GQA attn"
+          "pattern": "3× GQA chunk 8192 + 1× GQA"
         },
         {
           "block": {
@@ -1356,7 +1426,7 @@
               {
                 "component": {
                   "extras": {
-                    "attention_chunk_size": 8192,
+                    "chunk_size": 8192,
                     "kind": "chunked_local"
                   },
                   "head_dim": 128,
@@ -1564,26 +1634,21 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*8192/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
                     },
                     {
                       "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "8192/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "8192/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
+                      "name": "shared_output",
                       "shape": ["T", "H"]
                     }
                   ],
@@ -1669,7 +1734,7 @@
           "count": 3,
           "id": "language_model.model.layers:band:4",
           "layers": [4, 6],
-          "pattern": "3× chunked + 1× GQA attn"
+          "pattern": "3× GQA chunk 8192 + 1× GQA"
         },
         {
           "block": {
@@ -1918,26 +1983,21 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*8192/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
                     },
                     {
                       "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "8192/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "8192/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
+                      "name": "shared_output",
                       "shape": ["T", "H"]
                     }
                   ],
@@ -2023,7 +2083,7 @@
           "count": 1,
           "id": "language_model.model.layers:band:7",
           "layers": [7, 7],
-          "pattern": "3× chunked + 1× GQA attn"
+          "pattern": "3× GQA chunk 8192 + 1× GQA"
         },
         {
           "block": {
@@ -2078,7 +2138,7 @@
               {
                 "component": {
                   "extras": {
-                    "attention_chunk_size": 8192,
+                    "chunk_size": 8192,
                     "kind": "chunked_local"
                   },
                   "head_dim": 128,
@@ -2286,26 +2346,21 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*8192/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
                     },
                     {
                       "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "8192/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "8192/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
+                      "name": "shared_output",
                       "shape": ["T", "H"]
                     }
                   ],
@@ -2391,7 +2446,7 @@
           "count": 3,
           "id": "language_model.model.layers:band:8",
           "layers": [8, 10],
-          "pattern": "3× chunked + 1× GQA attn"
+          "pattern": "3× GQA chunk 8192 + 1× GQA"
         },
         {
           "block": {
@@ -2640,26 +2695,21 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*8192/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
                     },
                     {
                       "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "8192/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "8192/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
+                      "name": "shared_output",
                       "shape": ["T", "H"]
                     }
                   ],
@@ -2745,7 +2795,7 @@
           "count": 1,
           "id": "language_model.model.layers:band:11",
           "layers": [11, 11],
-          "pattern": "3× chunked + 1× GQA attn"
+          "pattern": "3× GQA chunk 8192 + 1× GQA"
         },
         {
           "block": {
@@ -2800,7 +2850,7 @@
               {
                 "component": {
                   "extras": {
-                    "attention_chunk_size": 8192,
+                    "chunk_size": 8192,
                     "kind": "chunked_local"
                   },
                   "head_dim": 128,
@@ -3008,26 +3058,21 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*8192/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
                     },
                     {
                       "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "8192/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "8192/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
+                      "name": "shared_output",
                       "shape": ["T", "H"]
                     }
                   ],
@@ -3113,7 +3158,7 @@
           "count": 3,
           "id": "language_model.model.layers:band:12",
           "layers": [12, 14],
-          "pattern": "3× chunked + 1× GQA attn"
+          "pattern": "3× GQA chunk 8192 + 1× GQA"
         },
         {
           "block": {
@@ -3362,26 +3407,21 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*8192/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
                     },
                     {
                       "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "8192/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "8192/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
+                      "name": "shared_output",
                       "shape": ["T", "H"]
                     }
                   ],
@@ -3467,7 +3507,7 @@
           "count": 1,
           "id": "language_model.model.layers:band:15",
           "layers": [15, 15],
-          "pattern": "3× chunked + 1× GQA attn"
+          "pattern": "3× GQA chunk 8192 + 1× GQA"
         },
         {
           "block": {
@@ -3522,7 +3562,7 @@
               {
                 "component": {
                   "extras": {
-                    "attention_chunk_size": 8192,
+                    "chunk_size": 8192,
                     "kind": "chunked_local"
                   },
                   "head_dim": 128,
@@ -3730,26 +3770,21 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*8192/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
                     },
                     {
                       "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "8192/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "8192/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
+                      "name": "shared_output",
                       "shape": ["T", "H"]
                     }
                   ],
@@ -3835,7 +3870,7 @@
           "count": 3,
           "id": "language_model.model.layers:band:16",
           "layers": [16, 18],
-          "pattern": "3× chunked + 1× GQA attn"
+          "pattern": "3× GQA chunk 8192 + 1× GQA"
         },
         {
           "block": {
@@ -4084,26 +4119,21 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*8192/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
                     },
                     {
                       "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "8192/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "8192/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
+                      "name": "shared_output",
                       "shape": ["T", "H"]
                     }
                   ],
@@ -4189,7 +4219,7 @@
           "count": 1,
           "id": "language_model.model.layers:band:19",
           "layers": [19, 19],
-          "pattern": "3× chunked + 1× GQA attn"
+          "pattern": "3× GQA chunk 8192 + 1× GQA"
         },
         {
           "block": {
@@ -4244,7 +4274,7 @@
               {
                 "component": {
                   "extras": {
-                    "attention_chunk_size": 8192,
+                    "chunk_size": 8192,
                     "kind": "chunked_local"
                   },
                   "head_dim": 128,
@@ -4452,26 +4482,21 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*8192/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
                     },
                     {
                       "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "8192/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "8192/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
+                      "name": "shared_output",
                       "shape": ["T", "H"]
                     }
                   ],
@@ -4557,7 +4582,7 @@
           "count": 3,
           "id": "language_model.model.layers:band:20",
           "layers": [20, 22],
-          "pattern": "3× chunked + 1× GQA attn"
+          "pattern": "3× GQA chunk 8192 + 1× GQA"
         },
         {
           "block": {
@@ -4806,26 +4831,21 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*8192/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
                     },
                     {
                       "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "8192/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "8192/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
+                      "name": "shared_output",
                       "shape": ["T", "H"]
                     }
                   ],
@@ -4911,7 +4931,7 @@
           "count": 1,
           "id": "language_model.model.layers:band:23",
           "layers": [23, 23],
-          "pattern": "3× chunked + 1× GQA attn"
+          "pattern": "3× GQA chunk 8192 + 1× GQA"
         },
         {
           "block": {
@@ -4966,7 +4986,7 @@
               {
                 "component": {
                   "extras": {
-                    "attention_chunk_size": 8192,
+                    "chunk_size": 8192,
                     "kind": "chunked_local"
                   },
                   "head_dim": 128,
@@ -5174,26 +5194,21 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*8192/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
                     },
                     {
                       "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "8192/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "8192/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
+                      "name": "shared_output",
                       "shape": ["T", "H"]
                     }
                   ],
@@ -5279,7 +5294,7 @@
           "count": 3,
           "id": "language_model.model.layers:band:24",
           "layers": [24, 26],
-          "pattern": "3× chunked + 1× GQA attn"
+          "pattern": "3× GQA chunk 8192 + 1× GQA"
         },
         {
           "block": {
@@ -5528,26 +5543,21 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*8192/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
                     },
                     {
                       "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "8192/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "8192/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
+                      "name": "shared_output",
                       "shape": ["T", "H"]
                     }
                   ],
@@ -5633,7 +5643,7 @@
           "count": 1,
           "id": "language_model.model.layers:band:27",
           "layers": [27, 27],
-          "pattern": "3× chunked + 1× GQA attn"
+          "pattern": "3× GQA chunk 8192 + 1× GQA"
         },
         {
           "block": {
@@ -5688,7 +5698,7 @@
               {
                 "component": {
                   "extras": {
-                    "attention_chunk_size": 8192,
+                    "chunk_size": 8192,
                     "kind": "chunked_local"
                   },
                   "head_dim": 128,
@@ -5896,26 +5906,21 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*8192/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
                     },
                     {
                       "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "8192/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "8192/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
+                      "name": "shared_output",
                       "shape": ["T", "H"]
                     }
                   ],
@@ -6001,7 +6006,7 @@
           "count": 3,
           "id": "language_model.model.layers:band:28",
           "layers": [28, 30],
-          "pattern": "3× chunked + 1× GQA attn"
+          "pattern": "3× GQA chunk 8192 + 1× GQA"
         },
         {
           "block": {
@@ -6250,26 +6255,21 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*8192/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
                     },
                     {
                       "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "8192/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "8192/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
+                      "name": "shared_output",
                       "shape": ["T", "H"]
                     }
                   ],
@@ -6355,7 +6355,7 @@
           "count": 1,
           "id": "language_model.model.layers:band:31",
           "layers": [31, 31],
-          "pattern": "3× chunked + 1× GQA attn"
+          "pattern": "3× GQA chunk 8192 + 1× GQA"
         },
         {
           "block": {
@@ -6410,7 +6410,7 @@
               {
                 "component": {
                   "extras": {
-                    "attention_chunk_size": 8192,
+                    "chunk_size": 8192,
                     "kind": "chunked_local"
                   },
                   "head_dim": 128,
@@ -6618,26 +6618,21 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*8192/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
                     },
                     {
                       "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "8192/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "8192/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
+                      "name": "shared_output",
                       "shape": ["T", "H"]
                     }
                   ],
@@ -6723,7 +6718,7 @@
           "count": 3,
           "id": "language_model.model.layers:band:32",
           "layers": [32, 34],
-          "pattern": "3× chunked + 1× GQA attn"
+          "pattern": "3× GQA chunk 8192 + 1× GQA"
         },
         {
           "block": {
@@ -6972,26 +6967,21 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*8192/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
                     },
                     {
                       "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "8192/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "8192/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
+                      "name": "shared_output",
                       "shape": ["T", "H"]
                     }
                   ],
@@ -7077,7 +7067,7 @@
           "count": 1,
           "id": "language_model.model.layers:band:35",
           "layers": [35, 35],
-          "pattern": "3× chunked + 1× GQA attn"
+          "pattern": "3× GQA chunk 8192 + 1× GQA"
         },
         {
           "block": {
@@ -7132,7 +7122,7 @@
               {
                 "component": {
                   "extras": {
-                    "attention_chunk_size": 8192,
+                    "chunk_size": 8192,
                     "kind": "chunked_local"
                   },
                   "head_dim": 128,
@@ -7340,26 +7330,21 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*8192/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
                     },
                     {
                       "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "8192/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "8192/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
+                      "name": "shared_output",
                       "shape": ["T", "H"]
                     }
                   ],
@@ -7445,7 +7430,7 @@
           "count": 3,
           "id": "language_model.model.layers:band:36",
           "layers": [36, 38],
-          "pattern": "3× chunked + 1× GQA attn"
+          "pattern": "3× GQA chunk 8192 + 1× GQA"
         },
         {
           "block": {
@@ -7694,26 +7679,21 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*8192/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
                     },
                     {
                       "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "8192/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "8192/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
+                      "name": "shared_output",
                       "shape": ["T", "H"]
                     }
                   ],
@@ -7799,7 +7779,7 @@
           "count": 1,
           "id": "language_model.model.layers:band:39",
           "layers": [39, 39],
-          "pattern": "3× chunked + 1× GQA attn"
+          "pattern": "3× GQA chunk 8192 + 1× GQA"
         },
         {
           "block": {
@@ -7854,7 +7834,7 @@
               {
                 "component": {
                   "extras": {
-                    "attention_chunk_size": 8192,
+                    "chunk_size": 8192,
                     "kind": "chunked_local"
                   },
                   "head_dim": 128,
@@ -8062,26 +8042,21 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*8192/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
                     },
                     {
                       "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "8192/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "8192/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
+                      "name": "shared_output",
                       "shape": ["T", "H"]
                     }
                   ],
@@ -8167,7 +8142,7 @@
           "count": 3,
           "id": "language_model.model.layers:band:40",
           "layers": [40, 42],
-          "pattern": "3× chunked + 1× GQA attn"
+          "pattern": "3× GQA chunk 8192 + 1× GQA"
         },
         {
           "block": {
@@ -8416,26 +8391,21 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*8192/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
                     },
                     {
                       "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "8192/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "8192/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
+                      "name": "shared_output",
                       "shape": ["T", "H"]
                     }
                   ],
@@ -8521,7 +8491,7 @@
           "count": 1,
           "id": "language_model.model.layers:band:43",
           "layers": [43, 43],
-          "pattern": "3× chunked + 1× GQA attn"
+          "pattern": "3× GQA chunk 8192 + 1× GQA"
         },
         {
           "block": {
@@ -8576,7 +8546,7 @@
               {
                 "component": {
                   "extras": {
-                    "attention_chunk_size": 8192,
+                    "chunk_size": 8192,
                     "kind": "chunked_local"
                   },
                   "head_dim": 128,
@@ -8784,26 +8754,21 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*8192/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
                     },
                     {
                       "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "8192/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "8192/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
+                      "name": "shared_output",
                       "shape": ["T", "H"]
                     }
                   ],
@@ -8889,7 +8854,7 @@
           "count": 3,
           "id": "language_model.model.layers:band:44",
           "layers": [44, 46],
-          "pattern": "3× chunked + 1× GQA attn"
+          "pattern": "3× GQA chunk 8192 + 1× GQA"
         },
         {
           "block": {
@@ -9138,26 +9103,21 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*8192/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
                     },
                     {
                       "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "8192/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "8192/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
+                      "name": "shared_output",
                       "shape": ["T", "H"]
                     }
                   ],
@@ -9243,7 +9203,7 @@
           "count": 1,
           "id": "language_model.model.layers:band:47",
           "layers": [47, 47],
-          "pattern": "3× chunked + 1× GQA attn"
+          "pattern": "3× GQA chunk 8192 + 1× GQA"
         }
       ],
       "id": "language_model.model.layers",
@@ -9342,91 +9302,6 @@
           "url": "https://github.com/vllm-project/vllm/blob/544f182d9f0c9bfe8bd7645525951d5e3692a542/vllm/model_executor/layers/vocab_parallel_embedding.py#L578"
         },
         "status": "ruled"
-      },
-      "placement": "spine"
-    },
-    {
-      "component": {
-        "children": [
-          {
-            "class_name": "vllm.model_executor.models.mllama4.Llama4VisionMLP",
-            "name": "mlp"
-          }
-        ],
-        "class_name": "vllm.model_executor.models.mllama4.Llama4VisionPixelShuffleMLP",
-        "kind": "generic"
-      },
-      "id": "vision_model.vision_adapter",
-      "io": {
-        "inputs": [],
-        "internals": [],
-        "outputs": []
-      },
-      "kind": "other",
-      "label": "vision_model.vision_adapter",
-      "module": {
-        "class_name": "vllm.model_executor.models.mllama4.Llama4VisionPixelShuffleMLP",
-        "flags": [],
-        "params": [
-          {
-            "dtype": "bfloat16",
-            "name": "mlp.fc1.weight",
-            "shape": ["4096/tp", "5632"]
-          },
-          {
-            "dtype": "bfloat16",
-            "name": "mlp.fc2.weight",
-            "shape": ["4096", "4096/tp"]
-          }
-        ],
-        "path": "vision_model.vision_adapter",
-        "replaced": null,
-        "source": {
-          "file": "vllm/model_executor/models/mllama4.py",
-          "line": 211,
-          "url": "https://github.com/vllm-project/vllm/blob/544f182d9f0c9bfe8bd7645525951d5e3692a542/vllm/model_executor/models/mllama4.py#L211"
-        },
-        "status": "generic"
-      },
-      "placement": "spine"
-    },
-    {
-      "component": {
-        "children": [
-          {
-            "class_name": "vllm.model_executor.layers.linear.ColumnParallelLinear",
-            "name": "linear_1"
-          }
-        ],
-        "class_name": "vllm.model_executor.models.mllama4.Llama4MultiModalProjector",
-        "kind": "generic"
-      },
-      "id": "multi_modal_projector",
-      "io": {
-        "inputs": [],
-        "internals": [],
-        "outputs": []
-      },
-      "kind": "other",
-      "label": "multi_modal_projector",
-      "module": {
-        "class_name": "vllm.model_executor.models.mllama4.Llama4MultiModalProjector",
-        "flags": [],
-        "params": [
-          {
-            "dtype": "bfloat16",
-            "name": "linear_1.weight",
-            "shape": ["5120/tp", "4096"]
-          }
-        ],
-        "path": "multi_modal_projector",
-        "replaced": null,
-        "source": {
-          "file": "vllm/model_executor/models/mllama4.py",
-          "line": 164,
-          "url": "https://github.com/vllm-project/vllm/blob/544f182d9f0c9bfe8bd7645525951d5e3692a542/vllm/model_executor/models/mllama4.py#L164"
-        },
-        "status": "generic"
       },
       "placement": "spine"
     }

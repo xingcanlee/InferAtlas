@@ -3,6 +3,7 @@
 import json
 import re
 from collections import Counter, defaultdict
+from itertools import groupby
 from pathlib import Path
 
 from pydantic import Field, TypeAdapter
@@ -224,7 +225,9 @@ def emit_arch(
                 top_k=topk,
                 shared_experts=shared_count,
                 router=ArchRouter(
-                    scoring=str(attrs.get("scoring_func", cfg.get("scoring_func", "softmax"))),
+                    scoring="hash"
+                    if any(p.name == "tid2eid" for m in subtree for p in m.params)
+                    else str(attrs.get("scoring_func", cfg.get("scoring_func", "softmax"))),
                     norm_topk=attrs.get("norm_topk_prob", cfg.get("norm_topk_prob")),
                     groups={"n_group": cfg["n_group"], "topk_group": cfg.get("topk_group", 1)}
                     if cfg.get("n_group")
@@ -261,8 +264,8 @@ def emit_arch(
                 )
             if layer_type == "linear_attention":
                 variant = "linear"
-            elif (not explicit_sliding and layer_type == "sliding_attention") or sliding:
-                variant = "sliding_window"
+            if not explicit_sliding and layer_type == "sliding_attention":
+                sliding = cfg.get("sliding_window")
             extras = {
                 k: cfg[k]
                 for k in (
@@ -272,6 +275,8 @@ def emit_arch(
                     "qk_rope_head_dim",
                     "v_head_dim",
                     "index_topk",
+                    "o_lora_rank",
+                    "o_groups",
                 )
                 if k in cfg
             }
@@ -282,8 +287,11 @@ def emit_arch(
                     or m.path.startswith(module.path + ".indexer.")
                     for m in subtree
                 )
-            if variant == "mla" and extras.get("index_topk"):
-                variant = "sparse"
+            if "compress_ratio" in attrs:
+                # V4 shares a single KV vector across query heads, not an MLA latent cache.
+                variant = "mqa"
+                kv_heads = 1
+                sliding = cfg.get("sliding_window", sliding)
             if variant == "linear":
                 for key, source in (
                     ("num_k_heads", "linear_num_key_heads"),
@@ -295,7 +303,7 @@ def emit_arch(
                     extras[key] = attrs.get(key, cfg.get(source, 0))
                 extras.update(kind="gated_deltanet", output_gate=attrs.get("output_gate", True))
             if "ChunkedLocalAttention" in inner.class_name:
-                extras["attention_chunk_size"] = inner.attrs.get(
+                extras["chunk_size"] = inner.attrs.get(
                     "attention_chunk_size", cfg.get("attention_chunk_size")
                 )
                 extras["kind"] = "chunked_local"
@@ -326,7 +334,9 @@ def emit_arch(
                 heads_kv=int(
                     extras.get(
                         "num_k_heads",
-                        attrs.get("total_num_kv_heads", attrs.get("num_kv_heads", kv_heads)),
+                        1
+                        if "compress_ratio" in attrs
+                        else attrs.get("total_num_kv_heads", attrs.get("num_kv_heads", kv_heads)),
                     )
                 ),
                 head_dim=int(
@@ -348,11 +358,16 @@ def emit_arch(
         raise ValueError(f"unsupported architecture rule kind: {rule.kind}")
 
     def boundary(module, comp):
+        if module.path.rsplit(".", 1)[-1] == "hc_head_op":
+            symbols["HC"] = ArchSymbol(
+                value=int(config.get("hc_mult", 1)), description="Hyper-connection streams"
+            )
+            return ArchIO(inputs=[tensor("residual_streams", ["T", "HC", "H"])], outputs=[tensor()])
         if module.path.rsplit(".", 1)[-1].startswith("mhc_"):
             symbols["HC"] = ArchSymbol(
                 value=int(config.get("hc_mult", 1)), description="Hyper-connection streams"
             )
-            stream = tensor("residual", ["T", "HC", "H"])
+            stream = tensor("residual_streams", ["T", "HC", "H"])
             post = tensor("post_mix", ["T", "HC"])
             mix = tensor("res_mix", ["T", "HC", "HC"])
             name = module.path.rsplit(".", 1)[-1]
@@ -415,10 +430,24 @@ def emit_arch(
 
             if comp.kind == "attention":
                 if comp.variant == "linear":
-                    out("q", f"{comp.heads_kv}*{comp.head_dim}/tp")
-                    out("k", f"{comp.heads_kv}*{comp.head_dim}/tp")
-                    out("v", f"{comp.heads_q}*{comp.extras.get('head_v_dim', comp.head_dim)}/tp")
-                elif h == "H" and comp.heads_q == heads:
+                    kd = comp.heads_kv * comp.head_dim
+                    vd = comp.heads_q * int(comp.extras.get("head_v_dim", comp.head_dim))
+                    out("qkvz", f"{2 * kd + 2 * vd}/tp")
+                    out("ba", f"{2 * comp.heads_q}/tp")
+                    out("conv_out", f"{2 * kd + vd}/tp")
+                    symbols["B"] = ArchSymbol(value=1, description="Sequences in the batch")
+                    internals.append(
+                        tensor(
+                            "recurrent_state",
+                            [
+                                "B",
+                                f"{comp.heads_q}/tp",
+                                str(comp.head_dim),
+                                str(comp.extras.get("head_v_dim", comp.head_dim)),
+                            ],
+                        )
+                    )
+                elif h == "H" and comp.heads_q == heads and comp.heads_kv == kv_heads:
                     symbols.setdefault("Hq", ArchSymbol(value=heads, description="Query heads"))
                     out("q", "Hq*D/tp")
                     out("k", "max(1,Hkv/tp)*D")
@@ -427,15 +456,25 @@ def emit_arch(
                     out("q", f"{comp.heads_q}*{comp.head_dim}/tp")
                     out("k", f"max(1,{comp.heads_kv}/tp)*{comp.head_dim}")
                     out("v", f"max(1,{comp.heads_kv}/tp)*{comp.head_dim}")
-                if comp.extras.get("v_head_dim") and comp.variant in {"mla", "sparse"}:
+                if comp.extras.get("v_head_dim") and comp.variant == "mla":
                     v = next(t for t in internals if t.name == "v")
                     v.shape = ["T", f"{comp.heads_q}*{comp.extras['v_head_dim']}/tp"]
-                if comp.extras.get("qk_rope_head_dim") and comp.variant in {"mla", "sparse"}:
+                if comp.extras.get("qk_rope_head_dim") and comp.variant == "mla":
                     out("k_rope", str(comp.extras["qk_rope_head_dim"]))
                 for key in ("q_lora_rank", "kv_lora_rank"):
                     if comp.extras.get(key):
-                        out(key.removesuffix("_rank") + "_latent", str(comp.extras[key]))
-                out("o", h)
+                        out(key.removesuffix("_lora_rank") + "_latent", str(comp.extras[key]))
+                ratio = int(comp.extras.get("compress_ratio") or 1)
+                if ratio > 1:
+                    internals.append(
+                        tensor("kv_compressed", [f"cdiv(T,{ratio})", str(comp.head_dim)])
+                    )
+                if comp.extras.get("indexer") or (
+                    comp.variant == "mla" and comp.extras.get("index_topk")
+                ):
+                    internals.append(tensor("index_scores", ["T", f"cdiv(T,{ratio})"]))
+                if comp.variant != "linear":
+                    out("o", h)
             elif comp.kind in {"mlp", "moe"}:
                 inter = comp.intermediate if comp.kind == "mlp" else comp.expert.intermediate
                 if comp.kind == "moe":
@@ -451,14 +490,22 @@ def emit_arch(
                     out("router_logits", e)
                     out("topk_ids", k, "int64")
                     out("topk_weights", k)
-                    internals.append(tensor("expert_input", ["T", k, h]))
-                    internals.append(tensor("expert_output", ["T", k, h]))
-                    if "dp" in symbols:
-                        internals.append(tensor("routed_expert_input", [f"T*dp*{k}/ep", h]))
-                        internals.append(tensor("routed_expert_output", [f"T*dp*{k}/ep", h]))
-                out("gate", f"{inter}/tp")
-                out("up", f"{inter}/tp")
-                out("down", h)
+                    routed = f"T*dp*{k}/ep" if "dp" in symbols else f"T*{k}"
+                    internals.append(tensor("expert_input", [routed, h]))
+                    packed = (
+                        f"2*{inter}" if comp.expert.variant in {"swiglu", "geglu"} else str(inter)
+                    )
+                    width = packed if extract.parallel.ep else f"{packed}/tp"
+                    if not extract.parallel.ep and extract.parallel.dp > 1:
+                        width = f"{packed}/(tp*dp)"
+                    internals.append(tensor("expert_gate_up", [routed, width]))
+                    internals.append(tensor("expert_output", [routed, h]))
+                    if comp.shared:
+                        out("shared_output", h)
+                else:
+                    packed = f"2*{inter}" if comp.variant in {"swiglu", "geglu"} else str(inter)
+                    out("gate_up", f"{packed}/tp")
+                    out("act", f"{inter}/tp")
             return ArchIO(inputs=inputs, outputs=outputs, internals=internals)
         # Weight orientation is PyTorch Linear's [out, in]; never run unknown forwards.
         weight = next((p for p in module.params if p.name == "weight" and len(p.shape) == 2), None)
@@ -797,50 +844,61 @@ def emit_arch(
                 )
             last_signature = signature
             consumed.update(m.path for m in subtree)
-        sequence = []
+        sequence, labels = [], []
         for band in bands:
-            label = (
-                "+".join(
-                    (
-                        "chunked"
-                        if s.component.extras.get("kind") == "chunked_local"
-                        else {
-                            "gqa": "GQA attn",
-                            "mha": "MHA attn",
-                            "mqa": "MQA attn",
-                            "mla": "MLA attn",
-                        }.get(s.component.variant, s.component.variant)
-                    )
-                    + (
-                        f" (compress {s.component.extras['compress_ratio']}, indexer {'on' if s.component.extras.get('indexer') else 'off'})"
-                        if "compress_ratio" in s.component.extras
-                        else ""
-                    )
+            attention = next(
+                (
+                    s.component
                     for s in band.block.sublayers
                     if s.component and s.component.kind == "attention"
-                )
-                or "other"
+                ),
+                None,
             )
-            if any(
-                s.component
-                and s.component.kind == "attention"
-                and "compress_ratio" in s.component.extras
-                for s in band.block.sublayers
-            ):
-                band.pattern = label
-            sequence.extend([label] * band.count)
-        for period in range(2, len(sequence) // 2 + 1):
-            if len(set(sequence[:period])) > 1 and all(
-                label == sequence[i % period] for i, label in enumerate(sequence)
-            ):
-                from itertools import groupby
-
+            label = "other"
+            if attention:
+                label = "linear" if attention.variant == "linear" else attention.variant.upper()
+                extras = attention.extras
+                if extras.get("sliding_window"):
+                    label += " SWA"
+                if extras.get("compress_ratio", 1) > 1:
+                    label = attention.variant.upper() + f" ÷{extras['compress_ratio']}"
+                if extras.get("indexer"):
+                    label += " + indexer"
+                if extras.get("chunk_size"):
+                    label += f" chunk {extras['chunk_size']}"
+            # Include FFN, RoPE and mixer semantics, not layer paths or registration order.
+            signature = json.dumps(
+                [
+                    (s.role, s.component.model_dump() if s.component else None)
+                    for s in band.block.sublayers
+                ],
+                sort_keys=True,
+            )
+            sequence.extend([signature] * band.count)
+            labels.extend([label] * band.count)
+        patterns = [None] * len(sequence)
+        start = 0
+        while start < len(sequence):
+            for period in range(2, (len(sequence) - start) // 2 + 1):
+                unit = sequence[start : start + period]
+                if len(set(unit)) < 2 or sequence[start + period : start + 2 * period] != unit:
+                    continue
+                end = start + 2 * period
+                while end < len(sequence) and sequence[end] == unit[(end - start) % period]:
+                    end += 1
                 pattern = " + ".join(
-                    f"{len(list(items))}× {label}" for label, items in groupby(sequence[:period])
+                    f"{len(list(items))}× {label}"
+                    for label, items in groupby(labels[start : start + period])
                 )
-                for band in bands:
-                    band.pattern = pattern
+                patterns[start:end] = [pattern] * (end - start)
+                start = end
                 break
+            else:
+                start += 1
+        offset = 0
+        for band in bands:
+            band.pattern = patterns[offset]
+            offset += band.count
         stack_stages[stack_path] = ArchStackStage(
             id=stack_path,
             label="Vision layers"
@@ -873,8 +931,14 @@ def emit_arch(
                     if rule
                     else "other"
                 )
-                if name in {"patch_embedding", "embeddings"}:
+                if any(k in name for k in ("vision", "visual")) and kind == "container":
+                    rank = 0.5
+                elif name == "multi_modal_projector":
+                    rank = 0.75
+                elif name in {"patch_embedding", "embeddings"}:
                     rank = 0
+                elif name == "hc_head_op":
+                    rank = 1.5
                 elif "norm" in name and any(k in name for k in ("pre", "before")):
                     rank = 0
                 else:
@@ -926,9 +990,7 @@ def emit_arch(
     for root in roots:
         top(root)
     # Aside branches follow the complete spine regardless of registration order.
-    stages.sort(
-        key=lambda stage: (getattr(stage, "placement", "spine") == "aside", stage.kind == "other")
-    )
+    stages.sort(key=lambda stage: getattr(stage, "placement", "spine") == "aside")
     seen = set()
     for item in triage.items:
         symbol = getattr(item, "symbol", getattr(item, "target", None))

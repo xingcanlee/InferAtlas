@@ -143,7 +143,7 @@
                     },
                     "theta": 150000.0
                   },
-                  "variant": "sliding_window"
+                  "variant": "gqa"
                 },
                 "id": "attn",
                 "io": {
@@ -343,27 +343,17 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*2880/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
-                      "shape": ["T", "H"]
+                      "shape": ["T*K", "H"]
                     }
                   ],
                   "outputs": [
@@ -453,7 +443,7 @@
           "count": 1,
           "id": "model.layers:band:0",
           "layers": [0, 0],
-          "pattern": "1× sliding_window + 1× GQA attn"
+          "pattern": "1× GQA SWA + 1× GQA"
         },
         {
           "block": {
@@ -726,27 +716,17 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*2880/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
-                      "shape": ["T", "H"]
+                      "shape": ["T*K", "H"]
                     }
                   ],
                   "outputs": [
@@ -836,7 +816,7 @@
           "count": 1,
           "id": "model.layers:band:1",
           "layers": [1, 1],
-          "pattern": "1× sliding_window + 1× GQA attn"
+          "pattern": "1× GQA SWA + 1× GQA"
         },
         {
           "block": {
@@ -911,7 +891,7 @@
                     },
                     "theta": 150000.0
                   },
-                  "variant": "sliding_window"
+                  "variant": "gqa"
                 },
                 "id": "attn",
                 "io": {
@@ -1111,27 +1091,17 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*2880/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
-                      "shape": ["T", "H"]
+                      "shape": ["T*K", "H"]
                     }
                   ],
                   "outputs": [
@@ -1221,7 +1191,7 @@
           "count": 1,
           "id": "model.layers:band:2",
           "layers": [2, 2],
-          "pattern": "1× sliding_window + 1× GQA attn"
+          "pattern": "1× GQA SWA + 1× GQA"
         },
         {
           "block": {
@@ -1494,27 +1464,17 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*2880/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
-                      "shape": ["T", "H"]
+                      "shape": ["T*K", "H"]
                     }
                   ],
                   "outputs": [
@@ -1604,7 +1564,7 @@
           "count": 1,
           "id": "model.layers:band:3",
           "layers": [3, 3],
-          "pattern": "1× sliding_window + 1× GQA attn"
+          "pattern": "1× GQA SWA + 1× GQA"
         },
         {
           "block": {
@@ -1679,7 +1639,7 @@
                     },
                     "theta": 150000.0
                   },
-                  "variant": "sliding_window"
+                  "variant": "gqa"
                 },
                 "id": "attn",
                 "io": {
@@ -1879,27 +1839,17 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*2880/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
-                      "shape": ["T", "H"]
+                      "shape": ["T*K", "H"]
                     }
                   ],
                   "outputs": [
@@ -1989,7 +1939,7 @@
           "count": 1,
           "id": "model.layers:band:4",
           "layers": [4, 4],
-          "pattern": "1× sliding_window + 1× GQA attn"
+          "pattern": "1× GQA SWA + 1× GQA"
         },
         {
           "block": {
@@ -2262,27 +2212,17 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*2880/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
-                      "shape": ["T", "H"]
+                      "shape": ["T*K", "H"]
                     }
                   ],
                   "outputs": [
@@ -2372,7 +2312,7 @@
           "count": 1,
           "id": "model.layers:band:5",
           "layers": [5, 5],
-          "pattern": "1× sliding_window + 1× GQA attn"
+          "pattern": "1× GQA SWA + 1× GQA"
         },
         {
           "block": {
@@ -2447,7 +2387,7 @@
                     },
                     "theta": 150000.0
                   },
-                  "variant": "sliding_window"
+                  "variant": "gqa"
                 },
                 "id": "attn",
                 "io": {
@@ -2647,27 +2587,17 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*2880/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
-                      "shape": ["T", "H"]
+                      "shape": ["T*K", "H"]
                     }
                   ],
                   "outputs": [
@@ -2757,7 +2687,7 @@
           "count": 1,
           "id": "model.layers:band:6",
           "layers": [6, 6],
-          "pattern": "1× sliding_window + 1× GQA attn"
+          "pattern": "1× GQA SWA + 1× GQA"
         },
         {
           "block": {
@@ -3030,27 +2960,17 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*2880/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
-                      "shape": ["T", "H"]
+                      "shape": ["T*K", "H"]
                     }
                   ],
                   "outputs": [
@@ -3140,7 +3060,7 @@
           "count": 1,
           "id": "model.layers:band:7",
           "layers": [7, 7],
-          "pattern": "1× sliding_window + 1× GQA attn"
+          "pattern": "1× GQA SWA + 1× GQA"
         },
         {
           "block": {
@@ -3215,7 +3135,7 @@
                     },
                     "theta": 150000.0
                   },
-                  "variant": "sliding_window"
+                  "variant": "gqa"
                 },
                 "id": "attn",
                 "io": {
@@ -3415,27 +3335,17 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*2880/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
-                      "shape": ["T", "H"]
+                      "shape": ["T*K", "H"]
                     }
                   ],
                   "outputs": [
@@ -3525,7 +3435,7 @@
           "count": 1,
           "id": "model.layers:band:8",
           "layers": [8, 8],
-          "pattern": "1× sliding_window + 1× GQA attn"
+          "pattern": "1× GQA SWA + 1× GQA"
         },
         {
           "block": {
@@ -3798,27 +3708,17 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*2880/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
-                      "shape": ["T", "H"]
+                      "shape": ["T*K", "H"]
                     }
                   ],
                   "outputs": [
@@ -3908,7 +3808,7 @@
           "count": 1,
           "id": "model.layers:band:9",
           "layers": [9, 9],
-          "pattern": "1× sliding_window + 1× GQA attn"
+          "pattern": "1× GQA SWA + 1× GQA"
         },
         {
           "block": {
@@ -3983,7 +3883,7 @@
                     },
                     "theta": 150000.0
                   },
-                  "variant": "sliding_window"
+                  "variant": "gqa"
                 },
                 "id": "attn",
                 "io": {
@@ -4183,27 +4083,17 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*2880/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
-                      "shape": ["T", "H"]
+                      "shape": ["T*K", "H"]
                     }
                   ],
                   "outputs": [
@@ -4293,7 +4183,7 @@
           "count": 1,
           "id": "model.layers:band:10",
           "layers": [10, 10],
-          "pattern": "1× sliding_window + 1× GQA attn"
+          "pattern": "1× GQA SWA + 1× GQA"
         },
         {
           "block": {
@@ -4566,27 +4456,17 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*2880/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
-                      "shape": ["T", "H"]
+                      "shape": ["T*K", "H"]
                     }
                   ],
                   "outputs": [
@@ -4676,7 +4556,7 @@
           "count": 1,
           "id": "model.layers:band:11",
           "layers": [11, 11],
-          "pattern": "1× sliding_window + 1× GQA attn"
+          "pattern": "1× GQA SWA + 1× GQA"
         },
         {
           "block": {
@@ -4751,7 +4631,7 @@
                     },
                     "theta": 150000.0
                   },
-                  "variant": "sliding_window"
+                  "variant": "gqa"
                 },
                 "id": "attn",
                 "io": {
@@ -4951,27 +4831,17 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*2880/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
-                      "shape": ["T", "H"]
+                      "shape": ["T*K", "H"]
                     }
                   ],
                   "outputs": [
@@ -5061,7 +4931,7 @@
           "count": 1,
           "id": "model.layers:band:12",
           "layers": [12, 12],
-          "pattern": "1× sliding_window + 1× GQA attn"
+          "pattern": "1× GQA SWA + 1× GQA"
         },
         {
           "block": {
@@ -5334,27 +5204,17 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*2880/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
-                      "shape": ["T", "H"]
+                      "shape": ["T*K", "H"]
                     }
                   ],
                   "outputs": [
@@ -5444,7 +5304,7 @@
           "count": 1,
           "id": "model.layers:band:13",
           "layers": [13, 13],
-          "pattern": "1× sliding_window + 1× GQA attn"
+          "pattern": "1× GQA SWA + 1× GQA"
         },
         {
           "block": {
@@ -5519,7 +5379,7 @@
                     },
                     "theta": 150000.0
                   },
-                  "variant": "sliding_window"
+                  "variant": "gqa"
                 },
                 "id": "attn",
                 "io": {
@@ -5719,27 +5579,17 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*2880/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
-                      "shape": ["T", "H"]
+                      "shape": ["T*K", "H"]
                     }
                   ],
                   "outputs": [
@@ -5829,7 +5679,7 @@
           "count": 1,
           "id": "model.layers:band:14",
           "layers": [14, 14],
-          "pattern": "1× sliding_window + 1× GQA attn"
+          "pattern": "1× GQA SWA + 1× GQA"
         },
         {
           "block": {
@@ -6102,27 +5952,17 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*2880/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
-                      "shape": ["T", "H"]
+                      "shape": ["T*K", "H"]
                     }
                   ],
                   "outputs": [
@@ -6212,7 +6052,7 @@
           "count": 1,
           "id": "model.layers:band:15",
           "layers": [15, 15],
-          "pattern": "1× sliding_window + 1× GQA attn"
+          "pattern": "1× GQA SWA + 1× GQA"
         },
         {
           "block": {
@@ -6287,7 +6127,7 @@
                     },
                     "theta": 150000.0
                   },
-                  "variant": "sliding_window"
+                  "variant": "gqa"
                 },
                 "id": "attn",
                 "io": {
@@ -6487,27 +6327,17 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*2880/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
-                      "shape": ["T", "H"]
+                      "shape": ["T*K", "H"]
                     }
                   ],
                   "outputs": [
@@ -6597,7 +6427,7 @@
           "count": 1,
           "id": "model.layers:band:16",
           "layers": [16, 16],
-          "pattern": "1× sliding_window + 1× GQA attn"
+          "pattern": "1× GQA SWA + 1× GQA"
         },
         {
           "block": {
@@ -6870,27 +6700,17 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*2880/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
-                      "shape": ["T", "H"]
+                      "shape": ["T*K", "H"]
                     }
                   ],
                   "outputs": [
@@ -6980,7 +6800,7 @@
           "count": 1,
           "id": "model.layers:band:17",
           "layers": [17, 17],
-          "pattern": "1× sliding_window + 1× GQA attn"
+          "pattern": "1× GQA SWA + 1× GQA"
         },
         {
           "block": {
@@ -7055,7 +6875,7 @@
                     },
                     "theta": 150000.0
                   },
-                  "variant": "sliding_window"
+                  "variant": "gqa"
                 },
                 "id": "attn",
                 "io": {
@@ -7255,27 +7075,17 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*2880/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
-                      "shape": ["T", "H"]
+                      "shape": ["T*K", "H"]
                     }
                   ],
                   "outputs": [
@@ -7365,7 +7175,7 @@
           "count": 1,
           "id": "model.layers:band:18",
           "layers": [18, 18],
-          "pattern": "1× sliding_window + 1× GQA attn"
+          "pattern": "1× GQA SWA + 1× GQA"
         },
         {
           "block": {
@@ -7638,27 +7448,17 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*2880/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
-                      "shape": ["T", "H"]
+                      "shape": ["T*K", "H"]
                     }
                   ],
                   "outputs": [
@@ -7748,7 +7548,7 @@
           "count": 1,
           "id": "model.layers:band:19",
           "layers": [19, 19],
-          "pattern": "1× sliding_window + 1× GQA attn"
+          "pattern": "1× GQA SWA + 1× GQA"
         },
         {
           "block": {
@@ -7823,7 +7623,7 @@
                     },
                     "theta": 150000.0
                   },
-                  "variant": "sliding_window"
+                  "variant": "gqa"
                 },
                 "id": "attn",
                 "io": {
@@ -8023,27 +7823,17 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*2880/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
-                      "shape": ["T", "H"]
+                      "shape": ["T*K", "H"]
                     }
                   ],
                   "outputs": [
@@ -8133,7 +7923,7 @@
           "count": 1,
           "id": "model.layers:band:20",
           "layers": [20, 20],
-          "pattern": "1× sliding_window + 1× GQA attn"
+          "pattern": "1× GQA SWA + 1× GQA"
         },
         {
           "block": {
@@ -8406,27 +8196,17 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*2880/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
-                      "shape": ["T", "H"]
+                      "shape": ["T*K", "H"]
                     }
                   ],
                   "outputs": [
@@ -8516,7 +8296,7 @@
           "count": 1,
           "id": "model.layers:band:21",
           "layers": [21, 21],
-          "pattern": "1× sliding_window + 1× GQA attn"
+          "pattern": "1× GQA SWA + 1× GQA"
         },
         {
           "block": {
@@ -8591,7 +8371,7 @@
                     },
                     "theta": 150000.0
                   },
-                  "variant": "sliding_window"
+                  "variant": "gqa"
                 },
                 "id": "attn",
                 "io": {
@@ -8791,27 +8571,17 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*2880/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
-                      "shape": ["T", "H"]
+                      "shape": ["T*K", "H"]
                     }
                   ],
                   "outputs": [
@@ -8901,7 +8671,7 @@
           "count": 1,
           "id": "model.layers:band:22",
           "layers": [22, 22],
-          "pattern": "1× sliding_window + 1× GQA attn"
+          "pattern": "1× GQA SWA + 1× GQA"
         },
         {
           "block": {
@@ -9174,27 +8944,17 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*2880/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
-                      "shape": ["T", "H"]
+                      "shape": ["T*K", "H"]
                     }
                   ],
                   "outputs": [
@@ -9284,7 +9044,7 @@
           "count": 1,
           "id": "model.layers:band:23",
           "layers": [23, 23],
-          "pattern": "1× sliding_window + 1× GQA attn"
+          "pattern": "1× GQA SWA + 1× GQA"
         },
         {
           "block": {
@@ -9359,7 +9119,7 @@
                     },
                     "theta": 150000.0
                   },
-                  "variant": "sliding_window"
+                  "variant": "gqa"
                 },
                 "id": "attn",
                 "io": {
@@ -9559,27 +9319,17 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*2880/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
-                      "shape": ["T", "H"]
+                      "shape": ["T*K", "H"]
                     }
                   ],
                   "outputs": [
@@ -9669,7 +9419,7 @@
           "count": 1,
           "id": "model.layers:band:24",
           "layers": [24, 24],
-          "pattern": "1× sliding_window + 1× GQA attn"
+          "pattern": "1× GQA SWA + 1× GQA"
         },
         {
           "block": {
@@ -9942,27 +9692,17 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*2880/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
-                      "shape": ["T", "H"]
+                      "shape": ["T*K", "H"]
                     }
                   ],
                   "outputs": [
@@ -10052,7 +9792,7 @@
           "count": 1,
           "id": "model.layers:band:25",
           "layers": [25, 25],
-          "pattern": "1× sliding_window + 1× GQA attn"
+          "pattern": "1× GQA SWA + 1× GQA"
         },
         {
           "block": {
@@ -10127,7 +9867,7 @@
                     },
                     "theta": 150000.0
                   },
-                  "variant": "sliding_window"
+                  "variant": "gqa"
                 },
                 "id": "attn",
                 "io": {
@@ -10327,27 +10067,17 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*2880/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
-                      "shape": ["T", "H"]
+                      "shape": ["T*K", "H"]
                     }
                   ],
                   "outputs": [
@@ -10437,7 +10167,7 @@
           "count": 1,
           "id": "model.layers:band:26",
           "layers": [26, 26],
-          "pattern": "1× sliding_window + 1× GQA attn"
+          "pattern": "1× GQA SWA + 1× GQA"
         },
         {
           "block": {
@@ -10710,27 +10440,17 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*2880/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
-                      "shape": ["T", "H"]
+                      "shape": ["T*K", "H"]
                     }
                   ],
                   "outputs": [
@@ -10820,7 +10540,7 @@
           "count": 1,
           "id": "model.layers:band:27",
           "layers": [27, 27],
-          "pattern": "1× sliding_window + 1× GQA attn"
+          "pattern": "1× GQA SWA + 1× GQA"
         },
         {
           "block": {
@@ -10895,7 +10615,7 @@
                     },
                     "theta": 150000.0
                   },
-                  "variant": "sliding_window"
+                  "variant": "gqa"
                 },
                 "id": "attn",
                 "io": {
@@ -11095,27 +10815,17 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*2880/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
-                      "shape": ["T", "H"]
+                      "shape": ["T*K", "H"]
                     }
                   ],
                   "outputs": [
@@ -11205,7 +10915,7 @@
           "count": 1,
           "id": "model.layers:band:28",
           "layers": [28, 28],
-          "pattern": "1× sliding_window + 1× GQA attn"
+          "pattern": "1× GQA SWA + 1× GQA"
         },
         {
           "block": {
@@ -11478,27 +11188,17 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*2880/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
-                      "shape": ["T", "H"]
+                      "shape": ["T*K", "H"]
                     }
                   ],
                   "outputs": [
@@ -11588,7 +11288,7 @@
           "count": 1,
           "id": "model.layers:band:29",
           "layers": [29, 29],
-          "pattern": "1× sliding_window + 1× GQA attn"
+          "pattern": "1× GQA SWA + 1× GQA"
         },
         {
           "block": {
@@ -11663,7 +11363,7 @@
                     },
                     "theta": 150000.0
                   },
-                  "variant": "sliding_window"
+                  "variant": "gqa"
                 },
                 "id": "attn",
                 "io": {
@@ -11863,27 +11563,17 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*2880/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
-                      "shape": ["T", "H"]
+                      "shape": ["T*K", "H"]
                     }
                   ],
                   "outputs": [
@@ -11973,7 +11663,7 @@
           "count": 1,
           "id": "model.layers:band:30",
           "layers": [30, 30],
-          "pattern": "1× sliding_window + 1× GQA attn"
+          "pattern": "1× GQA SWA + 1× GQA"
         },
         {
           "block": {
@@ -12246,27 +11936,17 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*2880/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
-                      "shape": ["T", "H"]
+                      "shape": ["T*K", "H"]
                     }
                   ],
                   "outputs": [
@@ -12356,7 +12036,7 @@
           "count": 1,
           "id": "model.layers:band:31",
           "layers": [31, 31],
-          "pattern": "1× sliding_window + 1× GQA attn"
+          "pattern": "1× GQA SWA + 1× GQA"
         },
         {
           "block": {
@@ -12431,7 +12111,7 @@
                     },
                     "theta": 150000.0
                   },
-                  "variant": "sliding_window"
+                  "variant": "gqa"
                 },
                 "id": "attn",
                 "io": {
@@ -12631,27 +12311,17 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*2880/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
-                      "shape": ["T", "H"]
+                      "shape": ["T*K", "H"]
                     }
                   ],
                   "outputs": [
@@ -12741,7 +12411,7 @@
           "count": 1,
           "id": "model.layers:band:32",
           "layers": [32, 32],
-          "pattern": "1× sliding_window + 1× GQA attn"
+          "pattern": "1× GQA SWA + 1× GQA"
         },
         {
           "block": {
@@ -13014,27 +12684,17 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*2880/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
-                      "shape": ["T", "H"]
+                      "shape": ["T*K", "H"]
                     }
                   ],
                   "outputs": [
@@ -13124,7 +12784,7 @@
           "count": 1,
           "id": "model.layers:band:33",
           "layers": [33, 33],
-          "pattern": "1× sliding_window + 1× GQA attn"
+          "pattern": "1× GQA SWA + 1× GQA"
         },
         {
           "block": {
@@ -13199,7 +12859,7 @@
                     },
                     "theta": 150000.0
                   },
-                  "variant": "sliding_window"
+                  "variant": "gqa"
                 },
                 "id": "attn",
                 "io": {
@@ -13399,27 +13059,17 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*2880/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
-                      "shape": ["T", "H"]
+                      "shape": ["T*K", "H"]
                     }
                   ],
                   "outputs": [
@@ -13509,7 +13159,7 @@
           "count": 1,
           "id": "model.layers:band:34",
           "layers": [34, 34],
-          "pattern": "1× sliding_window + 1× GQA attn"
+          "pattern": "1× GQA SWA + 1× GQA"
         },
         {
           "block": {
@@ -13782,27 +13432,17 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*2880/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "2880/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
-                      "shape": ["T", "H"]
+                      "shape": ["T*K", "H"]
                     }
                   ],
                   "outputs": [
@@ -13892,7 +13532,7 @@
           "count": 1,
           "id": "model.layers:band:35",
           "layers": [35, 35],
-          "pattern": "1× sliding_window + 1× GQA attn"
+          "pattern": "1× GQA SWA + 1× GQA"
         }
       ],
       "id": "model.layers",

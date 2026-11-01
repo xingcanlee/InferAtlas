@@ -88,6 +88,10 @@ ATTRS = (
     "is_sparse",
     "compress_ratio",
     "index_topk",
+    "o_lora_rank",
+    "o_groups",
+    "attention_chunk_size",
+    "per_layer_sliding_window",
     "index_n_heads",
     "index_head_dim",
 )

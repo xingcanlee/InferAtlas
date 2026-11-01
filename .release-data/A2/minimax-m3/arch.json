@@ -560,6 +560,124 @@
     },
     {
       "component": {
+        "children": [
+          {
+            "class_name": "vllm.model_executor.layers.linear.ColumnParallelLinear",
+            "name": "linear_1"
+          },
+          {
+            "class_name": "vllm.model_executor.layers.linear.RowParallelLinear",
+            "name": "linear_2"
+          }
+        ],
+        "class_name": "vllm.models.minimax_m3.common.vision_tower.MiniMaxVLMultiModalProjector",
+        "kind": "generic"
+      },
+      "id": "vision_tower.multi_modal_projector",
+      "io": {
+        "inputs": [],
+        "internals": [],
+        "outputs": []
+      },
+      "kind": "other",
+      "label": "vision_tower.multi_modal_projector",
+      "module": {
+        "class_name": "vllm.models.minimax_m3.common.vision_tower.MiniMaxVLMultiModalProjector",
+        "flags": [],
+        "params": [
+          {
+            "dtype": "bfloat16",
+            "name": "linear_1.bias",
+            "shape": ["6144/tp"]
+          },
+          {
+            "dtype": "bfloat16",
+            "name": "linear_1.weight",
+            "shape": ["6144/tp", "1280"]
+          },
+          {
+            "dtype": "bfloat16",
+            "name": "linear_2.bias",
+            "shape": ["6144"]
+          },
+          {
+            "dtype": "bfloat16",
+            "name": "linear_2.weight",
+            "shape": ["6144", "6144/tp"]
+          }
+        ],
+        "path": "vision_tower.multi_modal_projector",
+        "replaced": null,
+        "source": {
+          "file": "vllm/models/minimax_m3/common/vision_tower.py",
+          "line": 525,
+          "url": "https://github.com/vllm-project/vllm/blob/544f182d9f0c9bfe8bd7645525951d5e3692a542/vllm/models/minimax_m3/common/vision_tower.py#L525"
+        },
+        "status": "generic"
+      },
+      "placement": "spine"
+    },
+    {
+      "component": {
+        "children": [
+          {
+            "class_name": "vllm.model_executor.layers.linear.ColumnParallelLinear",
+            "name": "linear_1"
+          },
+          {
+            "class_name": "vllm.model_executor.layers.linear.RowParallelLinear",
+            "name": "linear_2"
+          }
+        ],
+        "class_name": "vllm.models.minimax_m3.common.vision_tower.MiniMaxVLPatchMerger",
+        "kind": "generic"
+      },
+      "id": "vision_tower.patch_merge_mlp",
+      "io": {
+        "inputs": [],
+        "internals": [],
+        "outputs": []
+      },
+      "kind": "other",
+      "label": "vision_tower.patch_merge_mlp",
+      "module": {
+        "class_name": "vllm.models.minimax_m3.common.vision_tower.MiniMaxVLPatchMerger",
+        "flags": [],
+        "params": [
+          {
+            "dtype": "bfloat16",
+            "name": "linear_1.bias",
+            "shape": ["6144/tp"]
+          },
+          {
+            "dtype": "bfloat16",
+            "name": "linear_1.weight",
+            "shape": ["6144/tp", "24576"]
+          },
+          {
+            "dtype": "bfloat16",
+            "name": "linear_2.bias",
+            "shape": ["6144"]
+          },
+          {
+            "dtype": "bfloat16",
+            "name": "linear_2.weight",
+            "shape": ["6144", "6144/tp"]
+          }
+        ],
+        "path": "vision_tower.patch_merge_mlp",
+        "replaced": null,
+        "source": {
+          "file": "vllm/models/minimax_m3/common/vision_tower.py",
+          "line": 566,
+          "url": "https://github.com/vllm-project/vllm/blob/544f182d9f0c9bfe8bd7645525951d5e3692a542/vllm/models/minimax_m3/common/vision_tower.py#L566"
+        },
+        "status": "generic"
+      },
+      "placement": "spine"
+    },
+    {
+      "component": {
         "hidden": 6144,
         "kind": "embedding",
         "tied": false,
@@ -843,18 +961,13 @@
                   "internals": [
                     {
                       "dtype": "bfloat16",
-                      "name": "gate",
+                      "name": "gate_up",
                       "shape": ["T", "12288/tp"]
                     },
                     {
                       "dtype": "bfloat16",
-                      "name": "up",
+                      "name": "act",
                       "shape": ["T", "12288/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
-                      "shape": ["T", "H"]
                     }
                   ],
                   "outputs": [
@@ -1184,26 +1297,21 @@
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": ["T*K", "2*3072/tp"]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T", "K", "H"]
+                      "shape": ["T*K", "H"]
                     },
                     {
                       "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": ["T", "3072/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": ["T", "3072/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
+                      "name": "shared_output",
                       "shape": ["T", "H"]
                     }
                   ],
@@ -1396,124 +1504,6 @@
           "url": "https://github.com/vllm-project/vllm-ascend/blob/24a76e84394ae3427195e3715fc08e90769d398c/vllm_ascend/ops/vocab_parallel_embedding.py#L420"
         },
         "status": "unannotated_override"
-      },
-      "placement": "spine"
-    },
-    {
-      "component": {
-        "children": [
-          {
-            "class_name": "vllm.model_executor.layers.linear.ColumnParallelLinear",
-            "name": "linear_1"
-          },
-          {
-            "class_name": "vllm.model_executor.layers.linear.RowParallelLinear",
-            "name": "linear_2"
-          }
-        ],
-        "class_name": "vllm.models.minimax_m3.common.vision_tower.MiniMaxVLMultiModalProjector",
-        "kind": "generic"
-      },
-      "id": "vision_tower.multi_modal_projector",
-      "io": {
-        "inputs": [],
-        "internals": [],
-        "outputs": []
-      },
-      "kind": "other",
-      "label": "vision_tower.multi_modal_projector",
-      "module": {
-        "class_name": "vllm.models.minimax_m3.common.vision_tower.MiniMaxVLMultiModalProjector",
-        "flags": [],
-        "params": [
-          {
-            "dtype": "bfloat16",
-            "name": "linear_1.bias",
-            "shape": ["6144/tp"]
-          },
-          {
-            "dtype": "bfloat16",
-            "name": "linear_1.weight",
-            "shape": ["6144/tp", "1280"]
-          },
-          {
-            "dtype": "bfloat16",
-            "name": "linear_2.bias",
-            "shape": ["6144"]
-          },
-          {
-            "dtype": "bfloat16",
-            "name": "linear_2.weight",
-            "shape": ["6144", "6144/tp"]
-          }
-        ],
-        "path": "vision_tower.multi_modal_projector",
-        "replaced": null,
-        "source": {
-          "file": "vllm/models/minimax_m3/common/vision_tower.py",
-          "line": 525,
-          "url": "https://github.com/vllm-project/vllm/blob/544f182d9f0c9bfe8bd7645525951d5e3692a542/vllm/models/minimax_m3/common/vision_tower.py#L525"
-        },
-        "status": "generic"
-      },
-      "placement": "spine"
-    },
-    {
-      "component": {
-        "children": [
-          {
-            "class_name": "vllm.model_executor.layers.linear.ColumnParallelLinear",
-            "name": "linear_1"
-          },
-          {
-            "class_name": "vllm.model_executor.layers.linear.RowParallelLinear",
-            "name": "linear_2"
-          }
-        ],
-        "class_name": "vllm.models.minimax_m3.common.vision_tower.MiniMaxVLPatchMerger",
-        "kind": "generic"
-      },
-      "id": "vision_tower.patch_merge_mlp",
-      "io": {
-        "inputs": [],
-        "internals": [],
-        "outputs": []
-      },
-      "kind": "other",
-      "label": "vision_tower.patch_merge_mlp",
-      "module": {
-        "class_name": "vllm.models.minimax_m3.common.vision_tower.MiniMaxVLPatchMerger",
-        "flags": [],
-        "params": [
-          {
-            "dtype": "bfloat16",
-            "name": "linear_1.bias",
-            "shape": ["6144/tp"]
-          },
-          {
-            "dtype": "bfloat16",
-            "name": "linear_1.weight",
-            "shape": ["6144/tp", "24576"]
-          },
-          {
-            "dtype": "bfloat16",
-            "name": "linear_2.bias",
-            "shape": ["6144"]
-          },
-          {
-            "dtype": "bfloat16",
-            "name": "linear_2.weight",
-            "shape": ["6144", "6144/tp"]
-          }
-        ],
-        "path": "vision_tower.patch_merge_mlp",
-        "replaced": null,
-        "source": {
-          "file": "vllm/models/minimax_m3/common/vision_tower.py",
-          "line": 566,
-          "url": "https://github.com/vllm-project/vllm/blob/544f182d9f0c9bfe8bd7645525951d5e3692a542/vllm/models/minimax_m3/common/vision_tower.py#L566"
-        },
-        "status": "generic"
       },
       "placement": "spine"
     }

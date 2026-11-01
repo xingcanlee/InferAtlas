@@ -202,7 +202,7 @@
                     },
                     {
                       "dtype": "bfloat16",
-                      "name": "q_lora_latent",
+                      "name": "q_latent",
                       "shape": [
                         "T",
                         "8"
@@ -210,7 +210,7 @@
                     },
                     {
                       "dtype": "bfloat16",
-                      "name": "kv_lora_latent",
+                      "name": "kv_latent",
                       "shape": [
                         "T",
                         "4"
@@ -354,26 +354,18 @@
                   "internals": [
                     {
                       "dtype": "bfloat16",
-                      "name": "gate",
+                      "name": "gate_up",
                       "shape": [
                         "T",
-                        "48/tp"
+                        "2*48/tp"
                       ]
                     },
                     {
                       "dtype": "bfloat16",
-                      "name": "up",
+                      "name": "act",
                       "shape": [
                         "T",
                         "48/tp"
-                      ]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
-                      "shape": [
-                        "T",
-                        "H"
                       ]
                     }
                   ],
@@ -569,7 +561,7 @@
                     },
                     {
                       "dtype": "bfloat16",
-                      "name": "q_lora_latent",
+                      "name": "q_latent",
                       "shape": [
                         "T",
                         "8"
@@ -577,7 +569,7 @@
                     },
                     {
                       "dtype": "bfloat16",
-                      "name": "kv_lora_latent",
+                      "name": "kv_latent",
                       "shape": [
                         "T",
                         "4"
@@ -761,39 +753,29 @@
                       "dtype": "bfloat16",
                       "name": "expert_input",
                       "shape": [
-                        "T",
-                        "K",
+                        "T*K",
                         "H"
+                      ]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "expert_gate_up",
+                      "shape": [
+                        "T*K",
+                        "2*12/tp"
                       ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
                       "shape": [
-                        "T",
-                        "K",
+                        "T*K",
                         "H"
                       ]
                     },
                     {
                       "dtype": "bfloat16",
-                      "name": "gate",
-                      "shape": [
-                        "T",
-                        "12/tp"
-                      ]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "up",
-                      "shape": [
-                        "T",
-                        "12/tp"
-                      ]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "down",
+                      "name": "shared_output",
                       "shape": [
                         "T",
                         "H"

@@ -1,5 +1,6 @@
 """Structure survives missing rules, heterogeneity and numeric review notes."""
 
+import re
 import runpy
 
 import pytest
@@ -144,7 +145,7 @@ def test_linear_sliding_and_mqa_variants_split_actual_bands(facts):
     arch = architecture(facts)
     assert [b.block.sublayers[1].component.variant for b in bands(arch)] == [
         "linear",
-        "sliding_window",
+        "mla",
         "mla",
     ]
     facts.config["num_key_value_heads"] = 1
@@ -354,7 +355,7 @@ def test_v11_targets_residuals_and_informative_io(facts):
                 assert sub.component is sub.module is None
     attention = bands(arch)[0].block.sublayers[1]
     assert next(t for t in attention.io.internals if t.name == "v").shape == ["T", "4*4/tp"]
-    assert {t.name for t in attention.io.internals} >= {"q", "k", "v", "o", "kv_lora_latent"}
+    assert {t.name for t in attention.io.internals} >= {"q", "k", "v", "o", "kv_latent"}
     moe = bands(arch)[-1].block.sublayers[4]
     tensors = {t.name: t for t in moe.io.internals}
     assert tensors["router_logits"].shape == ["T", "E"]
@@ -369,7 +370,8 @@ def test_sliding_none_and_window_layer_direction(facts):
     module.attrs["sliding_window"] = None
     arch = architecture(facts)
     assert bands(arch)[0].block.sublayers[1].component.variant == "mla"
-    assert bands(arch)[1].block.sublayers[1].component.variant == "sliding_window"
+    assert bands(arch)[1].block.sublayers[1].component.variant == "mla"
+    assert bands(arch)[1].block.sublayers[1].component.extras["sliding_window"] == 128
 
 
 def test_tp_parameter_shapes_match_observed_rank_and_recompute(runtime):
@@ -432,9 +434,13 @@ def test_ep_shapes_declare_and_use_parallel_symbols(facts):
     arch = architecture(facts)
     assert {"tp", "dp", "ep"} <= arch.symbols.keys()
     moe = bands(arch)[-1].block.sublayers[4]
-    assert next(t for t in moe.io.internals if t.name == "routed_expert_input").shape == [
+    assert next(t for t in moe.io.internals if t.name == "expert_input").shape == [
         "T*dp*K/ep",
         "H",
+    ]
+    assert next(t for t in moe.io.internals if t.name == "expert_gate_up").shape == [
+        "T*dp*K/ep",
+        "2*12",
     ]
 
 
@@ -455,7 +461,11 @@ def test_v12_boundaries_generic_slots_and_note_deduplication(facts):
         assert band.block.sublayers[1].role == "mixer"
         ffn = band.block.sublayers[4]
         assert [t.name for t in ffn.io.outputs] == ["hidden_states"]
-        assert {t.name for t in ffn.io.internals} >= {"gate", "up", "down"}
+        assert {t.name for t in ffn.io.internals} >= (
+            {"gate_up", "act"}
+            if ffn.component.kind == "mlp"
+            else {"expert_gate_up", "expert_output", "shared_output"}
+        )
     generic = [n for n in arch.notes if n.text.startswith("Generic component")]
     assert len(generic) == 1
     unknown = [n for n in arch.notes if n.triage_kind == "unknown_layer_class"]
@@ -472,8 +482,8 @@ def test_stage_order_ignores_head_first_registration_and_sorts_stack_norms(facts
         "embedding",
         "stack",
         "norm",
-        "lm_head",
         "other",
+        "lm_head",
     ]
 
 
@@ -503,7 +513,20 @@ def test_vision_mlp_uses_fc_width_and_patch_tokens(facts):
             ),
         ]
     )
+    facts.modules.extend(
+        [
+            ExtractModule(path="vision.adapter", class_name="vendor.Adapter"),
+            ExtractModule(path="multi_modal_projector", class_name="vendor.Projector"),
+        ]
+    )
     arch = architecture(facts)
+    ids = [s.id for s in arch.stages]
+    assert (
+        ids.index("vision.layers")
+        < ids.index("vision.adapter")
+        < ids.index("multi_modal_projector")
+        < ids.index("model.embed_tokens")
+    )
     stage = next(s for s in arch.stages if s.id == "vision.layers")
     mlp = stage.bands[0].block.sublayers[0]
     assert mlp.io.inputs[0].shape == mlp.io.outputs[0].shape == ["P", "1408"]
@@ -511,7 +534,7 @@ def test_vision_mlp_uses_fc_width_and_patch_tokens(facts):
 
 
 def test_deepseek_v4_hyper_connection_io_and_compression(facts):
-    facts.config["hc_mult"] = 4
+    facts.config.update(hc_mult=4, sliding_window=128, o_lora_rank=32, o_groups=4)
     for m in facts.modules:
         if m.path == "model.layers.0":
             m.class_name = "vllm.models.deepseek_v4.cpu.model.DeepseekV4DecoderLayer"
@@ -538,6 +561,17 @@ def test_deepseek_v4_hyper_connection_io_and_compression(facts):
     attn = next(s for s in block.sublayers if s.id == "attn")
     assert attn.component.extras["compress_ratio"] == 4
     assert attn.component.extras["indexer"] is False
+    assert attn.component.variant == "mqa"
+    assert attn.component.heads_kv == 1
+    assert attn.component.extras["sliding_window"] == 128
+    assert attn.component.extras["o_lora_rank"] == 32
+    assert attn.component.extras["o_groups"] == 4
+    for sub in block.sublayers:
+        if sub.id.startswith("mhc_"):
+            assert sub.role == "other" and sub.component.kind == "generic"
+            stream = next(t for t in sub.io.inputs if t.name == "residual_streams")
+            assert stream.shape == ["T", "HC", "H"]
+    assert "kv_compressed" in {t.name for t in attn.io.internals}
     assert [t.name for t in attn.io.outputs] == ["hidden_states"]
 
 
@@ -582,3 +616,67 @@ def test_expert_bias_uses_same_tp_axis_and_expert_symbol_as_weight(facts):
     params = {p.name: p.shape for p in ref.params}
     assert params["experts.w13_bias"] == params["experts.w13_weight"][:2] == ["E", "24/tp"]
     assert params["experts.w2_bias"] == ["E", "16"]
+
+
+@pytest.mark.parametrize("mode", ["compressed", "sliding", "linear", "rope"])
+def test_period_labels_exclude_prefix_tail_and_cover_entire_period(facts, mode):
+    template = [m for m in facts.modules if m.path.startswith("model.layers.0")]
+    facts.modules = [m for m in facts.modules if not re.search(r"layers\.\d+", m.path)]
+    # Unique endcaps surround three complete two-layer periods.
+    for index in range(8):
+        for original in template:
+            module = original.model_copy(deep=True)
+            module.path = original.path.replace("layers.0", f"layers.{index}")
+            if module.path.endswith("self_attn"):
+                module.class_name = "vllm.model_executor.models.qwen3.Qwen3Attention"
+                marker = 9 if index in (0, 7) else index % 2
+                if mode == "compressed":
+                    module.attrs["compress_ratio"] = (marker + 1) * 4
+                elif mode == "sliding":
+                    module.attrs["per_layer_sliding_window"] = 128 * marker
+                elif mode == "linear":
+                    if marker == 1:
+                        module.class_name = "vllm.model_executor.layers.mamba.gdn.qwen_gdn_linear_attn.QwenGatedDeltaNetAttention"
+                    module.attrs["use_qk_norm"] = marker == 9
+                else:
+                    module.attrs["nope"] = marker == 1
+                    module.attrs["use_qk_norm"] = marker == 9
+            facts.modules.append(module)
+    facts.layer_types = ["full_attention"] * 8
+    result = bands(architecture(facts))
+    assert result[0].pattern is result[-1].pattern is None
+    assert len({b.pattern for b in result[1:-1]}) == 1
+    assert result[1].pattern is not None
+
+
+def test_hc_head_merges_streams_before_norm(facts):
+    facts.config["hc_mult"] = 4
+    facts.modules.append(ExtractModule(path="model.hc_head_op", class_name="vllm.mhc.HCHeadOp"))
+    arch = architecture(facts)
+    ids = [s.id for s in arch.stages]
+    assert ids.index("model.layers") < ids.index("model.hc_head_op") < ids.index("model.norm")
+    head = next(s for s in arch.stages if s.id == "model.hc_head_op")
+    assert head.kind == "other" and head.placement == "spine"
+    assert head.io.inputs[0].name == "residual_streams"
+    assert head.io.inputs[0].shape == ["T", "HC", "H"]
+    assert head.io.outputs[0].shape == ["T", "H"]
+
+
+def test_hash_router_uses_observed_lookup_table(facts):
+    facts.modules.append(
+        ExtractModule(
+            path="model.layers.2.mlp.gate",
+            class_name="vendor.Gate",
+            params=[ExtractParam(name="tid2eid", shape=[32, 2], dtype="int32")],
+        )
+    )
+    result = bands(architecture(facts))
+    assert [
+        next(
+            s.component.router.scoring
+            for s in b.block.sublayers
+            if s.component and s.component.kind == "moe"
+        )
+        for b in result
+        if b.layers[0] >= 2
+    ] == ["hash", "sigmoid"]
