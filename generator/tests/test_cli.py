@@ -117,6 +117,9 @@ def test_standalone_provenance_survives_commands(tmp_path):
 
 
 def test_build_complete_deterministic_and_removes_stale_outputs(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        cli, "annotate_stage", lambda ir, *args: (ir, Triage(snapshot=ir.snapshot, items=[]))
+    )
     invoke("build", "--output", tmp_path, code=3)
     expected = {
         "snapshot.json",
@@ -129,6 +132,9 @@ def test_build_complete_deterministic_and_removes_stale_outputs(tmp_path, monkey
         "provenance.json",
     }
     assert {p.name for p in tmp_path.iterdir()} == expected
+    checks = read_json(tmp_path / "report.json")["checks"]
+    assert next(c for c in checks if c["id"] == "default_parameters")["status"] == "skip"
+    assert read_json(tmp_path / "ir.json")["params"]["tp"]["default"] == "1"
     first = {p.name: p.read_bytes() for p in tmp_path.iterdir()}
     invoke("build", "--output", tmp_path, "--tp", 4, "--tp", 1, code=3)
     assert first == {p.name: p.read_bytes() for p in tmp_path.iterdir()}
@@ -145,6 +151,21 @@ def test_build_complete_deterministic_and_removes_stale_outputs(tmp_path, monkey
         c["id"] == "layout" and c["status"] == "fail"
         for c in read_json(tmp_path / "report.json")["checks"]
     )
+
+
+def test_triage_skips_defaults_and_layout_and_removes_stale_view(tmp_path, monkeypatch):
+    (tmp_path / "view.json").write_text("stale")
+    monkeypatch.setattr(cli, "select_default_tp", lambda *args: pytest.fail("defaults ran"))
+    monkeypatch.setattr(cli, "layout_stage", lambda *args: pytest.fail("layout ran"))
+    invoke("build", "--output", tmp_path, code=3)
+    assert read_json(tmp_path / "triage.json")["items"]
+    assert not (tmp_path / "view.json").exists()
+    checks = {c["id"]: c for c in read_json(tmp_path / "report.json")["checks"]}
+    assert "default_parameters" not in checks
+    for name in ("weights.tp1", "weights.tp4", "golden", "evaluation", "calibration", "layout"):
+        assert checks[name]["status"] == "skip"
+        assert "blocked by triage" in checks[name]["message"].lower()
+    assert checks["provenance"]["status"] == "fail"
 
 
 def test_missing_fixture_preserves_previous_numeric_generation(tmp_path):

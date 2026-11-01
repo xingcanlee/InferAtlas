@@ -634,17 +634,22 @@ def build_pipeline(
         report = report_stage(ir, extracts, triage)
         if default_check is not None:
             report.checks.append(default_check)
-        try:
-            layout_stage(pending / "ir.json", pending / "view.json")
+        if triage.items:
             report.checks.append(
-                Check(id="layout", status="pass", message="View validates against IR.")
+                Check(id="layout", status="skip", message="Blocked by triage; resolve it first.")
             )
-        except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
-            (pending / "view.json").unlink(missing_ok=True)
-            warning(f"Layout failed: {error}")
-            report.checks.append(
-                Check(id="layout", status="fail", message="Layout generation failed.")
-            )
+        else:
+            try:
+                layout_stage(pending / "ir.json", pending / "view.json")
+                report.checks.append(
+                    Check(id="layout", status="pass", message="View validates against IR.")
+                )
+            except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
+                (pending / "view.json").unlink(missing_ok=True)
+                warning(f"Layout failed: {error}")
+                report.checks.append(
+                    Check(id="layout", status="fail", message="Layout generation failed.")
+                )
         if _used_fixtures.get():
             provenance = next(check for check in report.checks if check.id == "provenance")
             provenance.status = "fail"

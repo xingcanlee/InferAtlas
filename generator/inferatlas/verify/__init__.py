@@ -52,8 +52,13 @@ def verify_ir(
         )
     )
     evaluator = evaluator or Evaluator()
+    blocked = bool(triage and triage.items)
+    blocked_message = "Blocked by triage; resolve it first."
     for extract in sorted(extracts, key=lambda item: item.parallel.tp):
         check_id = f"weights.tp{extract.parallel.tp}"
+        if blocked:
+            checks.append(Check(id=check_id, status="skip", message=blocked_message))
+            continue
         try:
             sizes = {"bfloat16": 2, "float16": 2, "float32": 4}
             observed = sum(
@@ -82,10 +87,8 @@ def verify_ir(
         except (ValueError, KeyError, OSError, RuntimeError, subprocess.SubprocessError) as error:
             checks.append(Check(id=check_id, status="fail", message=str(error)))
     diffs = []
-    if triage and triage.items:
-        checks.append(
-            Check(id="golden", status="skip", message="Blocked by triage; resolve it first.")
-        )
+    if blocked:
+        checks.append(Check(id="golden", status="skip", message=blocked_message))
     else:
         try:
             diffs = check_golden(golden_dir or golden_path(ir), ir, evaluator)
@@ -103,13 +106,21 @@ def verify_ir(
     checks.append(
         Check(
             id="evaluation",
-            status=("skip" if allow_fixtures else "fail") if unavailable else "pass",
-            message="SKIPPED numeric evaluation; node/dist unavailable."
-            if unavailable
-            else "Evaluated using node.",
+            status="skip"
+            if blocked
+            else (("skip" if allow_fixtures else "fail") if unavailable else "pass"),
+            message=blocked_message
+            if blocked
+            else (
+                "SKIPPED numeric evaluation; node/dist unavailable."
+                if unavailable
+                else "Evaluated using node."
+            ),
         )
     )
-    if calibration is None:
+    if blocked:
+        checks.append(Check(id="calibration", status="skip", message=blocked_message))
+    elif calibration is None:
         checks.append(Check(id="calibration", status="skip", message="No calibration supplied."))
     else:
         try:

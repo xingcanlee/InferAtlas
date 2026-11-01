@@ -16,6 +16,9 @@ No weights were downloaded and no accelerator kernels ran.
   device, keeping every other default. If no choice fits, the smallest valid TP
   remains selected and the zero-capacity warning remains truthful. The rule is
   recorded in the IR TP description and report's `default_parameters` check.
+- Missing Node keeps the extracted TP default and records a skipped
+  `default_parameters` check for fixture builds. Real evaluator failures propagate;
+  only declared parameter domain/constraint violations skip a TP candidate.
 - MoE A2 now opens at TP=2 with **471,936 KV-capacity tokens**, rather than TP=1
   with zero capacity. MoE H100 stays at TP=1 (80,128 tokens); dense A2/H100 stay
   at TP=1 (253,312 / 356,352 tokens). These are formula estimates, not calibration.
@@ -33,15 +36,16 @@ No weights were downloaded and no accelerator kernels ran.
 | --- | --- | --- |
 | Qwen/Qwen3-30B-A3B | verified; default TP=2 | verified; default TP=1 |
 | Qwen/Qwen3-8B | verified; default TP=1 | verified; default TP=1 |
-| deepseek-ai/DeepSeek-V3 | triage: 1 `extraction_failure` | triage: 668 lowering items; weights/layout also fail |
+| deepseek-ai/DeepSeek-V3 | triage: 1 `extraction_failure` | triage: 668 lowering items; numeric checks/layout skipped |
 
 DeepSeek differs by device: A2's mock rotary-cache constructor requests an NPU
 allocation and raises `NotImplementedError`. H100 baseline extraction succeeds,
-then unsupported MLA lowering, weight accounting and an over-budget layout
-block publication. Its actual diagnosis is retained, not relabelled as an
-extraction failure. `release` therefore exits **3**, after still producing the
-hub and all four verified exports. A release containing only coverage/extraction
-triage would exit 2. Neither DeepSeek cell publishes numeric data.
+then unsupported MLA lowering produces 668 blocking triage items. As required by
+design §5.5, weights, golden, evaluation, calibration and layout checks skip
+with “Blocked by triage”; no view is generated and default selection does not
+run. `release` exits **2**, after producing the hub and four verified exports.
+Source-link and provenance failures still exit 3. Neither DeepSeek cell publishes
+numeric data.
 
 The Pages matrix has 4 `ok`, 2 `triage`, and 24 `missing` cells. The hub includes
 the selected main-verified pair: 4 `ok`, 2 `triage`, and 9 `missing` cells. Other
@@ -82,7 +86,7 @@ pnpm install --frozen-lockfile
 uv sync --project generator --python 3.12
 pnpm --filter '@inferatlas/*' -r build
 
-# All catalog models × A2/H100; expected exit 3 for the DeepSeek H100 failures.
+# All catalog models × A2/H100; expected exit 2 for blocked DeepSeek triage.
 just release
 # Equivalent: uv run --project generator inferatlas release --out dist
 # Optional subset: just release --models qwen3-8b --devices A2 H100
@@ -95,9 +99,8 @@ that the final public HTML set is exactly the hub plus the four Qwen exports.
 Do not reuse an old DeepSeek page or a device-less export from H1.
 
 Build Pages from the same release results. As in H2, stage blocked cells as
-triage-only directories: the site refuses failed numeric verification even with
-`--include-blocked`. This copies real triage without editing reports or inventing
-blockers:
+triage-only directories. This retains the existing status-only staging procedure
+and copies real triage without editing reports or inventing blockers:
 
 ```bash
 uv run --project generator python - <<'PY'
@@ -145,11 +148,12 @@ TP recompute, URL state, analysis tabs, and the honest unavailable diff state.
 The real hub is opened over file:// at 1280×800, checked in both themes, and
 followed to every named single file and back through “All models”. Each export
 opens on the embedded model without a hash and selects its device-aware TP.
+The Pages MoE A2 route also explicitly asserts default TP2 and no zero-capacity warning.
 Offline navigation and recomputation reject HTTP(S) requests, console errors
 and page exceptions. The intentional site DeepSeek deep link allows exactly its
 status-derived loader console error; additional errors fail the test.
 
-- Python: 793 passed, including the real CPU/meta extraction acceptance cases.
+- Python: 811 passed, including the real CPU/meta extraction acceptance cases.
 - Workspace: contracts 2, expressions 499, layout 25 and web 45 passed.
   Ruff/Biome and TypeScript passed.
 - Chromium release suite: 32 passed; two demo-only cases skipped. All four

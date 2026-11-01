@@ -91,6 +91,10 @@ test("release model captures light, dark, overlay and smaller desktop", async ({
   await page.emulateMedia({ colorScheme: "light" });
   await page.goto(`./${route}`);
   await expect(page.getByTestId("node-decoder")).toBeVisible();
+  await expect(
+    page.getByTestId("param-tp").getByRole("radio", { name: "2", exact: true }),
+  ).toHaveAttribute("aria-checked", "true");
+  await expect(page.getByText(/no KV cache fits/i)).toHaveCount(0);
   await fits(page);
   await screenshot(page, "model-light");
   await page.getByTestId("theme-toggle").click();

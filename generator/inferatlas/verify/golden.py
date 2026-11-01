@@ -91,6 +91,10 @@ def format_diff(items: list[GoldenDifference]) -> str:
     )
 
 
+class ParameterDomainError(ValueError):
+    """A bound parameter is outside its declared domain or constraint."""
+
+
 class Evaluator:
     """Small process adapter; an installed-but-broken evaluator is a failure."""
 
@@ -188,14 +192,14 @@ class Evaluator:
                     if bound is not None and direction * value > direction * self.scalar(
                         bound, env
                     ):
-                        raise ValueError(f"{name} outside parameter domain")
+                        raise ParameterDomainError(f"{name} outside parameter domain")
                 if param.step is not None:
                     step = self.scalar(param.step, env)
                     origin = self.scalar(param.min, env) if param.min is not None else 0
                     if step <= 0 or not math.isclose(
                         (value - origin) / step, round((value - origin) / step), abs_tol=1e-9
                     ):
-                        raise ValueError(f"{name} outside parameter step")
+                        raise ParameterDomainError(f"{name} outside parameter step")
             elif param.kind == "boolean" and type(value) is not bool:
                 raise ValueError(f"{name} must be a boolean")
             elif param.kind in ("dtype", "enum") and not isinstance(value, str):
@@ -206,10 +210,12 @@ class Evaluator:
                     for c in param.choices
                 ]
                 if value not in choices:
-                    raise ValueError(f"{name} outside parameter choices")
+                    raise ParameterDomainError(f"{name} outside parameter choices")
         for name, param in sorted(ir.params.items()):
             if param.constraint and not self.scalar(param.constraint, env):
-                raise ValueError(f"{name} violates parameter constraint: {param.constraint}")
+                raise ParameterDomainError(
+                    f"{name} violates parameter constraint: {param.constraint}"
+                )
         return env
 
 

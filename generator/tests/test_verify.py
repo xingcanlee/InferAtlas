@@ -257,7 +257,7 @@ def test_report_contract_and_exit_precedence(ir, runtime, monkeypatch, tmp_path)
     assert exit_code(report, triage) == 2
     assert next(c for c in report.checks if c.id == "golden").status == "skip"
     assert report.golden_diff == []
-    assert next(c for c in report.checks if c.id == "evaluation").status == "pass"
+    assert next(c for c in report.checks if c.id == "evaluation").status == "skip"
     report.checks.append(Check(id="golden", status="fail", message="drift"))
     assert exit_code(report, triage) == 3
     assert (
@@ -273,6 +273,36 @@ def test_report_contract_and_exit_precedence(ir, runtime, monkeypatch, tmp_path)
     )
     with pytest.raises(ValueError, match="triage snapshot"):
         verify_ir(ir, triage=wrong, repos={}, evaluator=runtime)
+
+
+@pytest.mark.parametrize("failure", [None, "source_links", "provenance"])
+def test_triage_blocks_numeric_work_but_preserves_integrity_failures(
+    ir, runtime, monkeypatch, failure
+):
+    import inferatlas.verify as verify
+
+    if failure != "source_links":
+        monkeypatch.setattr(verify, "check_sources", lambda *args: [])
+    monkeypatch.setattr(runtime, "bind", lambda *args: pytest.fail("numeric binding attempted"))
+    monkeypatch.setattr(verify, "check_golden", lambda *args: pytest.fail("golden attempted"))
+    triage = Triage.model_validate(read_json(FIXTURE / "triage.json"))
+    extract = Extract.model_validate(read_json(FIXTURE / "extract.json"))
+    extract.fixture = failure == "provenance"
+    report = verify_ir(
+        ir,
+        extracts=[extract],
+        triage=triage,
+        repos={},
+        evaluator=runtime,
+        calibration={"weight_bytes": 1},
+    )
+    checks = {c.id: c for c in report.checks}
+    for name in ("weights.tp1", "golden", "evaluation", "calibration"):
+        assert checks[name].status == "skip"
+        assert "blocked by triage" in checks[name].message.lower()
+    assert exit_code(report, triage) == (3 if failure else 2)
+    if failure:
+        assert checks[failure].status == "fail"
 
 
 def test_duplicate_ids_are_a_difference(ir, runtime, tmp_path):

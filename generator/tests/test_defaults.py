@@ -1,11 +1,14 @@
 """Release defaults use the real device ledger and Node expression semantics."""
 
+import subprocess
+
 import pytest
 from t6_runtime import node_backend as node_backend
 from t6_runtime import runtime as runtime
 
 from inferatlas.schema import IR
 from inferatlas.verify.defaults import TP_DEFAULT_RULE, select_default_tp
+from inferatlas.verify.golden import Evaluator, ParameterDomainError
 from inferatlas.verify.io import ROOT, read_json
 
 
@@ -65,3 +68,68 @@ def test_no_valid_candidate_fails(ir, runtime):
     ir.params["tp"].constraint = "tp>8"
     with pytest.raises(ValueError, match="no valid TP choice"):
         select_default_tp(ir, runtime)
+
+
+@pytest.mark.parametrize(
+    "field,value,expected",
+    [("min", "2", "4"), ("max", "2", "1"), ("step", "2", "4"), ("constraint", "tp > 1", "4")],
+)
+def test_domain_errors_skip_only_invalid_candidates(ir, runtime, field, value, expected):
+    setattr(ir.params["tp"], field, value)
+    ir.memory.kv_tokens = "tp == 4 ? 1 : 0"
+    select_default_tp(ir, runtime)
+    assert ir.params["tp"].default == expected
+
+
+def test_choice_domain_errors_are_distinct(ir, runtime):
+    ir.params["dp"].choices = ["2"]
+    with pytest.raises(ParameterDomainError, match="outside parameter choices"):
+        runtime.bind(ir, {"tp": 1})
+    with pytest.raises(ValueError, match="no valid TP choice"):
+        select_default_tp(ir, runtime)
+
+
+def test_tp_choices_use_shared_expression_semantics(ir, runtime):
+    ir.params["tp"].choices = ["2 ** 2", "1 + 1", "1"]
+    select_default_tp(ir, runtime)
+    assert ir.params["tp"].default == "2"
+
+
+@pytest.mark.parametrize("symbol", ["missing", "bad"])
+def test_symbol_binding_failures_propagate(ir, runtime, symbol):
+    ir.symbols["bad"] = symbol
+    with pytest.raises(ValueError, match="cyclic or unknown"):
+        select_default_tp(ir, runtime)
+
+
+def test_nonfinite_binding_failure_propagates(ir, runtime):
+    ir.params["hbm_bytes"].default = "1e999"
+    with pytest.raises(ValueError, match="[Nn]on-finite"):
+        select_default_tp(ir, runtime)
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        ValueError("expression CLI failed: broken evaluator"),
+        ValueError("expression evaluator returned a non-finite/non-numeric value"),
+        subprocess.TimeoutExpired("node", 60),
+    ],
+)
+def test_evaluator_failures_propagate(ir, runtime, monkeypatch, error):
+    def fail(*args):
+        raise error
+
+    monkeypatch.setattr(runtime, "many", fail)
+    with pytest.raises(type(error), match=str(error)):
+        select_default_tp(ir, runtime)
+
+
+def test_missing_node_keeps_extracted_defaults(ir, tmp_path, monkeypatch):
+    evaluator = Evaluator(tmp_path)
+    monkeypatch.setattr(evaluator, "bind", lambda *args: pytest.fail("binding attempted"))
+    before = ir.model_copy(deep=True)
+    check = select_default_tp(ir, evaluator)
+    assert (check.id, check.status) == ("default_parameters", "skip")
+    assert "kept the extracted default" in check.message
+    assert ir == before

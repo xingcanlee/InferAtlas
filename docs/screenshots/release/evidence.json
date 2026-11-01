@@ -76,12 +76,13 @@
     "offline_hub_round_trips": 4,
     "offline_network_requests": 0,
     "offline_page_errors": 0,
+    "pages_moe_a2_default_tp": 2,
     "tests_passed": 32,
     "unexpected_console_errors": 0
   },
   "command_exit_codes": {
-    "hub_refresh": 3,
-    "release": 3,
+    "hub_refresh": 2,
+    "release": 2,
     "site_include_blocked": 2
   },
   "data_files": 14,
@@ -193,10 +194,10 @@
       }
     }
   },
-  "release_task": "H3",
+  "release_task": "H3-fix",
   "site_files": 27,
   "site_total_bytes": 2103567,
-  "source_base": "dadc9d4",
+  "source_base": "b618c9e",
   "tests": {
     "browser_demo_only_skipped": 2,
     "browser_passed": 32,
@@ -204,12 +205,13 @@
     "expressions_passed": 499,
     "layout_passed": 25,
     "lint": "ruff and Biome passed",
-    "python_passed": 793,
+    "python_passed": 811,
     "typescript": "passed",
     "web_passed": 45
   },
   "triage": {
     "deepseek-v3/A2": {
+      "exit_code": 2,
       "extraction_failures": [
         {
           "device": "A2",
@@ -229,14 +231,23 @@
       "recorded_items": 1
     },
     "deepseek-v3/H100": {
+      "exit_code": 2,
       "extraction_failures": [],
-      "failed_checks": ["coverage", "layout", "weights.tp1", "weights.tp4"],
+      "failed_checks": ["coverage"],
       "kinds": {
         "golden_diff": 655,
         "unknown_layer_class": 13
       },
       "numeric_data_published": false,
-      "recorded_items": 668
+      "recorded_items": 668,
+      "skipped_checks": {
+        "calibration": "Blocked by triage; resolve it first.",
+        "evaluation": "Blocked by triage; resolve it first.",
+        "golden": "Blocked by triage; resolve it first.",
+        "layout": "Blocked by triage; resolve it first.",
+        "weights.tp1": "Blocked by triage; resolve it first.",
+        "weights.tp4": "Blocked by triage; resolve it first."
+      }
     }
   },
   "visual_review": {

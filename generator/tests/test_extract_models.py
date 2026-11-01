@@ -46,27 +46,45 @@ def parameters(value):
     }
 
 
-def test_build_with_empty_annotations_exits_triage(observed, tmp_path, monkeypatch, node_backend):
+@pytest.mark.parametrize("empty_annotations", [False, True])
+def test_build_annotation_coverage_gates_verification(
+    observed, tmp_path, monkeypatch, node_backend, empty_annotations
+):
     from typer.testing import CliRunner
 
     import inferatlas.annotations
     import inferatlas.cli as cli
 
-    # Replay real CPU facts while exercising the CLI's production lower/verify/layout stages.
+    # Replay real CPU facts through the production build stages.
     facts = observed("qwen3-8b", device="A2")
     monkeypatch.delenv("INFERATLAS_ALLOW_FIXTURES", raising=False)
     monkeypatch.setattr(cli, "extract_stage", lambda *args: facts)
-    monkeypatch.setattr(inferatlas.annotations, "load_annotations", lambda path: [])
+    if empty_annotations:
+        monkeypatch.setattr(inferatlas.annotations, "load_annotations", lambda path: [])
     result = CliRunner().invoke(
         cli.app, ["build", "--model", "qwen3-8b", "--tp", "1", "--output", str(tmp_path)]
     )
-    assert result.exit_code == 2, result.output or repr(result.exception)
+    assert result.exit_code == (2 if empty_annotations else 0), result.output or repr(
+        result.exception
+    )
     report = json.loads((tmp_path / "report.json").read_text())
-    assert next(c for c in report["checks"] if c["id"] == "golden")["status"] == "skip"
+    checks = {c["id"]: c for c in report["checks"]}
+    if empty_annotations:
+        assert "default_parameters" not in checks
+        for name in ("weights.tp1", "golden", "evaluation", "calibration", "layout"):
+            assert checks[name]["status"] == "skip"
+            assert "blocked by triage" in checks[name]["message"].lower()
+        assert not (tmp_path / "view.json").exists()
+    else:
+        assert checks["default_parameters"]["status"] == "pass"
+        assert checks["layout"]["status"] == "pass"
+        assert (tmp_path / "view.json").is_file()
     assert report["golden_diff"] == []
     assert not any(c["status"] == "fail" for c in report["checks"] if c["id"] != "coverage")
     triage = json.loads((tmp_path / "triage.json").read_text())
-    assert any(item.get("reason") == "unannotated_override" for item in triage["items"])
+    assert bool(triage["items"]) == empty_annotations
+    if empty_annotations:
+        assert any(item.get("reason") == "unannotated_override" for item in triage["items"])
 
 
 def param_count(value):
