@@ -12,7 +12,7 @@ from jsonschema import Draft202012Validator
 from t6_runtime import node_backend as node_backend
 
 from inferatlas.extract import ExtractionError, extract
-from inferatlas.resolve import ROOT, experiment_dir, resolve, source_dir
+from inferatlas.resolve import ROOT, experiment_dir, load_catalog, resolve, source_dir
 
 pytestmark = [
     pytest.mark.extract,
@@ -32,7 +32,9 @@ def observed(tmp_path_factory):
     @lru_cache
     def run(model, tp=1, ep=False, device=None):
         name = f"tp{tp}" + ("-ep" if ep else "") + (f"-{device}" if device else "")
-        snapshot = resolve(model, out_path=directory / model / "snapshot.json")
+        snapshot = resolve(
+            model, device=device or "H100", out_path=directory / model / "snapshot.json"
+        )
         return extract(snapshot, model, tp, ep, device, directory / model / f"{name}.json")
 
     return run
@@ -242,3 +244,63 @@ def test_real_worker_is_byte_deterministic(observed, tmp_path):
     first = tmp_path / "first.json"
     extract(value.snapshot, "qwen3-30b-a3b", 4, False, "A2", first)
     assert output.read_bytes() == first.read_bytes()
+
+
+@pytest.mark.parametrize("model", [m.id for m in load_catalog().models])
+@pytest.mark.parametrize("device", ["H100", "A2"])
+def test_complete_catalog_structure(observed, model, device):
+    value = observed(model, device=None if device == "H100" else device)
+    assert value.snapshot.device == device
+    assert value.modules and not value.fixture
+    assert [module.path for module in value.modules] == sorted(
+        module.path for module in value.modules
+    )
+    text = value.config.get("text_config", value.config)
+    assert len(value.layer_types) == text["num_hidden_layers"]
+    assert_sources(value)
+    assert all(
+        isinstance(dim, int) and dim > 0
+        for module in value.modules
+        for param in module.params
+        for dim in param.shape
+    )
+    if value.config.get("quantization_config") or text.get("quantization_config"):
+        assert any("logical BF16" in note for note in value.notes)
+    if device == "A2":
+        assert value.ascend.device == "A2"
+        assert value.ascend.custom_ops
+    if model == "deepseek-v3-2":
+        assert "sparse_attention" in value.layer_types
+        assert any("indexer" in module.path and module.params for module in value.modules)
+    if model == "deepseek-v4-flash":
+        assert "compressed_sparse_attention" in value.layer_types
+        assert any("compressor" in module.path and module.params for module in value.modules)
+    if model == "qwen3-next-80b-a3b":
+        assert set(value.layer_types) == {"linear_attention", "full_attention"}
+        assert any("linear_attn" in module.path and module.params for module in value.modules)
+    if model == "minimax-m3":
+        assert set(value.layer_types) == {"full_attention", "sparse_attention"}
+        assert any("index_q_norm" in module.path and module.params for module in value.modules)
+
+
+def test_constructor_device_redirects_are_scoped(tmp_path):
+    import subprocess
+
+    from inferatlas.extract import worker
+
+    script = f"""
+import sys
+sys.path.insert(0, {str(Path(worker.__file__).parent)!r})
+import torch
+from worker import constructor_devices
+with constructor_devices():
+    for device in ('cuda', 'cuda:0', 'privateuseone', 'npu', 'npu:1', 'cpu'):
+        assert torch.empty(2, 3, device=device).is_meta, device
+    assert torch.ones(2, device='cuda').is_meta
+    assert torch.ones(2).to('npu').is_meta
+    assert torch.tensor([3], device='cpu').item() == 3
+assert torch.empty(2, device='cpu').device.type == 'cpu'
+"""
+    python = Path(os.environ.get("INFERATLAS_PY") or experiment_dir() / ".venv/bin/python")
+    result = subprocess.run([str(python), "-I", "-c", script], capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr

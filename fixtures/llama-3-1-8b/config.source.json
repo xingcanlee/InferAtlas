@@ -1,0 +1,7 @@
+{
+  "canonical_sha256": "8b664c1d8e3ab87f426d57ab8a54a9f4cdcd0e8870051731526e3a5f4a337cf7",
+  "hf_id": "unsloth/Llama-3.1-8B",
+  "revision": "3f0d51f8e5640f98f1a96ea9044a0e55c0a83814",
+  "sha256": "6afa9efa4f16af2fc1375dab28f02691c078520385599b54a57e8e1ee7ee4056",
+  "source_url": "https://hf-mirror.com/unsloth/Llama-3.1-8B/resolve/3f0d51f8e5640f98f1a96ea9044a0e55c0a83814/config.json"
+}

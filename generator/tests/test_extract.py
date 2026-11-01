@@ -217,3 +217,56 @@ def test_stderr_warning_is_bounded_in_bytes():
     tail = str(warnings[0].message).split("\n", 1)[1]
     assert "discard-me" not in tail
     assert len(tail.encode()) <= 16386  # A split UTF-8 codepoint becomes one replacement character.
+
+
+def test_overlay_emits_actual_tree_when_ascend_changes_structure():
+    def row(path, cls="Baseline", shape=8):
+        return dict(
+            path=path,
+            **{"class": cls},
+            src=None,
+            attrs={},
+            params=[dict(name="weight", shape=[shape], dtype="bfloat16")],
+        )
+
+    baseline = [row("removed"), row("same"), row("changed")]
+    actual = [row("same", "Ascend"), row("added", "Ascend"), row("changed", "Ascend", 16)]
+    notes = []
+    merged = worker.merge_overlay(baseline, actual, notes)
+    assert [r["path"] for r in merged] == ["added", "changed", "same"]
+    assert merged[0] == actual[1]
+    assert merged[1]["params"][0]["shape"] == [16]
+    assert merged[2]["class"] == "Baseline"
+    assert merged[2]["ascend"]["class"] == "Ascend"
+    assert notes == [
+        "Ascend removed baseline module: removed",
+        "Ascend added module: added; emitting actual Ascend structure.",
+        "Ascend changed parameter shapes: changed; emitting actual Ascend structure.",
+    ]
+
+
+def test_layer_types_preserve_unknown_structure_and_declared_hybrid_policy():
+    text = SimpleNamespace(
+        num_hidden_layers=4, layer_types=["linear_attention"] * 3 + ["full_attention"]
+    )
+    config = SimpleNamespace(get_text_config=lambda: text)
+    assert worker.decoder_layer_types(config, None) == text.layer_types
+    text.layer_types = None
+    model = SimpleNamespace(named_modules=lambda: [])
+    assert worker.decoder_layer_types(config, model) == ["unknown"] * 4
+
+
+def test_dynamic_class_source_links_to_declared_ancestor(tmp_path):
+    path = tmp_path / "dynamic.py"
+    path.write_text("class Declared: pass\nDynamic = type('Dynamic', (Declared,), {})\n")
+    spec = importlib.util.spec_from_file_location("inferatlas_test_dynamic", path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    try:
+        spec.loader.exec_module(module)
+        request = {"sources": {"vllm": str(tmp_path)}, "snapshot": {"vllm": {"commit": "a" * 40}}}
+        ref = worker.source_ref(module.Dynamic, request)
+        assert ref["line"] == 1
+        assert ref["symbol"].endswith(".Declared")
+    finally:
+        del sys.modules[spec.name]

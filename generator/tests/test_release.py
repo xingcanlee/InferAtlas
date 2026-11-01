@@ -14,6 +14,7 @@ import inferatlas.cli as cli
 from inferatlas.exports import ExportManifest
 from inferatlas.extract import ExtractionError
 from inferatlas.lower import coverage_gate
+from inferatlas.resolve import load_catalog
 from inferatlas.schema import Extract, Index, Report, Snapshot, Triage
 from inferatlas.verify import exit_code
 from inferatlas.verify.io import ROOT, read_json, write_json
@@ -207,7 +208,9 @@ def test_hub_real_matrix_links_and_deterministic_data(tmp_path, monkeypatch):
         assert data.is_absolute() and generated.is_absolute()
         captures.append({p.name: p.read_bytes() for p in data.iterdir()})
         index = Index.model_validate(read_json(data / "index.json"))
-        assert len(index.versions) == 1 and len(index.models) == 3 and len(index.cells) == 15
+        assert len(index.versions) == 1
+        assert len(index.models) == len(load_catalog().models)
+        assert len(index.cells) == len(index.models) * len(load_catalog().devices)
         assert all(c.data_path is None for c in index.cells)
         by_key = {(c.model, c.device): c for c in index.cells}
         assert by_key["qwen3-8b", "H100"].status == "ok"
@@ -296,7 +299,7 @@ def test_release_continues_all_cells_and_hub_with_worst_exit(tmp_path, monkeypat
         if command[-1] == "build:hub":
             data = Path(env["INFERATLAS_DATA_DIR"])
             index = Index.model_validate(read_json(data / "index.json"))
-            assert len(read_json(data / "hub.json")["exports"]) == 4
+            assert len(read_json(data / "hub.json")["exports"]) == 2 * len(cli.catalog().models) - 2
             by_key = {(c.model, c.device): c for c in index.cells}
             assert by_key["qwen3-30b-a3b", "A2"].status == "missing"
             assert by_key["deepseek-v3", "A2"].status == "triage"
@@ -313,7 +316,7 @@ def test_release_continues_all_cells_and_hub_with_worst_exit(tmp_path, monkeypat
         for m in sorted(cli.catalog().models, key=lambda m: m.id)
         for device in ["A2", "H100"]
     ]
-    assert web_calls == ["build:single"] * 4 + ["build:hub"]
+    assert web_calls == ["build:single"] * (2 * len(cli.catalog().models) - 2) + ["build:hub"]
     assert (out / "index.html").read_text() == "hub"
     assert read_json(out / ".inferatlas/inferatlas-qwen3-30b-a3b-a2.html.json")["exit_code"] == 3
 

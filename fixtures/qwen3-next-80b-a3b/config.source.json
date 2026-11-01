@@ -1,0 +1,7 @@
+{
+  "canonical_sha256": "8ebf20ebe78bd562409320776ba1880cd7473bd5edc6a9ec8e37d2fc01ad1741",
+  "hf_id": "Qwen/Qwen3-Next-80B-A3B-Instruct",
+  "revision": "9c7f2fbe84465e40164a94cc16cd30b6999b0cc7",
+  "sha256": "2d483c7cabad7c8704478ed4038fa7e7b2eff840bc00a118eccbe38e2b488303",
+  "source_url": "https://hf-mirror.com/Qwen/Qwen3-Next-80B-A3B-Instruct/resolve/9c7f2fbe84465e40164a94cc16cd30b6999b0cc7/config.json"
+}

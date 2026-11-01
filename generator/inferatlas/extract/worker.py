@@ -17,7 +17,9 @@ import sys
 import tempfile
 import textwrap
 import types
+from contextlib import contextmanager
 from pathlib import Path
+from unittest.mock import patch
 
 ATTRS = (
     "input_size",
@@ -74,6 +76,11 @@ ATTRS = (
     "layer_type",
     "sliding_window",
     "num_shared_experts",
+    "is_sparse",
+    "compress_ratio",
+    "index_topk",
+    "index_n_heads",
+    "index_head_dim",
 )
 SCAN_PREFIXES = ("vllm.", "torch.distributed", "torch.accelerator", "xgrammar")
 
@@ -84,13 +91,23 @@ def fqn(cls):
 
 def source_ref(cls, request):
     """inspect starts at decorators; AST supplies the actual class/def line."""
-    filename = inspect.getsourcefile(cls)
+    try:
+        filename = inspect.getsourcefile(cls)
+    except TypeError:  # Built-in bases of runtime-generated classes have no source.
+        return None
     if filename is None:
         return None
     path = Path(filename).resolve()
     for repo, root in request["sources"].items():
         if path.is_relative_to(Path(root).resolve()):
-            lines, first = inspect.getsourcelines(cls)
+            try:
+                lines, first = inspect.getsourcelines(cls)
+            except OSError:
+                # CustomOp can generate a runtime subclass; link its declared ancestor.
+                return next(
+                    (ref for base in cls.__mro__[1:] if (ref := source_ref(base, request))),
+                    None,
+                )
             tree = ast.parse(textwrap.dedent("".join(lines)))
             declaration = next(
                 node
@@ -131,7 +148,9 @@ def flatten(model, request):
         attrs = {}
         for name in ATTRS:
             try:
-                attrs[name] = json_attr(getattr(module, name))
+                value = getattr(module, name)
+                if not inspect.isroutine(value):
+                    attrs[name] = json_attr(value)
             except AttributeError:
                 pass
         method = getattr(module, "quant_method", None)
@@ -180,6 +199,13 @@ class _ShimTP:
 def engine_config(request):
     from vllm.engine.arg_utils import EngineArgs
 
+    def structure_config(config):
+        # Kernel/packing selection needs actual hardware; construct logical BF16 weights.
+        for section in (config, config.get_text_config()):
+            if hasattr(section, "quantization_config"):
+                delattr(section, "quantization_config")
+        return config
+
     return EngineArgs(
         model=request["model_dir"],
         skip_tokenizer_init=True,
@@ -189,6 +215,7 @@ def engine_config(request):
         load_format="dummy",
         dtype="bfloat16",
         max_model_len=4096,
+        hf_overrides=structure_config,
     ).create_engine_config()
 
 
@@ -233,8 +260,130 @@ def build(config):
         set_current_vllm_config(config),
         set_default_torch_dtype(config.model_config.dtype),
         torch.device("meta"),
+        constructor_devices(),
+        constructor_runtime(),
     ):
         return initialize_model(vllm_config=config)
+
+
+def constructor_devices():
+    """Keep explicit accelerator allocations inside the CPU/meta sandbox too."""
+    import torch
+    from torch.overrides import TorchFunctionMode
+
+    def redirect(value):
+        if isinstance(value, (str, torch.device)) and str(value).split(":")[0] in (
+            "npu",
+            "cuda",
+            "xpu",
+            "privateuseone",
+        ):
+            return "meta"
+        return value
+
+    class ConstructorDevices(TorchFunctionMode):
+        def __torch_function__(self, func, types, args=(), kwargs=None):
+            kwargs = dict(kwargs or {})
+            if "device" in kwargs:
+                kwargs["device"] = redirect(kwargs["device"])
+                if func.__name__ in ("empty", "empty_like") and str(kwargs["device"]) == "cpu":
+                    kwargs["device"] = "meta"
+            if func.__name__ in ("to", "to_empty"):
+                args = tuple(redirect(arg) for arg in args)
+            return func(*args, **kwargs)
+
+    return ConstructorDevices()
+
+
+@contextmanager
+def constructor_runtime():
+    """Use CPU attention plumbing and inert events; never execute accelerator kernels."""
+    import torch
+    from vllm.model_executor.layers.fused_moe import unquantized_fused_moe_method as moe
+    from vllm.model_executor.layers.fused_moe.experts.cpu_moe import CPUUnquantizedExperts
+    from vllm.model_executor.layers.fused_moe.oracle.unquantized import UnquantizedMoeBackend
+    from vllm.platforms import current_platform
+
+    original = current_platform.get_attn_backend_cls
+    select_moe = moe.select_unquantized_moe_backend
+
+    def backend(selected_backend, attn_selector_config, num_heads=None):
+        return original(
+            selected_backend,
+            attn_selector_config._replace(use_sparse=False),
+            num_heads,
+        )
+
+    def moe_backend(moe_config):
+        try:
+            return select_moe(moe_config)
+        except NotImplementedError:
+            # Weight creation is shared even when CPU cannot execute the activation.
+            return UnquantizedMoeBackend.CPU, CPUUnquantizedExperts
+
+    with (
+        patch.object(type(current_platform), "get_attn_backend_cls", side_effect=backend),
+        patch.object(torch.cuda, "Event"),
+        patch.object(moe, "select_unquantized_moe_backend", side_effect=moe_backend),
+    ):
+        yield
+
+
+def decoder_layer_types(config, model):
+    """Read instantiated attention policy without requiring per-model rules."""
+    text = config.get_text_config()
+    declared = getattr(text, "layer_types", None)
+    if declared:
+        return list(declared)
+    layers = next(
+        (
+            module
+            for path, module in model.named_modules()
+            if path.endswith("layers") and len(list(module.children())) == text.num_hidden_layers
+        ),
+        None,
+    )
+    if layers is None:
+        return ["unknown"] * text.num_hidden_layers
+    sparse = getattr(text, "sparse_attention_config", None) or {}
+    sparse_layers = sparse.get("sparse_attention_freq", [])
+    result = []
+    for index, layer in enumerate(layers.children()):
+        attention = [module for module in layer.modules() if hasattr(module, "attn_backend")]
+        if (index < len(sparse_layers) and sparse_layers[index]) or any(
+            getattr(module, "is_sparse", False) is True for module in layer.modules()
+        ):
+            result.append("sparse_attention")
+        elif any(getattr(module, "sliding_window", None) for module in attention):
+            result.append("sliding_attention")
+        elif attention:
+            result.append("full_attention")
+        else:
+            result.append("unknown")
+    return result
+
+
+def merge_overlay(baseline, actual, notes):
+    """Preserve baseline identities where aligned; emit every actual Ascend module."""
+    baseline = {row["path"]: row for row in baseline}
+    actual = {row["path"]: row for row in actual}
+    for path in sorted(baseline.keys() - actual.keys()):
+        notes.append(f"Ascend removed baseline module: {path}")
+    rows = []
+    for path, replacement in sorted(actual.items()):
+        row = baseline.get(path)
+        if row is None or row["params"] != replacement["params"]:
+            kind = "added module" if row is None else "changed parameter shapes"
+            notes.append(f"Ascend {kind}: {path}; emitting actual Ascend structure.")
+            row = replacement
+        elif row["class"] != replacement["class"]:
+            row["ascend"] = {
+                "class": replacement["class"],
+                "src": replacement["src"],
+                "attrs": replacement["attrs"],
+            }
+        rows.append(row)
+    return rows
 
 
 def install_mock(root, device):
@@ -347,18 +496,25 @@ def run(request):
     init_dist(vc, request)
     baseline = build(vc)
     modules = flatten(baseline, request)
-    layer_types = list(getattr(vc.model_config.hf_config, "layer_types", None) or [])
-    if not layer_types:
-        # These upstream decoder implementations use full causal attention.
-        if config["model_type"] not in ("qwen3", "qwen3_moe", "deepseek_v3"):
-            raise ValueError("layer_types unavailable for this architecture")
-        layer_types = ["full_attention"] * config["num_hidden_layers"]
+    layer_types = decoder_layer_types(vc.model_config.hf_config, baseline)
     overlay = None
     notes = [
         "CPU/meta construction only; no weights or forward pass.",
         "TP/EP coordinators expose rank zero shapes over a real one-rank gloo group.",
         "External container sources are null; shared parameters are emitted once.",
+        "Accelerator allocations use meta; CUDA events are inert and attention uses CPU "
+        "backend plumbing, including sparse attention. No backend forward is executed.",
+        "Runtime-generated classes link to their nearest declared ancestor when available.",
+        "Uninitialized explicit CPU allocations use meta; unsupported MoE execution "
+        "backends use the upstream CPU expert weight constructor only.",
     ]
+    if config.get("quantization_config") or config.get("text_config", {}).get(
+        "quantization_config"
+    ):
+        notes.append(
+            "Structure uses logical BF16 parameters; source quantization_config is preserved "
+            "but packed weights, scales and hardware quantization kernels are not constructed."
+        )
     if request["device"]:
         import vllm.distributed.parallel_state as ps
 
@@ -376,16 +532,8 @@ def run(request):
 
         init_ascend_config(overlay_config)
         init_dist(overlay_config, request, ascend=True)
-        actual = {row["path"]: row for row in flatten(build(overlay_config), request)}
-        if set(actual) != {row["path"] for row in modules}:
-            raise ValueError("Ascend overlay changed module paths; cannot align baseline")
-        for row in modules:
-            replacement = actual[row["path"]]
-            if row["params"] != replacement["params"]:
-                raise ValueError(f"Ascend overlay changed parameter shapes: {row['path']}")
-            if row["class"] != replacement["class"]:
-                row["ascend"] = {"class": replacement["class"], "src": replacement["src"]}
-        notes.append("Ascend mocks preserve baseline parameter shapes; CPU attention backend only.")
+        actual = flatten(build(overlay_config), request)
+        modules = merge_overlay(modules, actual, notes)
     return {
         "snapshot": request["snapshot"],
         "fixture": False,

@@ -1,0 +1,7 @@
+{
+  "canonical_sha256": "d963f9c550de07c84fdc1012c27636d6cca86273f5b114e822cc34842e3c1a4c",
+  "hf_id": "mistralai/Mixtral-8x7B-v0.1",
+  "revision": "fc7ac94680e38d7348cfa806e51218e6273104b0",
+  "sha256": "9d56d04b36d0fd12ff54ae4c5bac769cc176e254e64ff71144614b6318b40793",
+  "source_url": "https://hf-mirror.com/mistralai/Mixtral-8x7B-v0.1/resolve/fc7ac94680e38d7348cfa806e51218e6273104b0/config.json"
+}

@@ -1,0 +1,7 @@
+{
+  "canonical_sha256": "f246bb66cea9c7b32ce23688db3377ba702b95cc74de517b022e3633f08202ab",
+  "hf_id": "unsloth/Llama-4-Scout-17B-16E-Instruct",
+  "revision": "afd8e498c87bda51c7ea8ec68ea2f7c066e6340b",
+  "sha256": "4cd670eadedaff9ba7eb42e97f08ec8a384b91652198378cc67e2c32e86191ec",
+  "source_url": "https://hf-mirror.com/unsloth/Llama-4-Scout-17B-16E-Instruct/resolve/afd8e498c87bda51c7ea8ec68ea2f7c066e6340b/config.json"
+}

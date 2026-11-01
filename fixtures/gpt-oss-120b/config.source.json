@@ -1,0 +1,7 @@
+{
+  "canonical_sha256": "44d62c1ea062882d1c7623a66c03d59ed9b7321a60edd18789d40fc4e4df536b",
+  "hf_id": "openai/gpt-oss-120b",
+  "revision": "b5c939de8f754692c1647ca79fbf85e8c1e70f8a",
+  "sha256": "933aeb666a3fd851133ddd7686414f369bc564c4185fb5704416550879f10566",
+  "source_url": "https://hf-mirror.com/openai/gpt-oss-120b/resolve/b5c939de8f754692c1647ca79fbf85e8c1e70f8a/config.json"
+}

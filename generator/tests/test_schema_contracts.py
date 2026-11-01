@@ -33,7 +33,11 @@ def fixture_schema(path):
 
 
 @pytest.mark.parametrize(
-    "path", sorted(FIXTURES.rglob("*.json")), ids=lambda p: str(p.relative_to(FIXTURES))
+    "path",
+    sorted(
+        p for p in FIXTURES.rglob("*.json") if p.name not in ("config.json", "config.source.json")
+    ),
+    ids=lambda p: str(p.relative_to(FIXTURES)),
 )
 def test_schema_fixture(path):
     name = fixture_schema(path)
@@ -49,7 +53,7 @@ def test_schema_catalog():
     data = YAML(typ="safe").load(ROOT / "catalog.yaml")
     Draft202012Validator(read(ROOT / "schemas/catalog.schema.json")).validate(data)
     catalog = Catalog.model_validate(data)
-    assert len(catalog.models) == 3
+    assert {"deepseek-v3", "qwen3-30b-a3b", "qwen3-8b"} <= {m.id for m in catalog.models}
     assert {d.id for d in catalog.devices} == {"A2", "A3", "A5", "310P", "H100"}
     assert {p.device for p in catalog.hardware_presets} == {"A2", "A3", "A5", "310P", "H100"}
     for model in catalog.models:
