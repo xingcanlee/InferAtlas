@@ -147,3 +147,18 @@ All lists are deterministically ordered; no timestamps.
    `kv_latent`, `kv_compressed`, `index_scores`, `o`; MoE `router_logits`, `topk_ids`,
    `topk_weights`, `expert_input`, `expert_gate_up`, `expert_output`, `shared_output`; MLP
    `gate_up`, `act`; linear attention `qkvz`, `ba`, `conv_out`, `recurrent_state`.
+
+## Contract decisions v1.4
+1. **Index coverage.** Each `IndexCell` gains optional `coverage: { sublayers_ruled, sublayers_generic,
+   notes_warn, notes_info, arch: bool }` computed from `arch.json`. The home page shows structure
+   coverage, not `triage_count` (which remains for numeric/annotation verification only).
+   Version pairs with no built cells are omitted from `index.json` versions.
+2. **Class-level notes.** De-duplicated notes of kinds `unknown_layer_class`,
+   `unannotated_override`, `conditional_override` (and generic-component info) apply to **every
+   instance of that class in the model**; `target` names the first instance. Band-specific kinds
+   (e.g. `golden_diff`) apply only to their target.
+3. **Model inputs.** Multimodal models list every input in `inputs` (e.g. `pixel_values`
+   `[B, C, Himg, Wimg]` plus `input_ids`); top-level `input` remains the primary text input.
+4. **Stream expansion.** When the stack's residual is `hyper_connection`, the transition from
+   `[T, H]` to `residual_streams [T, HC, H]` is an explicit spine `other` stage (e.g.
+   `hc_expand`) before the stack, mirroring `hc_head_op` after it.
