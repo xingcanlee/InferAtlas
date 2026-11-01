@@ -9,6 +9,7 @@ const arrow = cva("relative flex w-full shrink-0 justify-center text-arch-wire",
       sm: "h-3",
       md: "h-4",
       lg: "h-5",
+      xl: "h-8",
     },
   },
   defaultVariants: { length: "md" },
@@ -50,7 +51,11 @@ export function FlowArrow({ label, plain, dashed, length, className, ...props }:
         </svg>
       )}
       {label ? (
-        <div className="absolute top-1/2 left-[calc(50%+10px)] -translate-y-1/2">{label}</div>
+        // On the canvas colour so wires never cross the text; node corner badges (later in
+        // the DOM) still paint above a long label.
+        <div className="absolute top-1/2 left-[calc(50%+10px)] -translate-y-1/2 rounded-sm bg-arch-surface px-0.5 leading-none">
+          {label}
+        </div>
       ) : null}
     </div>
   );

@@ -3,18 +3,19 @@
  * segments of a block, layer → band resolution, symbol environment and note lookup.
  * Generic over the contract — nothing here knows about a particular model.
  */
-import type { ExprEnv } from "@inferatlas/contracts";
 import type {
   Arch,
   ArchBand,
   ArchBlock,
   ArchComponent,
+  ArchIO,
   ArchModule,
   ArchModuleStage,
   ArchNote,
   ArchStackStage,
   ArchSublayer,
-} from "./arch-types";
+  ExprEnv,
+} from "@inferatlas/contracts";
 import { tryEvaluate } from "./expr";
 
 const ATTN: Record<string, string> = {
@@ -420,7 +421,14 @@ export function normalizeAttention(c: Attn): Attn {
 
 const archNorm = new WeakMap<Arch, Arch>();
 
-/** Contract-compatible view of older `arch.json` (deprecated variants); cached per object. */
+/** Pre-v1.2 data has no `internals`; the contract makes it a required (possibly empty) list. */
+const fixIO = (io: ArchIO): ArchIO => (io.internals ? io : { ...io, internals: [] });
+
+/**
+ * Contract-compatible view of older `arch.json` (deprecated attention variants, missing v1.2
+ * `internals` / `flags`, missing v1.1 `placement`); cached per object. Current generator output
+ * passes through structurally unchanged.
+ */
 export function normalizeArch(arch: Arch): Arch {
   const hit = archNorm.get(arch);
   if (hit) return hit;
@@ -428,6 +436,7 @@ export function normalizeArch(arch: Arch): Arch {
     c?.kind === "attention" ? normalizeAttention(c) : c;
   const out: Arch = {
     ...arch,
+    flags: arch.flags ?? [],
     notes: arch.notes ?? [],
     stages: arch.stages.map((st) =>
       st.kind === "stack"
@@ -439,12 +448,19 @@ export function normalizeArch(arch: Arch): Arch {
                 ...b.block,
                 sublayers: b.block.sublayers.map((x) => ({
                   ...x,
+                  io: fixIO(x.io),
                   component: fix(x.component) ?? null,
                 })),
               },
             })),
           }
-        : { ...st, component: fix(st.component) ?? null },
+        : {
+            ...st,
+            io: fixIO(st.io),
+            component: fix(st.component) ?? null,
+            // Legacy default (v1.1 §5): `other` stages without a placement are side branches.
+            placement: st.placement ?? (st.kind === "other" ? "aside" : "spine"),
+          },
     ),
   };
   archNorm.set(arch, out);
@@ -498,6 +514,23 @@ export function evaluator(env: ExprEnv): (expr: string) => number | undefined {
 // ------------------------------------------------------------------------------- notes
 
 export const subTarget = (bandId: string, subId: string) => `${bandId}/${subId}`;
+
+/**
+ * Note targets that describe sublayer `subId` of `band`: the emitter de-duplicates notes per
+ * (class, kind) and targets the first band where the class occurs (v1.2 §2), so every band of
+ * the same stack whose same-id sublayer has the same class shares those notes.
+ */
+export function subNoteTargets(arch: Arch, band: ArchBand, subId: string): string[] {
+  const cls = band.block.sublayers.find((s) => s.id === subId)?.module?.class_name;
+  const stack = stacks(arch).find((s) => s.bands.includes(band));
+  const bands = stack && cls ? stack.bands : [band];
+  return bands
+    .filter(
+      (b) =>
+        b === band || b.block.sublayers.some((s) => s.id === subId && s.module?.class_name === cls),
+    )
+    .map((b) => subTarget(b.id, subId));
+}
 
 export function notesFor(arch: Arch, targets: string[]): ArchNote[] {
   const set = new Set(targets);
@@ -572,6 +605,60 @@ export const isAsideStage = (s: Arch["stages"][number]): boolean =>
  */
 export const spineStages = (arch: Arch): Arch["stages"] =>
   arch.stages.filter((s) => !isAsideStage(s));
+
+/**
+ * The stage where token ids enter the language model: an `embedding` stage whose component is a
+ * vocabulary embedding (not a generic patch embedding), the last such before the primary stack.
+ */
+export function tokenEmbedding(arch: Arch): ArchModuleStage | undefined {
+  const spine = spineStages(arch);
+  const primary = primaryStack(arch);
+  const end = primary ? spine.indexOf(primary) : spine.length;
+  return spine
+    .slice(0, end)
+    .filter(
+      (s): s is ArchModuleStage => s.kind === "embedding" && s.component?.kind === "embedding",
+    )
+    .at(-1);
+}
+
+/**
+ * Spine stages before the token embedding form a second input branch (vision tower + adapter /
+ * projector of a VLM): they consume another input (pixels) and their features are merged into
+ * the token embeddings. Drawn left of the spine, merging into it (paper-style VLM figure).
+ * Empty for text-only models.
+ */
+export function encoderStages(arch: Arch): Arch["stages"] {
+  const tok = tokenEmbedding(arch);
+  if (!tok) return [];
+  const spine = spineStages(arch);
+  return spine.slice(0, spine.indexOf(tok));
+}
+
+/** "Vision encoder" when the branch's ids/classes say so, otherwise "Encoder". */
+export function encoderTitle(stages: Arch["stages"]): string {
+  const text = stages
+    .map((s) => `${s.id} ${s.kind === "stack" ? s.label : s.module.class_name}`)
+    .join(" ");
+  return /vision|visual|image|pixel|patch|\bvit\b/i.test(text) ? "Vision encoder" : "Encoder";
+}
+
+const humanize = (id: string): string =>
+  (id.split(".").at(-1) ?? id).replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
+
+/**
+ * Display label of a stage. The emitter's defaults ("Token embedding", "Final norm") are only
+ * right on the language spine: inside an encoder branch (vision patch embedding, pre/post
+ * layernorms) the module name is used instead, as it is for labels that just repeat the id.
+ */
+export function stageLabel(arch: Arch, stage: Arch["stages"][number]): string {
+  const label = stage.label?.trim();
+  if (!label || label === stage.id) return humanize(stage.id);
+  if (stage.kind !== "stack" && encoderStages(arch).includes(stage)) {
+    if (/^(token embedding|final norm)$/i.test(label)) return humanize(stage.id);
+  }
+  return label;
+}
 
 /** The decoder stack feeding the head: the last stack in dataflow order. */
 export function primaryStack(arch: Arch): ArchStackStage | undefined {

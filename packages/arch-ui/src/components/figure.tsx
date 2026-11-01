@@ -48,7 +48,8 @@ export function ModelFigure({
 
 export interface FigureTerminalProps extends React.ComponentProps<"div"> {
   name: string;
-  shape: Shape;
+  /** Omit when the tensor's shape is unknown (the pill then shows only its name). */
+  shape?: Shape | undefined;
   dtype?: string | undefined;
 }
 
@@ -64,7 +65,7 @@ export function FigureTerminal({ name, shape, dtype, className, ...props }: Figu
       {...props}
     >
       <span className="font-medium">{name}</span>
-      <ShapeLabel shape={shape} dtype={dtype} />
+      {shape ? <ShapeLabel shape={shape} dtype={dtype} /> : null}
     </div>
   );
 }
@@ -125,6 +126,95 @@ export function FigureBranch({ node, branch, label, className, ...props }: Figur
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+export interface FigureMergeProps extends Omit<React.ComponentProps<"div">, "children"> {
+  /** The side branch (e.g. a vision encoder), drawn left of the spine; may be any height. */
+  side: React.ReactNode;
+  /** Spine content above the merge node (e.g. the `input_ids` terminal). */
+  top?: React.ReactNode;
+  /** The spine node the branch merges into (e.g. the token embedding). */
+  node: React.ReactNode;
+  /** Text on the merge connector (what the branch contributes). */
+  label?: React.ReactNode;
+}
+
+/**
+ * A second input branch that merges into the spine below `node` (paper-style VLM figure: the
+ * vision encoder's features join the token embeddings before the decoder). The side column sits
+ * left of the spine; an elbow wire leaves its bottom and points right into a junction dot on the
+ * spine. Columns left/right of the spine are equal (`1fr`), so the spine stays centred whatever
+ * the branch's width.
+ */
+export function FigureMerge({ side, top, node, label, className, ...props }: FigureMergeProps) {
+  return (
+    <div
+      data-slot="figure-merge"
+      className={cn("inline-grid grid-cols-[1fr_auto_1fr] text-arch-wire", className)}
+      {...props}
+    >
+      <div data-slot="figure-merge-side" className="flex flex-col items-center px-4">
+        {side}
+        <span aria-hidden="true" className="min-h-3 w-px flex-1 bg-current" />
+      </div>
+      <div className="flex w-[var(--arch-col)] flex-col items-center">
+        {top}
+        {top ? (
+          <span aria-hidden="true" className="relative min-h-4 w-px flex-1 bg-current">
+            <svg
+              viewBox="0 0 9 7"
+              aria-hidden="true"
+              className="absolute -bottom-px left-[-4px] h-[7px] w-[9px]"
+            >
+              <path d="M0 0 L4.5 7 L9 0 Z" fill="currentColor" />
+            </svg>
+          </span>
+        ) : null}
+        <div className="flex w-full flex-col items-center *:data-[slot=figure-node]:w-full">
+          {node}
+        </div>
+      </div>
+      <div aria-hidden="true" />
+      {/* Elbow: down from the side column's centre, then right into the spine. */}
+      <div className="relative h-6">
+        <span
+          aria-hidden="true"
+          className="absolute top-0 left-1/2 h-1/2 border-l border-current"
+        />
+        <span
+          aria-hidden="true"
+          className="absolute top-1/2 right-0 left-1/2 border-t border-current"
+        />
+        {label ? (
+          <span
+            data-slot="figure-merge-label"
+            className="absolute right-1 bottom-1/2 left-[calc(50%+6px)] mb-0.5 truncate text-right text-[10px] leading-tight text-muted-foreground"
+          >
+            {label}
+          </span>
+        ) : null}
+      </div>
+      <div className="relative h-6">
+        <span aria-hidden="true" className="absolute inset-y-0 left-1/2 border-l border-current" />
+        <span
+          aria-hidden="true"
+          className="absolute top-1/2 right-[calc(50%+4px)] left-0 border-t border-current"
+        />
+        <svg
+          viewBox="0 0 7 9"
+          aria-hidden="true"
+          className="absolute top-[calc(50%-4.5px)] right-[calc(50%+3px)] h-[9px] w-[7px]"
+        >
+          <path d="M0 0 L7 4.5 L0 9 Z" fill="currentColor" />
+        </svg>
+        <span
+          aria-hidden="true"
+          className="absolute top-1/2 left-1/2 z-[2] size-[7px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-current"
+        />
+      </div>
+      <div aria-hidden="true" />
     </div>
   );
 }

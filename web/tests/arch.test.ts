@@ -1,4 +1,6 @@
-/** lib/arch helpers over the hand-written arch.json fixtures (fixtures/arch-ui). */
+/** lib/arch helpers over the real generator arch.json fixtures (fixtures/arch-ui, A2 cells). */
+
+import type { Arch, ArchBand, ArchBlock, ArchStackStage } from "@inferatlas/contracts";
 import { describe, expect, it } from "vitest";
 import {
   allBands,
@@ -30,7 +32,6 @@ import {
   stackItems,
   stacks,
 } from "@/lib/arch";
-import type { Arch, ArchBand, ArchBlock, ArchStackStage } from "@/lib/arch-types";
 import deepseekJson from "../../fixtures/arch-ui/deepseek-v3/arch.json";
 import v4Json from "../../fixtures/arch-ui/deepseek-v4-flash/arch.json";
 import ossJson from "../../fixtures/arch-ui/gpt-oss-120b/arch.json";
@@ -81,8 +82,10 @@ describe("fixtures follow the contract", () => {
     expect(layerCount(moe)).toBe(48);
     expect(layerCount(deepseek)).toBe(61);
     expect(layerCount(next)).toBe(48);
-    expect(deepseek.symbols.Rkv?.value).toBe(512);
+    expect(deepseek.symbols.H?.value).toBe(7168);
     expect(next.symbols.E?.value).toBe(512);
+    const mla = bandForLayer(deepseek, 0)?.block.sublayers.find((s) => s.role === "mixer");
+    expect(mla?.component).toMatchObject({ variant: "mla", extras: { kv_lora_rank: 512 } });
   });
 });
 
@@ -107,7 +110,8 @@ describe("stack folding", () => {
     expect(g.layers).toEqual([0, 47]);
     // layer 47 → full-attention member → drawn by the period's full-attention band
     const b47 = bandForLayer(next, 47);
-    expect(b47?.id).toBe("full_47");
+    expect(b47?.id).toBe("model.layers:band:47");
+    expect(b47?.layers).toEqual([47, 47]);
     expect(representative(items, b47 as never)).toBe(g.period[1]);
     expect(represented(items, g.period[0] as never)).toHaveLength(12);
   });
@@ -251,18 +255,15 @@ describe("symbols, paths and notes", () => {
   });
 
   it("collects notes per target and summarises their severity", () => {
-    const n = notesFor(deepseek, ["moe/mlp"]);
-    expect(n).toHaveLength(2);
+    // DeepSeek-V4: the generic mHC read carries an info + a warn note on the first band.
+    const n = notesFor(v4, ["model.layers:band:0/mhc_pre_attn"]);
+    expect(n.map((x) => x.severity).sort()).toEqual(["info", "warn"]);
     // v1.2: figure badges count targeted warn notes only (the info note is panel-only).
     expect(noteMarker(n)).toEqual({ severity: "warn", count: 1 });
     expect(noteMarker(n.filter((x) => x.severity === "info"))).toBeUndefined();
-    // Qwen3-Next's de-duplicated GDN note is stack-level: no per-band badge.
-    const items = stackItems(stacks(next)[0]?.bands ?? []);
-    const g = items[0];
-    if (g?.kind !== "pattern") throw new Error("pattern");
-    const targets = represented(items, g.period[0] as never).map((b) => `${b.id}/linear_attn`);
-    expect(noteMarker(notesFor(next, targets))).toBeUndefined();
-    expect(modelNotes(next).map((x) => x.triage_kind)).toContain("unannotated_override");
+    // Info-only targets (Ascend conditional overrides) never badge the figure.
+    expect(noteMarker(notesFor(next, ["model.layers:band:0/input_layernorm"]))).toBeUndefined();
+    expect(modelNotes(v4).map((x) => x.triage_kind)).toEqual(["missing_config"]);
   });
 
   it("groups notes by triage_kind, warn groups first, plain notes last", () => {
@@ -270,10 +271,11 @@ describe("symbols, paths and notes", () => {
     expect(groups.map((g) => g.kind)).toEqual([
       "unknown_layer_class",
       "conditional_override",
+      "missing_config",
       null,
     ]);
     expect(groups[0]?.warn).toBe(3);
-    expect(groups.at(-1)?.notes).toHaveLength(2);
+    expect(groups.at(-1)?.notes).toHaveLength(3);
   });
 });
 
@@ -281,13 +283,16 @@ describe("contract v1.2", () => {
   it("DeepSeek-V4-Flash folds by compression ratio + indexer and goes compact", () => {
     const items = stackItems(stacks(v4)[0]?.bands ?? []);
     expect(items.map((it) => (it.kind === "band" ? it.band.id : `${it.repeats}×`))).toEqual([
-      "swa_hash",
-      "c4_hash",
+      "model.layers:band:0",
+      "model.layers:band:2",
       "20×",
     ]);
     const g = items[2];
     if (g?.kind !== "pattern") throw new Error("pattern");
-    expect(g.period.map((b) => b.id)).toEqual(["c128_3", "c4_4"]);
+    expect(g.period.map((b) => b.layers)).toEqual([
+      [3, 3],
+      [4, 4],
+    ]);
     expect(g.label).toBe("1× MQA ÷128 + 1× MQA ÷4 + indexer");
     // Hash-routed layer 2 differs from the learned-router ÷4 layers.
     expect(blockSignature((items[1] as { band: ArchBand }).band.block)).not.toBe(
@@ -295,7 +300,8 @@ describe("contract v1.2", () => {
     );
     const attn = g.period[1]?.block.sublayers.find((x) => x.role === "mixer")?.component;
     if (attn?.kind !== "attention") throw new Error("attention");
-    expect(attentionLabel(attn)).toBe("MQA attn ÷4 + indexer");
+    // Compressed layers keep their local sliding window as an extra (v1.3 §5).
+    expect(attentionLabel(attn)).toBe("MQA attn ÷4 + indexer · SWA");
     expect(stackColumns(items)).toBeGreaterThan(MAX_STACK_COLUMNS);
     expect(compactFocus(items, undefined)).toBe(g);
     expect(compactFocus(items, bandForLayer(v4, 1))).toBe(items[0]);
@@ -352,10 +358,10 @@ describe("contract v1.2", () => {
 
   it("stages render in array (dataflow) order; aside stages leave the spine", () => {
     expect(spineStages(v4).map((s) => s.id)).toEqual([
-      "embed",
-      "layers",
-      "hc_head_op",
-      "final_norm",
+      "model.embed_tokens",
+      "model.layers",
+      "model.hc_head_op",
+      "model.norm",
       "lm_head",
     ]);
     const stack = stacks(dense)[0] as ArchStackStage;
@@ -363,13 +369,14 @@ describe("contract v1.2", () => {
       ...dense,
       stages: [{ ...stack, id: "vision", label: "Vision encoder" }, ...dense.stages],
     };
-    expect(primaryStack(vision)?.id).toBe("layers");
+    expect(primaryStack(vision)?.id).toBe("model.layers");
   });
 
   it("internals: outputs stay [T, H]; key internals pick q/k/v and routing", () => {
     const attn = bandForLayer(moe, 0)?.block.sublayers.find((x) => x.id === "self_attn");
     expect(attn?.io.outputs.map((t) => t.shape)).toEqual([["T", "H"]]);
     expect(keyInternals(attn as never).map((t) => t.name)).toEqual(["q", "k", "v"]);
+    expect(attn?.io.internals.map((t) => t.name)).toEqual(["q", "k", "v", "o"]);
     const ffn = bandForLayer(moe, 0)?.block.sublayers.find((x) => x.id === "mlp");
     expect(keyInternals(ffn as never).map((t) => t.name)).toEqual([
       "router_logits",

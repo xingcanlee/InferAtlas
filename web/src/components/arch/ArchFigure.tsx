@@ -12,7 +12,9 @@ import {
   DecoderBlock,
   Embedding,
   FigureBranch,
+  FigureMerge,
   FigureTerminal,
+  Flow,
   FlowArrow,
   Generic,
   HyperBranch,
@@ -27,11 +29,24 @@ import {
   ResidualBranch,
   TensorEdge,
 } from "@inferatlas/arch-ui";
+import type {
+  Arch,
+  ArchBand,
+  ArchComponent,
+  ArchModuleStage,
+  ArchRope,
+  ArchStage,
+  ArchSublayer,
+  ArchTensor,
+} from "@inferatlas/contracts";
 import { type ReactNode, useState } from "react";
 import {
   bandSummary,
   blockSegments,
   compactFocus,
+  componentSummary,
+  encoderStages,
+  encoderTitle,
   isAsideStage,
   itemLayers,
   keyInternals,
@@ -46,18 +61,10 @@ import {
   spineStages,
   stackColumns,
   stackItems,
-  subTarget,
+  stageLabel,
+  subNoteTargets,
+  tokenEmbedding,
 } from "@/lib/arch";
-import type {
-  Arch,
-  ArchBand,
-  ArchComponent,
-  ArchModuleStage,
-  ArchRope,
-  ArchStage,
-  ArchSublayer,
-  ArchTensor,
-} from "@/lib/arch-types";
 
 export interface ArchSelection {
   /** Drawn (representative) band that is expanded in the detail panel. */
@@ -172,8 +179,9 @@ export function ComponentGlyph({
           sharedExperts={component.shared_experts}
           scoring={component.router.scoring}
           normTopk={component.router.norm_topk ?? undefined}
+          // A single routing group (n_group 1) is plain top-k routing: no group chip.
           groups={
-            component.router.groups
+            component.router.groups && component.router.groups.n_group > 1
               ? {
                   groups: component.router.groups.n_group,
                   topkGroups: component.router.groups.topk_group,
@@ -223,6 +231,20 @@ function hyperStreams(band: ArchBand, evaluate: (e: string) => number | undefine
   return n && Number.isInteger(n) && n > 1 && n <= 16 ? n : 4;
 }
 
+/**
+ * Input pill of an encoder branch: the first stage's declared input, else a neutral label (the
+ * contract has no model-level tensor for it; never invent a shape).
+ */
+function encoderInput(stages: ArchStage[]): { name: string; shape?: string[]; dtype?: string } {
+  const first = stages[0];
+  const t =
+    first?.kind === "stack"
+      ? first.bands[0]?.block.sublayers[0]?.io.inputs[0]
+      : first?.io.inputs[0];
+  if (t) return t;
+  return { name: encoderTitle(stages) === "Vision encoder" ? "image" : "input" };
+}
+
 const firstOut = (s: ArchStage): ArchTensor | undefined =>
   s.kind === "stack"
     ? s.bands[s.bands.length - 1]?.block.sublayers.at(-1)?.io.outputs[0]
@@ -250,18 +272,18 @@ export function ArchFigure({
     <ComponentGlyph
       key={s.id}
       component={s.component ?? null}
-      fallbackClass={s.module?.class_name ?? s.label ?? s.id}
+      fallbackClass={s.module?.class_name ?? stageLabel(arch, s)}
       status={s.module?.status}
       notes={noteMarker(notesFor(arch, [s.id]))}
       selected={selection.stage === s.id}
       onSelect={() => onSelectStage(s.id)}
-      label={`${s.label ?? s.id}: show details`}
+      label={`${stageLabel(arch, s)}: show details`}
       data-testid={`stage-${s.id}`}
     />
   );
 
   const subGlyph = (items: StackItem[], band: ArchBand, sub: ArchSublayer) => {
-    const targets = represented(items, band).map((b) => subTarget(b.id, sub.id));
+    const targets = represented(items, band).flatMap((b) => subNoteTargets(arch, b, sub.id));
     return (
       <ComponentGlyph
         key={sub.id}
@@ -294,7 +316,7 @@ export function ArchFigure({
         notes={noteMarker(
           notesFor(
             arch,
-            represented(items, band).map((b) => subTarget(b.id, sub.id)),
+            represented(items, band).flatMap((b) => subNoteTargets(arch, b, sub.id)),
           ),
         )}
         onSelect={() => onSelectSub(band, sub.id)}
@@ -372,7 +394,7 @@ export function ArchFigure({
         return (
           <BlockStack
             key={stage.id}
-            title={stage.label ?? stage.id}
+            title={stageLabel(arch, stage)}
             layers={total}
             collapsible
             open={false}
@@ -384,7 +406,7 @@ export function ArchFigure({
       return (
         <BlockStack
           key={stage.id}
-          title={stage.label ?? stage.id}
+          title={stageLabel(arch, stage)}
           layers={total}
           collapsible
           open
@@ -428,7 +450,7 @@ export function ArchFigure({
       return (
         <BlockStack
           key={stage.id}
-          title={stage.label ?? "Decoder layers"}
+          title={stageLabel(arch, stage)}
           layers={total}
           layout="column"
           data-testid={`stage-${stage.id}`}
@@ -457,7 +479,7 @@ export function ArchFigure({
     return (
       <BlockStack
         key={stage.id}
-        title={stage.label ?? "Decoder layers"}
+        title={stageLabel(arch, stage)}
         layers={total}
         data-testid={`stage-${stage.id}`}
       >
@@ -466,34 +488,103 @@ export function ArchFigure({
     );
   };
 
-  const spine: ReactNode[] = [
+  // The encoder branch starts collapsed (one summary frame) unless it holds the selection.
+  const [encoderOpen, setEncoderOpen] = useState(false);
+  const encoderView = (stages: ArchStage[]) => {
+    const stackIds = stages.filter((x) => x.kind === "stack");
+    const holds =
+      stages.some((x) => x.id === selection.stage) ||
+      (!!selection.band &&
+        stackIds.some((x) => x.kind === "stack" && x.bands.includes(selection.band as ArchBand)));
+    const open = holds || encoderOpen;
+    const layers = stackIds.reduce(
+      (n, x) => n + (x.kind === "stack" ? x.bands.reduce((m, b) => m + b.count, 0) : 0),
+      0,
+    );
+    const summary = stages
+      .map((x) =>
+        x.kind === "stack"
+          ? `${x.bands.reduce((m, b) => m + b.count, 0)}× ${[...new Set(x.bands.map(bandSummary))].join(" / ")}`
+          : x.component && x.component.kind !== "generic"
+            ? componentSummary(x.component, x.kind)
+            : shortClass(x.module.class_name),
+      )
+      .join(" → ");
+    return (
+      <>
+        <FigureTerminal {...encoderInput(stages)} data-testid="encoder-input" />
+        <FlowArrow length="md" />
+        <BlockStack
+          title={encoderTitle(stages)}
+          layers={layers || undefined}
+          layout="column"
+          collapsible
+          open={open}
+          onOpenChange={setEncoderOpen}
+          summary={<span className="block max-w-[var(--arch-col)] text-center">{summary}</span>}
+          data-testid="encoder-branch"
+        >
+          <Flow className="*:data-[slot=figure-node]:w-[var(--arch-col)]">{chain(stages)}</Flow>
+        </BlockStack>
+      </>
+    );
+  };
+
+  /** Stages joined by arrows; an edge is annotated with the previous stage's output tensor. */
+  const chain = (stages: ArchStage[], from?: ArchStage): ReactNode[] =>
+    stages.flatMap((s, i) => {
+      const prev = i ? stages[i - 1] : from;
+      const t = prev ? firstOut(prev) : undefined;
+      // A collapsed secondary stack is narrow: a longer edge keeps its label off the legend.
+      const len = s.kind === "stack" && s !== primary ? "xl" : "md";
+      return [
+        t ? <TensorEdge key={`e-${s.id}`} shape={t.shape} name={t.name} length={len} /> : null,
+        s.kind === "stack" ? (
+          stackView(s)
+        ) : s.id === branchAt && others.length ? (
+          <FigureBranch
+            key={`branch-${s.id}`}
+            node={stageGlyph(s)}
+            label={others.map((o) => stageLabel(arch, o)).join(" · ")}
+            branch={others.map(stageGlyph)}
+            data-testid="figure-branch"
+          />
+        ) : (
+          stageGlyph(s)
+        ),
+      ];
+    });
+
+  const input = (
     <FigureTerminal
       key="input"
       name={arch.input.name}
       shape={arch.input.shape}
       dtype={arch.input.dtype}
-    />,
-  ];
-  main.forEach((s, i) => {
-    const prev = main[i - 1];
-    const t = prev ? firstOut(prev) : undefined;
+    />
+  );
+  // VLMs: stages before the token embedding (vision tower, adapter, projector) are a second
+  // input branch drawn left of the spine, merging into the token embeddings.
+  const encoder = encoderStages(arch);
+  const tok = encoder.length ? tokenEmbedding(arch) : undefined;
+  const spine: ReactNode[] = [];
+  if (tok) {
+    const rest = main.slice(main.indexOf(tok) + 1);
+    const out = firstOut(encoder[encoder.length - 1] as ArchStage);
     spine.push(
-      t ? <TensorEdge key={`e-${s.id}`} shape={t.shape} name={t.name} /> : null,
-      s.kind === "stack" ? (
-        stackView(s)
-      ) : s.id === branchAt && others.length ? (
-        <FigureBranch
-          key={`branch-${s.id}`}
-          node={stageGlyph(s)}
-          label={others.map((o) => o.label ?? o.id).join(" · ")}
-          branch={others.map(stageGlyph)}
-          data-testid="figure-branch"
-        />
-      ) : (
-        stageGlyph(s)
-      ),
+      <FigureMerge
+        key="merge"
+        top={input}
+        node={stageGlyph(tok)}
+        side={encoderView(encoder)}
+        label={out ? `${out.name}` : "features"}
+        data-testid="figure-merge"
+      />,
+      ...chain(rest, tok),
     );
-  });
+  } else {
+    spine.push(input, ...chain(main));
+  }
   spine.push(
     <FlowArrow key="e-out" length="lg" />,
     <FigureTerminal

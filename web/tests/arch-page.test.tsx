@@ -1,10 +1,9 @@
 /** Architecture tab: default view, layer detail with evaluated shapes, empty states. */
-import type { Index, IR, Report, View } from "@inferatlas/contracts";
+import type { Arch, ArchModuleStage, Index, IR, Report, View } from "@inferatlas/contracts";
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeAll, describe, expect, it } from "vitest";
-import type { Arch } from "@/lib/arch-types";
 import deepseekJson from "../../fixtures/arch-ui/deepseek-v3/arch.json";
 import v4Json from "../../fixtures/arch-ui/deepseek-v4-flash/arch.json";
 import denseArchJson from "../../fixtures/arch-ui/qwen3-8b/arch.json";
@@ -24,20 +23,41 @@ const MIXED = "data/main-verified-H100/qwen3-8b";
 const V4 = "data/main-verified-A2/deepseek-v4-flash";
 const VLM = "data/main-verified-H100/deepseek-v3";
 
-/** Qwen3-8B with an extra (secondary) "Vision encoder" stack before the decoder. */
+/**
+ * Qwen3-8B with a VLM-style vision branch before the token embedding (the shape of the real
+ * Llama-4 / MiniMax-M3 data): patch embedding (generic) → vision layers → projector (generic).
+ */
 function visionArch(): Arch {
   const a = denseArchJson as unknown as Arch;
   const stack = a.stages.find((x) => x.kind === "stack") as Extract<
     Arch["stages"][number],
     { kind: "stack" }
   >;
+  const embed = a.stages[0] as ArchModuleStage;
+  const generic = (id: string, cls: string, kind: "embedding" | "other") => ({
+    ...embed,
+    id,
+    kind,
+    label: kind === "embedding" ? "Token embedding" : id,
+    component: { kind: "generic" as const, class_name: `vllm.x.${cls}`, children: [] },
+    io: { inputs: [], internals: [], outputs: [] },
+    module: { ...embed.module, path: id, class_name: `vllm.x.${cls}`, status: "generic" as const },
+  });
   const vision = {
     ...stack,
-    id: "vision",
-    label: "Vision encoder",
+    id: "vision_model.layers",
+    label: "Vision layers",
     bands: stack.bands.map((b) => ({ ...b, id: "vit" })),
   };
-  return { ...a, stages: [a.stages[0], vision, ...a.stages.slice(1)] } as Arch;
+  return {
+    ...a,
+    stages: [
+      generic("vision_model.patch_embedding", "PatchEmbed", "embedding"),
+      vision,
+      generic("multi_modal_projector", "Projector", "other"),
+      ...a.stages,
+    ],
+  } as Arch;
 }
 
 /** A non-periodic, heterogeneous stack (6 bands alternating dense / MoE with varying counts). */
@@ -182,17 +202,20 @@ describe("architecture page", { timeout: 20_000 }, () => {
     await renderAt("/m/main-verified/A2/qwen3-30b-a3b");
     const fig = await screen.findByTestId("arch-figure");
     expect(screen.getByTestId("tab-arch")).toHaveAttribute("data-state", "active");
-    expect(within(fig).getByTestId("stage-embed")).toBeInTheDocument();
-    expect(within(fig).getByTestId("band-moe")).toBeInTheDocument();
+    expect(within(fig).getByTestId("stage-model.embed_tokens")).toBeInTheDocument();
+    expect(within(fig).getByTestId("band-model.layers:band:0")).toBeInTheDocument();
     expect(within(fig).getByText("128E · top-8")).toBeInTheDocument();
     expect(screen.getByTestId("arch-overview")).toBeInTheDocument();
   });
 
   it("expands a band into per-layer tensor I/O with evaluated shapes", async () => {
     const router = await renderAt("/m/main-verified/A2/qwen3-30b-a3b");
-    const header = within(await screen.findByTestId("band-moe")).getByRole("button", {
-      name: /^layers 0–47/,
-    });
+    const header = within(await screen.findByTestId("band-model.layers:band:0")).getByRole(
+      "button",
+      {
+        name: /^layers 0–47/,
+      },
+    );
     expect(header).toHaveAttribute("aria-expanded", "false");
     await userEvent.click(header);
     expect(router.state.location.search).toMatchObject({ layer: 0 });
@@ -202,7 +225,9 @@ describe("architecture page", { timeout: 20_000 }, () => {
     const qkv = within(attn)
       .getAllByTestId("param-row")
       .find((r) => r.textContent?.includes("qkv_proj.weight")) as HTMLElement;
-    expect(within(qkv).getByTestId("shape-sym")).toHaveTextContent("[(Hq+2*Hkv)*D/tp, H]");
+    expect(within(qkv).getByTestId("shape-sym")).toHaveTextContent(
+      "[(Hq/tp+2*max(1,Hkv/tp))*D, H]",
+    );
     expect(within(qkv).getByTestId("shape-num")).toHaveTextContent("[5120, 2048]");
     expect(within(attn).getByTestId("source-link")).toHaveAttribute(
       "href",
@@ -214,13 +239,14 @@ describe("architecture page", { timeout: 20_000 }, () => {
     await renderAt("/m/main-verified/A2/deepseek-v3?layer=42&T=8192&tp=8");
     const detail = await screen.findByTestId("layer-detail");
     expect(screen.getByTestId("layer-band")).toHaveTextContent("layers 3–60");
-    expect(screen.getByTestId("band-moe")).toHaveAttribute("data-selected", "true");
+    expect(screen.getByTestId("band-model.layers:band:3")).toHaveAttribute("data-selected", "true");
     const mlp = within(detail).getByTestId("sub-card-mlp");
     expect(within(mlp).getByTestId("module-path")).toHaveTextContent("model.layers.42.mlp");
     expect(within(mlp).getAllByTestId("shape-num")[0]).toHaveTextContent("[8192, 7168]");
     const w13 = within(mlp)
       .getAllByTestId("param-row")
       .find((r) => r.textContent?.includes("w13")) as HTMLElement;
+    // [E, 4096/tp, 7168] with tp=8 from the URL.
     expect(within(w13).getByTestId("shape-num")).toHaveTextContent("[256, 512, 7168]");
   });
 
@@ -231,21 +257,26 @@ describe("architecture page", { timeout: 20_000 }, () => {
     await userEvent.type(input, "47{Enter}");
     expect(router.state.location.search).toMatchObject({ layer: 47 });
     expect(await screen.findByTestId("layer-title")).toHaveTextContent("Layer 47");
-    expect(screen.getByTestId("band-full_3")).toHaveAttribute("data-selected", "true");
+    // Layer 47 is a full-attention member; the period's full-attention band (layer 3) is drawn.
+    expect(screen.getByTestId("band-model.layers:band:3")).toHaveAttribute("data-selected", "true");
     expect(
       within(screen.getByTestId("layer-detail")).getByTestId("sub-card-self_attn"),
     ).toBeTruthy();
   });
 
   it("shows notes and generic components without blocking the figure", async () => {
-    await renderAt("/m/main-verified/A2/deepseek-v3");
-    const mtp = await screen.findByTestId("stage-mtp");
-    expect(mtp).toHaveTextContent("DeepSeekMultiTokenPredictorLayer");
+    await renderAt("/m/main-verified/A2/deepseek-v4-flash");
+    const head = await screen.findByTestId("stage-model.hc_head_op");
+    expect(head).toHaveTextContent("HCHeadOp");
     expect(
       within(screen.getByTestId("arch-overview")).getByTestId("note-group-unknown_layer_class"),
-    ).toHaveTextContent("no lowering rule");
-    await userEvent.click(mtp);
-    expect(await screen.findByTestId("stage-card-mtp")).toHaveTextContent("generic");
+    ).toHaveTextContent("No architecture rule describes");
+    await userEvent.click(head);
+    const card = await screen.findByTestId("stage-card-model.hc_head_op");
+    expect(card).toHaveTextContent("generic");
+    expect(card).toHaveTextContent("residual_streams");
+    // Long qualified names wrap at dots (no mid-word breaks).
+    expect(within(card).getByTestId("class-name").querySelectorAll("wbr").length).toBe(4);
   });
 
   it("structure-only cell: graph tab explains what is missing", async () => {
@@ -293,16 +324,18 @@ describe("architecture page", { timeout: 20_000 }, () => {
     await renderAt("/m/main-verified/A2/deepseek-v4-flash");
     const list = await screen.findByTestId("band-list");
     expect(within(list).getAllByRole("button")).toHaveLength(3);
-    expect(screen.getAllByTestId(/^band-(c128_3|c4_4)$/)).toHaveLength(2);
+    expect(screen.getAllByTestId(/^band-model\.layers:band:[34]$/)).toHaveLength(2);
     expect(document.querySelectorAll("[data-slot=residual-bus]").length).toBe(2);
     // v1.3 §3: targeted mHC warnings badge the mHC box like any sublayer.
-    const mhc = screen.getByTestId("sub-c128_3-mhc_pre_attn");
+    const mhc = screen.getByTestId("sub-model.layers:band:3-mhc_pre_attn");
     expect(mhc.querySelector("[data-slot=note-badge]")).toHaveAttribute("data-severity", "warn");
     // Single-layer members of a pattern group show no "1×".
-    expect(within(screen.getByTestId("band-c128_3")).queryByText("repeated 1 times")).toBeNull();
+    expect(
+      within(screen.getByTestId("band-model.layers:band:3")).queryByText("repeated 1 times"),
+    ).toBeNull();
     // Array order: the HC head merges the streams before the final norm.
     const fig = screen.getByTestId("arch-figure");
-    const order = ["stage-hc_head_op", "stage-final_norm"].map((id) =>
+    const order = ["stage-model.hc_head_op", "stage-model.norm"].map((id) =>
       [...fig.querySelectorAll("[data-testid]")].findIndex(
         (e) => e.getAttribute("data-testid") === id,
       ),
@@ -311,7 +344,7 @@ describe("architecture page", { timeout: 20_000 }, () => {
     expect(document.querySelectorAll("[data-slot=tensor-chip]")).toHaveLength(0);
     await userEvent.click(screen.getByTestId("internals-toggle"));
     expect(document.querySelectorAll("[data-slot=tensor-chip]").length).toBeGreaterThan(0);
-    await userEvent.click(screen.getByTestId("sub-c4_4-attn"));
+    await userEvent.click(screen.getByTestId("sub-model.layers:band:4-attn"));
     const card = await screen.findByTestId("sub-card-attn");
     const internals = within(card).getByTestId("internals");
     expect(internals).toHaveTextContent("index_scores");
@@ -320,14 +353,28 @@ describe("architecture page", { timeout: 20_000 }, () => {
     expect(within(card).getAllByTestId("tensor-row").length).toBeGreaterThan(2);
   });
 
-  it("secondary (vision) stacks start collapsed and expand on demand", async () => {
+  it("VLM: the vision branch merges into the token embedding, collapsed until opened", async () => {
     await renderAt("/m/main-verified/H100/deepseek-v3");
-    const toggle = await screen.findByRole("button", { name: /Vision encoder/ });
+    const merge = await screen.findByTestId("figure-merge");
+    // The token embedding is the merge node; the branch summarises the encoder chain.
+    expect(within(merge).getByTestId("stage-model.embed_tokens")).toBeInTheDocument();
+    expect(within(merge).getByTestId("encoder-input")).toHaveTextContent("image");
+    const toggle = within(merge).getByRole("button", { name: /Vision encoder/ });
     expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(within(merge).getByTestId("encoder-branch")).toHaveTextContent(
+      "PatchEmbed → 36× GQA attn · dense MLP → Projector",
+    );
     expect(screen.queryByTestId("band-vit")).toBeNull();
-    expect(screen.getByTestId("band-dense")).toBeInTheDocument();
+    expect(screen.getByTestId("band-model.layers:band:0")).toBeInTheDocument();
     await userEvent.click(toggle);
+    const inner = await screen.findByRole("button", { name: /Vision layers/ });
+    await userEvent.click(inner);
     expect(await screen.findByTestId("band-vit")).toBeInTheDocument();
+    // Overview: encoder stages are grouped and relabelled (not "Token embedding").
+    const flow = within(screen.getByTestId("dataflow-encoder"));
+    expect(flow.getByText("Vision encoder")).toBeInTheDocument();
+    expect(flow.getByText("patch embedding")).toBeInTheDocument();
+    expect(flow.getByText("multi modal projector")).toBeInTheDocument();
   });
 
   it("home groups models by family and filters by text and family", async () => {

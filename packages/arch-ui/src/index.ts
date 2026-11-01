@@ -41,6 +41,8 @@ export {
 export {
   FigureBranch,
   type FigureBranchProps,
+  FigureMerge,
+  type FigureMergeProps,
   FigureTerminal,
   type FigureTerminalProps,
   ModelFigure,

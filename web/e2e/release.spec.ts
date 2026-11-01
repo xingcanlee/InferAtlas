@@ -51,40 +51,25 @@ async function fits(page: Page) {
   expect((await graphFit(page)).zoom).toBeGreaterThanOrEqual(0.6);
 }
 
-test("release matrix exposes DeepSeek blockers without numeric data or links", async ({
+test("release matrix links every extracted cell, triage included (structure first)", async ({
   page,
-  expectedConsoleErrors,
 }) => {
   const index = await (await page.request.get("./data/index.json")).json();
-  expect(index.cells.filter((c: { status: string }) => c.status === "ok")).toHaveLength(4);
-  const blocked = index.cells.filter(
-    (c: { model: string; version: string; device: string }) =>
-      c.model === "deepseek-v3" &&
-      c.version === "main-verified" &&
-      ["A2", "H100"].includes(c.device),
-  );
-  expect(blocked).toHaveLength(2);
-  for (const cell of blocked) {
-    expect(cell.status).toBe("triage");
-    expect(cell.triage_count).toBeGreaterThan(0);
-    expect(cell.data_path).toBeNull();
-  }
+  const linked = index.cells.filter((c: { data_path: string | null }) => c.data_path);
+  expect(linked.length).toBeGreaterThan(0);
+  // Triage never hides structure: triage cells with extracted structure carry a data path.
+  expect(linked.some((c: { status: string }) => c.status === "triage")).toBe(true);
   for (const device of ["A2", "H100"]) {
     await page.goto(`./#/?device=${device}`);
     await expect(page.getByTestId("matrix")).toBeVisible();
-    await expect(page.locator('[data-status="triage"]')).toHaveCount(1);
-    await expect(page.locator('a[href*="deepseek-v3"]')).toHaveCount(0);
+    for (const c of linked.filter((x: { device: string }) => x.device === device))
+      await expect(page.getByTestId(`cell-${c.version}-${c.model}`)).toHaveAttribute(
+        "href",
+        new RegExp(`/m/${c.version}/${device}/${c.model}$`),
+      );
     await fits(page);
     await screenshot(page, `home-${device.toLowerCase()}`);
   }
-  // This intentional blocked deep link logs its loader error; it says triage, not missing.
-  expectedConsoleErrors.push("deepseek-v3 @ main-verified on A2: Blocked by");
-  await page.goto("./#/m/main-verified/A2/deepseek-v3");
-  await expect(page.getByTestId("cell-unavailable")).toContainText(
-    /deepseek-v3 @ main-verified on A2: Blocked by \d+ unresolved triage items?; no numeric data/,
-  );
-  await expect(page.getByText(/missing/i)).toHaveCount(0);
-  await expect(page.getByTestId("model-title")).toHaveCount(0);
 });
 
 test("release model captures light, dark, overlay and smaller desktop", async ({ page }) => {

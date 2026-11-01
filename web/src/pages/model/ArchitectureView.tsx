@@ -1,3 +1,4 @@
+import type { Arch, ArchBand } from "@inferatlas/contracts";
 import { getRouteApi } from "@tanstack/react-router";
 import { ArrowLeft, ChevronDown, Maximize2, Minimize2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -24,7 +25,6 @@ import {
   slotAt,
   stacks,
 } from "@/lib/arch";
-import type { Arch, ArchBand } from "@/lib/arch-types";
 import { type ModelSearch, paramOverrides } from "@/lib/search";
 import { useUi } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -97,6 +97,14 @@ export function ArchitectureView({ arch: raw }: { arch: Arch }) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [clear]);
+
+  // Keep the selected block in view when the figure is taller than the canvas (layer selector,
+  // panel links): scroll only as far as needed.
+  useEffect(() => {
+    if (!drawn) return;
+    const el = document.querySelector(`[data-testid="band-${drawn.id.replace(/["\\]/g, "")}"]`);
+    el?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+  }, [drawn]);
 
   const [symbolsOpen, setSymbolsOpen] = useState(false);
   const [fit, setFit] = useState(true);

@@ -1,5 +1,12 @@
-import type { HardwarePreset, Index, IndexCell, IR, Report, View } from "@inferatlas/contracts";
-import type { Arch } from "@/lib/arch-types";
+import type {
+  Arch,
+  HardwarePreset,
+  Index,
+  IndexCell,
+  IR,
+  Report,
+  View,
+} from "@inferatlas/contracts";
 import type { HubManifest } from "@/lib/hub";
 import { cellUnavailableMessage } from "@/lib/status";
 

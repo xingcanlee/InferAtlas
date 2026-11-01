@@ -4,9 +4,10 @@ import { fileURLToPath } from "node:url";
 import { expect, type Page, test } from "@playwright/test";
 
 /**
- * Architecture tab (structure first) on the demo fixtures (fixtures/arch-ui). Release data has
- * no arch.json yet, so these run in demo mode only. Screenshots of every fixture figure, light
- * and dark at 1440×900, are written to web/docs/screenshots/u1/.
+ * Architecture tab (structure first) on the demo fixtures (fixtures/arch-ui: real generator
+ * output copied from release data). The full real-data sweep is e2e/release-arch.spec.ts.
+ * Screenshots of every fixture figure, light and dark at 1440×900, go to
+ * web/docs/screenshots/u1/.
  */
 const demo = process.env.INFERATLAS_DEMO === "1";
 test.skip(!demo, "architecture fixtures are demo data");
@@ -101,7 +102,9 @@ test("expand a band: per-layer tensor I/O with numeric shapes", async ({ page })
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(url("deepseek-v3"));
   await applyStoredTheme(page, "light");
-  const header = page.getByTestId("band-moe").getByRole("button", { name: /^layers 3–60/ });
+  const header = page
+    .getByTestId("band-model.layers:band:3")
+    .getByRole("button", { name: /^layers 3–60/ });
   await expect(header).toHaveAttribute("aria-expanded", "false");
   await header.click();
   await expect(header).toHaveAttribute("aria-expanded", "true");
@@ -109,12 +112,14 @@ test("expand a band: per-layer tensor I/O with numeric shapes", async ({ page })
   const detail = page.getByTestId("layer-detail");
   await expect(detail.getByTestId("layer-title")).toHaveText("Layer 3");
   const mlp = detail.getByTestId("sub-card-mlp");
-  await expect(mlp).toContainText("MoE 256E top-8 + 1 shared");
+  await expect(mlp).toContainText("MoE 256E top-8 + 1 shared · sigmoid router");
   await expect(mlp.getByTestId("tensor-row").first()).toContainText("[T, H]");
   await expect(mlp.getByTestId("tensor-row").first()).toContainText("[4096, 7168]");
-  await expect(mlp).toContainText("AscendSharedFusedMoE");
+  await expect(mlp).toContainText("DeepseekV2MoE");
+  // Ascend replacements are shown on the norms (A2).
+  await expect(detail.getByTestId("sub-card-input_layernorm")).toContainText("AscendRMSNorm");
   // Clicking a sublayer in the figure selects its card.
-  await page.getByTestId("sub-moe-self_attn").click();
+  await page.getByTestId("sub-model.layers:band:3-self_attn").click();
   await expect(detail.getByTestId("sub-card-self_attn")).toHaveAttribute("data-selected", "true");
   await expect(detail.getByTestId("sub-card-self_attn")).toContainText("[4096, 7168]");
   await settle(page);
@@ -143,12 +148,18 @@ test("layer selector resolves any layer to its band", async ({ page }) => {
   await expect(page).toHaveURL(/layer=23/);
   await expect(page.getByTestId("layer-band")).toContainText("layer 23");
   await expect(page.getByTestId("layer-total")).toHaveText("of 48 layers");
-  await expect(page.getByTestId("band-full_3")).toHaveAttribute("data-selected", "true");
+  await expect(page.getByTestId("band-model.layers:band:3")).toHaveAttribute(
+    "data-selected",
+    "true",
+  );
   await expect(page.getByTestId("layer-detail")).toContainText("model.layers.23.self_attn");
   // ArrowDown steps to the previous layer: a linear-attention band.
   await input.press("ArrowDown");
   await expect(page).toHaveURL(/layer=22/);
-  await expect(page.getByTestId("band-linear_0_2")).toHaveAttribute("data-selected", "true");
+  await expect(page.getByTestId("band-model.layers:band:0")).toHaveAttribute(
+    "data-selected",
+    "true",
+  );
   await expect(page.getByTestId("layer-detail")).toContainText("Gated DeltaNet");
   await expect(page.getByTestId("layer-detail")).toContainText("model.layers.22.linear_attn");
   await applyStoredTheme(page, "dark");
@@ -196,13 +207,13 @@ test("DeepSeek-V4: mHC residual bus, compressed attention, internals", async ({ 
   await expect(page.getByTestId("arch-figure")).toContainText("indexer top-512");
   await page.getByTestId("internals-toggle").click();
   await expect(page.locator("[data-slot=tensor-chip]").first()).toBeVisible();
-  await page.getByTestId("sub-c4_4-attn").click();
+  await page.getByTestId("sub-model.layers:band:4-attn").click();
   const card = page.getByTestId("sub-card-attn");
   await expect(card.getByTestId("internals")).toContainText("kv_compressed");
   await settle(page);
   await page.screenshot({ path: join(shots, "deepseek-v4-flash-internals-light.png") });
   // Prefix band card: layers 0-1 (sliding window only, hash routing).
-  await page.getByTestId("band-card-swa_hash").click();
+  await page.getByTestId("band-card-model.layers:band:0").click();
   await expect(page).toHaveURL(/layer=0/);
   await expect(page.getByTestId("layer-detail")).toContainText("hash");
   expect(errors).toEqual([]);

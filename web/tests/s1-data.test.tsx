@@ -1,10 +1,12 @@
 /**
- * Real emitter output (S1). 1) A trimmed copy of S1's DeepSeek-V4-Flash arch.json is a committed
- * fixture (fixtures/arch-ui/s1). 2) When INFERATLAS_S1_DATA points at a release-data directory,
- * every arch.json under it goes through the UI helpers (skipped otherwise).
+ * Real emitter output (S1, contract v1.3). 1) A trimmed copy of the H100 DeepSeek-V4-Flash
+ * arch.json (≤ 2 params per module; fixtures/arch-ui/build.mjs) is a committed fixture. 2) When
+ * INFERATLAS_S1_DATA points at a release-data directory, every arch.json under it goes through
+ * the UI helpers and renders (skipped otherwise).
  */
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
+import type { Arch, ArchTensor } from "@inferatlas/contracts";
 import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { ArchFigure } from "@/components/arch/ArchFigure";
@@ -12,6 +14,7 @@ import {
   archEnv,
   bandSummary,
   blockSegments,
+  encoderStages,
   evaluator,
   layerCount,
   layerSlots,
@@ -21,27 +24,25 @@ import {
   stacks,
   subTarget,
 } from "@/lib/arch";
-import type { Arch, ArchTensor } from "@/lib/arch-types";
-import v4TrimmedJson from "../../fixtures/arch-ui/s1/deepseek-v4-flash.trimmed.json";
+import v4TrimmedJson from "../../fixtures/arch-ui/s1/deepseek-v4-flash/arch.json";
 
-describe("S1 DeepSeek-V4-Flash (trimmed real output)", () => {
+describe("S1 DeepSeek-V4-Flash (trimmed real output, H100)", () => {
   const arch = normalizeArch(v4TrimmedJson as unknown as Arch);
   const bands = stacks(arch)[0]?.bands ?? [];
 
-  it("labels each band individually, so folding is structural (v1.3 §1)", () => {
+  it("one label per period, shared by its bands (v1.3 §1); prefix bands unlabelled", () => {
     expect(bands).toHaveLength(42);
-    // Consecutive bands never share a label → every labelled run has a single member.
-    expect(bands.every((b, i) => i === 0 || b.pattern !== bands[i - 1]?.pattern)).toBe(true);
+    expect(bands.slice(0, 2).map((b) => b.pattern)).toEqual([null, null]);
+    expect(new Set(bands.slice(2).map((b) => b.pattern))).toEqual(
+      new Set(["1× MQA ÷128 + 1× MQA ÷4 + indexer"]),
+    );
     const items = stackItems(bands);
-    expect(items.length).toBeLessThanOrEqual(4);
-    const groups = items.filter((it) => it.kind === "pattern");
-    expect(groups).toHaveLength(1);
-    const g = groups[0];
+    expect(items.map((it) => it.kind)).toEqual(["band", "band", "pattern"]);
+    const g = items[2];
     if (g?.kind !== "pattern") throw new Error("pattern");
     expect(g.period).toHaveLength(2);
-    expect(g.repeats).toBeGreaterThanOrEqual(19);
-    expect(g.label).toMatch(/÷128/);
-    expect(g.label).toMatch(/÷4 \+ indexer/);
+    expect(g.repeats).toBe(20);
+    expect(g.label).toBe("1× MQA ÷128 + 1× MQA ÷4 + indexer");
     // Covered layers tile the stack.
     const covered = items.reduce(
       (n, it) =>
@@ -51,7 +52,7 @@ describe("S1 DeepSeek-V4-Flash (trimmed real output)", () => {
     expect(covered).toBe(layerCount(arch));
   });
 
-  it("deprecated variants normalise (sparse / sliding_window → MQA + extras)", () => {
+  it("attention variants are head-sharing schemes (v1.3 §5): MQA, locality in extras", () => {
     const variants = new Set(
       bands.flatMap((b) =>
         b.block.sublayers.flatMap((s) =>
@@ -60,6 +61,15 @@ describe("S1 DeepSeek-V4-Flash (trimmed real output)", () => {
       ),
     );
     expect([...variants]).toEqual(["mqa"]);
+    const routers = bands.map(
+      (b) =>
+        b.block.sublayers.find((s) => s.component?.kind === "moe")?.component as {
+          router: { scoring: string };
+        },
+    );
+    // v1.3 §4: the first three layers route by token-id hash.
+    expect(routers.slice(0, 2).map((r) => r.router.scoring)).toEqual(["hash", "hash"]);
+    expect(routers[2]?.router.scoring).not.toBe("hash");
   });
 
   it("mHC sublayers form hyper segments; their notes resolve", () => {
@@ -144,6 +154,21 @@ describe.skipIf(files.length === 0)("S1 release data (all arch.json)", () => {
         }
       }
       expect(layerSlots(arch).length).toBe(layerCount(arch));
+      // VLM stages before the token embedding become the encoder branch, never lost.
+      if (encoderStages(arch).length)
+        expect(arch.stages.some((s) => s.kind === "embedding")).toBe(true);
+      const { container, unmount } = render(
+        <ArchFigure
+          arch={arch}
+          evaluate={ev}
+          selection={{}}
+          onSelectBand={() => {}}
+          onSelectSub={() => {}}
+          onSelectStage={() => {}}
+        />,
+      );
+      expect(container.querySelector("[data-testid=arch-figure]")).not.toBeNull();
+      unmount();
       const bad = shapes
         .flatMap(({ where, t }) => t.shape.map((d) => ({ where, name: t.name, d })))
         .filter(({ d }) => ev(d) === undefined)

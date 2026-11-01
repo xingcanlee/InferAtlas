@@ -95,7 +95,11 @@ export function HomePage() {
     .filter((g) => g.models.length);
   const setSearch = (patch: { q?: string | undefined; family?: string | undefined }) =>
     navigate({ search: (prev) => ({ ...prev, ...patch }), replace: true });
-  const cols = index.versions.length + 2;
+  const withDataOf = (m: string) =>
+    index.cells.filter((c) => c.model === m && c.device === device && c.data_path);
+  // The compare column only when some model has two snapshots with data on this device.
+  const canDiff = index.models.some((m) => withDataOf(m.id).length >= 2);
+  const cols = index.versions.length + (canDiff ? 2 : 1);
 
   return (
     <div className="h-full overflow-auto">
@@ -181,7 +185,7 @@ export function HomePage() {
                     </div>
                   </th>
                 ))}
-                <th className="w-16 border-l px-2 py-2.5" aria-label="Compare" />
+                {canDiff ? <th className="w-16 border-l px-2 py-2.5" aria-label="Compare" /> : null}
               </tr>
             </thead>
             {groups.map((g) => (
@@ -198,9 +202,7 @@ export function HomePage() {
                 </tr>
                 {g.models.map((m, i) => {
                   const primary = primaryCell(m.id);
-                  const withData = index.cells.filter(
-                    (c) => c.model === m.id && c.device === device && c.data_path,
-                  );
+                  const withData = withDataOf(m.id);
                   const name = (
                     <>
                       <span className="font-semibold">{m.label}</span>
@@ -238,23 +240,25 @@ export function HomePage() {
                           <Cell cell={cellOf(v.id, m.id)} />
                         </td>
                       ))}
-                      <td className="border-l px-2 py-2 text-center align-middle">
-                        {withData.length >= 2 ? (
-                          <Link
-                            to="/diff"
-                            search={{
-                              model: m.id,
-                              device,
-                              a: withData[0]?.version,
-                              b: withData[withData.length - 1]?.version,
-                            }}
-                            className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
-                            title="Compare versions"
-                          >
-                            <GitCompareArrows className="size-3" /> diff
-                          </Link>
-                        ) : null}
-                      </td>
+                      {canDiff ? (
+                        <td className="border-l px-2 py-2 text-center align-middle">
+                          {withData.length >= 2 ? (
+                            <Link
+                              to="/diff"
+                              search={{
+                                model: m.id,
+                                device,
+                                a: withData[0]?.version,
+                                b: withData[withData.length - 1]?.version,
+                              }}
+                              className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
+                              title="Compare versions"
+                            >
+                              <GitCompareArrows className="size-3" /> diff
+                            </Link>
+                          ) : null}
+                        </td>
+                      ) : null}
                     </tr>
                   );
                 })}

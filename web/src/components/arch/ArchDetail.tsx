@@ -6,6 +6,15 @@ import {
   numel,
   StatusBadge,
 } from "@inferatlas/arch-ui";
+import type {
+  Arch,
+  ArchBand,
+  ArchModule,
+  ArchModuleStage,
+  ArchNote,
+  ArchSublayer,
+  ArchTensor,
+} from "@inferatlas/contracts";
 import { ChevronLeft, ChevronRight, ExternalLink, Info, TriangleAlert } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -13,6 +22,8 @@ import { Input } from "@/components/ui/input";
 import {
   bandSummary,
   componentSummary,
+  encoderStages,
+  encoderTitle,
   groupNotes,
   layerCount,
   layerPath,
@@ -21,19 +32,10 @@ import {
   RUNTIME_SYMBOLS,
   shortClass,
   stackItems,
-  subTarget,
+  stageLabel,
+  subNoteTargets,
   uniqueNotes,
 } from "@/lib/arch";
-import type {
-  Arch,
-  ArchBand,
-  ArchModule,
-  ArchModuleStage,
-  ArchNote,
-  ArchParam,
-  ArchSublayer,
-  ArchTensor,
-} from "@/lib/arch-types";
 import { fmtBytes } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -73,6 +75,46 @@ function Section({
   );
 }
 
+/**
+ * Fully qualified names (`vllm.model_executor.layers.mhc.MHCPreOp`) wrap after a dot, not in the
+ * middle of a class name; `overflow-wrap:anywhere` is only the fallback for a single long segment.
+ */
+export function QualifiedName({ name, className }: { name: string; className?: string }) {
+  const parts = name.split(".");
+  return (
+    <span className={cn("[overflow-wrap:anywhere]", className)} title={name}>
+      {parts.map((p, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: segments are positional
+        <span key={i}>
+          {p}
+          {i < parts.length - 1 ? (
+            <>
+              .<wbr />
+            </>
+          ) : null}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+/** Note prose: wrap qualified class names inside it at dots, never overflow the panel. */
+function NoteText({ text }: { text: string }) {
+  const parts = text.split(/(\b[\w]+(?:\.[\w]+){2,}\b)/);
+  return (
+    <>
+      {parts.map((p, i) =>
+        i % 2 ? (
+          // biome-ignore lint/suspicious/noArrayIndexKey: segments are positional
+          <QualifiedName key={i} name={p} className="font-mono text-[11px]" />
+        ) : (
+          p
+        ),
+      )}
+    </>
+  );
+}
+
 // ----------------------------------------------------------------------------- tensors
 
 export function TensorTable({
@@ -80,11 +122,16 @@ export function TensorTable({
   evaluate,
   kind,
 }: {
-  tensors: (ArchTensor | ArchParam)[];
+  tensors: ArchTensor[];
   evaluate: Evaluate;
   kind: "io" | "param";
 }) {
-  if (!tensors.length) return <p className="text-[12px] text-muted-foreground">none</p>;
+  if (!tensors.length)
+    return (
+      <p className="text-[12px] text-muted-foreground" data-testid="tensors-empty">
+        {kind === "io" ? "not derived (unknown for this component)" : "none"}
+      </p>
+    );
   return (
     <ul className="flex flex-col">
       {tensors.map((t) => {
@@ -185,13 +232,13 @@ export function NoteList({ notes, withTarget }: { notes: ArchNote[]; withTarget?
           ) : (
             <Info className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" aria-label="info" />
           )}
-          <span>
+          <span className="min-w-0 [overflow-wrap:anywhere]">
             {withTarget && n.target ? (
               <span className="mr-1.5 font-mono text-[10.5px] text-muted-foreground">
                 {n.target}
               </span>
             ) : null}
-            {n.text}
+            <NoteText text={n.text} />
             {!withTarget && n.triage_kind ? (
               <span className="ml-1.5 rounded border px-1 font-mono text-[10px] text-muted-foreground">
                 {n.triage_kind}
@@ -249,12 +296,12 @@ function ModuleCard({
       <div className="flex flex-col gap-2.5 px-3 py-2">
         {module ? (
           <div className="flex flex-col gap-0.5 text-[11.5px]">
-            <div className="font-mono break-all" data-testid="module-path">
-              {path ?? module.path}
+            <div className="font-mono" data-testid="module-path">
+              <QualifiedName name={path ?? module.path} />
             </div>
             <div className="flex flex-wrap items-center gap-x-2 text-muted-foreground">
-              <span className="w-full font-mono break-all" data-testid="class-name">
-                {module.class_name}
+              <span className="w-full font-mono" data-testid="class-name">
+                <QualifiedName name={module.class_name} />
               </span>
               {module.source ? (
                 <a
@@ -271,8 +318,9 @@ function ModuleCard({
             </div>
             {module.replaced ? (
               <div className="text-[11px] text-overlay">
-                Ascend: <span className="font-mono">{module.replaced.baseline_class}</span> →{" "}
-                <span className="font-mono">{module.replaced.ascend_class}</span>
+                Ascend:{" "}
+                <QualifiedName name={module.replaced.baseline_class} className="font-mono" /> →{" "}
+                <QualifiedName name={module.replaced.ascend_class} className="font-mono" />
               </div>
             ) : null}
           </div>
@@ -562,7 +610,7 @@ export function LayerDetail({
               module={s.module}
               path={s.module ? layerPath(s.module, band, layer) : undefined}
               io={s.io}
-              notes={notesFor(arch, [subTarget(band.id, s.id)])}
+              notes={notesFor(arch, subNoteTargets(arch, band, s.id))}
               evaluate={evaluate}
               selected={sub === s.id}
             />
@@ -586,7 +634,7 @@ export function StageDetail({
     <div className="p-3" data-testid="stage-detail">
       <ModuleCard
         testId={`stage-card-${stage.id}`}
-        title={stage.label ?? componentSummary(stage.component ?? null, stage.kind)}
+        title={stageLabel(arch, stage) || componentSummary(stage.component ?? null, stage.kind)}
         subtitle={`${stage.id} · ${stage.kind.replace("_", " ")}`}
         module={stage.module}
         io={stage.io}
@@ -607,6 +655,47 @@ export function Overview({
   onStage: (id: string) => void;
 }) {
   const warn = uniqueNotes(arch.notes).filter((n) => n.severity === "warn").length;
+  const encoder = encoderStages(arch);
+  const stageItem = (s: Arch["stages"][number]) => (
+    <li key={s.id}>
+      {s.kind === "stack" ? (
+        <div>
+          <span className="font-medium">{stageLabel(arch, s)}</span>
+          <ul className="mt-0.5 ml-3 flex flex-col">
+            {stackItems(s.bands).map((it) => {
+              const first = (it.kind === "band" ? it.band : it.period[0]) as ArchBand;
+              return (
+                <li key={first.id}>
+                  <button
+                    type="button"
+                    className="text-left hover:underline"
+                    onClick={() => onBand(first)}
+                  >
+                    {layerRange(it.kind === "band" ? it.band.layers : it.layers)}{" "}
+                    <span className="text-muted-foreground">
+                      ·{" "}
+                      {it.kind === "band" ? bandSummary(it.band) : `(${it.label}) × ${it.repeats}`}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ) : (
+        <button
+          type="button"
+          className="text-left [overflow-wrap:anywhere] hover:underline"
+          onClick={() => onStage(s.id)}
+        >
+          <span className="font-medium">{stageLabel(arch, s)}</span>{" "}
+          <span className="font-mono text-[11px] text-muted-foreground">
+            <span title={s.module.class_name}>{shortClass(s.module.class_name)}</span>
+          </span>
+        </button>
+      )}
+    </li>
+  );
   return (
     <div data-testid="arch-overview">
       <Section title="Model">
@@ -622,49 +711,14 @@ export function Overview({
         </dl>
       </Section>
       <Section title="Dataflow">
-        <ol className="flex flex-col gap-1 text-[12px]">
-          {arch.stages.map((s) => (
-            <li key={s.id}>
-              {s.kind === "stack" ? (
-                <div>
-                  <span className="font-medium">{s.label ?? "Decoder layers"}</span>
-                  <ul className="mt-0.5 ml-3 flex flex-col">
-                    {stackItems(s.bands).map((it) => {
-                      const first = (it.kind === "band" ? it.band : it.period[0]) as ArchBand;
-                      return (
-                        <li key={first.id}>
-                          <button
-                            type="button"
-                            className="text-left hover:underline"
-                            onClick={() => onBand(first)}
-                          >
-                            {layerRange(it.kind === "band" ? it.band.layers : it.layers)}{" "}
-                            <span className="text-muted-foreground">
-                              ·{" "}
-                              {it.kind === "band"
-                                ? bandSummary(it.band)
-                                : `(${it.label}) × ${it.repeats}`}
-                            </span>
-                          </button>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  className="text-left hover:underline"
-                  onClick={() => onStage(s.id)}
-                >
-                  <span className="font-medium">{s.label ?? s.id}</span>{" "}
-                  <span className="font-mono text-[11px] text-muted-foreground">
-                    <span title={s.module?.class_name}>{shortClass(s.module?.class_name)}</span>
-                  </span>
-                </button>
-              )}
+        <ol className="flex flex-col gap-1 text-[12px]" data-testid="dataflow">
+          {encoder.length ? (
+            <li key="encoder" data-testid="dataflow-encoder">
+              <span className="font-medium">{encoderTitle(encoder)}</span>
+              <ol className="mt-0.5 ml-3 flex flex-col gap-0.5">{encoder.map(stageItem)}</ol>
             </li>
-          ))}
+          ) : null}
+          {arch.stages.filter((s) => !encoder.includes(s)).map(stageItem)}
         </ol>
       </Section>
       <Section
