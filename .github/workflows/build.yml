@@ -1,5 +1,9 @@
 name: Build snapshots
 on:
+  # Let GitHub register workflow edits without executing the pipeline.
+  push:
+    branches-ignore: [state, gh-pages]
+    paths: [.github/workflows/build.yml]
   workflow_dispatch:
     inputs:
       vllm_commit:
@@ -52,6 +56,7 @@ env:
   VLLM_USE_V1: '1'
 jobs:
   plan:
+    if: github.event_name != 'push'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     outputs:
@@ -123,7 +128,7 @@ jobs:
           retention-days: 14
   collect:
     needs: [plan, extract]
-    if: ${{ !cancelled() }}
+    if: ${{ !cancelled() && github.event_name != 'push' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
