@@ -47,14 +47,20 @@ const RESIZE_DEBOUNCE_MS = 120;
  * that keeps zoom at or above the readable floor; otherwise the view is fitted to the canvas
  * width at no less than the floor and panned to the anchor (the selected node, else the first
  * drillable group). Re-runs on view change and, debounced, on canvas resize (window or panel).
+ *
+ * Once the user has panned/zoomed (`userMoved`, reset per view), resizes keep their camera,
+ * unless the resize breaks the view: content that was wholly visible gets clipped, or no
+ * content is visible at all.
  */
 function FitOnChange({
   viewKey,
   bounds: { x: bx, y: by, width: bw, height: bh },
   minZoom,
   focus,
+  userMoved,
 }: {
   viewKey: string;
+  userMoved: React.RefObject<boolean>;
   bounds: Rect;
   minZoom: number;
   /** Center (graph px) to keep in view when the graph does not fit. */
@@ -67,8 +73,11 @@ function FitOnChange({
   const focusRef = useRef(focus);
   focusRef.current = focus;
   const placedKey = useRef<string | undefined>(undefined);
+  const lastSize = useRef({ width, height });
   useEffect(() => {
     if (!width || !height) return;
+    const prev = lastSize.current;
+    lastSize.current = { width, height };
     const place = () => {
       const bounds = { x: bx, y: by, width: bw, height: bh };
       const fit = getViewportForBounds(bounds, width, height, 0, MAX_FIT_ZOOM, FIT_PADDING);
@@ -89,12 +98,28 @@ function FitOnChange({
     // A new view is placed immediately (no flash); resizes are debounced.
     if (placedKey.current !== viewKey) {
       placedKey.current = viewKey;
+      userMoved.current = false;
       place();
       return;
     }
-    const t = window.setTimeout(place, RESIZE_DEBOUNCE_MS);
+    const t = window.setTimeout(() => {
+      if (userMoved.current) {
+        const { x, y, zoom } = rf.getViewport();
+        const [l, top, r, b] = [
+          x + bx * zoom,
+          y + by * zoom,
+          x + (bx + bw) * zoom,
+          y + (by + bh) * zoom,
+        ];
+        const whole = (w: number, h: number) => l >= 0 && top >= 0 && r <= w && b <= h;
+        const any = l < width && top < height && r > 0 && b > 0;
+        if (any && !(whole(prev.width, prev.height) && !whole(width, height))) return;
+        userMoved.current = false;
+      }
+      place();
+    }, RESIZE_DEBOUNCE_MS);
     return () => window.clearTimeout(t);
-  }, [rf, viewKey, width, height, bx, by, bw, bh, minZoom]);
+  }, [rf, viewKey, width, height, bx, by, bw, bh, minZoom, userMoved]);
   return null;
 }
 
@@ -132,6 +157,8 @@ function Canvas(p: GraphCanvasProps) {
     [ir, view, graph, metrics, env, phase, shapes, heat, overlay, selected, nodeDiff, changedEdges],
   );
   const bounds = useMemo(() => contentBounds(nodes, edges), [nodes, edges]);
+  // Set by an actual user pan/zoom (those carry a source event; programmatic moves do not).
+  const userMoved = useRef(false);
   // Anchor for views too big to fit: the selected node, else the first changed node, else the
   // first drillable group (e.g. `decoder`, the node a first-time viewer opens).
   const focusNode =
@@ -185,12 +212,28 @@ function Canvas(p: GraphCanvasProps) {
           if (n.data.drillable) p.onDrill(n.data.vn.ir_node);
         }}
         onPaneClick={() => p.onSelect(undefined)}
+        onMove={(event) => {
+          if (event) userMoved.current = true;
+        }}
       >
         <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
-        <Controls showInteractive={false} position="bottom-right" />
+        <Controls
+          showInteractive={false}
+          position="bottom-right"
+          onZoomIn={() => {
+            userMoved.current = true;
+          }}
+          onZoomOut={() => {
+            userMoved.current = true;
+          }}
+          onFitView={() => {
+            userMoved.current = false;
+          }}
+        />
         <FitOnChange
           viewKey={p.graph.id}
           bounds={bounds}
+          userMoved={userMoved}
           minZoom={
             nodes.length <= SMALL_VIEW_NODES
               ? Math.min(SMALL_VIEW_MIN_ZOOM, p.minFitZoom ?? READABLE_ZOOM)

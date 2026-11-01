@@ -26,7 +26,7 @@ function BandStrip() {
   if (!bands.length) return null;
   const total = bands.reduce((s, b) => s + (b.n ?? 1), 0);
   return (
-    <div className="flex min-w-0 items-center gap-2" data-testid="band-strip">
+    <div className="flex min-w-0 items-center gap-2 overflow-hidden" data-testid="band-strip">
       <span className="shrink-0 text-[11px] text-muted-foreground">Layers</span>
       <div className="flex h-6 w-72 min-w-36 shrink overflow-hidden rounded-md border">
         {bands.map(({ g, lo, hi, n }) => {
@@ -101,7 +101,10 @@ export function ViewNav() {
       </Breadcrumb>
       <div className="ml-auto flex min-w-0 items-center gap-4">
         <BandStrip />
-        <span className="hidden items-center gap-1 text-[11px] whitespace-nowrap text-muted-foreground xl:flex">
+        <span
+          className="hidden shrink-0 items-center gap-1 text-[11px] whitespace-nowrap text-muted-foreground 2xl:flex"
+          data-testid="view-hint"
+        >
           double-click to open · <Kbd>Esc</Kbd> up · <Kbd>/</Kbd> find
         </span>
       </div>

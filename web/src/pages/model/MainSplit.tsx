@@ -18,6 +18,9 @@ const ANALYSIS_OPEN = "28%";
  */
 const OPEN_BY_DEFAULT_MIN_HEIGHT = 900;
 
+/** Re-open size; percentages need the unit, a bare number would be pixels in v4. */
+const openSize = (pct: number | undefined) => (pct === undefined ? ANALYSIS_OPEN : `${pct}%`);
+
 function savedLayout(): Layout | undefined {
   try {
     const v = JSON.parse(localStorage.getItem(SPLIT_KEY) ?? "null") as unknown;
@@ -47,6 +50,7 @@ export function MainSplit({ graph }: { graph: ReactNode }) {
   const [collapsed, setCollapsed] = useState(
     saved ? false : !initialOpen, // corrected by the first onResize when a layout is restored
   );
+  /** Last open size as a percentage of the group (v4 `resize(number)` would mean pixels). */
   const lastOpen = useRef<number | undefined>(undefined);
   const userToggle = useRef(false);
 
@@ -69,10 +73,11 @@ export function MainSplit({ graph }: { graph: ReactNode }) {
   const setAnalysisCollapsed = useCallback(
     (next: boolean) => {
       const p = panel.current;
-      if (!p) return;
+      if (!p || p.isCollapsed() === next) return;
+      // Only a real change produces an onLayoutChanged that should be persisted.
       userToggle.current = true;
       if (next) p.collapse();
-      else p.resize(lastOpen.current ?? ANALYSIS_OPEN);
+      else p.resize(openSize(lastOpen.current));
     },
     [panel],
   );
@@ -86,7 +91,7 @@ export function MainSplit({ graph }: { graph: ReactNode }) {
         const p = panel.current;
         if (!p || savedLayout()) return;
         const open = window.innerHeight >= OPEN_BY_DEFAULT_MIN_HEIGHT;
-        if (open && p.isCollapsed()) p.resize(lastOpen.current ?? ANALYSIS_OPEN);
+        if (open && p.isCollapsed()) p.resize(openSize(lastOpen.current));
         else if (!open && !p.isCollapsed()) p.collapse();
       }, 120);
     };
@@ -112,6 +117,12 @@ export function MainSplit({ graph }: { graph: ReactNode }) {
         withHandle
         aria-label="Resize analysis panel"
         data-testid="analysis-resize"
+        onKeyDown={(e) => {
+          // Enter toggles the analysis panel; arrows/Home/End keep their resize behaviour.
+          if (e.key !== "Enter") return;
+          e.preventDefault();
+          setAnalysisCollapsed(!panel.current?.isCollapsed());
+        }}
       />
       <ResizablePanel
         id="analysis-pane"

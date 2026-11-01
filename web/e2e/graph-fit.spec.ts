@@ -104,3 +104,73 @@ test("shrinking the window re-fits the graph", async ({ page }) => {
   await expect.poll(async () => (await graphFit(page)).outside).toEqual([]);
   expect((await graphFit(page)).zoom).toBeGreaterThanOrEqual(0.6);
 });
+
+test("analysis panel re-opens in the same session (button, tab, Enter on divider)", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1600, height: 1000 });
+  await page.goto("./#/m/main-verified/A2/qwen3-30b-a3b");
+  const toggle = page.getByTestId("analysis-toggle");
+  const analysisHeight = async () =>
+    (await page.getByTestId("analysis").boundingBox())?.height ?? Number.NaN;
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  // Chevron: collapse then expand without a reload.
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  await expect.poll(analysisHeight).toBeGreaterThanOrEqual(180);
+  // Tab click re-opens a collapsed panel.
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  await page.getByTestId("tab-roofline").click();
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  await expect.poll(analysisHeight).toBeGreaterThanOrEqual(180);
+  // Enter on the focused divider toggles both ways.
+  await page.getByTestId("analysis-resize").focus();
+  await page.keyboard.press("Enter");
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  await page.keyboard.press("Enter");
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  await expect.poll(analysisHeight).toBeGreaterThanOrEqual(180);
+});
+
+test("view header items do not overlap at 1280×800", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  for (const q of ["", "?view=L1%3Adecoder", "?view=L2%3Aattn"]) {
+    await page.goto(`./#/m/main-verified/A2/qwen3-30b-a3b${q}`);
+    const band = await page.getByTestId("band-strip").boundingBox();
+    const crumb = await page.getByTestId("current-view").boundingBox();
+    const hint = page.getByTestId("view-hint");
+    const boxes = [band, crumb, (await hint.isVisible()) ? await hint.boundingBox() : null].filter(
+      (b): b is NonNullable<typeof b> => b !== null,
+    );
+    for (let i = 0; i < boxes.length; i++)
+      for (let j = i + 1; j < boxes.length; j++) {
+        const [a, b] = [boxes[i], boxes[j]] as [(typeof boxes)[0], (typeof boxes)[0]];
+        const overlap =
+          a.x < b.x + b.width &&
+          b.x < a.x + a.width &&
+          a.y < b.y + b.height &&
+          b.y < a.y + a.height;
+        expect(overlap, `${q} header boxes ${i}/${j} overlap`).toBe(false);
+      }
+  }
+});
+
+test("a user zoom survives a small window resize", async ({ page }) => {
+  await page.setViewportSize({ width: 1600, height: 1000 });
+  await page.goto("./#/m/main-verified/A2/qwen3-30b-a3b");
+  await expect(page.getByTestId("node-decoder")).toBeVisible();
+  await page.locator(".react-flow__controls-zoomin").click();
+  await page.locator(".react-flow__controls-zoomin").click();
+  await page.waitForTimeout(400);
+  const zoomed = (await graphFit(page)).zoom;
+  await page.setViewportSize({ width: 1590, height: 990 });
+  await page.waitForTimeout(500);
+  expect((await graphFit(page)).zoom).toBeCloseTo(zoomed, 3);
+  // Fit view hands the camera back to auto placement.
+  await page.locator(".react-flow__controls-fitview").click();
+  await page.waitForTimeout(400);
+  await expect.poll(async () => (await graphFit(page)).outside).toEqual([]);
+});
