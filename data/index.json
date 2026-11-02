@@ -1,6 +1,7 @@
 {
   "cells": [
     {
+      "coverage": null,
       "data_path": null,
       "device": "310P",
       "model": "deepseek-v3",
@@ -9,6 +10,13 @@
       "version": "main-verified"
     },
     {
+      "coverage": {
+        "arch": true,
+        "notes_info": 4,
+        "notes_warn": 0,
+        "sublayers_generic": 0,
+        "sublayers_ruled": 8
+      },
       "data_path": "data/A2/deepseek-v3",
       "device": "A2",
       "model": "deepseek-v3",
@@ -17,6 +25,7 @@
       "version": "main-verified"
     },
     {
+      "coverage": null,
       "data_path": null,
       "device": "A3",
       "model": "deepseek-v3",
@@ -25,6 +34,7 @@
       "version": "main-verified"
     },
     {
+      "coverage": null,
       "data_path": null,
       "device": "A5",
       "model": "deepseek-v3",
@@ -33,6 +43,13 @@
       "version": "main-verified"
     },
     {
+      "coverage": {
+        "arch": true,
+        "notes_info": 1,
+        "notes_warn": 0,
+        "sublayers_generic": 0,
+        "sublayers_ruled": 8
+      },
       "data_path": "data/H100/deepseek-v3",
       "device": "H100",
       "model": "deepseek-v3",
@@ -41,6 +58,7 @@
       "version": "main-verified"
     },
     {
+      "coverage": null,
       "data_path": null,
       "device": "310P",
       "model": "deepseek-v3-2",
@@ -49,6 +67,13 @@
       "version": "main-verified"
     },
     {
+      "coverage": {
+        "arch": true,
+        "notes_info": 4,
+        "notes_warn": 0,
+        "sublayers_generic": 0,
+        "sublayers_ruled": 8
+      },
       "data_path": "data/A2/deepseek-v3-2",
       "device": "A2",
       "model": "deepseek-v3-2",
@@ -57,6 +82,7 @@
       "version": "main-verified"
     },
     {
+      "coverage": null,
       "data_path": null,
       "device": "A3",
       "model": "deepseek-v3-2",
@@ -65,6 +91,7 @@
       "version": "main-verified"
     },
     {
+      "coverage": null,
       "data_path": null,
       "device": "A5",
       "model": "deepseek-v3-2",
@@ -73,6 +100,13 @@
       "version": "main-verified"
     },
     {
+      "coverage": {
+        "arch": true,
+        "notes_info": 1,
+        "notes_warn": 0,
+        "sublayers_generic": 0,
+        "sublayers_ruled": 8
+      },
       "data_path": "data/H100/deepseek-v3-2",
       "device": "H100",
       "model": "deepseek-v3-2",
@@ -81,6 +115,7 @@
       "version": "main-verified"
     },
     {
+      "coverage": null,
       "data_path": null,
       "device": "310P",
       "model": "deepseek-v4-flash",
@@ -89,6 +124,13 @@
       "version": "main-verified"
     },
     {
+      "coverage": {
+        "arch": true,
+        "notes_info": 8,
+        "notes_warn": 0,
+        "sublayers_generic": 168,
+        "sublayers_ruled": 168
+      },
       "data_path": "data/A2/deepseek-v4-flash",
       "device": "A2",
       "model": "deepseek-v4-flash",
@@ -97,6 +139,7 @@
       "version": "main-verified"
     },
     {
+      "coverage": null,
       "data_path": null,
       "device": "A3",
       "model": "deepseek-v4-flash",
@@ -105,6 +148,7 @@
       "version": "main-verified"
     },
     {
+      "coverage": null,
       "data_path": null,
       "device": "A5",
       "model": "deepseek-v4-flash",
@@ -113,6 +157,13 @@
       "version": "main-verified"
     },
     {
+      "coverage": {
+        "arch": true,
+        "notes_info": 5,
+        "notes_warn": 0,
+        "sublayers_generic": 168,
+        "sublayers_ruled": 168
+      },
       "data_path": "data/H100/deepseek-v4-flash",
       "device": "H100",
       "model": "deepseek-v4-flash",
@@ -121,6 +172,7 @@
       "version": "main-verified"
     },
     {
+      "coverage": null,
       "data_path": null,
       "device": "310P",
       "model": "glm-4-5",
@@ -129,6 +181,13 @@
       "version": "main-verified"
     },
     {
+      "coverage": {
+        "arch": true,
+        "notes_info": 4,
+        "notes_warn": 0,
+        "sublayers_generic": 0,
+        "sublayers_ruled": 8
+      },
       "data_path": "data/A2/glm-4-5",
       "device": "A2",
       "model": "glm-4-5",
@@ -137,6 +196,7 @@
       "version": "main-verified"
     },
     {
+      "coverage": null,
       "data_path": null,
       "device": "A3",
       "model": "glm-4-5",
@@ -145,6 +205,7 @@
       "version": "main-verified"
     },
     {
+      "coverage": null,
       "data_path": null,
       "device": "A5",
       "model": "glm-4-5",
@@ -153,6 +214,13 @@
       "version": "main-verified"
     },
     {
+      "coverage": {
+        "arch": true,
+        "notes_info": 1,
+        "notes_warn": 0,
+        "sublayers_generic": 0,
+        "sublayers_ruled": 8
+      },
       "data_path": "data/H100/glm-4-5",
       "device": "H100",
       "model": "glm-4-5",
@@ -161,6 +229,7 @@
       "version": "main-verified"
     },
     {
+      "coverage": null,
       "data_path": null,
       "device": "310P",
       "model": "glm-4-6",
@@ -169,6 +238,13 @@
       "version": "main-verified"
     },
     {
+      "coverage": {
+        "arch": true,
+        "notes_info": 4,
+        "notes_warn": 0,
+        "sublayers_generic": 0,
+        "sublayers_ruled": 8
+      },
       "data_path": "data/A2/glm-4-6",
       "device": "A2",
       "model": "glm-4-6",
@@ -177,6 +253,7 @@
       "version": "main-verified"
     },
     {
+      "coverage": null,
       "data_path": null,
       "device": "A3",
       "model": "glm-4-6",
@@ -185,6 +262,7 @@
       "version": "main-verified"
     },
     {
+      "coverage": null,
       "data_path": null,
       "device": "A5",
       "model": "glm-4-6",
@@ -193,6 +271,13 @@
       "version": "main-verified"
     },
     {
+      "coverage": {
+        "arch": true,
+        "notes_info": 1,
+        "notes_warn": 0,
+        "sublayers_generic": 0,
+        "sublayers_ruled": 8
+      },
       "data_path": "data/H100/glm-4-6",
       "device": "H100",
       "model": "glm-4-6",
@@ -201,6 +286,7 @@
       "version": "main-verified"
     },
     {
+      "coverage": null,
       "data_path": null,
       "device": "310P",
       "model": "gpt-oss-120b",
@@ -209,6 +295,13 @@
       "version": "main-verified"
     },
     {
+      "coverage": {
+        "arch": true,
+        "notes_info": 3,
+        "notes_warn": 0,
+        "sublayers_generic": 0,
+        "sublayers_ruled": 144
+      },
       "data_path": "data/A2/gpt-oss-120b",
       "device": "A2",
       "model": "gpt-oss-120b",
@@ -217,6 +310,7 @@
       "version": "main-verified"
     },
     {
+      "coverage": null,
       "data_path": null,
       "device": "A3",
       "model": "gpt-oss-120b",
@@ -225,6 +319,7 @@
       "version": "main-verified"
     },
     {
+      "coverage": null,
       "data_path": null,
       "device": "A5",
       "model": "gpt-oss-120b",
@@ -233,6 +328,13 @@
       "version": "main-verified"
     },
     {
+      "coverage": {
+        "arch": true,
+        "notes_info": 0,
+        "notes_warn": 0,
+        "sublayers_generic": 0,
+        "sublayers_ruled": 144
+      },
       "data_path": "data/H100/gpt-oss-120b",
       "device": "H100",
       "model": "gpt-oss-120b",
@@ -241,6 +343,7 @@
       "version": "main-verified"
     },
     {
+      "coverage": null,
       "data_path": null,
       "device": "310P",
       "model": "kimi-k2",
@@ -249,6 +352,13 @@
       "version": "main-verified"
     },
     {
+      "coverage": {
+        "arch": true,
+        "notes_info": 4,
+        "notes_warn": 0,
+        "sublayers_generic": 0,
+        "sublayers_ruled": 8
+      },
       "data_path": "data/A2/kimi-k2",
       "device": "A2",
       "model": "kimi-k2",
@@ -257,6 +367,7 @@
       "version": "main-verified"
     },
     {
+      "coverage": null,
       "data_path": null,
       "device": "A3",
       "model": "kimi-k2",
@@ -265,6 +376,7 @@
       "version": "main-verified"
     },
     {
+      "coverage": null,
       "data_path": null,
       "device": "A5",
       "model": "kimi-k2",
@@ -273,6 +385,13 @@
       "version": "main-verified"
     },
     {
+      "coverage": {
+        "arch": true,
+        "notes_info": 1,
+        "notes_warn": 0,
+        "sublayers_generic": 0,
+        "sublayers_ruled": 8
+      },
       "data_path": "data/H100/kimi-k2",
       "device": "H100",
       "model": "kimi-k2",
@@ -281,6 +400,7 @@
       "version": "main-verified"
     },
     {
+      "coverage": null,
       "data_path": null,
       "device": "310P",
       "model": "llama-3-1-8b",
@@ -289,6 +409,13 @@
       "version": "main-verified"
     },
     {
+      "coverage": {
+        "arch": true,
+        "notes_info": 3,
+        "notes_warn": 0,
+        "sublayers_generic": 0,
+        "sublayers_ruled": 4
+      },
       "data_path": "data/A2/llama-3-1-8b",
       "device": "A2",
       "model": "llama-3-1-8b",
@@ -297,6 +424,7 @@
       "version": "main-verified"
     },
     {
+      "coverage": null,
       "data_path": null,
       "device": "A3",
       "model": "llama-3-1-8b",
@@ -305,6 +433,7 @@
       "version": "main-verified"
     },
     {
+      "coverage": null,
       "data_path": null,
       "device": "A5",
       "model": "llama-3-1-8b",
@@ -313,6 +442,13 @@
       "version": "main-verified"
     },
     {
+      "coverage": {
+        "arch": true,
+        "notes_info": 0,
+        "notes_warn": 0,
+        "sublayers_generic": 0,
+        "sublayers_ruled": 4
+      },
       "data_path": "data/H100/llama-3-1-8b",
       "device": "H100",
       "model": "llama-3-1-8b",
@@ -321,6 +457,7 @@
       "version": "main-verified"
     },
     {
+      "coverage": null,
       "data_path": null,
       "device": "310P",
       "model": "llama-4-scout",
@@ -329,6 +466,13 @@
       "version": "main-verified"
     },
     {
+      "coverage": {
+        "arch": true,
+        "notes_info": 4,
+        "notes_warn": 3,
+        "sublayers_generic": 0,
+        "sublayers_ruled": 100
+      },
       "data_path": "data/A2/llama-4-scout",
       "device": "A2",
       "model": "llama-4-scout",
@@ -337,6 +481,7 @@
       "version": "main-verified"
     },
     {
+      "coverage": null,
       "data_path": null,
       "device": "A3",
       "model": "llama-4-scout",
@@ -345,6 +490,7 @@
       "version": "main-verified"
     },
     {
+      "coverage": null,
       "data_path": null,
       "device": "A5",
       "model": "llama-4-scout",
@@ -353,6 +499,13 @@
       "version": "main-verified"
     },
     {
+      "coverage": {
+        "arch": true,
+        "notes_info": 1,
+        "notes_warn": 3,
+        "sublayers_generic": 0,
+        "sublayers_ruled": 100
+      },
       "data_path": "data/H100/llama-4-scout",
       "device": "H100",
       "model": "llama-4-scout",
@@ -361,6 +514,7 @@
       "version": "main-verified"
     },
     {
+      "coverage": null,
       "data_path": null,
       "device": "310P",
       "model": "minimax-m2",
@@ -369,6 +523,13 @@
       "version": "main-verified"
     },
     {
+      "coverage": {
+        "arch": true,
+        "notes_info": 3,
+        "notes_warn": 0,
+        "sublayers_generic": 0,
+        "sublayers_ruled": 4
+      },
       "data_path": "data/A2/minimax-m2",
       "device": "A2",
       "model": "minimax-m2",
@@ -377,6 +538,7 @@
       "version": "main-verified"
     },
     {
+      "coverage": null,
       "data_path": null,
       "device": "A3",
       "model": "minimax-m2",
@@ -385,6 +547,7 @@
       "version": "main-verified"
     },
     {
+      "coverage": null,
       "data_path": null,
       "device": "A5",
       "model": "minimax-m2",
@@ -393,6 +556,13 @@
       "version": "main-verified"
     },
     {
+      "coverage": {
+        "arch": true,
+        "notes_info": 0,
+        "notes_warn": 0,
+        "sublayers_generic": 0,
+        "sublayers_ruled": 4
+      },
       "data_path": "data/H100/minimax-m2",
       "device": "H100",
       "model": "minimax-m2",
@@ -401,6 +571,7 @@
       "version": "main-verified"
     },
     {
+      "coverage": null,
       "data_path": null,
       "device": "310P",
       "model": "minimax-m3",
@@ -409,14 +580,22 @@
       "version": "main-verified"
     },
     {
+      "coverage": {
+        "arch": true,
+        "notes_info": 4,
+        "notes_warn": 3,
+        "sublayers_generic": 0,
+        "sublayers_ruled": 12
+      },
       "data_path": "data/A2/minimax-m3",
       "device": "A2",
       "model": "minimax-m3",
       "status": "triage",
-      "triage_count": 83,
+      "triage_count": 81,
       "version": "main-verified"
     },
     {
+      "coverage": null,
       "data_path": null,
       "device": "A3",
       "model": "minimax-m3",
@@ -425,6 +604,7 @@
       "version": "main-verified"
     },
     {
+      "coverage": null,
       "data_path": null,
       "device": "A5",
       "model": "minimax-m3",
@@ -433,14 +613,22 @@
       "version": "main-verified"
     },
     {
+      "coverage": {
+        "arch": true,
+        "notes_info": 2,
+        "notes_warn": 3,
+        "sublayers_generic": 0,
+        "sublayers_ruled": 12
+      },
       "data_path": "data/H100/minimax-m3",
       "device": "H100",
       "model": "minimax-m3",
       "status": "triage",
-      "triage_count": 33,
+      "triage_count": 31,
       "version": "main-verified"
     },
     {
+      "coverage": null,
       "data_path": null,
       "device": "310P",
       "model": "mixtral-8x7b",
@@ -449,6 +637,13 @@
       "version": "main-verified"
     },
     {
+      "coverage": {
+        "arch": true,
+        "notes_info": 3,
+        "notes_warn": 0,
+        "sublayers_generic": 0,
+        "sublayers_ruled": 4
+      },
       "data_path": "data/A2/mixtral-8x7b",
       "device": "A2",
       "model": "mixtral-8x7b",
@@ -457,6 +652,7 @@
       "version": "main-verified"
     },
     {
+      "coverage": null,
       "data_path": null,
       "device": "A3",
       "model": "mixtral-8x7b",
@@ -465,6 +661,7 @@
       "version": "main-verified"
     },
     {
+      "coverage": null,
       "data_path": null,
       "device": "A5",
       "model": "mixtral-8x7b",
@@ -473,6 +670,13 @@
       "version": "main-verified"
     },
     {
+      "coverage": {
+        "arch": true,
+        "notes_info": 0,
+        "notes_warn": 0,
+        "sublayers_generic": 0,
+        "sublayers_ruled": 4
+      },
       "data_path": "data/H100/mixtral-8x7b",
       "device": "H100",
       "model": "mixtral-8x7b",
@@ -481,6 +685,7 @@
       "version": "main-verified"
     },
     {
+      "coverage": null,
       "data_path": null,
       "device": "310P",
       "model": "qwen3-235b-a22b",
@@ -489,6 +694,13 @@
       "version": "main-verified"
     },
     {
+      "coverage": {
+        "arch": true,
+        "notes_info": 0,
+        "notes_warn": 0,
+        "sublayers_generic": 0,
+        "sublayers_ruled": 4
+      },
       "data_path": "data/A2/qwen3-235b-a22b",
       "device": "A2",
       "model": "qwen3-235b-a22b",
@@ -497,6 +709,7 @@
       "version": "main-verified"
     },
     {
+      "coverage": null,
       "data_path": null,
       "device": "A3",
       "model": "qwen3-235b-a22b",
@@ -505,6 +718,7 @@
       "version": "main-verified"
     },
     {
+      "coverage": null,
       "data_path": null,
       "device": "A5",
       "model": "qwen3-235b-a22b",
@@ -513,6 +727,13 @@
       "version": "main-verified"
     },
     {
+      "coverage": {
+        "arch": true,
+        "notes_info": 0,
+        "notes_warn": 0,
+        "sublayers_generic": 0,
+        "sublayers_ruled": 4
+      },
       "data_path": "data/H100/qwen3-235b-a22b",
       "device": "H100",
       "model": "qwen3-235b-a22b",
@@ -521,6 +742,7 @@
       "version": "main-verified"
     },
     {
+      "coverage": null,
       "data_path": null,
       "device": "310P",
       "model": "qwen3-30b-a3b",
@@ -529,6 +751,13 @@
       "version": "main-verified"
     },
     {
+      "coverage": {
+        "arch": true,
+        "notes_info": 0,
+        "notes_warn": 0,
+        "sublayers_generic": 0,
+        "sublayers_ruled": 4
+      },
       "data_path": "data/A2/qwen3-30b-a3b",
       "device": "A2",
       "model": "qwen3-30b-a3b",
@@ -537,6 +766,7 @@
       "version": "main-verified"
     },
     {
+      "coverage": null,
       "data_path": null,
       "device": "A3",
       "model": "qwen3-30b-a3b",
@@ -545,6 +775,7 @@
       "version": "main-verified"
     },
     {
+      "coverage": null,
       "data_path": null,
       "device": "A5",
       "model": "qwen3-30b-a3b",
@@ -553,6 +784,13 @@
       "version": "main-verified"
     },
     {
+      "coverage": {
+        "arch": true,
+        "notes_info": 0,
+        "notes_warn": 0,
+        "sublayers_generic": 0,
+        "sublayers_ruled": 4
+      },
       "data_path": "data/H100/qwen3-30b-a3b",
       "device": "H100",
       "model": "qwen3-30b-a3b",
@@ -561,6 +799,7 @@
       "version": "main-verified"
     },
     {
+      "coverage": null,
       "data_path": null,
       "device": "310P",
       "model": "qwen3-8b",
@@ -569,6 +808,13 @@
       "version": "main-verified"
     },
     {
+      "coverage": {
+        "arch": true,
+        "notes_info": 0,
+        "notes_warn": 0,
+        "sublayers_generic": 0,
+        "sublayers_ruled": 4
+      },
       "data_path": "data/A2/qwen3-8b",
       "device": "A2",
       "model": "qwen3-8b",
@@ -577,6 +823,7 @@
       "version": "main-verified"
     },
     {
+      "coverage": null,
       "data_path": null,
       "device": "A3",
       "model": "qwen3-8b",
@@ -585,6 +832,7 @@
       "version": "main-verified"
     },
     {
+      "coverage": null,
       "data_path": null,
       "device": "A5",
       "model": "qwen3-8b",
@@ -593,6 +841,13 @@
       "version": "main-verified"
     },
     {
+      "coverage": {
+        "arch": true,
+        "notes_info": 0,
+        "notes_warn": 0,
+        "sublayers_generic": 0,
+        "sublayers_ruled": 4
+      },
       "data_path": "data/H100/qwen3-8b",
       "device": "H100",
       "model": "qwen3-8b",
@@ -601,6 +856,7 @@
       "version": "main-verified"
     },
     {
+      "coverage": null,
       "data_path": null,
       "device": "310P",
       "model": "qwen3-next-80b-a3b",
@@ -609,6 +865,13 @@
       "version": "main-verified"
     },
     {
+      "coverage": {
+        "arch": true,
+        "notes_info": 3,
+        "notes_warn": 0,
+        "sublayers_generic": 0,
+        "sublayers_ruled": 96
+      },
       "data_path": "data/A2/qwen3-next-80b-a3b",
       "device": "A2",
       "model": "qwen3-next-80b-a3b",
@@ -617,6 +880,7 @@
       "version": "main-verified"
     },
     {
+      "coverage": null,
       "data_path": null,
       "device": "A3",
       "model": "qwen3-next-80b-a3b",
@@ -625,6 +889,7 @@
       "version": "main-verified"
     },
     {
+      "coverage": null,
       "data_path": null,
       "device": "A5",
       "model": "qwen3-next-80b-a3b",
@@ -633,652 +898,19 @@
       "version": "main-verified"
     },
     {
+      "coverage": {
+        "arch": true,
+        "notes_info": 0,
+        "notes_warn": 0,
+        "sublayers_generic": 0,
+        "sublayers_ruled": 96
+      },
       "data_path": "data/H100/qwen3-next-80b-a3b",
       "device": "H100",
       "model": "qwen3-next-80b-a3b",
       "status": "triage",
       "triage_count": 19,
       "version": "main-verified"
-    },
-    {
-      "data_path": null,
-      "device": "310P",
-      "model": "deepseek-v3",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "A2",
-      "model": "deepseek-v3",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "A3",
-      "model": "deepseek-v3",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "A5",
-      "model": "deepseek-v3",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "H100",
-      "model": "deepseek-v3",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "310P",
-      "model": "deepseek-v3-2",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "A2",
-      "model": "deepseek-v3-2",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "A3",
-      "model": "deepseek-v3-2",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "A5",
-      "model": "deepseek-v3-2",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "H100",
-      "model": "deepseek-v3-2",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "310P",
-      "model": "deepseek-v4-flash",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "A2",
-      "model": "deepseek-v4-flash",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "A3",
-      "model": "deepseek-v4-flash",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "A5",
-      "model": "deepseek-v4-flash",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "H100",
-      "model": "deepseek-v4-flash",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "310P",
-      "model": "glm-4-5",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "A2",
-      "model": "glm-4-5",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "A3",
-      "model": "glm-4-5",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "A5",
-      "model": "glm-4-5",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "H100",
-      "model": "glm-4-5",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "310P",
-      "model": "glm-4-6",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "A2",
-      "model": "glm-4-6",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "A3",
-      "model": "glm-4-6",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "A5",
-      "model": "glm-4-6",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "H100",
-      "model": "glm-4-6",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "310P",
-      "model": "gpt-oss-120b",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "A2",
-      "model": "gpt-oss-120b",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "A3",
-      "model": "gpt-oss-120b",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "A5",
-      "model": "gpt-oss-120b",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "H100",
-      "model": "gpt-oss-120b",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "310P",
-      "model": "kimi-k2",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "A2",
-      "model": "kimi-k2",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "A3",
-      "model": "kimi-k2",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "A5",
-      "model": "kimi-k2",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "H100",
-      "model": "kimi-k2",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "310P",
-      "model": "llama-3-1-8b",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "A2",
-      "model": "llama-3-1-8b",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "A3",
-      "model": "llama-3-1-8b",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "A5",
-      "model": "llama-3-1-8b",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "H100",
-      "model": "llama-3-1-8b",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "310P",
-      "model": "llama-4-scout",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "A2",
-      "model": "llama-4-scout",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "A3",
-      "model": "llama-4-scout",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "A5",
-      "model": "llama-4-scout",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "H100",
-      "model": "llama-4-scout",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "310P",
-      "model": "minimax-m2",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "A2",
-      "model": "minimax-m2",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "A3",
-      "model": "minimax-m2",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "A5",
-      "model": "minimax-m2",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "H100",
-      "model": "minimax-m2",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "310P",
-      "model": "minimax-m3",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "A2",
-      "model": "minimax-m3",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "A3",
-      "model": "minimax-m3",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "A5",
-      "model": "minimax-m3",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "H100",
-      "model": "minimax-m3",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "310P",
-      "model": "mixtral-8x7b",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "A2",
-      "model": "mixtral-8x7b",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "A3",
-      "model": "mixtral-8x7b",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "A5",
-      "model": "mixtral-8x7b",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "H100",
-      "model": "mixtral-8x7b",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "310P",
-      "model": "qwen3-235b-a22b",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "A2",
-      "model": "qwen3-235b-a22b",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "A3",
-      "model": "qwen3-235b-a22b",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "A5",
-      "model": "qwen3-235b-a22b",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "H100",
-      "model": "qwen3-235b-a22b",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "310P",
-      "model": "qwen3-30b-a3b",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "A2",
-      "model": "qwen3-30b-a3b",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "A3",
-      "model": "qwen3-30b-a3b",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "A5",
-      "model": "qwen3-30b-a3b",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "H100",
-      "model": "qwen3-30b-a3b",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "310P",
-      "model": "qwen3-8b",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "A2",
-      "model": "qwen3-8b",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "A3",
-      "model": "qwen3-8b",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "A5",
-      "model": "qwen3-8b",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "H100",
-      "model": "qwen3-8b",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "310P",
-      "model": "qwen3-next-80b-a3b",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "A2",
-      "model": "qwen3-next-80b-a3b",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "A3",
-      "model": "qwen3-next-80b-a3b",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "A5",
-      "model": "qwen3-next-80b-a3b",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
-    },
-    {
-      "data_path": null,
-      "device": "H100",
-      "model": "qwen3-next-80b-a3b",
-      "status": "missing",
-      "triage_count": 0,
-      "version": "v0.32.0"
     }
   ],
   "models": [
@@ -1385,12 +1017,6 @@
       "id": "main-verified",
       "label": "main-verified",
       "vllm": "544f182d9f0c9bfe8bd7645525951d5e3692a542"
-    },
-    {
-      "ascend": "v0.32.0",
-      "id": "v0.32.0",
-      "label": "v0.32.0",
-      "vllm": "v0.32.0"
     }
   ]
 }

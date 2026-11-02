@@ -7,7 +7,10 @@
       "tensor": {
         "dtype": "dtype_a",
         "name": "output",
-        "shape": ["T", "Hq/tp*D"]
+        "shape": [
+          "T",
+          "Hq/tp*D"
+        ]
       },
       "to": "attn.o"
     },
@@ -18,7 +21,10 @@
       "tensor": {
         "dtype": "dtype_a",
         "name": "output",
-        "shape": ["T", "D*max(1,Hkv/tp)"]
+        "shape": [
+          "T",
+          "D*max(1,Hkv/tp)"
+        ]
       },
       "to": "attn.rope"
     },
@@ -29,7 +35,10 @@
       "tensor": {
         "dtype": "dtype_a",
         "name": "output",
-        "shape": ["T", "H"]
+        "shape": [
+          "T",
+          "H"
+        ]
       },
       "to": "attn.o.reduce"
     },
@@ -40,7 +49,10 @@
       "tensor": {
         "dtype": "dtype_a",
         "name": "output",
-        "shape": ["T", "H"]
+        "shape": [
+          "T",
+          "H"
+        ]
       },
       "to": "norm.post"
     },
@@ -51,7 +63,10 @@
       "tensor": {
         "dtype": "dtype_a",
         "name": "output",
-        "shape": ["T", "D*Hq/tp"]
+        "shape": [
+          "T",
+          "D*Hq/tp"
+        ]
       },
       "to": "attn.rope"
     },
@@ -62,7 +77,10 @@
       "tensor": {
         "dtype": "dtype_a",
         "name": "output",
-        "shape": ["T", "(Hq/tp+2*max(1,Hkv/tp))*D"]
+        "shape": [
+          "T",
+          "(Hq/tp+2*max(1,Hkv/tp))*D"
+        ]
       },
       "to": "attn.k_norm"
     },
@@ -73,7 +91,10 @@
       "tensor": {
         "dtype": "dtype_a",
         "name": "output",
-        "shape": ["T", "(Hq/tp+2*max(1,Hkv/tp))*D"]
+        "shape": [
+          "T",
+          "(Hq/tp+2*max(1,Hkv/tp))*D"
+        ]
       },
       "to": "attn.q_norm"
     },
@@ -84,7 +105,10 @@
       "tensor": {
         "dtype": "dtype_a",
         "name": "output",
-        "shape": ["T", "(Hq/tp+2*max(1,Hkv/tp))*D"]
+        "shape": [
+          "T",
+          "(Hq/tp+2*max(1,Hkv/tp))*D"
+        ]
       },
       "to": "attn.rope"
     },
@@ -95,7 +119,11 @@
       "tensor": {
         "dtype": "dtype_a",
         "name": "q",
-        "shape": ["T", "Hq/tp", "D"]
+        "shape": [
+          "T",
+          "Hq/tp",
+          "D"
+        ]
       },
       "to": "attn.core"
     },
@@ -106,7 +134,10 @@
       "tensor": {
         "dtype": "dtype_a",
         "name": "output",
-        "shape": ["T", "H"]
+        "shape": [
+          "T",
+          "H"
+        ]
       },
       "to": "final_norm"
     },
@@ -117,7 +148,10 @@
       "tensor": {
         "dtype": "dtype_a",
         "name": "output",
-        "shape": ["T", "H"]
+        "shape": [
+          "T",
+          "H"
+        ]
       },
       "to": "embed.reduce"
     },
@@ -128,7 +162,10 @@
       "tensor": {
         "dtype": "dtype_a",
         "name": "output",
-        "shape": ["T", "H"]
+        "shape": [
+          "T",
+          "H"
+        ]
       },
       "to": "decoder"
     },
@@ -139,7 +176,10 @@
       "tensor": {
         "dtype": "dtype_a",
         "name": "output",
-        "shape": ["T", "H*1"]
+        "shape": [
+          "T",
+          "H*1"
+        ]
       },
       "to": "lm_head"
     },
@@ -150,7 +190,13 @@
       "tensor": {
         "dtype": "dtype_kv",
         "name": "kv",
-        "shape": ["2", "S", "context", "max(1,Hkv/tp)", "D"]
+        "shape": [
+          "2",
+          "S",
+          "context",
+          "max(1,Hkv/tp)",
+          "D"
+        ]
       },
       "to": "attn.core"
     },
@@ -162,8 +208,14 @@
         "dtype": "dtype_a",
         "name": "output",
         "shape": {
-          "decode": ["S", "round_up(V,64)/tp"],
-          "prefill": ["batch", "round_up(V,64)/tp"]
+          "decode": [
+            "S",
+            "round_up(V,64)/tp"
+          ],
+          "prefill": [
+            "batch",
+            "round_up(V,64)/tp"
+          ]
         }
       },
       "to": "logits.gather"
@@ -176,8 +228,14 @@
         "dtype": "dtype_a",
         "name": "output",
         "shape": {
-          "decode": ["S", "V"],
-          "prefill": ["batch", "V"]
+          "decode": [
+            "S",
+            "V"
+          ],
+          "prefill": [
+            "batch",
+            "V"
+          ]
         }
       },
       "to": "output"
@@ -190,8 +248,14 @@
         "dtype": "dtype_a",
         "name": "logits",
         "shape": {
-          "decode": ["S", "round_up(V,64)"],
-          "prefill": ["batch", "round_up(V,64)"]
+          "decode": [
+            "S",
+            "round_up(V,64)"
+          ],
+          "prefill": [
+            "batch",
+            "round_up(V,64)"
+          ]
         }
       },
       "to": "logits"
@@ -203,7 +267,10 @@
       "tensor": {
         "dtype": "dtype_a",
         "name": "output",
-        "shape": ["T", "I/tp"]
+        "shape": [
+          "T",
+          "I/tp"
+        ]
       },
       "to": "mlp.down"
     },
@@ -214,7 +281,10 @@
       "tensor": {
         "dtype": "dtype_a",
         "name": "output",
-        "shape": ["T", "H"]
+        "shape": [
+          "T",
+          "H"
+        ]
       },
       "to": "mlp.down.reduce"
     },
@@ -225,7 +295,10 @@
       "tensor": {
         "dtype": "dtype_a",
         "name": "output",
-        "shape": ["T", "false ? 24576 : 24576/tp"]
+        "shape": [
+          "T",
+          "false ? 24576 : 24576/tp"
+        ]
       },
       "to": "mlp.act"
     },
@@ -236,7 +309,10 @@
       "tensor": {
         "dtype": "dtype_a",
         "name": "output",
-        "shape": ["T", "H*1"]
+        "shape": [
+          "T",
+          "H*1"
+        ]
       },
       "to": "attn.qkv"
     },
@@ -247,7 +323,10 @@
       "tensor": {
         "dtype": "dtype_a",
         "name": "output",
-        "shape": ["T", "H*1"]
+        "shape": [
+          "T",
+          "H*1"
+        ]
       },
       "to": "norm.post"
     },
@@ -258,7 +337,10 @@
       "tensor": {
         "dtype": "dtype_a",
         "name": "output",
-        "shape": ["T", "H*1"]
+        "shape": [
+          "T",
+          "H*1"
+        ]
       },
       "to": "mlp.down.reduce"
     },
@@ -269,7 +351,10 @@
       "tensor": {
         "dtype": "dtype_a",
         "name": "output",
-        "shape": ["T", "H*1"]
+        "shape": [
+          "T",
+          "H*1"
+        ]
       },
       "to": "mlp.gate_up"
     }
@@ -277,7 +362,10 @@
   "groups": [
     {
       "id": "decoder",
-      "layers": ["0", "35"],
+      "layers": [
+        "0",
+        "35"
+      ],
       "representative_layer": "0",
       "template": "decoder"
     }
@@ -318,17 +406,25 @@
         {
           "dtype": "dtype_a",
           "name": "input",
-          "shape": ["T", "H"]
+          "shape": [
+            "T",
+            "H"
+          ]
         }
       ],
       "kind": "group",
       "label": "attn",
-      "notes": ["Structural container; metrics summarize descendants."],
+      "notes": [
+        "Structural container; metrics summarize descendants."
+      ],
       "out": [
         {
           "dtype": "dtype_a",
           "name": "output",
-          "shape": ["T", "H"]
+          "shape": [
+            "T",
+            "H"
+          ]
         }
       ],
       "parallel": {},
@@ -360,17 +456,29 @@
         {
           "dtype": "dtype_a",
           "name": "q",
-          "shape": ["T", "Hq/tp", "D"]
+          "shape": [
+            "T",
+            "Hq/tp",
+            "D"
+          ]
         },
         {
           "dtype": "dtype_a",
           "name": "k",
-          "shape": ["T", "max(1,Hkv/tp)", "D"]
+          "shape": [
+            "T",
+            "max(1,Hkv/tp)",
+            "D"
+          ]
         },
         {
           "dtype": "dtype_a",
           "name": "v",
-          "shape": ["T", "max(1,Hkv/tp)", "D"]
+          "shape": [
+            "T",
+            "max(1,Hkv/tp)",
+            "D"
+          ]
         }
       ],
       "kind": "compute",
@@ -382,7 +490,10 @@
         {
           "dtype": "dtype_a",
           "name": "output",
-          "shape": ["T", "Hq/tp*D"]
+          "shape": [
+            "T",
+            "Hq/tp*D"
+          ]
         }
       ],
       "parallel": {
@@ -418,12 +529,17 @@
         {
           "dtype": "dtype_a",
           "name": "input",
-          "shape": ["T", "D*(max(1,Hkv/tp))"]
+          "shape": [
+            "T",
+            "D*(max(1,Hkv/tp))"
+          ]
         },
         {
           "dtype": "dtype_w",
           "name": "weight",
-          "shape": ["D"]
+          "shape": [
+            "D"
+          ]
         }
       ],
       "kind": "compute",
@@ -433,7 +549,10 @@
         {
           "dtype": "dtype_a",
           "name": "output",
-          "shape": ["T", "D*max(1,Hkv/tp)"]
+          "shape": [
+            "T",
+            "D*max(1,Hkv/tp)"
+          ]
         }
       ],
       "parallel": {
@@ -469,12 +588,18 @@
         {
           "dtype": "dtype_a",
           "name": "input",
-          "shape": ["T", "H/tp"]
+          "shape": [
+            "T",
+            "H/tp"
+          ]
         },
         {
           "dtype": "dtype_w",
           "name": "weight",
-          "shape": ["H", "H/tp"]
+          "shape": [
+            "H",
+            "H/tp"
+          ]
         }
       ],
       "kind": "compute",
@@ -484,7 +609,10 @@
         {
           "dtype": "dtype_a",
           "name": "output",
-          "shape": ["T", "H"]
+          "shape": [
+            "T",
+            "H"
+          ]
         }
       ],
       "parallel": {
@@ -520,7 +648,9 @@
           "decode": "S*H*bytes(dtype_a)",
           "prefill": "T*H*bytes(dtype_a)"
         },
-        "notes": ["Ring estimate; logical bytes describe the tensor even when inactive."],
+        "notes": [
+          "Ring estimate; logical bytes describe the tensor even when inactive."
+        ],
         "op": "all_reduce",
         "when": "true && tp>1"
       },
@@ -533,7 +663,10 @@
         {
           "dtype": "dtype_a",
           "name": "output",
-          "shape": ["T", "H"]
+          "shape": [
+            "T",
+            "H"
+          ]
         }
       ],
       "kind": "comm",
@@ -543,7 +676,10 @@
         {
           "dtype": "dtype_a",
           "name": "output",
-          "shape": ["T", "H"]
+          "shape": [
+            "T",
+            "H"
+          ]
         }
       ],
       "parallel": {},
@@ -575,12 +711,17 @@
         {
           "dtype": "dtype_a",
           "name": "input",
-          "shape": ["T", "D*(Hq/tp)"]
+          "shape": [
+            "T",
+            "D*(Hq/tp)"
+          ]
         },
         {
           "dtype": "dtype_w",
           "name": "weight",
-          "shape": ["D"]
+          "shape": [
+            "D"
+          ]
         }
       ],
       "kind": "compute",
@@ -590,7 +731,10 @@
         {
           "dtype": "dtype_a",
           "name": "output",
-          "shape": ["T", "D*Hq/tp"]
+          "shape": [
+            "T",
+            "D*Hq/tp"
+          ]
         }
       ],
       "parallel": {
@@ -626,22 +770,33 @@
         {
           "dtype": "dtype_a",
           "name": "input",
-          "shape": ["T", "H"]
+          "shape": [
+            "T",
+            "H"
+          ]
         },
         {
           "dtype": "dtype_w",
           "name": "weight",
-          "shape": ["(Hq/tp+2*max(1,Hkv/tp))*D", "H"]
+          "shape": [
+            "(Hq/tp+2*max(1,Hkv/tp))*D",
+            "H"
+          ]
         }
       ],
       "kind": "compute",
       "label": "attn.qkv",
-      "notes": ["KV heads are replicated when TP exceeds the global KV-head count."],
+      "notes": [
+        "KV heads are replicated when TP exceeds the global KV-head count."
+      ],
       "out": [
         {
           "dtype": "dtype_a",
           "name": "output",
-          "shape": ["T", "(Hq/tp+2*max(1,Hkv/tp))*D"]
+          "shape": [
+            "T",
+            "(Hq/tp+2*max(1,Hkv/tp))*D"
+          ]
         }
       ],
       "parallel": {
@@ -677,12 +832,20 @@
         {
           "dtype": "dtype_a",
           "name": "q",
-          "shape": ["T", "Hq/tp", "D"]
+          "shape": [
+            "T",
+            "Hq/tp",
+            "D"
+          ]
         },
         {
           "dtype": "dtype_a",
           "name": "k",
-          "shape": ["T", "max(1,Hkv/tp)", "D"]
+          "shape": [
+            "T",
+            "max(1,Hkv/tp)",
+            "D"
+          ]
         }
       ],
       "kind": "group",
@@ -694,12 +857,20 @@
         {
           "dtype": "dtype_a",
           "name": "q",
-          "shape": ["T", "Hq/tp", "D"]
+          "shape": [
+            "T",
+            "Hq/tp",
+            "D"
+          ]
         },
         {
           "dtype": "dtype_a",
           "name": "k",
-          "shape": ["T", "max(1,Hkv/tp)", "D"]
+          "shape": [
+            "T",
+            "max(1,Hkv/tp)",
+            "D"
+          ]
         }
       ],
       "parallel": {},
@@ -731,12 +902,20 @@
         {
           "dtype": "dtype_a",
           "name": "q",
-          "shape": ["T", "Hq/tp", "D"]
+          "shape": [
+            "T",
+            "Hq/tp",
+            "D"
+          ]
         },
         {
           "dtype": "dtype_a",
           "name": "k",
-          "shape": ["T", "max(1,Hkv/tp)", "D"]
+          "shape": [
+            "T",
+            "max(1,Hkv/tp)",
+            "D"
+          ]
         }
       ],
       "kind": "compute",
@@ -746,12 +925,20 @@
         {
           "dtype": "dtype_a",
           "name": "q",
-          "shape": ["T", "Hq/tp", "D"]
+          "shape": [
+            "T",
+            "Hq/tp",
+            "D"
+          ]
         },
         {
           "dtype": "dtype_a",
           "name": "k",
-          "shape": ["T", "max(1,Hkv/tp)", "D"]
+          "shape": [
+            "T",
+            "max(1,Hkv/tp)",
+            "D"
+          ]
         }
       ],
       "parallel": {},
@@ -783,17 +970,25 @@
         {
           "dtype": "dtype_a",
           "name": "input",
-          "shape": ["T", "H"]
+          "shape": [
+            "T",
+            "H"
+          ]
         }
       ],
       "kind": "group",
       "label": "decoder",
-      "notes": ["Structural container; metrics summarize descendants."],
+      "notes": [
+        "Structural container; metrics summarize descendants."
+      ],
       "out": [
         {
           "dtype": "dtype_a",
           "name": "output",
-          "shape": ["T", "H"]
+          "shape": [
+            "T",
+            "H"
+          ]
         }
       ],
       "parallel": {},
@@ -825,22 +1020,32 @@
         {
           "dtype": "dtype_ids",
           "name": "tokens",
-          "shape": ["T"]
+          "shape": [
+            "T"
+          ]
         },
         {
           "dtype": "dtype_w",
           "name": "weight",
-          "shape": ["round_up(V,64)/tp", "H"]
+          "shape": [
+            "round_up(V,64)/tp",
+            "H"
+          ]
         }
       ],
       "kind": "compute",
       "label": "embed",
-      "notes": ["Pad vocabulary to a multiple of 64 before TP sharding."],
+      "notes": [
+        "Pad vocabulary to a multiple of 64 before TP sharding."
+      ],
       "out": [
         {
           "dtype": "dtype_a",
           "name": "output",
-          "shape": ["T", "H"]
+          "shape": [
+            "T",
+            "H"
+          ]
         }
       ],
       "parallel": {
@@ -876,7 +1081,9 @@
           "decode": "S*H*bytes(dtype_a)",
           "prefill": "T*H*bytes(dtype_a)"
         },
-        "notes": ["Ring estimate; logical bytes describe the tensor even when inactive."],
+        "notes": [
+          "Ring estimate; logical bytes describe the tensor even when inactive."
+        ],
         "op": "all_reduce",
         "when": "tp>1"
       },
@@ -889,7 +1096,10 @@
         {
           "dtype": "dtype_a",
           "name": "output",
-          "shape": ["T", "H"]
+          "shape": [
+            "T",
+            "H"
+          ]
         }
       ],
       "kind": "comm",
@@ -899,7 +1109,10 @@
         {
           "dtype": "dtype_a",
           "name": "output",
-          "shape": ["T", "H"]
+          "shape": [
+            "T",
+            "H"
+          ]
         }
       ],
       "parallel": {},
@@ -931,12 +1144,17 @@
         {
           "dtype": "dtype_a",
           "name": "input",
-          "shape": ["T", "H*(1)"]
+          "shape": [
+            "T",
+            "H*(1)"
+          ]
         },
         {
           "dtype": "dtype_w",
           "name": "weight",
-          "shape": ["H"]
+          "shape": [
+            "H"
+          ]
         }
       ],
       "kind": "compute",
@@ -946,7 +1164,10 @@
         {
           "dtype": "dtype_a",
           "name": "output",
-          "shape": ["T", "H*1"]
+          "shape": [
+            "T",
+            "H*1"
+          ]
         }
       ],
       "parallel": {
@@ -981,12 +1202,20 @@
       "in": [],
       "kind": "io",
       "label": "KV cache",
-      "notes": ["KV state input; capacity is reported by memory.kv_tokens."],
+      "notes": [
+        "KV state input; capacity is reported by memory.kv_tokens."
+      ],
       "out": [
         {
           "dtype": "dtype_kv",
           "name": "kv",
-          "shape": ["2", "S", "context", "max(1,Hkv/tp)", "D"]
+          "shape": [
+            "2",
+            "S",
+            "context",
+            "max(1,Hkv/tp)",
+            "D"
+          ]
         }
       ],
       "parallel": {
@@ -1023,26 +1252,43 @@
           "dtype": "dtype_a",
           "name": "input",
           "shape": {
-            "decode": ["S", "H"],
-            "prefill": ["batch", "H"]
+            "decode": [
+              "S",
+              "H"
+            ],
+            "prefill": [
+              "batch",
+              "H"
+            ]
           }
         },
         {
           "dtype": "dtype_w",
           "name": "weight",
-          "shape": ["round_up(V,64)/tp", "H"]
+          "shape": [
+            "round_up(V,64)/tp",
+            "H"
+          ]
         }
       ],
       "kind": "compute",
       "label": "lm_head",
-      "notes": ["A tied head shares embedding storage; its compute still runs."],
+      "notes": [
+        "A tied head shares embedding storage; its compute still runs."
+      ],
       "out": [
         {
           "dtype": "dtype_a",
           "name": "output",
           "shape": {
-            "decode": ["S", "round_up(V,64)/tp"],
-            "prefill": ["batch", "round_up(V,64)/tp"]
+            "decode": [
+              "S",
+              "round_up(V,64)/tp"
+            ],
+            "prefill": [
+              "batch",
+              "round_up(V,64)/tp"
+            ]
           }
         }
       ],
@@ -1080,8 +1326,14 @@
           "dtype": "dtype_a",
           "name": "logits",
           "shape": {
-            "decode": ["S", "round_up(V,64)"],
-            "prefill": ["batch", "round_up(V,64)"]
+            "decode": [
+              "S",
+              "round_up(V,64)"
+            ],
+            "prefill": [
+              "batch",
+              "round_up(V,64)"
+            ]
           }
         }
       ],
@@ -1095,8 +1347,14 @@
           "dtype": "dtype_a",
           "name": "output",
           "shape": {
-            "decode": ["S", "V"],
-            "prefill": ["batch", "V"]
+            "decode": [
+              "S",
+              "V"
+            ],
+            "prefill": [
+              "batch",
+              "V"
+            ]
           }
         }
       ],
@@ -1129,7 +1387,9 @@
           "decode": "S*round_up(V,64)/tp*bytes(dtype_a)",
           "prefill": "batch*round_up(V,64)/tp*bytes(dtype_a)"
         },
-        "notes": ["Ring estimate; logical bytes describe the tensor even when inactive."],
+        "notes": [
+          "Ring estimate; logical bytes describe the tensor even when inactive."
+        ],
         "op": "gather",
         "when": "tp>1"
       },
@@ -1143,8 +1403,14 @@
           "dtype": "dtype_a",
           "name": "logits_shard",
           "shape": {
-            "decode": ["S", "round_up(V,64)/tp"],
-            "prefill": ["batch", "round_up(V,64)/tp"]
+            "decode": [
+              "S",
+              "round_up(V,64)/tp"
+            ],
+            "prefill": [
+              "batch",
+              "round_up(V,64)/tp"
+            ]
           }
         }
       ],
@@ -1156,8 +1422,14 @@
           "dtype": "dtype_a",
           "name": "logits",
           "shape": {
-            "decode": ["S", "round_up(V,64)"],
-            "prefill": ["batch", "round_up(V,64)"]
+            "decode": [
+              "S",
+              "round_up(V,64)"
+            ],
+            "prefill": [
+              "batch",
+              "round_up(V,64)"
+            ]
           }
         }
       ],
@@ -1190,7 +1462,10 @@
         {
           "dtype": "dtype_a",
           "name": "input",
-          "shape": ["T", "H"]
+          "shape": [
+            "T",
+            "H"
+          ]
         }
       ],
       "kind": "group",
@@ -1202,7 +1477,10 @@
         {
           "dtype": "dtype_a",
           "name": "output",
-          "shape": ["T", "H"]
+          "shape": [
+            "T",
+            "H"
+          ]
         }
       ],
       "parallel": {},
@@ -1234,7 +1512,10 @@
         {
           "dtype": "dtype_a",
           "name": "input",
-          "shape": ["T", "2*I/tp"]
+          "shape": [
+            "T",
+            "2*I/tp"
+          ]
         }
       ],
       "kind": "compute",
@@ -1244,7 +1525,10 @@
         {
           "dtype": "dtype_a",
           "name": "output",
-          "shape": ["T", "I/tp"]
+          "shape": [
+            "T",
+            "I/tp"
+          ]
         }
       ],
       "parallel": {},
@@ -1276,12 +1560,18 @@
         {
           "dtype": "dtype_a",
           "name": "input",
-          "shape": ["T", "12288/tp"]
+          "shape": [
+            "T",
+            "12288/tp"
+          ]
         },
         {
           "dtype": "dtype_w",
           "name": "weight",
-          "shape": ["H", "12288/tp"]
+          "shape": [
+            "H",
+            "12288/tp"
+          ]
         }
       ],
       "kind": "compute",
@@ -1291,7 +1581,10 @@
         {
           "dtype": "dtype_a",
           "name": "output",
-          "shape": ["T", "H"]
+          "shape": [
+            "T",
+            "H"
+          ]
         }
       ],
       "parallel": {
@@ -1327,7 +1620,9 @@
           "decode": "S*H*bytes(dtype_a)",
           "prefill": "T*H*bytes(dtype_a)"
         },
-        "notes": ["Ring estimate; logical bytes describe the tensor even when inactive."],
+        "notes": [
+          "Ring estimate; logical bytes describe the tensor even when inactive."
+        ],
         "op": "all_reduce",
         "when": "true && tp>1"
       },
@@ -1340,7 +1635,10 @@
         {
           "dtype": "dtype_a",
           "name": "output",
-          "shape": ["T", "H"]
+          "shape": [
+            "T",
+            "H"
+          ]
         }
       ],
       "kind": "comm",
@@ -1350,7 +1648,10 @@
         {
           "dtype": "dtype_a",
           "name": "output",
-          "shape": ["T", "H"]
+          "shape": [
+            "T",
+            "H"
+          ]
         }
       ],
       "parallel": {},
@@ -1382,12 +1683,18 @@
         {
           "dtype": "dtype_a",
           "name": "input",
-          "shape": ["T", "H"]
+          "shape": [
+            "T",
+            "H"
+          ]
         },
         {
           "dtype": "dtype_w",
           "name": "weight",
-          "shape": ["24576/tp", "H"]
+          "shape": [
+            "24576/tp",
+            "H"
+          ]
         }
       ],
       "kind": "compute",
@@ -1397,7 +1704,10 @@
         {
           "dtype": "dtype_a",
           "name": "output",
-          "shape": ["T", "false ? 24576 : 24576/tp"]
+          "shape": [
+            "T",
+            "false ? 24576 : 24576/tp"
+          ]
         }
       ],
       "parallel": {
@@ -1433,12 +1743,17 @@
         {
           "dtype": "dtype_a",
           "name": "input",
-          "shape": ["T", "H*(1)"]
+          "shape": [
+            "T",
+            "H*(1)"
+          ]
         },
         {
           "dtype": "dtype_w",
           "name": "weight",
-          "shape": ["H"]
+          "shape": [
+            "H"
+          ]
         }
       ],
       "kind": "compute",
@@ -1448,7 +1763,10 @@
         {
           "dtype": "dtype_a",
           "name": "output",
-          "shape": ["T", "H*1"]
+          "shape": [
+            "T",
+            "H*1"
+          ]
         }
       ],
       "parallel": {
@@ -1484,12 +1802,17 @@
         {
           "dtype": "dtype_a",
           "name": "input",
-          "shape": ["T", "H*(1)"]
+          "shape": [
+            "T",
+            "H*(1)"
+          ]
         },
         {
           "dtype": "dtype_w",
           "name": "weight",
-          "shape": ["H"]
+          "shape": [
+            "H"
+          ]
         }
       ],
       "kind": "compute",
@@ -1499,7 +1822,10 @@
         {
           "dtype": "dtype_a",
           "name": "output",
-          "shape": ["T", "H*1"]
+          "shape": [
+            "T",
+            "H*1"
+          ]
         }
       ],
       "parallel": {
@@ -1536,8 +1862,14 @@
           "dtype": "dtype_a",
           "name": "output",
           "shape": {
-            "decode": ["S", "V"],
-            "prefill": ["batch", "V"]
+            "decode": [
+              "S",
+              "V"
+            ],
+            "prefill": [
+              "batch",
+              "V"
+            ]
           }
         }
       ],
@@ -1551,8 +1883,12 @@
           "dtype": "dtype_ids",
           "name": "tokens",
           "shape": {
-            "decode": ["S"],
-            "prefill": ["batch"]
+            "decode": [
+              "S"
+            ],
+            "prefill": [
+              "batch"
+            ]
           }
         }
       ],
@@ -1606,7 +1942,12 @@
       "step": "1"
     },
     "block_size": {
-      "choices": ["16", "32", "64", "128"],
+      "choices": [
+        "16",
+        "32",
+        "64",
+        "128"
+      ],
       "constraint": null,
       "default": "128",
       "description": "Cache capacity rounds down to whole blocks.",
@@ -1636,7 +1977,11 @@
       "step": "1"
     },
     "dtype_a": {
-      "choices": ["bf16", "fp16", "fp32"],
+      "choices": [
+        "bf16",
+        "fp16",
+        "fp32"
+      ],
       "constraint": null,
       "default": "bf16",
       "description": "Unquantized scalar dtype; scale/packing overhead excluded.",
@@ -1646,7 +1991,10 @@
       "step": null
     },
     "dtype_ids": {
-      "choices": ["int32", "int64"],
+      "choices": [
+        "int32",
+        "int64"
+      ],
       "constraint": null,
       "default": "int64",
       "description": "Token index scalar dtype.",
@@ -1656,7 +2004,11 @@
       "step": null
     },
     "dtype_kv": {
-      "choices": ["bf16", "fp16", "fp32"],
+      "choices": [
+        "bf16",
+        "fp16",
+        "fp32"
+      ],
       "constraint": null,
       "default": "bf16",
       "description": "Unquantized scalar dtype; scale/packing overhead excluded.",
@@ -1666,7 +2018,11 @@
       "step": null
     },
     "dtype_w": {
-      "choices": ["bf16", "fp16", "fp32"],
+      "choices": [
+        "bf16",
+        "fp16",
+        "fp32"
+      ],
       "constraint": null,
       "default": "bf16",
       "description": "Unquantized scalar dtype; scale/packing overhead excluded.",
@@ -1676,7 +2032,9 @@
       "step": null
     },
     "ep": {
-      "choices": ["1"],
+      "choices": [
+        "1"
+      ],
       "constraint": "ep==1",
       "default": "1",
       "description": "Dense model has no expert parallelism.",
@@ -1736,7 +2094,17 @@
       "step": null
     },
     "pp": {
-      "choices": ["1", "2", "3", "4", "6", "9", "12", "18", "36"],
+      "choices": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "6",
+        "9",
+        "12",
+        "18",
+        "36"
+      ],
       "constraint": "L%pp==0",
       "default": "1",
       "description": "Equal layer partitions; heaviest stage ledger.",
@@ -1756,7 +2124,12 @@
       "step": null
     },
     "tp": {
-      "choices": ["1", "2", "4", "8"],
+      "choices": [
+        "1",
+        "2",
+        "4",
+        "8"
+      ],
       "constraint": "Hq%tp==0 && (Hkv%tp==0 || tp%Hkv==0) && round_up(V,64)%tp==0 && I%tp==0",
       "default": "1",
       "description": "Attention tensor parallel degree. Build default: smallest valid TP choice with memory.kv_tokens > 0 on the snapshot device, keeping all other defaults; if none fits, use the smallest valid TP and retain the zero-capacity warning.",

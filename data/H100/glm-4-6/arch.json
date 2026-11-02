@@ -1,22 +1,45 @@
 {
   "device": "H100",
-  "flags": ["cpu_constructor_adapters"],
+  "flags": [
+    "cpu_constructor_adapters"
+  ],
   "input": {
     "dtype": "int64",
     "name": "input_ids",
-    "shape": ["T"]
+    "shape": [
+      "T"
+    ]
   },
+  "inputs": [
+    {
+      "dtype": "int64",
+      "name": "input_ids",
+      "shape": [
+        "T"
+      ]
+    }
+  ],
   "model": {
     "architecture": "Glm4MoeForCausalLM",
     "family": "moe",
     "hf_id": "zai-org/GLM-4.6",
     "id": "glm-4-6"
   },
-  "notes": [],
+  "notes": [
+    {
+      "severity": "info",
+      "target": "mtp",
+      "text": "Config declares 1 next-token prediction layer(s); vLLM does not construct them in the main model. This aside is structural only; parameters and draft execution are not extracted.",
+      "triage_kind": null
+    }
+  ],
   "output": {
     "dtype": "bfloat16",
     "name": "logits",
-    "shape": ["T", "V"]
+    "shape": [
+      "T",
+      "V"
+    ]
   },
   "schema_version": 1,
   "stages": [
@@ -33,7 +56,9 @@
           {
             "dtype": "int64",
             "name": "input_ids",
-            "shape": ["T"]
+            "shape": [
+              "T"
+            ]
           }
         ],
         "internals": [],
@@ -41,7 +66,10 @@
           {
             "dtype": "bfloat16",
             "name": "hidden_states",
-            "shape": ["T", "H"]
+            "shape": [
+              "T",
+              "H"
+            ]
           }
         ]
       },
@@ -54,7 +82,10 @@
           {
             "dtype": "bfloat16",
             "name": "weight",
-            "shape": ["151552/tp", "5120"]
+            "shape": [
+              "151552/tp",
+              "5120"
+            ]
           }
         ],
         "path": "model.embed_tokens",
@@ -77,7 +108,7 @@
             "sublayers": [
               {
                 "component": {
-                  "eps": 1e-5,
+                  "eps": 1e-05,
                   "kind": "norm",
                   "variant": "rmsnorm"
                 },
@@ -87,7 +118,10 @@
                     {
                       "dtype": "bfloat16",
                       "name": "hidden_states",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ],
                   "internals": [],
@@ -95,7 +129,10 @@
                     {
                       "dtype": "bfloat16",
                       "name": "hidden_states",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ]
                 },
@@ -106,7 +143,9 @@
                     {
                       "dtype": "bfloat16",
                       "name": "weight",
-                      "shape": ["5120"]
+                      "shape": [
+                        "5120"
+                      ]
                     }
                   ],
                   "path": "model.layers.0.input_layernorm",
@@ -142,36 +181,54 @@
                     {
                       "dtype": "bfloat16",
                       "name": "hidden_states",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ],
                   "internals": [
                     {
                       "dtype": "bfloat16",
                       "name": "q",
-                      "shape": ["T", "Hq*D/tp"]
+                      "shape": [
+                        "T",
+                        "Hq*D/tp"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "k",
-                      "shape": ["T", "max(1,Hkv/tp)*D"]
+                      "shape": [
+                        "T",
+                        "max(1,Hkv/tp)*D"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "v",
-                      "shape": ["T", "max(1,Hkv/tp)*D"]
+                      "shape": [
+                        "T",
+                        "max(1,Hkv/tp)*D"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "o",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ],
                   "outputs": [
                     {
                       "dtype": "bfloat16",
                       "name": "hidden_states",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ]
                 },
@@ -182,27 +239,39 @@
                     {
                       "dtype": "bfloat16",
                       "name": "k_norm.weight",
-                      "shape": ["128"]
+                      "shape": [
+                        "128"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "o_proj.weight",
-                      "shape": ["H", "Hq*D/tp"]
+                      "shape": [
+                        "H",
+                        "Hq*D/tp"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "q_norm.weight",
-                      "shape": ["128"]
+                      "shape": [
+                        "128"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "qkv_proj.bias",
-                      "shape": ["(Hq/tp+2*max(1,Hkv/tp))*D"]
+                      "shape": [
+                        "(Hq/tp+2*max(1,Hkv/tp))*D"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "qkv_proj.weight",
-                      "shape": ["(Hq/tp+2*max(1,Hkv/tp))*D", "H"]
+                      "shape": [
+                        "(Hq/tp+2*max(1,Hkv/tp))*D",
+                        "H"
+                      ]
                     }
                   ],
                   "path": "model.layers.0.self_attn",
@@ -224,12 +293,18 @@
                     {
                       "dtype": "bfloat16",
                       "name": "branch",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "residual",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ],
                   "internals": [],
@@ -237,7 +312,10 @@
                     {
                       "dtype": "bfloat16",
                       "name": "hidden_states",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ]
                 },
@@ -246,7 +324,7 @@
               },
               {
                 "component": {
-                  "eps": 1e-5,
+                  "eps": 1e-05,
                   "kind": "norm",
                   "variant": "rmsnorm"
                 },
@@ -256,7 +334,10 @@
                     {
                       "dtype": "bfloat16",
                       "name": "hidden_states",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ],
                   "internals": [],
@@ -264,7 +345,10 @@
                     {
                       "dtype": "bfloat16",
                       "name": "hidden_states",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ]
                 },
@@ -275,7 +359,9 @@
                     {
                       "dtype": "bfloat16",
                       "name": "weight",
-                      "shape": ["5120"]
+                      "shape": [
+                        "5120"
+                      ]
                     }
                   ],
                   "path": "model.layers.0.post_attention_layernorm",
@@ -301,26 +387,38 @@
                     {
                       "dtype": "bfloat16",
                       "name": "hidden_states",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ],
                   "internals": [
                     {
                       "dtype": "bfloat16",
                       "name": "gate_up",
-                      "shape": ["T", "2*12288/tp"]
+                      "shape": [
+                        "T",
+                        "2*12288/tp"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "act",
-                      "shape": ["T", "12288/tp"]
+                      "shape": [
+                        "T",
+                        "12288/tp"
+                      ]
                     }
                   ],
                   "outputs": [
                     {
                       "dtype": "bfloat16",
                       "name": "hidden_states",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ]
                 },
@@ -331,12 +429,18 @@
                     {
                       "dtype": "bfloat16",
                       "name": "down_proj.weight",
-                      "shape": ["5120", "12288/tp"]
+                      "shape": [
+                        "5120",
+                        "12288/tp"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "gate_up_proj.weight",
-                      "shape": ["24576/tp", "5120"]
+                      "shape": [
+                        "24576/tp",
+                        "5120"
+                      ]
                     }
                   ],
                   "path": "model.layers.0.mlp",
@@ -358,12 +462,18 @@
                     {
                       "dtype": "bfloat16",
                       "name": "branch",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "residual",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ],
                   "internals": [],
@@ -371,7 +481,10 @@
                     {
                       "dtype": "bfloat16",
                       "name": "hidden_states",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ]
                 },
@@ -382,7 +495,10 @@
           },
           "count": 3,
           "id": "model.layers:band:0",
-          "layers": [0, 2],
+          "layers": [
+            0,
+            2
+          ],
           "pattern": null
         },
         {
@@ -392,7 +508,7 @@
             "sublayers": [
               {
                 "component": {
-                  "eps": 1e-5,
+                  "eps": 1e-05,
                   "kind": "norm",
                   "variant": "rmsnorm"
                 },
@@ -402,7 +518,10 @@
                     {
                       "dtype": "bfloat16",
                       "name": "hidden_states",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ],
                   "internals": [],
@@ -410,7 +529,10 @@
                     {
                       "dtype": "bfloat16",
                       "name": "hidden_states",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ]
                 },
@@ -421,7 +543,9 @@
                     {
                       "dtype": "bfloat16",
                       "name": "weight",
-                      "shape": ["5120"]
+                      "shape": [
+                        "5120"
+                      ]
                     }
                   ],
                   "path": "model.layers.3.input_layernorm",
@@ -457,36 +581,54 @@
                     {
                       "dtype": "bfloat16",
                       "name": "hidden_states",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ],
                   "internals": [
                     {
                       "dtype": "bfloat16",
                       "name": "q",
-                      "shape": ["T", "Hq*D/tp"]
+                      "shape": [
+                        "T",
+                        "Hq*D/tp"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "k",
-                      "shape": ["T", "max(1,Hkv/tp)*D"]
+                      "shape": [
+                        "T",
+                        "max(1,Hkv/tp)*D"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "v",
-                      "shape": ["T", "max(1,Hkv/tp)*D"]
+                      "shape": [
+                        "T",
+                        "max(1,Hkv/tp)*D"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "o",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ],
                   "outputs": [
                     {
                       "dtype": "bfloat16",
                       "name": "hidden_states",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ]
                 },
@@ -497,27 +639,39 @@
                     {
                       "dtype": "bfloat16",
                       "name": "k_norm.weight",
-                      "shape": ["128"]
+                      "shape": [
+                        "128"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "o_proj.weight",
-                      "shape": ["H", "Hq*D/tp"]
+                      "shape": [
+                        "H",
+                        "Hq*D/tp"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "q_norm.weight",
-                      "shape": ["128"]
+                      "shape": [
+                        "128"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "qkv_proj.bias",
-                      "shape": ["(Hq/tp+2*max(1,Hkv/tp))*D"]
+                      "shape": [
+                        "(Hq/tp+2*max(1,Hkv/tp))*D"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "qkv_proj.weight",
-                      "shape": ["(Hq/tp+2*max(1,Hkv/tp))*D", "H"]
+                      "shape": [
+                        "(Hq/tp+2*max(1,Hkv/tp))*D",
+                        "H"
+                      ]
                     }
                   ],
                   "path": "model.layers.3.self_attn",
@@ -539,12 +693,18 @@
                     {
                       "dtype": "bfloat16",
                       "name": "branch",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "residual",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ],
                   "internals": [],
@@ -552,7 +712,10 @@
                     {
                       "dtype": "bfloat16",
                       "name": "hidden_states",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ]
                 },
@@ -561,7 +724,7 @@
               },
               {
                 "component": {
-                  "eps": 1e-5,
+                  "eps": 1e-05,
                   "kind": "norm",
                   "variant": "rmsnorm"
                 },
@@ -571,7 +734,10 @@
                     {
                       "dtype": "bfloat16",
                       "name": "hidden_states",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ],
                   "internals": [],
@@ -579,7 +745,10 @@
                     {
                       "dtype": "bfloat16",
                       "name": "hidden_states",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ]
                 },
@@ -590,7 +759,9 @@
                     {
                       "dtype": "bfloat16",
                       "name": "weight",
-                      "shape": ["5120"]
+                      "shape": [
+                        "5120"
+                      ]
                     }
                   ],
                   "path": "model.layers.3.post_attention_layernorm",
@@ -613,10 +784,7 @@
                   "experts": 160,
                   "kind": "moe",
                   "router": {
-                    "groups": {
-                      "n_group": 1,
-                      "topk_group": 1
-                    },
+                    "groups": null,
                     "norm_topk": true,
                     "scoring": "softmax"
                   },
@@ -633,51 +801,78 @@
                     {
                       "dtype": "bfloat16",
                       "name": "hidden_states",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ],
                   "internals": [
                     {
                       "dtype": "bfloat16",
                       "name": "router_logits",
-                      "shape": ["T", "E"]
+                      "shape": [
+                        "T",
+                        "E"
+                      ]
                     },
                     {
                       "dtype": "int64",
                       "name": "topk_ids",
-                      "shape": ["T", "K"]
+                      "shape": [
+                        "T",
+                        "K"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "topk_weights",
-                      "shape": ["T", "K"]
+                      "shape": [
+                        "T",
+                        "K"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T*K", "H"]
+                      "shape": [
+                        "T*K",
+                        "H"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_gate_up",
-                      "shape": ["T*K", "2*1536/tp"]
+                      "shape": [
+                        "T*K",
+                        "2*1536/tp"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T*K", "H"]
+                      "shape": [
+                        "T*K",
+                        "H"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "shared_output",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ],
                   "outputs": [
                     {
                       "dtype": "bfloat16",
                       "name": "hidden_states",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ]
                 },
@@ -688,32 +883,51 @@
                     {
                       "dtype": "float32",
                       "name": "experts.routed_experts.e_score_correction_bias",
-                      "shape": ["E"]
+                      "shape": [
+                        "E"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "experts.routed_experts.w13_weight",
-                      "shape": ["E", "3072/tp", "5120"]
+                      "shape": [
+                        "E",
+                        "3072/tp",
+                        "5120"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "experts.routed_experts.w2_weight",
-                      "shape": ["E", "5120", "1536/tp"]
+                      "shape": [
+                        "E",
+                        "5120",
+                        "1536/tp"
+                      ]
                     },
                     {
                       "dtype": "float32",
                       "name": "gate.weight",
-                      "shape": ["E", "5120"]
+                      "shape": [
+                        "E",
+                        "5120"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "shared_experts.down_proj.weight",
-                      "shape": ["5120", "1536/tp"]
+                      "shape": [
+                        "5120",
+                        "1536/tp"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "shared_experts.gate_up_proj.weight",
-                      "shape": ["3072/tp", "5120"]
+                      "shape": [
+                        "3072/tp",
+                        "5120"
+                      ]
                     }
                   ],
                   "path": "model.layers.3.mlp",
@@ -735,12 +949,18 @@
                     {
                       "dtype": "bfloat16",
                       "name": "branch",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "residual",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ],
                   "internals": [],
@@ -748,7 +968,10 @@
                     {
                       "dtype": "bfloat16",
                       "name": "hidden_states",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ]
                 },
@@ -759,7 +982,10 @@
           },
           "count": 89,
           "id": "model.layers:band:3",
-          "layers": [3, 91],
+          "layers": [
+            3,
+            91
+          ],
           "pattern": null
         }
       ],
@@ -769,7 +995,7 @@
     },
     {
       "component": {
-        "eps": 1e-5,
+        "eps": 1e-05,
         "kind": "norm",
         "variant": "rmsnorm"
       },
@@ -779,7 +1005,10 @@
           {
             "dtype": "bfloat16",
             "name": "hidden_states",
-            "shape": ["T", "H"]
+            "shape": [
+              "T",
+              "H"
+            ]
           }
         ],
         "internals": [],
@@ -787,7 +1016,10 @@
           {
             "dtype": "bfloat16",
             "name": "hidden_states",
-            "shape": ["T", "H"]
+            "shape": [
+              "T",
+              "H"
+            ]
           }
         ]
       },
@@ -800,7 +1032,9 @@
           {
             "dtype": "bfloat16",
             "name": "weight",
-            "shape": ["5120"]
+            "shape": [
+              "5120"
+            ]
           }
         ],
         "path": "model.norm",
@@ -827,7 +1061,10 @@
           {
             "dtype": "bfloat16",
             "name": "hidden_states",
-            "shape": ["T", "H"]
+            "shape": [
+              "T",
+              "H"
+            ]
           }
         ],
         "internals": [],
@@ -835,7 +1072,10 @@
           {
             "dtype": "bfloat16",
             "name": "logits",
-            "shape": ["T", "V"]
+            "shape": [
+              "T",
+              "V"
+            ]
           }
         ]
       },
@@ -848,7 +1088,10 @@
           {
             "dtype": "bfloat16",
             "name": "weight",
-            "shape": ["151552/tp", "5120"]
+            "shape": [
+              "151552/tp",
+              "5120"
+            ]
           }
         ],
         "path": "lm_head",
@@ -861,6 +1104,51 @@
         "status": "ruled"
       },
       "placement": "spine"
+    },
+    {
+      "component": {
+        "children": [],
+        "class_name": "vllm.model_executor.models.glm4_moe.Glm4MoeForCausalLM",
+        "kind": "generic"
+      },
+      "id": "mtp",
+      "io": {
+        "inputs": [
+          {
+            "dtype": "bfloat16",
+            "name": "hidden_states",
+            "shape": [
+              "T",
+              "H"
+            ]
+          }
+        ],
+        "internals": [],
+        "outputs": [
+          {
+            "dtype": "bfloat16",
+            "name": "hidden_states",
+            "shape": [
+              "T",
+              "H"
+            ]
+          }
+        ]
+      },
+      "kind": "other",
+      "label": "Multi-token prediction × 1",
+      "module": {
+        "class_name": "vllm.model_executor.models.glm4_moe.Glm4MoeForCausalLM",
+        "flags": [
+          "config_only"
+        ],
+        "params": [],
+        "path": "",
+        "replaced": null,
+        "source": null,
+        "status": "generic"
+      },
+      "placement": "aside"
     }
   ],
   "symbols": {

@@ -14,7 +14,7 @@
     },
     {
       "id": "coverage",
-      "message": "33 numeric review items; structure is available.",
+      "message": "31 numeric review items; structure is available.",
       "node": null,
       "status": "fail"
     },

@@ -7,7 +7,10 @@
       "tensor": {
         "dtype": "dtype_a",
         "name": "output",
-        "shape": ["T", "Hq/tp*D"]
+        "shape": [
+          "T",
+          "Hq/tp*D"
+        ]
       },
       "to": "attn.o"
     },
@@ -18,7 +21,10 @@
       "tensor": {
         "dtype": "dtype_a",
         "name": "output",
-        "shape": ["T", "D*max(1,Hkv/tp)"]
+        "shape": [
+          "T",
+          "D*max(1,Hkv/tp)"
+        ]
       },
       "to": "attn.rope"
     },
@@ -29,7 +35,10 @@
       "tensor": {
         "dtype": "dtype_a",
         "name": "output",
-        "shape": ["T", "H"]
+        "shape": [
+          "T",
+          "H"
+        ]
       },
       "to": "attn.o.reduce"
     },
@@ -40,7 +49,10 @@
       "tensor": {
         "dtype": "dtype_a",
         "name": "output",
-        "shape": ["T", "H"]
+        "shape": [
+          "T",
+          "H"
+        ]
       },
       "to": "norm.post"
     },
@@ -51,7 +63,10 @@
       "tensor": {
         "dtype": "dtype_a",
         "name": "output",
-        "shape": ["T", "D*Hq/tp"]
+        "shape": [
+          "T",
+          "D*Hq/tp"
+        ]
       },
       "to": "attn.rope"
     },
@@ -62,7 +77,10 @@
       "tensor": {
         "dtype": "dtype_a",
         "name": "output",
-        "shape": ["T", "(Hq/tp+2*max(1,Hkv/tp))*D"]
+        "shape": [
+          "T",
+          "(Hq/tp+2*max(1,Hkv/tp))*D"
+        ]
       },
       "to": "attn.k_norm"
     },
@@ -73,7 +91,10 @@
       "tensor": {
         "dtype": "dtype_a",
         "name": "output",
-        "shape": ["T", "(Hq/tp+2*max(1,Hkv/tp))*D"]
+        "shape": [
+          "T",
+          "(Hq/tp+2*max(1,Hkv/tp))*D"
+        ]
       },
       "to": "attn.q_norm"
     },
@@ -84,7 +105,10 @@
       "tensor": {
         "dtype": "dtype_a",
         "name": "output",
-        "shape": ["T", "(Hq/tp+2*max(1,Hkv/tp))*D"]
+        "shape": [
+          "T",
+          "(Hq/tp+2*max(1,Hkv/tp))*D"
+        ]
       },
       "to": "attn.rope"
     },
@@ -95,7 +119,11 @@
       "tensor": {
         "dtype": "dtype_a",
         "name": "q",
-        "shape": ["T", "Hq/tp", "D"]
+        "shape": [
+          "T",
+          "Hq/tp",
+          "D"
+        ]
       },
       "to": "attn.core"
     },
@@ -106,7 +134,10 @@
       "tensor": {
         "dtype": "dtype_a",
         "name": "output",
-        "shape": ["T", "H"]
+        "shape": [
+          "T",
+          "H"
+        ]
       },
       "to": "final_norm"
     },
@@ -117,7 +148,10 @@
       "tensor": {
         "dtype": "dtype_a",
         "name": "output",
-        "shape": ["T", "H"]
+        "shape": [
+          "T",
+          "H"
+        ]
       },
       "to": "embed.reduce"
     },
@@ -128,7 +162,10 @@
       "tensor": {
         "dtype": "dtype_a",
         "name": "output",
-        "shape": ["T", "H"]
+        "shape": [
+          "T",
+          "H"
+        ]
       },
       "to": "decoder"
     },
@@ -139,7 +176,10 @@
       "tensor": {
         "dtype": "dtype_a",
         "name": "output",
-        "shape": ["T", "H*1"]
+        "shape": [
+          "T",
+          "H*1"
+        ]
       },
       "to": "lm_head"
     },
@@ -150,7 +190,13 @@
       "tensor": {
         "dtype": "dtype_kv",
         "name": "kv",
-        "shape": ["2", "S", "context", "max(1,Hkv/tp)", "D"]
+        "shape": [
+          "2",
+          "S",
+          "context",
+          "max(1,Hkv/tp)",
+          "D"
+        ]
       },
       "to": "attn.core"
     },
@@ -162,8 +208,14 @@
         "dtype": "dtype_a",
         "name": "output",
         "shape": {
-          "decode": ["S", "round_up(V,64)/tp"],
-          "prefill": ["batch", "round_up(V,64)/tp"]
+          "decode": [
+            "S",
+            "round_up(V,64)/tp"
+          ],
+          "prefill": [
+            "batch",
+            "round_up(V,64)/tp"
+          ]
         }
       },
       "to": "logits.gather"
@@ -176,8 +228,14 @@
         "dtype": "dtype_a",
         "name": "output",
         "shape": {
-          "decode": ["S", "V"],
-          "prefill": ["batch", "V"]
+          "decode": [
+            "S",
+            "V"
+          ],
+          "prefill": [
+            "batch",
+            "V"
+          ]
         }
       },
       "to": "output"
@@ -190,8 +248,14 @@
         "dtype": "dtype_a",
         "name": "logits",
         "shape": {
-          "decode": ["S", "round_up(V,64)"],
-          "prefill": ["batch", "round_up(V,64)"]
+          "decode": [
+            "S",
+            "round_up(V,64)"
+          ],
+          "prefill": [
+            "batch",
+            "round_up(V,64)"
+          ]
         }
       },
       "to": "logits"
@@ -203,7 +267,10 @@
       "tensor": {
         "dtype": "dtype_a",
         "name": "output",
-        "shape": ["T*dp*topk/(ep>1 ? ep : 1)", "I_moe/(ep>1 ? 1 : tp*dp)"]
+        "shape": [
+          "T*dp*topk/(ep>1 ? ep : 1)",
+          "I_moe/(ep>1 ? 1 : tp*dp)"
+        ]
       },
       "to": "moe.w2"
     },
@@ -214,7 +281,10 @@
       "tensor": {
         "dtype": "dtype_a",
         "name": "output",
-        "shape": ["T", "H"]
+        "shape": [
+          "T",
+          "H"
+        ]
       },
       "to": "moe.experts.reduce"
     },
@@ -225,7 +295,10 @@
       "tensor": {
         "dtype": "dtype_a",
         "name": "output",
-        "shape": ["T", "H"]
+        "shape": [
+          "T",
+          "H"
+        ]
       },
       "to": "moe.w13"
     },
@@ -236,7 +309,10 @@
       "tensor": {
         "dtype": "dtype_a",
         "name": "output",
-        "shape": ["T", "128"]
+        "shape": [
+          "T",
+          "128"
+        ]
       },
       "to": "moe.experts.dispatch"
     },
@@ -247,7 +323,10 @@
       "tensor": {
         "dtype": "dtype_a",
         "name": "output",
-        "shape": ["T*dp*topk/(ep>1 ? ep : 1)", "2*I_moe/(ep>1 ? 1 : tp*dp)"]
+        "shape": [
+          "T*dp*topk/(ep>1 ? ep : 1)",
+          "2*I_moe/(ep>1 ? 1 : tp*dp)"
+        ]
       },
       "to": "moe.act"
     },
@@ -258,7 +337,10 @@
       "tensor": {
         "dtype": "dtype_a",
         "name": "output",
-        "shape": ["T*dp*topk/(ep>1 ? ep : 1)", "H"]
+        "shape": [
+          "T*dp*topk/(ep>1 ? ep : 1)",
+          "H"
+        ]
       },
       "to": "moe.experts.combine"
     },
@@ -269,7 +351,10 @@
       "tensor": {
         "dtype": "dtype_a",
         "name": "output",
-        "shape": ["T", "H*1"]
+        "shape": [
+          "T",
+          "H*1"
+        ]
       },
       "to": "attn.qkv"
     },
@@ -280,7 +365,10 @@
       "tensor": {
         "dtype": "dtype_a",
         "name": "output",
-        "shape": ["T", "H*1"]
+        "shape": [
+          "T",
+          "H*1"
+        ]
       },
       "to": "norm.post"
     },
@@ -291,7 +379,10 @@
       "tensor": {
         "dtype": "dtype_a",
         "name": "output",
-        "shape": ["T", "H*1"]
+        "shape": [
+          "T",
+          "H*1"
+        ]
       },
       "to": "moe.experts.reduce"
     },
@@ -302,7 +393,10 @@
       "tensor": {
         "dtype": "dtype_a",
         "name": "output",
-        "shape": ["T", "H*1"]
+        "shape": [
+          "T",
+          "H*1"
+        ]
       },
       "to": "moe.gate"
     }
@@ -310,7 +404,10 @@
   "groups": [
     {
       "id": "decoder",
-      "layers": ["0", "93"],
+      "layers": [
+        "0",
+        "93"
+      ],
       "representative_layer": "0",
       "template": "decoder"
     }
@@ -363,7 +460,9 @@
             "symbol": "vllm_ascend.patch.worker.patch_qwen3vl.forward_with_split_qkv_rmsnorm_mrope"
           }
         ],
-        "tag": ["PATCH"]
+        "tag": [
+          "PATCH"
+        ]
       },
       "bytes_moved": {
         "decode": "(2*S*Hq/tp*D*bytes(dtype_a)+2*S*(context+1)*max(1,Hkv/tp)*D*bytes(dtype_kv))+(D*bytes(dtype_w)+2*S*D*max(1,Hkv/tp)*bytes(dtype_a))+(((8192/tp*H*bytes(dtype_w))+(false ? (H)*bytes(dtype_w) : 0))+S*((8192/tp)+(H))*bytes(dtype_a))+(D*bytes(dtype_w)+2*S*D*Hq/tp*bytes(dtype_a))+(((H*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_w))+(false ? ((Hq/tp+2*max(1,Hkv/tp))*D)*bytes(dtype_w) : 0))+S*((H)+((Hq/tp+2*max(1,Hkv/tp))*D))*bytes(dtype_a))+((2*S*(Hq/tp+max(1,Hkv/tp))*D*bytes(dtype_a)))",
@@ -380,17 +479,25 @@
         {
           "dtype": "dtype_a",
           "name": "input",
-          "shape": ["T", "H"]
+          "shape": [
+            "T",
+            "H"
+          ]
         }
       ],
       "kind": "group",
       "label": "attn",
-      "notes": ["Structural container; metrics summarize descendants."],
+      "notes": [
+        "Structural container; metrics summarize descendants."
+      ],
       "out": [
         {
           "dtype": "dtype_a",
           "name": "output",
-          "shape": ["T", "H"]
+          "shape": [
+            "T",
+            "H"
+          ]
         }
       ],
       "parallel": {},
@@ -422,17 +529,29 @@
         {
           "dtype": "dtype_a",
           "name": "q",
-          "shape": ["T", "Hq/tp", "D"]
+          "shape": [
+            "T",
+            "Hq/tp",
+            "D"
+          ]
         },
         {
           "dtype": "dtype_a",
           "name": "k",
-          "shape": ["T", "max(1,Hkv/tp)", "D"]
+          "shape": [
+            "T",
+            "max(1,Hkv/tp)",
+            "D"
+          ]
         },
         {
           "dtype": "dtype_a",
           "name": "v",
-          "shape": ["T", "max(1,Hkv/tp)", "D"]
+          "shape": [
+            "T",
+            "max(1,Hkv/tp)",
+            "D"
+          ]
         }
       ],
       "kind": "compute",
@@ -444,7 +563,10 @@
         {
           "dtype": "dtype_a",
           "name": "output",
-          "shape": ["T", "Hq/tp*D"]
+          "shape": [
+            "T",
+            "Hq/tp*D"
+          ]
         }
       ],
       "parallel": {
@@ -492,7 +614,9 @@
             "symbol": "vllm_ascend.ops.layernorm.AscendRMSNorm"
           }
         ],
-        "tag": ["OOT"]
+        "tag": [
+          "OOT"
+        ]
       },
       "bytes_moved": {
         "decode": "D*bytes(dtype_w)+2*S*D*max(1,Hkv/tp)*bytes(dtype_a)",
@@ -509,12 +633,17 @@
         {
           "dtype": "dtype_a",
           "name": "input",
-          "shape": ["T", "D*(max(1,Hkv/tp))"]
+          "shape": [
+            "T",
+            "D*(max(1,Hkv/tp))"
+          ]
         },
         {
           "dtype": "dtype_w",
           "name": "weight",
-          "shape": ["D"]
+          "shape": [
+            "D"
+          ]
         }
       ],
       "kind": "compute",
@@ -526,7 +655,10 @@
         {
           "dtype": "dtype_a",
           "name": "output",
-          "shape": ["T", "D*max(1,Hkv/tp)"]
+          "shape": [
+            "T",
+            "D*max(1,Hkv/tp)"
+          ]
         }
       ],
       "parallel": {
@@ -602,7 +734,9 @@
             "symbol": "vllm_ascend.utils.maybe_trans_nz"
           }
         ],
-        "tag": ["OOT"]
+        "tag": [
+          "OOT"
+        ]
       },
       "bytes_moved": {
         "decode": "((8192/tp*H*bytes(dtype_w))+(false ? (H)*bytes(dtype_w) : 0))+S*((8192/tp)+(H))*bytes(dtype_a)",
@@ -619,12 +753,18 @@
         {
           "dtype": "dtype_a",
           "name": "input",
-          "shape": ["T", "8192/tp"]
+          "shape": [
+            "T",
+            "8192/tp"
+          ]
         },
         {
           "dtype": "dtype_w",
           "name": "weight",
-          "shape": ["H", "8192/tp"]
+          "shape": [
+            "H",
+            "8192/tp"
+          ]
         }
       ],
       "kind": "compute",
@@ -636,7 +776,10 @@
         {
           "dtype": "dtype_a",
           "name": "output",
-          "shape": ["T", "H"]
+          "shape": [
+            "T",
+            "H"
+          ]
         }
       ],
       "parallel": {
@@ -712,7 +855,9 @@
             "symbol": "vllm_ascend.utils.maybe_trans_nz"
           }
         ],
-        "tag": ["OOT"]
+        "tag": [
+          "OOT"
+        ]
       },
       "bytes_moved": {
         "decode": "0",
@@ -729,7 +874,9 @@
           "decode": "S*H*bytes(dtype_a)",
           "prefill": "T*H*bytes(dtype_a)"
         },
-        "notes": ["Ring estimate; logical bytes describe the tensor even when inactive."],
+        "notes": [
+          "Ring estimate; logical bytes describe the tensor even when inactive."
+        ],
         "op": "all_reduce",
         "when": "true && tp>1"
       },
@@ -742,7 +889,10 @@
         {
           "dtype": "dtype_a",
           "name": "output",
-          "shape": ["T", "H"]
+          "shape": [
+            "T",
+            "H"
+          ]
         }
       ],
       "kind": "comm",
@@ -752,7 +902,10 @@
         {
           "dtype": "dtype_a",
           "name": "output",
-          "shape": ["T", "H"]
+          "shape": [
+            "T",
+            "H"
+          ]
         }
       ],
       "parallel": {},
@@ -796,7 +949,9 @@
             "symbol": "vllm_ascend.ops.layernorm.AscendRMSNorm"
           }
         ],
-        "tag": ["OOT"]
+        "tag": [
+          "OOT"
+        ]
       },
       "bytes_moved": {
         "decode": "D*bytes(dtype_w)+2*S*D*Hq/tp*bytes(dtype_a)",
@@ -813,12 +968,17 @@
         {
           "dtype": "dtype_a",
           "name": "input",
-          "shape": ["T", "D*(Hq/tp)"]
+          "shape": [
+            "T",
+            "D*(Hq/tp)"
+          ]
         },
         {
           "dtype": "dtype_w",
           "name": "weight",
-          "shape": ["D"]
+          "shape": [
+            "D"
+          ]
         }
       ],
       "kind": "compute",
@@ -830,7 +990,10 @@
         {
           "dtype": "dtype_a",
           "name": "output",
-          "shape": ["T", "D*Hq/tp"]
+          "shape": [
+            "T",
+            "D*Hq/tp"
+          ]
         }
       ],
       "parallel": {
@@ -906,7 +1069,9 @@
             "symbol": "vllm_ascend.utils.maybe_trans_nz"
           }
         ],
-        "tag": ["OOT"]
+        "tag": [
+          "OOT"
+        ]
       },
       "bytes_moved": {
         "decode": "((H*(Hq/tp+2*max(1,Hkv/tp))*D*bytes(dtype_w))+(false ? ((Hq/tp+2*max(1,Hkv/tp))*D)*bytes(dtype_w) : 0))+S*((H)+((Hq/tp+2*max(1,Hkv/tp))*D))*bytes(dtype_a)",
@@ -923,12 +1088,18 @@
         {
           "dtype": "dtype_a",
           "name": "input",
-          "shape": ["T", "H"]
+          "shape": [
+            "T",
+            "H"
+          ]
         },
         {
           "dtype": "dtype_w",
           "name": "weight",
-          "shape": ["(Hq/tp+2*max(1,Hkv/tp))*D", "H"]
+          "shape": [
+            "(Hq/tp+2*max(1,Hkv/tp))*D",
+            "H"
+          ]
         }
       ],
       "kind": "compute",
@@ -941,7 +1112,10 @@
         {
           "dtype": "dtype_a",
           "name": "output",
-          "shape": ["T", "(Hq/tp+2*max(1,Hkv/tp))*D"]
+          "shape": [
+            "T",
+            "(Hq/tp+2*max(1,Hkv/tp))*D"
+          ]
         }
       ],
       "parallel": {
@@ -996,7 +1170,9 @@
             "symbol": "vllm_ascend.ops.rotary_embedding.AscendRotaryEmbedding"
           }
         ],
-        "tag": ["OOT"]
+        "tag": [
+          "OOT"
+        ]
       },
       "bytes_moved": {
         "decode": "(2*S*(Hq/tp+max(1,Hkv/tp))*D*bytes(dtype_a))",
@@ -1013,12 +1189,20 @@
         {
           "dtype": "dtype_a",
           "name": "q",
-          "shape": ["T", "Hq/tp", "D"]
+          "shape": [
+            "T",
+            "Hq/tp",
+            "D"
+          ]
         },
         {
           "dtype": "dtype_a",
           "name": "k",
-          "shape": ["T", "max(1,Hkv/tp)", "D"]
+          "shape": [
+            "T",
+            "max(1,Hkv/tp)",
+            "D"
+          ]
         }
       ],
       "kind": "group",
@@ -1031,12 +1215,20 @@
         {
           "dtype": "dtype_a",
           "name": "q",
-          "shape": ["T", "Hq/tp", "D"]
+          "shape": [
+            "T",
+            "Hq/tp",
+            "D"
+          ]
         },
         {
           "dtype": "dtype_a",
           "name": "k",
-          "shape": ["T", "max(1,Hkv/tp)", "D"]
+          "shape": [
+            "T",
+            "max(1,Hkv/tp)",
+            "D"
+          ]
         }
       ],
       "parallel": {},
@@ -1080,7 +1272,9 @@
             "symbol": "vllm_ascend.ops.rotary_embedding.AscendApplyRotaryEmb"
           }
         ],
-        "tag": ["OOT"]
+        "tag": [
+          "OOT"
+        ]
       },
       "bytes_moved": {
         "decode": "2*S*(Hq/tp+max(1,Hkv/tp))*D*bytes(dtype_a)",
@@ -1097,12 +1291,20 @@
         {
           "dtype": "dtype_a",
           "name": "q",
-          "shape": ["T", "Hq/tp", "D"]
+          "shape": [
+            "T",
+            "Hq/tp",
+            "D"
+          ]
         },
         {
           "dtype": "dtype_a",
           "name": "k",
-          "shape": ["T", "max(1,Hkv/tp)", "D"]
+          "shape": [
+            "T",
+            "max(1,Hkv/tp)",
+            "D"
+          ]
         }
       ],
       "kind": "compute",
@@ -1114,12 +1316,20 @@
         {
           "dtype": "dtype_a",
           "name": "q",
-          "shape": ["T", "Hq/tp", "D"]
+          "shape": [
+            "T",
+            "Hq/tp",
+            "D"
+          ]
         },
         {
           "dtype": "dtype_a",
           "name": "k",
-          "shape": ["T", "max(1,Hkv/tp)", "D"]
+          "shape": [
+            "T",
+            "max(1,Hkv/tp)",
+            "D"
+          ]
         }
       ],
       "parallel": {},
@@ -1151,17 +1361,25 @@
         {
           "dtype": "dtype_a",
           "name": "input",
-          "shape": ["T", "H"]
+          "shape": [
+            "T",
+            "H"
+          ]
         }
       ],
       "kind": "group",
       "label": "decoder",
-      "notes": ["Structural container; metrics summarize descendants."],
+      "notes": [
+        "Structural container; metrics summarize descendants."
+      ],
       "out": [
         {
           "dtype": "dtype_a",
           "name": "output",
-          "shape": ["T", "H"]
+          "shape": [
+            "T",
+            "H"
+          ]
         }
       ],
       "parallel": {},
@@ -1205,7 +1423,9 @@
             "symbol": "vllm_ascend.ops.vocab_parallel_embedding.AscendVocabParallelEmbedding"
           }
         ],
-        "tag": ["OOT"]
+        "tag": [
+          "OOT"
+        ]
       },
       "bytes_moved": {
         "decode": "S*H*(bytes(dtype_w)+bytes(dtype_a))",
@@ -1222,12 +1442,17 @@
         {
           "dtype": "dtype_ids",
           "name": "tokens",
-          "shape": ["T"]
+          "shape": [
+            "T"
+          ]
         },
         {
           "dtype": "dtype_w",
           "name": "weight",
-          "shape": ["round_up(V,64)/tp", "H"]
+          "shape": [
+            "round_up(V,64)/tp",
+            "H"
+          ]
         }
       ],
       "kind": "compute",
@@ -1240,7 +1465,10 @@
         {
           "dtype": "dtype_a",
           "name": "output",
-          "shape": ["T", "H"]
+          "shape": [
+            "T",
+            "H"
+          ]
         }
       ],
       "parallel": {
@@ -1288,7 +1516,9 @@
             "symbol": "vllm_ascend.ops.vocab_parallel_embedding.AscendVocabParallelEmbedding"
           }
         ],
-        "tag": ["OOT"]
+        "tag": [
+          "OOT"
+        ]
       },
       "bytes_moved": {
         "decode": "0",
@@ -1305,7 +1535,9 @@
           "decode": "S*H*bytes(dtype_a)",
           "prefill": "T*H*bytes(dtype_a)"
         },
-        "notes": ["Ring estimate; logical bytes describe the tensor even when inactive."],
+        "notes": [
+          "Ring estimate; logical bytes describe the tensor even when inactive."
+        ],
         "op": "all_reduce",
         "when": "tp>1"
       },
@@ -1318,7 +1550,10 @@
         {
           "dtype": "dtype_a",
           "name": "output",
-          "shape": ["T", "H"]
+          "shape": [
+            "T",
+            "H"
+          ]
         }
       ],
       "kind": "comm",
@@ -1328,7 +1563,10 @@
         {
           "dtype": "dtype_a",
           "name": "output",
-          "shape": ["T", "H"]
+          "shape": [
+            "T",
+            "H"
+          ]
         }
       ],
       "parallel": {},
@@ -1372,7 +1610,9 @@
             "symbol": "vllm_ascend.ops.layernorm.AscendRMSNorm"
           }
         ],
-        "tag": ["OOT"]
+        "tag": [
+          "OOT"
+        ]
       },
       "bytes_moved": {
         "decode": "H*bytes(dtype_w)+2*S*H*1*bytes(dtype_a)",
@@ -1389,12 +1629,17 @@
         {
           "dtype": "dtype_a",
           "name": "input",
-          "shape": ["T", "H*(1)"]
+          "shape": [
+            "T",
+            "H*(1)"
+          ]
         },
         {
           "dtype": "dtype_w",
           "name": "weight",
-          "shape": ["H"]
+          "shape": [
+            "H"
+          ]
         }
       ],
       "kind": "compute",
@@ -1406,7 +1651,10 @@
         {
           "dtype": "dtype_a",
           "name": "output",
-          "shape": ["T", "H*1"]
+          "shape": [
+            "T",
+            "H*1"
+          ]
         }
       ],
       "parallel": {
@@ -1441,12 +1689,20 @@
       "in": [],
       "kind": "io",
       "label": "KV cache",
-      "notes": ["KV state input; capacity is reported by memory.kv_tokens."],
+      "notes": [
+        "KV state input; capacity is reported by memory.kv_tokens."
+      ],
       "out": [
         {
           "dtype": "dtype_kv",
           "name": "kv",
-          "shape": ["2", "S", "context", "max(1,Hkv/tp)", "D"]
+          "shape": [
+            "2",
+            "S",
+            "context",
+            "max(1,Hkv/tp)",
+            "D"
+          ]
         }
       ],
       "parallel": {
@@ -1494,7 +1750,9 @@
             "symbol": "vllm_ascend.ops.vocab_parallel_embedding.AscendParallelLMHead"
           }
         ],
-        "tag": ["OOT"]
+        "tag": [
+          "OOT"
+        ]
       },
       "bytes_moved": {
         "decode": "round_up(V,64)/tp*H*bytes(dtype_w)+S*(H+round_up(V,64)/tp)*bytes(dtype_a)",
@@ -1512,14 +1770,23 @@
           "dtype": "dtype_a",
           "name": "input",
           "shape": {
-            "decode": ["S", "H"],
-            "prefill": ["batch", "H"]
+            "decode": [
+              "S",
+              "H"
+            ],
+            "prefill": [
+              "batch",
+              "H"
+            ]
           }
         },
         {
           "dtype": "dtype_w",
           "name": "weight",
-          "shape": ["round_up(V,64)/tp", "H"]
+          "shape": [
+            "round_up(V,64)/tp",
+            "H"
+          ]
         }
       ],
       "kind": "compute",
@@ -1533,8 +1800,14 @@
           "dtype": "dtype_a",
           "name": "output",
           "shape": {
-            "decode": ["S", "round_up(V,64)/tp"],
-            "prefill": ["batch", "round_up(V,64)/tp"]
+            "decode": [
+              "S",
+              "round_up(V,64)/tp"
+            ],
+            "prefill": [
+              "batch",
+              "round_up(V,64)/tp"
+            ]
           }
         }
       ],
@@ -1583,7 +1856,9 @@
             "symbol": "vllm_ascend.ops.vocab_parallel_embedding.AscendLogitsProcessor"
           }
         ],
-        "tag": ["OOT"]
+        "tag": [
+          "OOT"
+        ]
       },
       "bytes_moved": {
         "decode": "2*S*V*bytes(dtype_a)",
@@ -1601,8 +1876,14 @@
           "dtype": "dtype_a",
           "name": "logits",
           "shape": {
-            "decode": ["S", "round_up(V,64)"],
-            "prefill": ["batch", "round_up(V,64)"]
+            "decode": [
+              "S",
+              "round_up(V,64)"
+            ],
+            "prefill": [
+              "batch",
+              "round_up(V,64)"
+            ]
           }
         }
       ],
@@ -1617,8 +1898,14 @@
           "dtype": "dtype_a",
           "name": "output",
           "shape": {
-            "decode": ["S", "V"],
-            "prefill": ["batch", "V"]
+            "decode": [
+              "S",
+              "V"
+            ],
+            "prefill": [
+              "batch",
+              "V"
+            ]
           }
         }
       ],
@@ -1663,7 +1950,9 @@
             "symbol": "vllm_ascend.ops.vocab_parallel_embedding.AscendLogitsProcessor"
           }
         ],
-        "tag": ["OOT"]
+        "tag": [
+          "OOT"
+        ]
       },
       "bytes_moved": {
         "decode": "0",
@@ -1680,7 +1969,9 @@
           "decode": "S*round_up(V,64)/tp*bytes(dtype_a)",
           "prefill": "batch*round_up(V,64)/tp*bytes(dtype_a)"
         },
-        "notes": ["Ring estimate; logical bytes describe the tensor even when inactive."],
+        "notes": [
+          "Ring estimate; logical bytes describe the tensor even when inactive."
+        ],
         "op": "gather",
         "when": "tp>1"
       },
@@ -1694,8 +1985,14 @@
           "dtype": "dtype_a",
           "name": "logits_shard",
           "shape": {
-            "decode": ["S", "round_up(V,64)/tp"],
-            "prefill": ["batch", "round_up(V,64)/tp"]
+            "decode": [
+              "S",
+              "round_up(V,64)/tp"
+            ],
+            "prefill": [
+              "batch",
+              "round_up(V,64)/tp"
+            ]
           }
         }
       ],
@@ -1707,8 +2004,14 @@
           "dtype": "dtype_a",
           "name": "logits",
           "shape": {
-            "decode": ["S", "round_up(V,64)"],
-            "prefill": ["batch", "round_up(V,64)"]
+            "decode": [
+              "S",
+              "round_up(V,64)"
+            ],
+            "prefill": [
+              "batch",
+              "round_up(V,64)"
+            ]
           }
         }
       ],
@@ -1741,17 +2044,25 @@
         {
           "dtype": "dtype_a",
           "name": "input",
-          "shape": ["T", "H"]
+          "shape": [
+            "T",
+            "H"
+          ]
         }
       ],
       "kind": "group",
       "label": "moe",
-      "notes": ["Structural container; metrics summarize descendants."],
+      "notes": [
+        "Structural container; metrics summarize descendants."
+      ],
       "out": [
         {
           "dtype": "dtype_a",
           "name": "output",
-          "shape": ["T", "H"]
+          "shape": [
+            "T",
+            "H"
+          ]
         }
       ],
       "parallel": {},
@@ -1795,7 +2106,9 @@
             "symbol": "vllm_ascend.ops.fused_moe.routed_experts.AscendRoutedExperts"
           }
         ],
-        "tag": ["OOT"]
+        "tag": [
+          "OOT"
+        ]
       },
       "bytes_moved": {
         "decode": "(S*dp*topk/(ep>1 ? ep : 1))*((2*(I_moe/(ep>1 ? 1 : tp*dp)))+(I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a)",
@@ -1812,17 +2125,25 @@
         {
           "dtype": "dtype_a",
           "name": "routed",
-          "shape": ["T*dp*topk/(ep>1 ? ep : 1)", "2*(I_moe/(ep>1 ? 1 : tp*dp))"]
+          "shape": [
+            "T*dp*topk/(ep>1 ? ep : 1)",
+            "2*(I_moe/(ep>1 ? 1 : tp*dp))"
+          ]
         }
       ],
       "kind": "compute",
       "label": "act",
-      "notes": ["Curated expert operation; provenance and rule inherited from RoutedExperts."],
+      "notes": [
+        "Curated expert operation; provenance and rule inherited from RoutedExperts."
+      ],
       "out": [
         {
           "dtype": "dtype_a",
           "name": "output",
-          "shape": ["T*dp*topk/(ep>1 ? ep : 1)", "I_moe/(ep>1 ? 1 : tp*dp)"]
+          "shape": [
+            "T*dp*topk/(ep>1 ? ep : 1)",
+            "I_moe/(ep>1 ? 1 : tp*dp)"
+          ]
         }
       ],
       "parallel": {
@@ -1873,7 +2194,9 @@
             "symbol": "vllm_ascend.ops.fused_moe.fused_moe.AscendMoERunner"
           }
         ],
-        "tag": ["OOT"]
+        "tag": [
+          "OOT"
+        ]
       },
       "bytes_moved": {
         "decode": "((2*min(E/(ep>1 ? ep : 1),S*dp*topk/(ep>1 ? ep : 1))*H*(I_moe/(ep>1 ? 1 : tp*dp))*bytes(dtype_w)+((S*dp*topk/(ep>1 ? ep : 1))*((H)+(2*(I_moe/(ep>1 ? 1 : tp*dp))))*bytes(dtype_a)))+((S*dp*topk/(ep>1 ? ep : 1))*((2*(I_moe/(ep>1 ? 1 : tp*dp)))+(I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a))+(1*min(E/(ep>1 ? ep : 1),S*dp*topk/(ep>1 ? ep : 1))*H*(I_moe/(ep>1 ? 1 : tp*dp))*bytes(dtype_w)+((S*dp*topk/(ep>1 ? ep : 1))*((I_moe/(ep>1 ? 1 : tp*dp))+(H))*bytes(dtype_a))))",
@@ -1890,7 +2213,10 @@
         {
           "dtype": "dtype_a",
           "name": "input",
-          "shape": ["T", "H"]
+          "shape": [
+            "T",
+            "H"
+          ]
         }
       ],
       "kind": "group",
@@ -1903,7 +2229,10 @@
         {
           "dtype": "dtype_a",
           "name": "output",
-          "shape": ["T", "H"]
+          "shape": [
+            "T",
+            "H"
+          ]
         }
       ],
       "parallel": {},
@@ -1947,7 +2276,9 @@
             "symbol": "vllm_ascend.ops.fused_moe.fused_moe.AscendMoERunner"
           }
         ],
-        "tag": ["OOT"]
+        "tag": [
+          "OOT"
+        ]
       },
       "bytes_moved": {
         "decode": "0",
@@ -1979,7 +2310,10 @@
         {
           "dtype": "dtype_a",
           "name": "gathered",
-          "shape": ["dp*T", "H"]
+          "shape": [
+            "dp*T",
+            "H"
+          ]
         }
       ],
       "kind": "comm",
@@ -1989,7 +2323,10 @@
         {
           "dtype": "dtype_a",
           "name": "output",
-          "shape": ["T", "H"]
+          "shape": [
+            "T",
+            "H"
+          ]
         }
       ],
       "parallel": {},
@@ -2033,7 +2370,9 @@
             "symbol": "vllm_ascend.ops.fused_moe.fused_moe.AscendMoERunner"
           }
         ],
-        "tag": ["OOT"]
+        "tag": [
+          "OOT"
+        ]
       },
       "bytes_moved": {
         "decode": "0",
@@ -2065,7 +2404,10 @@
         {
           "dtype": "dtype_a",
           "name": "output",
-          "shape": ["T", "H"]
+          "shape": [
+            "T",
+            "H"
+          ]
         }
       ],
       "kind": "comm",
@@ -2075,7 +2417,10 @@
         {
           "dtype": "dtype_a",
           "name": "output",
-          "shape": ["T", "H"]
+          "shape": [
+            "T",
+            "H"
+          ]
         }
       ],
       "parallel": {},
@@ -2133,7 +2478,9 @@
             "symbol": "vllm_ascend.utils.maybe_trans_nz"
           }
         ],
-        "tag": ["OOT"]
+        "tag": [
+          "OOT"
+        ]
       },
       "bytes_moved": {
         "decode": "0",
@@ -2150,7 +2497,10 @@
         {
           "dtype": "dtype_a",
           "name": "input",
-          "shape": ["T", "H"]
+          "shape": [
+            "T",
+            "H"
+          ]
         }
       ],
       "kind": "compute",
@@ -2162,7 +2512,10 @@
         {
           "dtype": "dtype_a",
           "name": "output",
-          "shape": ["T", "H"]
+          "shape": [
+            "T",
+            "H"
+          ]
         }
       ],
       "parallel": {},
@@ -2206,7 +2559,9 @@
             "symbol": "vllm_ascend.ops.fused_moe.fused_moe.AscendMoERunner"
           }
         ],
-        "tag": ["OOT"]
+        "tag": [
+          "OOT"
+        ]
       },
       "bytes_moved": {
         "decode": "0",
@@ -2223,7 +2578,9 @@
           "decode": "S*H*bytes(dtype_a)",
           "prefill": "T*H*bytes(dtype_a)"
         },
-        "notes": ["Ring estimate; logical bytes describe the tensor even when inactive."],
+        "notes": [
+          "Ring estimate; logical bytes describe the tensor even when inactive."
+        ],
         "op": "all_reduce",
         "when": "tp>1 || ep>1"
       },
@@ -2236,7 +2593,10 @@
         {
           "dtype": "dtype_a",
           "name": "output",
-          "shape": ["T", "H"]
+          "shape": [
+            "T",
+            "H"
+          ]
         }
       ],
       "kind": "comm",
@@ -2246,7 +2606,10 @@
         {
           "dtype": "dtype_a",
           "name": "output",
-          "shape": ["T", "H"]
+          "shape": [
+            "T",
+            "H"
+          ]
         }
       ],
       "parallel": {},
@@ -2290,7 +2653,9 @@
             "symbol": "vllm_ascend.ops.fused_moe.routed_experts.AscendRoutedExperts"
           }
         ],
-        "tag": ["OOT"]
+        "tag": [
+          "OOT"
+        ]
       },
       "bytes_moved": {
         "decode": "(2*min(E/(ep>1 ? ep : 1),S*dp*topk/(ep>1 ? ep : 1))*H*(I_moe/(ep>1 ? 1 : tp*dp))*bytes(dtype_w)+((S*dp*topk/(ep>1 ? ep : 1))*((H)+(2*(I_moe/(ep>1 ? 1 : tp*dp))))*bytes(dtype_a)))+((S*dp*topk/(ep>1 ? ep : 1))*((2*(I_moe/(ep>1 ? 1 : tp*dp)))+(I_moe/(ep>1 ? 1 : tp*dp)))*bytes(dtype_a))+(1*min(E/(ep>1 ? ep : 1),S*dp*topk/(ep>1 ? ep : 1))*H*(I_moe/(ep>1 ? 1 : tp*dp))*bytes(dtype_w)+((S*dp*topk/(ep>1 ? ep : 1))*((I_moe/(ep>1 ? 1 : tp*dp))+(H))*bytes(dtype_a)))",
@@ -2307,17 +2672,28 @@
         {
           "dtype": "dtype_a",
           "name": "input",
-          "shape": ["T", "H"]
+          "shape": [
+            "T",
+            "H"
+          ]
         },
         {
           "dtype": "dtype_w",
           "name": "w13_weight",
-          "shape": ["(ep>1 ? E/ep : E)", "2*I_moe/(ep>1 ? 1 : tp*dp)", "H"]
+          "shape": [
+            "(ep>1 ? E/ep : E)",
+            "2*I_moe/(ep>1 ? 1 : tp*dp)",
+            "H"
+          ]
         },
         {
           "dtype": "dtype_w",
           "name": "w2_weight",
-          "shape": ["(ep>1 ? E/ep : E)", "H", "I_moe/(ep>1 ? 1 : tp*dp)"]
+          "shape": [
+            "(ep>1 ? E/ep : E)",
+            "H",
+            "I_moe/(ep>1 ? 1 : tp*dp)"
+          ]
         }
       ],
       "kind": "group",
@@ -2330,7 +2706,10 @@
         {
           "dtype": "dtype_a",
           "name": "output",
-          "shape": ["T", "H"]
+          "shape": [
+            "T",
+            "H"
+          ]
         }
       ],
       "parallel": {
@@ -2381,7 +2760,9 @@
             "symbol": "vllm_ascend.ops.fused_moe.gate_linear.AscendGateLinear"
           }
         ],
-        "tag": ["OOT"]
+        "tag": [
+          "OOT"
+        ]
       },
       "bytes_moved": {
         "decode": "((H*128*bytes(dtype_w))+(false ? (128)*bytes(dtype_w) : 0))+S*((H)+(128))*bytes(dtype_a)",
@@ -2398,12 +2779,18 @@
         {
           "dtype": "dtype_a",
           "name": "input",
-          "shape": ["T", "H"]
+          "shape": [
+            "T",
+            "H"
+          ]
         },
         {
           "dtype": "dtype_w",
           "name": "weight",
-          "shape": ["128", "H"]
+          "shape": [
+            "128",
+            "H"
+          ]
         }
       ],
       "kind": "compute",
@@ -2415,7 +2802,10 @@
         {
           "dtype": "dtype_a",
           "name": "output",
-          "shape": ["T", "128"]
+          "shape": [
+            "T",
+            "128"
+          ]
         }
       ],
       "parallel": {
@@ -2463,7 +2853,9 @@
             "symbol": "vllm_ascend.ops.fused_moe.routed_experts.AscendRoutedExperts"
           }
         ],
-        "tag": ["OOT"]
+        "tag": [
+          "OOT"
+        ]
       },
       "bytes_moved": {
         "decode": "2*min(E/(ep>1 ? ep : 1),S*dp*topk/(ep>1 ? ep : 1))*H*(I_moe/(ep>1 ? 1 : tp*dp))*bytes(dtype_w)+((S*dp*topk/(ep>1 ? ep : 1))*((H)+(2*(I_moe/(ep>1 ? 1 : tp*dp))))*bytes(dtype_a))",
@@ -2480,22 +2872,34 @@
         {
           "dtype": "dtype_a",
           "name": "routed",
-          "shape": ["T*dp*topk/(ep>1 ? ep : 1)", "H"]
+          "shape": [
+            "T*dp*topk/(ep>1 ? ep : 1)",
+            "H"
+          ]
         },
         {
           "dtype": "dtype_w",
           "name": "w13_weight",
-          "shape": ["(ep>1 ? E/ep : E)", "2*I_moe/(ep>1 ? 1 : tp*dp)", "H"]
+          "shape": [
+            "(ep>1 ? E/ep : E)",
+            "2*I_moe/(ep>1 ? 1 : tp*dp)",
+            "H"
+          ]
         }
       ],
       "kind": "compute",
       "label": "w13",
-      "notes": ["Curated expert operation; provenance and rule inherited from RoutedExperts."],
+      "notes": [
+        "Curated expert operation; provenance and rule inherited from RoutedExperts."
+      ],
       "out": [
         {
           "dtype": "dtype_a",
           "name": "output",
-          "shape": ["T*dp*topk/(ep>1 ? ep : 1)", "2*I_moe/(ep>1 ? 1 : tp*dp)"]
+          "shape": [
+            "T*dp*topk/(ep>1 ? ep : 1)",
+            "2*I_moe/(ep>1 ? 1 : tp*dp)"
+          ]
         }
       ],
       "parallel": {
@@ -2546,7 +2950,9 @@
             "symbol": "vllm_ascend.ops.fused_moe.routed_experts.AscendRoutedExperts"
           }
         ],
-        "tag": ["OOT"]
+        "tag": [
+          "OOT"
+        ]
       },
       "bytes_moved": {
         "decode": "1*min(E/(ep>1 ? ep : 1),S*dp*topk/(ep>1 ? ep : 1))*H*(I_moe/(ep>1 ? 1 : tp*dp))*bytes(dtype_w)+((S*dp*topk/(ep>1 ? ep : 1))*((I_moe/(ep>1 ? 1 : tp*dp))+(H))*bytes(dtype_a))",
@@ -2563,22 +2969,34 @@
         {
           "dtype": "dtype_a",
           "name": "routed",
-          "shape": ["T*dp*topk/(ep>1 ? ep : 1)", "I_moe/(ep>1 ? 1 : tp*dp)"]
+          "shape": [
+            "T*dp*topk/(ep>1 ? ep : 1)",
+            "I_moe/(ep>1 ? 1 : tp*dp)"
+          ]
         },
         {
           "dtype": "dtype_w",
           "name": "w2_weight",
-          "shape": ["(ep>1 ? E/ep : E)", "H", "I_moe/(ep>1 ? 1 : tp*dp)"]
+          "shape": [
+            "(ep>1 ? E/ep : E)",
+            "H",
+            "I_moe/(ep>1 ? 1 : tp*dp)"
+          ]
         }
       ],
       "kind": "compute",
       "label": "w2",
-      "notes": ["Curated expert operation; provenance and rule inherited from RoutedExperts."],
+      "notes": [
+        "Curated expert operation; provenance and rule inherited from RoutedExperts."
+      ],
       "out": [
         {
           "dtype": "dtype_a",
           "name": "output",
-          "shape": ["T*dp*topk/(ep>1 ? ep : 1)", "H"]
+          "shape": [
+            "T*dp*topk/(ep>1 ? ep : 1)",
+            "H"
+          ]
         }
       ],
       "parallel": {
@@ -2629,7 +3047,9 @@
             "symbol": "vllm_ascend.ops.layernorm.AscendRMSNorm"
           }
         ],
-        "tag": ["OOT"]
+        "tag": [
+          "OOT"
+        ]
       },
       "bytes_moved": {
         "decode": "H*bytes(dtype_w)+2*S*H*1*bytes(dtype_a)",
@@ -2646,12 +3066,17 @@
         {
           "dtype": "dtype_a",
           "name": "input",
-          "shape": ["T", "H*(1)"]
+          "shape": [
+            "T",
+            "H*(1)"
+          ]
         },
         {
           "dtype": "dtype_w",
           "name": "weight",
-          "shape": ["H"]
+          "shape": [
+            "H"
+          ]
         }
       ],
       "kind": "compute",
@@ -2663,7 +3088,10 @@
         {
           "dtype": "dtype_a",
           "name": "output",
-          "shape": ["T", "H*1"]
+          "shape": [
+            "T",
+            "H*1"
+          ]
         }
       ],
       "parallel": {
@@ -2711,7 +3139,9 @@
             "symbol": "vllm_ascend.ops.layernorm.AscendRMSNorm"
           }
         ],
-        "tag": ["OOT"]
+        "tag": [
+          "OOT"
+        ]
       },
       "bytes_moved": {
         "decode": "H*bytes(dtype_w)+2*S*H*1*bytes(dtype_a)",
@@ -2728,12 +3158,17 @@
         {
           "dtype": "dtype_a",
           "name": "input",
-          "shape": ["T", "H*(1)"]
+          "shape": [
+            "T",
+            "H*(1)"
+          ]
         },
         {
           "dtype": "dtype_w",
           "name": "weight",
-          "shape": ["H"]
+          "shape": [
+            "H"
+          ]
         }
       ],
       "kind": "compute",
@@ -2745,7 +3180,10 @@
         {
           "dtype": "dtype_a",
           "name": "output",
-          "shape": ["T", "H*1"]
+          "shape": [
+            "T",
+            "H*1"
+          ]
         }
       ],
       "parallel": {
@@ -2793,7 +3231,9 @@
             "symbol": "vllm_ascend.ops.vocab_parallel_embedding.AscendLogitsProcessor"
           }
         ],
-        "tag": ["OOT"]
+        "tag": [
+          "OOT"
+        ]
       },
       "bytes_moved": {
         "decode": "0",
@@ -2811,8 +3251,14 @@
           "dtype": "dtype_a",
           "name": "output",
           "shape": {
-            "decode": ["S", "V"],
-            "prefill": ["batch", "V"]
+            "decode": [
+              "S",
+              "V"
+            ],
+            "prefill": [
+              "batch",
+              "V"
+            ]
           }
         }
       ],
@@ -2826,8 +3272,12 @@
           "dtype": "dtype_ids",
           "name": "tokens",
           "shape": {
-            "decode": ["S"],
-            "prefill": ["batch"]
+            "decode": [
+              "S"
+            ],
+            "prefill": [
+              "batch"
+            ]
           }
         }
       ],
@@ -2881,7 +3331,12 @@
       "step": "1"
     },
     "block_size": {
-      "choices": ["16", "32", "64", "128"],
+      "choices": [
+        "16",
+        "32",
+        "64",
+        "128"
+      ],
       "constraint": null,
       "default": "128",
       "description": "Cache capacity rounds down to whole blocks.",
@@ -2911,7 +3366,11 @@
       "step": "1"
     },
     "dtype_a": {
-      "choices": ["bf16", "fp16", "fp32"],
+      "choices": [
+        "bf16",
+        "fp16",
+        "fp32"
+      ],
       "constraint": null,
       "default": "bf16",
       "description": "Unquantized scalar dtype; scale/packing overhead excluded.",
@@ -2921,7 +3380,10 @@
       "step": null
     },
     "dtype_ids": {
-      "choices": ["int32", "int64"],
+      "choices": [
+        "int32",
+        "int64"
+      ],
       "constraint": null,
       "default": "int64",
       "description": "Token index scalar dtype.",
@@ -2931,7 +3393,11 @@
       "step": null
     },
     "dtype_kv": {
-      "choices": ["bf16", "fp16", "fp32"],
+      "choices": [
+        "bf16",
+        "fp16",
+        "fp32"
+      ],
       "constraint": null,
       "default": "bf16",
       "description": "Unquantized scalar dtype; scale/packing overhead excluded.",
@@ -2941,7 +3407,11 @@
       "step": null
     },
     "dtype_w": {
-      "choices": ["bf16", "fp16", "fp32"],
+      "choices": [
+        "bf16",
+        "fp16",
+        "fp32"
+      ],
       "constraint": null,
       "default": "bf16",
       "description": "Unquantized scalar dtype; scale/packing overhead excluded.",
@@ -2951,7 +3421,16 @@
       "step": null
     },
     "ep": {
-      "choices": ["1", "2", "4", "8", "16", "32", "64", "128"],
+      "choices": [
+        "1",
+        "2",
+        "4",
+        "8",
+        "16",
+        "32",
+        "64",
+        "128"
+      ],
       "constraint": "ep==1 || (ep==tp*dp && E%ep==0)",
       "default": "1",
       "description": "Expert degree: 1 disables EP; otherwise ep must equal tp*dp and divide E.",
@@ -3011,7 +3490,12 @@
       "step": null
     },
     "pp": {
-      "choices": ["1", "2", "47", "94"],
+      "choices": [
+        "1",
+        "2",
+        "47",
+        "94"
+      ],
       "constraint": "L%pp==0",
       "default": "1",
       "description": "Equal layer partitions; heaviest stage ledger.",
@@ -3031,7 +3515,12 @@
       "step": null
     },
     "tp": {
-      "choices": ["1", "2", "4", "8"],
+      "choices": [
+        "1",
+        "2",
+        "4",
+        "8"
+      ],
       "constraint": "Hq%tp==0 && (Hkv%tp==0 || tp%Hkv==0) && round_up(V,64)%tp==0",
       "default": "1",
       "description": "Attention tensor parallel degree. Build default: smallest valid TP choice with memory.kv_tokens > 0 on the snapshot device, keeping all other defaults; if none fits, use the smallest valid TP and retain the zero-capacity warning.",

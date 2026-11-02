@@ -1,11 +1,40 @@
 {
   "device": "A2",
-  "flags": ["cpu_constructor_adapters"],
+  "flags": [
+    "cpu_constructor_adapters"
+  ],
   "input": {
     "dtype": "int64",
     "name": "input_ids",
-    "shape": ["T"]
+    "shape": [
+      "T"
+    ]
   },
+  "inputs": [
+    {
+      "dtype": "int64",
+      "name": "input_ids",
+      "shape": [
+        "T"
+      ]
+    },
+    {
+      "dtype": "bfloat16",
+      "name": "pixel_values",
+      "shape": [
+        "P",
+        "1176"
+      ]
+    },
+    {
+      "dtype": "int64",
+      "name": "grid_thw",
+      "shape": [
+        "B",
+        "3"
+      ]
+    }
+  ],
   "model": {
     "architecture": "MiniMaxM3SparseForCausalLM",
     "family": "vlm",
@@ -13,6 +42,12 @@
     "id": "minimax-m3"
   },
   "notes": [
+    {
+      "severity": "info",
+      "target": null,
+      "text": "Vision encoder image features are inserted at image-token positions in the text embeddings before the decoder stack; P counts pre-merge patch tokens.",
+      "triage_kind": null
+    },
     {
       "severity": "info",
       "target": "language_model.lm_head",
@@ -27,20 +62,8 @@
     },
     {
       "severity": "info",
-      "target": "language_model.model.layers:band:3/self_attn",
-      "text": "Generic component: vllm.models.minimax_m3.nvidia.model.MiniMaxM3SparseAttention; I/O is derived only from parameter/constructor or sequential-child boundaries.",
-      "triage_kind": null
-    },
-    {
-      "severity": "warn",
-      "target": "language_model.model.layers:band:3/self_attn",
-      "text": "No architecture rule describes vllm.models.minimax_m3.nvidia.model.MiniMaxM3SparseAttention; shown as a generic component.",
-      "triage_kind": "unknown_layer_class"
-    },
-    {
-      "severity": "info",
-      "target": "vision_tower.multi_modal_projector",
-      "text": "Generic component: vllm.models.minimax_m3.common.vision_tower.MiniMaxVLMultiModalProjector; I/O is derived only from parameter/constructor or sequential-child boundaries.",
+      "target": "mtp",
+      "text": "Config declares 1 next-token prediction layer(s); vLLM does not construct them in the main model. This aside is structural only; parameters and draft execution are not extracted.",
       "triage_kind": null
     },
     {
@@ -50,88 +73,25 @@
       "triage_kind": "unknown_layer_class"
     },
     {
-      "severity": "info",
-      "target": "vision_tower.patch_merge_mlp",
-      "text": "Generic component: vllm.models.minimax_m3.common.vision_tower.MiniMaxVLPatchMerger; I/O is derived only from parameter/constructor or sequential-child boundaries.",
-      "triage_kind": null
-    },
-    {
       "severity": "warn",
       "target": "vision_tower.patch_merge_mlp",
       "text": "No architecture rule describes vllm.models.minimax_m3.common.vision_tower.MiniMaxVLPatchMerger; shown as a generic component.",
       "triage_kind": "unknown_layer_class"
     },
     {
-      "severity": "info",
-      "target": "vision_tower.vision_model.embeddings",
-      "text": "Generic component: vllm.models.minimax_m3.common.vision_tower.MiniMaxVLPatchEmbed; I/O is derived only from parameter/constructor or sequential-child boundaries.",
-      "triage_kind": null
-    },
-    {
       "severity": "warn",
       "target": "vision_tower.vision_model.embeddings",
       "text": "No architecture rule describes vllm.models.minimax_m3.common.vision_tower.MiniMaxVLPatchEmbed; shown as a generic component.",
       "triage_kind": "unknown_layer_class"
-    },
-    {
-      "severity": "info",
-      "target": "vision_tower.vision_model.encoder.layers:band:0/act",
-      "text": "Generic component: vllm.model_executor.layers.activation.GELU; I/O is derived only from parameter/constructor or sequential-child boundaries.",
-      "triage_kind": null
-    },
-    {
-      "severity": "warn",
-      "target": "vision_tower.vision_model.encoder.layers:band:0/act",
-      "text": "No architecture rule describes vllm.model_executor.layers.activation.GELU; shown as a generic component.",
-      "triage_kind": "unknown_layer_class"
-    },
-    {
-      "severity": "info",
-      "target": "vision_tower.vision_model.encoder.layers:band:0/fc1",
-      "text": "Generic component: vllm.model_executor.layers.linear.ColumnParallelLinear; I/O is derived only from parameter/constructor or sequential-child boundaries.",
-      "triage_kind": null
-    },
-    {
-      "severity": "warn",
-      "target": "vision_tower.vision_model.encoder.layers:band:0/fc1",
-      "text": "Ascend replaces vllm.model_executor.layers.linear.ColumnParallelLinear with vllm_ascend.ops.linear.AscendColumnParallelLinear; not yet annotated.",
-      "triage_kind": "conditional_override"
-    },
-    {
-      "severity": "warn",
-      "target": "vision_tower.vision_model.encoder.layers:band:0/fc1",
-      "text": "No architecture rule describes vllm.model_executor.layers.linear.ColumnParallelLinear; shown as a generic component.",
-      "triage_kind": "unknown_layer_class"
-    },
-    {
-      "severity": "info",
-      "target": "vision_tower.vision_model.encoder.layers:band:0/fc2",
-      "text": "Generic component: vllm.model_executor.layers.linear.RowParallelLinear; I/O is derived only from parameter/constructor or sequential-child boundaries.",
-      "triage_kind": null
-    },
-    {
-      "severity": "warn",
-      "target": "vision_tower.vision_model.encoder.layers:band:0/fc2",
-      "text": "Ascend replaces vllm.model_executor.layers.linear.RowParallelLinear with vllm_ascend.ops.linear.AscendRowParallelLinear; not yet annotated.",
-      "triage_kind": "conditional_override"
-    },
-    {
-      "severity": "warn",
-      "target": "vision_tower.vision_model.encoder.layers:band:0/fc2",
-      "text": "No architecture rule describes vllm.model_executor.layers.linear.RowParallelLinear; shown as a generic component.",
-      "triage_kind": "unknown_layer_class"
-    },
-    {
-      "severity": "warn",
-      "target": "vision_tower.vision_model.encoder.layers:band:0/layer_norm1",
-      "text": "Residual topology for vllm.models.minimax_m3.common.vision_tower.MiniMaxVLEncoderLayer is unknown; children follow the decoder-slot heuristic.",
-      "triage_kind": null
     }
   ],
   "output": {
     "dtype": "bfloat16",
     "name": "logits",
-    "shape": ["T", "V"]
+    "shape": [
+      "T",
+      "V"
+    ]
   },
   "schema_version": 1,
   "stages": [
@@ -148,12 +108,30 @@
       },
       "id": "vision_tower.vision_model.embeddings",
       "io": {
-        "inputs": [],
+        "inputs": [
+          {
+            "dtype": "bfloat16",
+            "name": "pixel_values",
+            "shape": [
+              "P",
+              "1176"
+            ]
+          }
+        ],
         "internals": [],
-        "outputs": []
+        "outputs": [
+          {
+            "dtype": "bfloat16",
+            "name": "patch_features",
+            "shape": [
+              "P",
+              "1280"
+            ]
+          }
+        ]
       },
       "kind": "embedding",
-      "label": "Token embedding",
+      "label": "Patch embedding",
       "module": {
         "class_name": "vllm.models.minimax_m3.common.vision_tower.MiniMaxVLPatchEmbed",
         "flags": [],
@@ -161,7 +139,13 @@
           {
             "dtype": "bfloat16",
             "name": "patch_embedding.weight",
-            "shape": ["1280", "3", "2", "14", "14"]
+            "shape": [
+              "1280",
+              "3",
+              "2",
+              "14",
+              "14"
+            ]
           }
         ],
         "path": "vision_tower.vision_model.embeddings",
@@ -177,7 +161,7 @@
     },
     {
       "component": {
-        "eps": 1e-5,
+        "eps": 1e-05,
         "kind": "norm",
         "variant": "layernorm"
       },
@@ -187,7 +171,10 @@
           {
             "dtype": "bfloat16",
             "name": "hidden_states",
-            "shape": ["P", "1280"]
+            "shape": [
+              "P",
+              "1280"
+            ]
           }
         ],
         "internals": [],
@@ -195,12 +182,15 @@
           {
             "dtype": "bfloat16",
             "name": "hidden_states",
-            "shape": ["P", "1280"]
+            "shape": [
+              "P",
+              "1280"
+            ]
           }
         ]
       },
       "kind": "norm",
-      "label": "Final norm",
+      "label": "Vision pre-norm",
       "module": {
         "class_name": "torch.nn.modules.normalization.LayerNorm",
         "flags": [],
@@ -208,12 +198,16 @@
           {
             "dtype": "bfloat16",
             "name": "bias",
-            "shape": ["1280"]
+            "shape": [
+              "1280"
+            ]
           },
           {
             "dtype": "bfloat16",
             "name": "weight",
-            "shape": ["1280"]
+            "shape": [
+              "1280"
+            ]
           }
         ],
         "path": "vision_tower.vision_model.pre_layrnorm",
@@ -228,11 +222,11 @@
         {
           "block": {
             "kind": "decoder",
-            "residual": "unknown",
+            "residual": "pre_norm",
             "sublayers": [
               {
                 "component": {
-                  "eps": 1e-5,
+                  "eps": 1e-05,
                   "kind": "norm",
                   "variant": "layernorm"
                 },
@@ -242,7 +236,10 @@
                     {
                       "dtype": "bfloat16",
                       "name": "hidden_states",
-                      "shape": ["P", "1280"]
+                      "shape": [
+                        "P",
+                        "1280"
+                      ]
                     }
                   ],
                   "internals": [],
@@ -250,7 +247,10 @@
                     {
                       "dtype": "bfloat16",
                       "name": "hidden_states",
-                      "shape": ["P", "1280"]
+                      "shape": [
+                        "P",
+                        "1280"
+                      ]
                     }
                   ]
                 },
@@ -261,12 +261,16 @@
                     {
                       "dtype": "bfloat16",
                       "name": "bias",
-                      "shape": ["1280"]
+                      "shape": [
+                        "1280"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "weight",
-                      "shape": ["1280"]
+                      "shape": [
+                        "1280"
+                      ]
                     }
                   ],
                   "path": "vision_tower.vision_model.encoder.layers.0.layer_norm1",
@@ -298,36 +302,54 @@
                     {
                       "dtype": "bfloat16",
                       "name": "hidden_states",
-                      "shape": ["P", "1280"]
+                      "shape": [
+                        "P",
+                        "1280"
+                      ]
                     }
                   ],
                   "internals": [
                     {
                       "dtype": "bfloat16",
                       "name": "q",
-                      "shape": ["P", "16*80/tp"]
+                      "shape": [
+                        "P",
+                        "16*80/tp"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "k",
-                      "shape": ["P", "max(1,16/tp)*80"]
+                      "shape": [
+                        "P",
+                        "max(1,16/tp)*80"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "v",
-                      "shape": ["P", "max(1,16/tp)*80"]
+                      "shape": [
+                        "P",
+                        "max(1,16/tp)*80"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "o",
-                      "shape": ["P", "1280"]
+                      "shape": [
+                        "P",
+                        "1280"
+                      ]
                     }
                   ],
                   "outputs": [
                     {
                       "dtype": "bfloat16",
                       "name": "hidden_states",
-                      "shape": ["P", "1280"]
+                      "shape": [
+                        "P",
+                        "1280"
+                      ]
                     }
                   ]
                 },
@@ -338,22 +360,32 @@
                     {
                       "dtype": "bfloat16",
                       "name": "out_proj.bias",
-                      "shape": ["1280"]
+                      "shape": [
+                        "1280"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "out_proj.weight",
-                      "shape": ["1280", "1280/tp"]
+                      "shape": [
+                        "1280",
+                        "1280/tp"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "qkv_proj.bias",
-                      "shape": ["3840/tp"]
+                      "shape": [
+                        "3840/tp"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "qkv_proj.weight",
-                      "shape": ["3840/tp", "1280"]
+                      "shape": [
+                        "3840/tp",
+                        "1280"
+                      ]
                     }
                   ],
                   "path": "vision_tower.vision_model.encoder.layers.0.self_attn",
@@ -368,8 +400,45 @@
                 "role": "mixer"
               },
               {
+                "component": null,
+                "id": "residual_1",
+                "io": {
+                  "inputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "branch",
+                      "shape": [
+                        "P",
+                        "1280"
+                      ]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "residual",
+                      "shape": [
+                        "P",
+                        "1280"
+                      ]
+                    }
+                  ],
+                  "internals": [],
+                  "outputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": [
+                        "P",
+                        "1280"
+                      ]
+                    }
+                  ]
+                },
+                "module": null,
+                "role": "residual_add"
+              },
+              {
                 "component": {
-                  "eps": 1e-5,
+                  "eps": 1e-05,
                   "kind": "norm",
                   "variant": "layernorm"
                 },
@@ -379,7 +448,10 @@
                     {
                       "dtype": "bfloat16",
                       "name": "hidden_states",
-                      "shape": ["P", "1280"]
+                      "shape": [
+                        "P",
+                        "1280"
+                      ]
                     }
                   ],
                   "internals": [],
@@ -387,7 +459,10 @@
                     {
                       "dtype": "bfloat16",
                       "name": "hidden_states",
-                      "shape": ["P", "1280"]
+                      "shape": [
+                        "P",
+                        "1280"
+                      ]
                     }
                   ]
                 },
@@ -398,12 +473,16 @@
                     {
                       "dtype": "bfloat16",
                       "name": "bias",
-                      "shape": ["1280"]
+                      "shape": [
+                        "1280"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "weight",
-                      "shape": ["1280"]
+                      "shape": [
+                        "1280"
+                      ]
                     }
                   ],
                   "path": "vision_tower.vision_model.encoder.layers.0.layer_norm2",
@@ -415,142 +494,142 @@
               },
               {
                 "component": {
-                  "children": [],
-                  "class_name": "vllm.model_executor.layers.activation.GELU",
-                  "kind": "generic"
+                  "intermediate": 5120,
+                  "kind": "mlp",
+                  "variant": "gelu"
                 },
-                "id": "act",
+                "id": "mlp",
                 "io": {
-                  "inputs": [],
-                  "internals": [],
-                  "outputs": []
+                  "inputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": [
+                        "P",
+                        "1280"
+                      ]
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "gate_up",
+                      "shape": [
+                        "P",
+                        "5120/tp"
+                      ]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "act",
+                      "shape": [
+                        "P",
+                        "5120/tp"
+                      ]
+                    }
+                  ],
+                  "outputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": [
+                        "P",
+                        "1280"
+                      ]
+                    }
+                  ]
                 },
                 "module": {
-                  "class_name": "vllm.model_executor.layers.activation.GELU",
+                  "class_name": "vllm.models.minimax_m3.common.vision_tower.MiniMaxVLEncoderLayer",
                   "flags": [],
-                  "params": [],
-                  "path": "vision_tower.vision_model.encoder.layers.0.act",
+                  "params": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "fc1.bias",
+                      "shape": [
+                        "5120/tp"
+                      ]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "fc1.weight",
+                      "shape": [
+                        "5120/tp",
+                        "1280"
+                      ]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "fc2.bias",
+                      "shape": [
+                        "1280"
+                      ]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "fc2.weight",
+                      "shape": [
+                        "1280",
+                        "5120/tp"
+                      ]
+                    }
+                  ],
+                  "path": "vision_tower.vision_model.encoder.layers.0",
                   "replaced": null,
                   "source": {
-                    "file": "vllm/model_executor/layers/activation.py",
-                    "line": 351,
-                    "url": "https://github.com/vllm-project/vllm/blob/544f182d9f0c9bfe8bd7645525951d5e3692a542/vllm/model_executor/layers/activation.py#L351"
+                    "file": "vllm/models/minimax_m3/common/vision_tower.py",
+                    "line": 184,
+                    "url": "https://github.com/vllm-project/vllm/blob/544f182d9f0c9bfe8bd7645525951d5e3692a542/vllm/models/minimax_m3/common/vision_tower.py#L184"
                   },
-                  "status": "generic"
+                  "status": "ruled"
                 },
-                "role": "other"
+                "role": "ffn"
               },
               {
-                "component": {
-                  "children": [],
-                  "class_name": "vllm.model_executor.layers.linear.ColumnParallelLinear",
-                  "kind": "generic"
-                },
-                "id": "fc1",
+                "component": null,
+                "id": "residual_2",
                 "io": {
                   "inputs": [
                     {
                       "dtype": "bfloat16",
-                      "name": "hidden_states",
-                      "shape": ["T", "1280"]
+                      "name": "branch",
+                      "shape": [
+                        "P",
+                        "1280"
+                      ]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "residual",
+                      "shape": [
+                        "P",
+                        "1280"
+                      ]
                     }
                   ],
                   "internals": [],
                   "outputs": [
                     {
                       "dtype": "bfloat16",
-                      "name": "output",
-                      "shape": ["T", "5120"]
-                    }
-                  ]
-                },
-                "module": {
-                  "class_name": "vllm.model_executor.layers.linear.ColumnParallelLinear",
-                  "flags": [],
-                  "params": [
-                    {
-                      "dtype": "bfloat16",
-                      "name": "bias",
-                      "shape": ["5120/tp"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "weight",
-                      "shape": ["5120/tp", "1280"]
-                    }
-                  ],
-                  "path": "vision_tower.vision_model.encoder.layers.0.fc1",
-                  "replaced": {
-                    "ascend_class": "vllm_ascend.ops.linear.AscendColumnParallelLinear",
-                    "baseline_class": "vllm.model_executor.layers.linear.ColumnParallelLinear"
-                  },
-                  "source": {
-                    "file": "vllm_ascend/ops/linear.py",
-                    "line": 398,
-                    "url": "https://github.com/vllm-project/vllm-ascend/blob/24a76e84394ae3427195e3715fc08e90769d398c/vllm_ascend/ops/linear.py#L398"
-                  },
-                  "status": "unannotated_override"
-                },
-                "role": "other"
-              },
-              {
-                "component": {
-                  "children": [],
-                  "class_name": "vllm.model_executor.layers.linear.RowParallelLinear",
-                  "kind": "generic"
-                },
-                "id": "fc2",
-                "io": {
-                  "inputs": [
-                    {
-                      "dtype": "bfloat16",
                       "name": "hidden_states",
-                      "shape": ["T", "5120"]
-                    }
-                  ],
-                  "internals": [],
-                  "outputs": [
-                    {
-                      "dtype": "bfloat16",
-                      "name": "output",
-                      "shape": ["T", "1280"]
+                      "shape": [
+                        "P",
+                        "1280"
+                      ]
                     }
                   ]
                 },
-                "module": {
-                  "class_name": "vllm.model_executor.layers.linear.RowParallelLinear",
-                  "flags": [],
-                  "params": [
-                    {
-                      "dtype": "bfloat16",
-                      "name": "bias",
-                      "shape": ["1280"]
-                    },
-                    {
-                      "dtype": "bfloat16",
-                      "name": "weight",
-                      "shape": ["1280", "5120/tp"]
-                    }
-                  ],
-                  "path": "vision_tower.vision_model.encoder.layers.0.fc2",
-                  "replaced": {
-                    "ascend_class": "vllm_ascend.ops.linear.AscendRowParallelLinear",
-                    "baseline_class": "vllm.model_executor.layers.linear.RowParallelLinear"
-                  },
-                  "source": {
-                    "file": "vllm_ascend/ops/linear.py",
-                    "line": 309,
-                    "url": "https://github.com/vllm-project/vllm-ascend/blob/24a76e84394ae3427195e3715fc08e90769d398c/vllm_ascend/ops/linear.py#L309"
-                  },
-                  "status": "unannotated_override"
-                },
-                "role": "other"
+                "module": null,
+                "role": "residual_add"
               }
             ]
           },
           "count": 32,
           "id": "vision_tower.vision_model.encoder.layers:band:0",
-          "layers": [0, 31],
+          "layers": [
+            0,
+            31
+          ],
           "pattern": null
         }
       ],
@@ -575,12 +654,30 @@
       },
       "id": "vision_tower.multi_modal_projector",
       "io": {
-        "inputs": [],
+        "inputs": [
+          {
+            "dtype": "bfloat16",
+            "name": "vision_features",
+            "shape": [
+              "P",
+              "1280"
+            ]
+          }
+        ],
         "internals": [],
-        "outputs": []
+        "outputs": [
+          {
+            "dtype": "bfloat16",
+            "name": "image_features",
+            "shape": [
+              "P",
+              "6144"
+            ]
+          }
+        ]
       },
       "kind": "other",
-      "label": "vision_tower.multi_modal_projector",
+      "label": "Multimodal projector",
       "module": {
         "class_name": "vllm.models.minimax_m3.common.vision_tower.MiniMaxVLMultiModalProjector",
         "flags": [],
@@ -588,22 +685,32 @@
           {
             "dtype": "bfloat16",
             "name": "linear_1.bias",
-            "shape": ["6144/tp"]
+            "shape": [
+              "6144/tp"
+            ]
           },
           {
             "dtype": "bfloat16",
             "name": "linear_1.weight",
-            "shape": ["6144/tp", "1280"]
+            "shape": [
+              "6144/tp",
+              "1280"
+            ]
           },
           {
             "dtype": "bfloat16",
             "name": "linear_2.bias",
-            "shape": ["6144"]
+            "shape": [
+              "6144"
+            ]
           },
           {
             "dtype": "bfloat16",
             "name": "linear_2.weight",
-            "shape": ["6144", "6144/tp"]
+            "shape": [
+              "6144",
+              "6144/tp"
+            ]
           }
         ],
         "path": "vision_tower.multi_modal_projector",
@@ -634,12 +741,30 @@
       },
       "id": "vision_tower.patch_merge_mlp",
       "io": {
-        "inputs": [],
+        "inputs": [
+          {
+            "dtype": "bfloat16",
+            "name": "vision_features",
+            "shape": [
+              "P",
+              "6144"
+            ]
+          }
+        ],
         "internals": [],
-        "outputs": []
+        "outputs": [
+          {
+            "dtype": "bfloat16",
+            "name": "image_features",
+            "shape": [
+              "cdiv(P,4)",
+              "6144"
+            ]
+          }
+        ]
       },
       "kind": "other",
-      "label": "vision_tower.patch_merge_mlp",
+      "label": "Vision patch merger",
       "module": {
         "class_name": "vllm.models.minimax_m3.common.vision_tower.MiniMaxVLPatchMerger",
         "flags": [],
@@ -647,22 +772,32 @@
           {
             "dtype": "bfloat16",
             "name": "linear_1.bias",
-            "shape": ["6144/tp"]
+            "shape": [
+              "6144/tp"
+            ]
           },
           {
             "dtype": "bfloat16",
             "name": "linear_1.weight",
-            "shape": ["6144/tp", "24576"]
+            "shape": [
+              "6144/tp",
+              "24576"
+            ]
           },
           {
             "dtype": "bfloat16",
             "name": "linear_2.bias",
-            "shape": ["6144"]
+            "shape": [
+              "6144"
+            ]
           },
           {
             "dtype": "bfloat16",
             "name": "linear_2.weight",
-            "shape": ["6144", "6144/tp"]
+            "shape": [
+              "6144",
+              "6144/tp"
+            ]
           }
         ],
         "path": "vision_tower.patch_merge_mlp",
@@ -689,7 +824,9 @@
           {
             "dtype": "int64",
             "name": "input_ids",
-            "shape": ["T"]
+            "shape": [
+              "T"
+            ]
           }
         ],
         "internals": [],
@@ -697,7 +834,10 @@
           {
             "dtype": "bfloat16",
             "name": "hidden_states",
-            "shape": ["T", "H"]
+            "shape": [
+              "T",
+              "H"
+            ]
           }
         ]
       },
@@ -710,7 +850,10 @@
           {
             "dtype": "bfloat16",
             "name": "weight",
-            "shape": ["200064/tp", "6144"]
+            "shape": [
+              "200064/tp",
+              "6144"
+            ]
           }
         ],
         "path": "language_model.model.embed_tokens",
@@ -736,7 +879,7 @@
             "sublayers": [
               {
                 "component": {
-                  "eps": 1e-6,
+                  "eps": 1e-06,
                   "kind": "norm",
                   "variant": "rmsnorm"
                 },
@@ -746,7 +889,10 @@
                     {
                       "dtype": "bfloat16",
                       "name": "hidden_states",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ],
                   "internals": [],
@@ -754,7 +900,10 @@
                     {
                       "dtype": "bfloat16",
                       "name": "hidden_states",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ]
                 },
@@ -765,7 +914,9 @@
                     {
                       "dtype": "bfloat16",
                       "name": "weight",
-                      "shape": ["6144"]
+                      "shape": [
+                        "6144"
+                      ]
                     }
                   ],
                   "path": "language_model.model.layers.0.input_layernorm",
@@ -801,36 +952,54 @@
                     {
                       "dtype": "bfloat16",
                       "name": "hidden_states",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ],
                   "internals": [
                     {
                       "dtype": "bfloat16",
                       "name": "q",
-                      "shape": ["T", "Hq*D/tp"]
+                      "shape": [
+                        "T",
+                        "Hq*D/tp"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "k",
-                      "shape": ["T", "max(1,Hkv/tp)*D"]
+                      "shape": [
+                        "T",
+                        "max(1,Hkv/tp)*D"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "v",
-                      "shape": ["T", "max(1,Hkv/tp)*D"]
+                      "shape": [
+                        "T",
+                        "max(1,Hkv/tp)*D"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "o",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ],
                   "outputs": [
                     {
                       "dtype": "bfloat16",
                       "name": "hidden_states",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ]
                 },
@@ -841,22 +1010,32 @@
                     {
                       "dtype": "bfloat16",
                       "name": "k_norm.weight",
-                      "shape": ["128"]
+                      "shape": [
+                        "128"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "o_proj.weight",
-                      "shape": ["H", "Hq*D/tp"]
+                      "shape": [
+                        "H",
+                        "Hq*D/tp"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "q_norm.weight",
-                      "shape": ["128"]
+                      "shape": [
+                        "128"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "qkv_proj.weight",
-                      "shape": ["(Hq/tp+2*max(1,Hkv/tp))*D", "H"]
+                      "shape": [
+                        "(Hq/tp+2*max(1,Hkv/tp))*D",
+                        "H"
+                      ]
                     }
                   ],
                   "path": "language_model.model.layers.0.self_attn",
@@ -878,12 +1057,18 @@
                     {
                       "dtype": "bfloat16",
                       "name": "branch",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "residual",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ],
                   "internals": [],
@@ -891,7 +1076,10 @@
                     {
                       "dtype": "bfloat16",
                       "name": "hidden_states",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ]
                 },
@@ -900,7 +1088,7 @@
               },
               {
                 "component": {
-                  "eps": 1e-6,
+                  "eps": 1e-06,
                   "kind": "norm",
                   "variant": "rmsnorm"
                 },
@@ -910,7 +1098,10 @@
                     {
                       "dtype": "bfloat16",
                       "name": "hidden_states",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ],
                   "internals": [],
@@ -918,7 +1109,10 @@
                     {
                       "dtype": "bfloat16",
                       "name": "hidden_states",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ]
                 },
@@ -929,7 +1123,9 @@
                     {
                       "dtype": "bfloat16",
                       "name": "weight",
-                      "shape": ["6144"]
+                      "shape": [
+                        "6144"
+                      ]
                     }
                   ],
                   "path": "language_model.model.layers.0.post_attention_layernorm",
@@ -947,7 +1143,7 @@
                 "component": {
                   "intermediate": 12288,
                   "kind": "mlp",
-                  "variant": "other"
+                  "variant": "swiglu"
                 },
                 "id": "mlp",
                 "io": {
@@ -955,26 +1151,38 @@
                     {
                       "dtype": "bfloat16",
                       "name": "hidden_states",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ],
                   "internals": [
                     {
                       "dtype": "bfloat16",
                       "name": "gate_up",
-                      "shape": ["T", "12288/tp"]
+                      "shape": [
+                        "T",
+                        "2*12288/tp"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "act",
-                      "shape": ["T", "12288/tp"]
+                      "shape": [
+                        "T",
+                        "12288/tp"
+                      ]
                     }
                   ],
                   "outputs": [
                     {
                       "dtype": "bfloat16",
                       "name": "hidden_states",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ]
                 },
@@ -985,12 +1193,18 @@
                     {
                       "dtype": "bfloat16",
                       "name": "down_proj.weight",
-                      "shape": ["6144", "12288/tp"]
+                      "shape": [
+                        "6144",
+                        "12288/tp"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "gate_up_proj.weight",
-                      "shape": ["24576/tp", "6144"]
+                      "shape": [
+                        "24576/tp",
+                        "6144"
+                      ]
                     }
                   ],
                   "path": "language_model.model.layers.0.mlp",
@@ -1012,12 +1226,18 @@
                     {
                       "dtype": "bfloat16",
                       "name": "branch",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "residual",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ],
                   "internals": [],
@@ -1025,7 +1245,10 @@
                     {
                       "dtype": "bfloat16",
                       "name": "hidden_states",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ]
                 },
@@ -1036,7 +1259,10 @@
           },
           "count": 3,
           "id": "language_model.model.layers:band:0",
-          "layers": [0, 2],
+          "layers": [
+            0,
+            2
+          ],
           "pattern": null
         },
         {
@@ -1046,7 +1272,7 @@
             "sublayers": [
               {
                 "component": {
-                  "eps": 1e-6,
+                  "eps": 1e-06,
                   "kind": "norm",
                   "variant": "rmsnorm"
                 },
@@ -1056,7 +1282,10 @@
                     {
                       "dtype": "bfloat16",
                       "name": "hidden_states",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ],
                   "internals": [],
@@ -1064,7 +1293,10 @@
                     {
                       "dtype": "bfloat16",
                       "name": "hidden_states",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ]
                 },
@@ -1075,7 +1307,9 @@
                     {
                       "dtype": "bfloat16",
                       "name": "weight",
-                      "shape": ["6144"]
+                      "shape": [
+                        "6144"
+                      ]
                     }
                   ],
                   "path": "language_model.model.layers.3.input_layernorm",
@@ -1091,44 +1325,88 @@
               },
               {
                 "component": {
-                  "children": [
-                    {
-                      "class_name": "vllm.models.minimax_m3.nvidia.model.MiniMAXGemmaRMSNorm",
-                      "name": "index_k_norm"
-                    },
-                    {
-                      "class_name": "vllm.models.minimax_m3.nvidia.model.MiniMAXGemmaRMSNorm",
-                      "name": "index_q_norm"
-                    },
-                    {
-                      "class_name": "vllm.models.minimax_m3.common.indexer.MiniMaxM3Indexer",
-                      "name": "indexer"
-                    },
-                    {
-                      "class_name": "vllm.models.minimax_m3.nvidia.model.MiniMAXGemmaRMSNorm",
-                      "name": "k_norm"
-                    },
-                    {
-                      "class_name": "vllm.model_executor.layers.linear.RowParallelLinear",
-                      "name": "o_proj"
-                    },
-                    {
-                      "class_name": "vllm.models.minimax_m3.nvidia.model.MiniMAXGemmaRMSNorm",
-                      "name": "q_norm"
-                    },
-                    {
-                      "class_name": "vllm.model_executor.layers.linear.MinimaxM3QKVParallelLinearWithIndexer",
-                      "name": "qkv_proj"
-                    }
-                  ],
-                  "class_name": "vllm.models.minimax_m3.nvidia.model.MiniMaxM3SparseAttention",
-                  "kind": "generic"
+                  "extras": {
+                    "index_block_size": 128,
+                    "indexer": true
+                  },
+                  "head_dim": 128,
+                  "heads_kv": 4,
+                  "heads_q": 64,
+                  "kind": "attention",
+                  "qk_norm": true,
+                  "rope": {
+                    "kind": "default",
+                    "partial_rotary_factor": 0.5,
+                    "scaling": null,
+                    "theta": 5000000.0
+                  },
+                  "variant": "gqa"
                 },
                 "id": "self_attn",
                 "io": {
-                  "inputs": [],
-                  "internals": [],
-                  "outputs": []
+                  "inputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
+                    }
+                  ],
+                  "internals": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "q",
+                      "shape": [
+                        "T",
+                        "Hq*D/tp"
+                      ]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "k",
+                      "shape": [
+                        "T",
+                        "max(1,Hkv/tp)*D"
+                      ]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "v",
+                      "shape": [
+                        "T",
+                        "max(1,Hkv/tp)*D"
+                      ]
+                    },
+                    {
+                      "dtype": "float32",
+                      "name": "index_scores",
+                      "shape": [
+                        "max(1,4/tp)",
+                        "T",
+                        "round_up(cdiv(T,128),16)"
+                      ]
+                    },
+                    {
+                      "dtype": "bfloat16",
+                      "name": "o",
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
+                    }
+                  ],
+                  "outputs": [
+                    {
+                      "dtype": "bfloat16",
+                      "name": "hidden_states",
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
+                    }
+                  ]
                 },
                 "module": {
                   "class_name": "vllm.models.minimax_m3.nvidia.model.MiniMaxM3SparseAttention",
@@ -1137,32 +1415,46 @@
                     {
                       "dtype": "bfloat16",
                       "name": "index_k_norm.weight",
-                      "shape": ["128"]
+                      "shape": [
+                        "128"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "index_q_norm.weight",
-                      "shape": ["128"]
+                      "shape": [
+                        "128"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "k_norm.weight",
-                      "shape": ["128"]
+                      "shape": [
+                        "128"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "o_proj.weight",
-                      "shape": ["H", "Hq*D/tp"]
+                      "shape": [
+                        "H",
+                        "Hq*D/tp"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "q_norm.weight",
-                      "shape": ["128"]
+                      "shape": [
+                        "128"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "qkv_proj.weight",
-                      "shape": ["(Hq/tp+2*max(1,Hkv/tp))*D", "H"]
+                      "shape": [
+                        "(Hq/tp+2*max(1,Hkv/tp))*D",
+                        "H"
+                      ]
                     }
                   ],
                   "path": "language_model.model.layers.3.self_attn",
@@ -1172,7 +1464,7 @@
                     "line": 392,
                     "url": "https://github.com/vllm-project/vllm/blob/544f182d9f0c9bfe8bd7645525951d5e3692a542/vllm/models/minimax_m3/nvidia/model.py#L392"
                   },
-                  "status": "generic"
+                  "status": "ruled"
                 },
                 "role": "mixer"
               },
@@ -1184,12 +1476,18 @@
                     {
                       "dtype": "bfloat16",
                       "name": "branch",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "residual",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ],
                   "internals": [],
@@ -1197,7 +1495,10 @@
                     {
                       "dtype": "bfloat16",
                       "name": "hidden_states",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ]
                 },
@@ -1206,7 +1507,7 @@
               },
               {
                 "component": {
-                  "eps": 1e-6,
+                  "eps": 1e-06,
                   "kind": "norm",
                   "variant": "rmsnorm"
                 },
@@ -1216,7 +1517,10 @@
                     {
                       "dtype": "bfloat16",
                       "name": "hidden_states",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ],
                   "internals": [],
@@ -1224,7 +1528,10 @@
                     {
                       "dtype": "bfloat16",
                       "name": "hidden_states",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ]
                 },
@@ -1235,7 +1542,9 @@
                     {
                       "dtype": "bfloat16",
                       "name": "weight",
-                      "shape": ["6144"]
+                      "shape": [
+                        "6144"
+                      ]
                     }
                   ],
                   "path": "language_model.model.layers.3.post_attention_layernorm",
@@ -1253,7 +1562,7 @@
                 "component": {
                   "expert": {
                     "intermediate": 3072,
-                    "variant": "other"
+                    "variant": "swiglu"
                   },
                   "experts": 128,
                   "kind": "moe",
@@ -1264,7 +1573,7 @@
                   },
                   "shared": {
                     "intermediate": 3072,
-                    "variant": "other"
+                    "variant": "swiglu"
                   },
                   "shared_experts": 1,
                   "top_k": 4
@@ -1275,51 +1584,78 @@
                     {
                       "dtype": "bfloat16",
                       "name": "hidden_states",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ],
                   "internals": [
                     {
                       "dtype": "bfloat16",
                       "name": "router_logits",
-                      "shape": ["T", "E"]
+                      "shape": [
+                        "T",
+                        "E"
+                      ]
                     },
                     {
                       "dtype": "int64",
                       "name": "topk_ids",
-                      "shape": ["T", "K"]
+                      "shape": [
+                        "T",
+                        "K"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "topk_weights",
-                      "shape": ["T", "K"]
+                      "shape": [
+                        "T",
+                        "K"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_input",
-                      "shape": ["T*K", "H"]
+                      "shape": [
+                        "T*K",
+                        "H"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_gate_up",
-                      "shape": ["T*K", "2*3072/tp"]
+                      "shape": [
+                        "T*K",
+                        "2*3072/tp"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "expert_output",
-                      "shape": ["T*K", "H"]
+                      "shape": [
+                        "T*K",
+                        "H"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "shared_output",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ],
                   "outputs": [
                     {
                       "dtype": "bfloat16",
                       "name": "hidden_states",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ]
                 },
@@ -1330,32 +1666,51 @@
                     {
                       "dtype": "float32",
                       "name": "e_score_correction_bias",
-                      "shape": ["128"]
+                      "shape": [
+                        "128"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "experts.routed_experts.w13_weight",
-                      "shape": ["E", "6144/tp", "6144"]
+                      "shape": [
+                        "E",
+                        "6144/tp",
+                        "6144"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "experts.routed_experts.w2_weight",
-                      "shape": ["E", "6144", "3072/tp"]
+                      "shape": [
+                        "E",
+                        "6144",
+                        "3072/tp"
+                      ]
                     },
                     {
                       "dtype": "float32",
                       "name": "gate.weight",
-                      "shape": ["E", "6144"]
+                      "shape": [
+                        "E",
+                        "6144"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "shared_experts.down_proj.weight",
-                      "shape": ["6144", "3072/tp"]
+                      "shape": [
+                        "6144",
+                        "3072/tp"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "shared_experts.gate_up_proj.weight",
-                      "shape": ["6144/tp", "6144"]
+                      "shape": [
+                        "6144/tp",
+                        "6144"
+                      ]
                     }
                   ],
                   "path": "language_model.model.layers.3.block_sparse_moe",
@@ -1377,12 +1732,18 @@
                     {
                       "dtype": "bfloat16",
                       "name": "branch",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     },
                     {
                       "dtype": "bfloat16",
                       "name": "residual",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ],
                   "internals": [],
@@ -1390,7 +1751,10 @@
                     {
                       "dtype": "bfloat16",
                       "name": "hidden_states",
-                      "shape": ["T", "H"]
+                      "shape": [
+                        "T",
+                        "H"
+                      ]
                     }
                   ]
                 },
@@ -1401,7 +1765,10 @@
           },
           "count": 57,
           "id": "language_model.model.layers:band:3",
-          "layers": [3, 59],
+          "layers": [
+            3,
+            59
+          ],
           "pattern": null
         }
       ],
@@ -1411,7 +1778,7 @@
     },
     {
       "component": {
-        "eps": 1e-6,
+        "eps": 1e-06,
         "kind": "norm",
         "variant": "rmsnorm"
       },
@@ -1421,7 +1788,10 @@
           {
             "dtype": "bfloat16",
             "name": "hidden_states",
-            "shape": ["T", "H"]
+            "shape": [
+              "T",
+              "H"
+            ]
           }
         ],
         "internals": [],
@@ -1429,7 +1799,10 @@
           {
             "dtype": "bfloat16",
             "name": "hidden_states",
-            "shape": ["T", "H"]
+            "shape": [
+              "T",
+              "H"
+            ]
           }
         ]
       },
@@ -1442,7 +1815,9 @@
           {
             "dtype": "bfloat16",
             "name": "weight",
-            "shape": ["6144"]
+            "shape": [
+              "6144"
+            ]
           }
         ],
         "path": "language_model.model.norm",
@@ -1469,7 +1844,10 @@
           {
             "dtype": "bfloat16",
             "name": "hidden_states",
-            "shape": ["T", "H"]
+            "shape": [
+              "T",
+              "H"
+            ]
           }
         ],
         "internals": [],
@@ -1477,7 +1855,10 @@
           {
             "dtype": "bfloat16",
             "name": "logits",
-            "shape": ["T", "V"]
+            "shape": [
+              "T",
+              "V"
+            ]
           }
         ]
       },
@@ -1490,7 +1871,10 @@
           {
             "dtype": "bfloat16",
             "name": "weight",
-            "shape": ["200064/tp", "6144"]
+            "shape": [
+              "200064/tp",
+              "6144"
+            ]
           }
         ],
         "path": "language_model.lm_head",
@@ -1506,9 +1890,58 @@
         "status": "unannotated_override"
       },
       "placement": "spine"
+    },
+    {
+      "component": {
+        "children": [],
+        "class_name": "vllm.models.minimax_m3.nvidia.model.MiniMaxM3SparseForConditionalGeneration",
+        "kind": "generic"
+      },
+      "id": "mtp",
+      "io": {
+        "inputs": [
+          {
+            "dtype": "bfloat16",
+            "name": "hidden_states",
+            "shape": [
+              "T",
+              "H"
+            ]
+          }
+        ],
+        "internals": [],
+        "outputs": [
+          {
+            "dtype": "bfloat16",
+            "name": "hidden_states",
+            "shape": [
+              "T",
+              "H"
+            ]
+          }
+        ]
+      },
+      "kind": "other",
+      "label": "Multi-token prediction × 1",
+      "module": {
+        "class_name": "vllm.models.minimax_m3.nvidia.model.MiniMaxM3SparseForConditionalGeneration",
+        "flags": [
+          "config_only"
+        ],
+        "params": [],
+        "path": "",
+        "replaced": null,
+        "source": null,
+        "status": "generic"
+      },
+      "placement": "aside"
     }
   ],
   "symbols": {
+    "B": {
+      "description": "Image/video grids in the batch",
+      "value": 1
+    },
     "D": {
       "description": "head width",
       "value": 128
@@ -1534,7 +1967,7 @@
       "value": 4
     },
     "P": {
-      "description": "Vision patch tokens in the batch",
+      "description": "Vision patch tokens before adapter/merger",
       "value": 1024
     },
     "T": {

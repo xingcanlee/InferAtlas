@@ -7,7 +7,9 @@
     "kv_tokens": "0",
     "non_torch": "0",
     "reserved": "0",
-    "unmodelled": ["Numeric lowering unavailable; use arch.json for structure."],
+    "unmodelled": [
+      "Numeric lowering unavailable; use arch.json for structure."
+    ],
     "weights": "0"
   },
   "nodes": [
@@ -11772,7 +11774,9 @@
       "weight_bytes": "0"
     }
   ],
-  "notes": ["Compatibility IR; numeric fields are unavailable placeholders, not estimates."],
+  "notes": [
+    "Compatibility IR; numeric fields are unavailable placeholders, not estimates."
+  ],
   "params": {},
   "snapshot": {
     "ascend": {
