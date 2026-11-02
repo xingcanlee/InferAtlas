@@ -3,7 +3,7 @@ import type { Arch, ArchModuleStage, Index, IR, Report, View } from "@inferatlas
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeAll, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import deepseekJson from "../../fixtures/arch-ui/deepseek-v3/arch.json";
 import v4Json from "../../fixtures/arch-ui/deepseek-v4-flash/arch.json";
 import denseArchJson from "../../fixtures/arch-ui/qwen3-8b/arch.json";
@@ -22,6 +22,8 @@ const BAD = "data/main-verified-H100/qwen3-30b-a3b";
 const MIXED = "data/main-verified-H100/qwen3-8b";
 const V4 = "data/main-verified-A2/deepseek-v4-flash";
 const VLM = "data/main-verified-H100/deepseek-v3";
+const V4X = "data/main-verified-H100/deepseek-v4-flash";
+const VLMI = "data/main-verified-H100/qwen3-next-80b-a3b";
 
 /**
  * Qwen3-8B with a VLM-style vision branch before the token embedding (the shape of the real
@@ -58,6 +60,41 @@ function visionArch(): Arch {
       ...a.stages,
     ],
   } as Arch;
+}
+
+/**
+ * DeepSeek-V4 as contract v1.4 describes it: an explicit `hc_expand` spine stage before the
+ * stack (mirroring `hc_head_op` after it).
+ */
+function v4ExpandArch(): Arch {
+  const a = v4Json as unknown as Arch;
+  const head = a.stages.find((s) => s.id === "model.hc_head_op") as ArchModuleStage;
+  const expand = {
+    ...head,
+    id: "model.hc_expand",
+    label: "model.hc_expand",
+    io: {
+      inputs: [{ name: "hidden_states", shape: ["T", "H"], dtype: "bfloat16" }],
+      outputs: [{ name: "residual_streams", shape: ["T", "HC", "H"], dtype: "bfloat16" }],
+      internals: [],
+    },
+    module: { ...head.module, path: "model.hc_expand", class_name: "vllm.x.HCExpand" },
+    component: { kind: "generic" as const, class_name: "vllm.x.HCExpand", children: [] },
+  };
+  const at = a.stages.findIndex((s) => s.kind === "stack");
+  return { ...a, stages: [...a.stages.slice(0, at), expand, ...a.stages.slice(at)] } as Arch;
+}
+
+/** VLM with v1.4 `inputs` (pixel_values + input_ids). */
+function vlmInputsArch(): Arch {
+  const a = visionArch();
+  return {
+    ...a,
+    inputs: [
+      { name: "pixel_values", shape: ["B", "C", "Himg", "Wimg"], dtype: "bfloat16" },
+      a.input,
+    ],
+  } as unknown as Arch;
 }
 
 /** A non-periodic, heterogeneous stack (6 bands alternating dense / MoE with varying counts). */
@@ -146,6 +183,22 @@ beforeAll(() => {
           triage_count: 0,
           data_path: VLM,
         },
+        {
+          version: "main-verified",
+          model: "deepseek-v4-flash",
+          device: "H100",
+          status: "triage",
+          triage_count: 1,
+          data_path: V4X,
+        },
+        {
+          version: "main-verified",
+          model: "qwen3-next-80b-a3b",
+          device: "H100",
+          status: "triage",
+          triage_count: 1,
+          data_path: VLMI,
+        },
         // Structure-only triage cells: still linked and rendered (triage never blocks).
         {
           version: "main-verified",
@@ -186,6 +239,8 @@ beforeAll(() => {
       [MIXED]: { arch: mixedArch() },
       [V4]: { arch: v4Json as unknown as Arch },
       [VLM]: { arch: visionArch() },
+      [V4X]: { arch: v4ExpandArch() },
+      [VLMI]: { arch: vlmInputsArch() },
     },
   };
 });
@@ -401,5 +456,108 @@ describe("architecture page", { timeout: 20_000 }, () => {
     await renderAt("/");
     const cell = await screen.findByTestId("cell-main-verified-deepseek-v3");
     expect(cell.tagName).toBe("A");
+  });
+});
+
+describe("contract v1.4 in the figure", { timeout: 20_000 }, () => {
+  it("badges every mHC instance with the class-level warning", async () => {
+    await renderAt("/m/main-verified/A2/deepseek-v4-flash");
+    const fig = await screen.findByTestId("arch-figure");
+    const ffn = within(fig).getAllByTestId(/^sub-.*-mhc_(pre|post)_ffn$/);
+    expect(ffn.length).toBeGreaterThan(0);
+    for (const el of ffn) expect(el.querySelector('[data-severity="warn"]')).not.toBeNull();
+  });
+
+  it("draws the hc_expand stage before the stack with the residual-stream edge", async () => {
+    await renderAt("/m/main-verified/H100/deepseek-v4-flash");
+    const fig = await screen.findByTestId("arch-figure");
+    const expand = within(fig).getByTestId("stage-model.hc_expand");
+    const stack = within(fig).getByTestId("stage-model.layers");
+    expect(expand.compareDocumentPosition(stack) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(
+      within(screen.getByTestId("dataflow")).getByText("mHC expand (→ HC streams)"),
+    ).toBeInTheDocument();
+  });
+
+  it("uses arch inputs for the encoder terminal, else a muted placeholder", async () => {
+    await renderAt("/m/main-verified/H100/qwen3-next-80b-a3b");
+    const input = await screen.findByTestId("encoder-input");
+    expect(input).toHaveTextContent("pixel_values");
+    expect(input).not.toHaveAttribute("data-muted");
+  });
+});
+
+describe("narrow screens", { timeout: 20_000 }, () => {
+  const original = window.matchMedia;
+  const useWidth = (width: number) => {
+    window.matchMedia = ((q: string) => {
+      const max = /max-width:\s*([\d.]+)px/.exec(q);
+      const min = /min-width:\s*([\d.]+)px/.exec(q);
+      const matches = (!max || width <= Number(max[1])) && (!min || width >= Number(min[1]));
+      return {
+        matches,
+        media: q,
+        onchange: null,
+        addListener() {},
+        removeListener() {},
+        addEventListener() {},
+        removeEventListener() {},
+        dispatchEvent: () => false,
+      };
+    }) as unknown as typeof window.matchMedia;
+  };
+  afterEach(() => {
+    window.matchMedia = original;
+  });
+
+  it("phones: home lists one card per model, no table", async () => {
+    useWidth(390);
+    await renderAt("/");
+    const cards = await screen.findByTestId("matrix-cards");
+    expect(screen.queryByTestId("matrix")).toBeNull();
+    expect(within(cards).getByTestId("model-row-qwen3-8b")).toBeInTheDocument();
+    expect(within(cards).getByTestId("cell-main-verified-deepseek-v3").tagName).toBe("A");
+    expect(screen.getByTestId("nav-menu")).toBeInTheDocument();
+  });
+
+  it("tablets: the detail panel is a bottom sheet opened by a selection", async () => {
+    useWidth(768);
+    const router = await renderAt("/m/main-verified/A2/qwen3-30b-a3b");
+    await screen.findByTestId("arch-figure");
+    expect(screen.queryByRole("complementary", { name: "Architecture details" })).toBeNull();
+    expect(screen.queryByTestId("detail-sheet")).toBeNull();
+    expect(screen.getByTestId("zoom-controls")).toBeInTheDocument();
+    await userEvent.click(screen.getByTestId("sub-model.layers:band:0-mlp"));
+    expect(router.state.location.search).toMatchObject({ layer: 0, sub: "mlp" });
+    const sheet = await screen.findByTestId("detail-sheet");
+    expect(within(sheet).getByTestId("layer-detail")).toBeInTheDocument();
+    await userEvent.click(within(sheet).getByTestId("sheet-next-layer"));
+    expect(router.state.location.search).toMatchObject({ layer: 1 });
+    await userEvent.click(within(sheet).getByRole("button", { name: "Close" }));
+    expect(screen.queryByTestId("detail-sheet")).toBeNull();
+    // Closing keeps the selection; the Details button reopens the panel.
+    expect(router.state.location.search).toMatchObject({ layer: 1 });
+    await userEvent.click(screen.getByTestId("open-details"));
+    expect(await screen.findByTestId("detail-sheet")).toBeInTheDocument();
+  });
+
+  it("phones: zoom buttons change the canvas zoom", async () => {
+    useWidth(390);
+    await renderAt("/m/main-verified/A2/qwen3-30b-a3b");
+    await screen.findByTestId("arch-figure");
+    const canvas = screen.getByTestId("arch-canvas");
+    expect(canvas).toHaveAttribute("data-zoom", "fit");
+    await userEvent.click(screen.getByTestId("zoom-in"));
+    expect(canvas.getAttribute("data-zoom")).not.toBe("fit");
+    await userEvent.click(screen.getByTestId("zoom-fit"));
+    expect(canvas).toHaveAttribute("data-zoom", "fit");
+  });
+
+  it("phones: the graph tab explains it needs a wider screen", async () => {
+    useWidth(390);
+    await renderAt("/m/main-verified/A2/qwen3-30b-a3b?tab=graph");
+    expect(await screen.findByTestId("graph-narrow")).toBeInTheDocument();
+    await userEvent.click(screen.getByTestId("graph-anyway"));
+    expect(screen.queryByTestId("graph-narrow")).toBeNull();
   });
 });

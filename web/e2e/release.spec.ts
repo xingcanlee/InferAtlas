@@ -55,14 +55,26 @@ test("release matrix links every extracted cell, triage included (structure firs
   page,
 }) => {
   const index = await (await page.request.get("./data/index.json")).json();
-  const linked = index.cells.filter((c: { data_path: string | null }) => c.data_path);
-  expect(linked.length).toBeGreaterThan(0);
-  // Triage never hides structure: triage cells with extracted structure carry a data path.
-  expect(linked.some((c: { status: string }) => c.status === "triage")).toBe(true);
-  for (const device of ["A2", "H100"]) {
+  type C = {
+    version: string;
+    model: string;
+    device: string;
+    status: string;
+    data_path: string | null;
+  };
+  // Structure first: every ok / triage cell was extracted, so every one carries a data path …
+  const built: C[] = index.cells.filter((c: C) => c.status === "ok" || c.status === "triage");
+  expect(built.length).toBeGreaterThan(0);
+  expect(
+    built.filter((c) => !c.data_path).map((c) => `${c.model}@${c.version}/${c.device}`),
+  ).toEqual([]);
+  // Triage never hides structure.
+  expect(built.some((c) => c.status === "triage")).toBe(true);
+  for (const device of [...new Set(built.map((c) => c.device))].sort()) {
     await page.goto(`./#/?device=${device}`);
     await expect(page.getByTestId("matrix")).toBeVisible();
-    for (const c of linked.filter((x: { device: string }) => x.device === device))
+    // … and is a link to its model page.
+    for (const c of built.filter((x) => x.device === device))
       await expect(page.getByTestId(`cell-${c.version}-${c.model}`)).toHaveAttribute(
         "href",
         new RegExp(`/m/${c.version}/${device}/${c.model}$`),

@@ -1,34 +1,63 @@
-import { type ReactNode, useLayoutEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  clampZoom,
+  DESKTOP_FIT_MIN,
+  distance,
+  fitScale,
+  midpoint,
+  type Point,
+  pinchZoom,
+  zoomScroll,
+} from "@/lib/responsive";
 import { cn } from "@/lib/utils";
 
 /**
- * Below this the figure text gets too small to read; scroll instead. The smallest figure text is
- * 10px (chips, badges), so 0.9 keeps every label at ≥ 9px effective.
+ * Below this the figure text gets too small to read on a desktop; scroll instead. The smallest
+ * figure text is 10px (chips, badges), so 0.9 keeps every label at ≥ 9px effective.
  */
-export const MIN_FIT_SCALE = 0.9;
+export const MIN_FIT_SCALE = DESKTOP_FIT_MIN;
 const PAD = 24;
 
+export type Zoom = number | "fit";
+
 /**
- * Scrollable canvas that scales its content down (never up) to fit the available box when
- * `fit` is on. The content keeps its natural layout; only a transform is applied, and the
- * wrapper takes the scaled size so scrolling still works when the minimum scale is reached.
+ * Scrollable, zoomable canvas. `zoom="fit"` scales the content down (never up) to the box:
+ * `contain` (desktop: both axes, floor 0.9, scroll beyond) or `width` (touch: fit the width,
+ * scroll down, pinch to read). A number is an explicit zoom. The content keeps its natural
+ * layout; only a transform is applied and the wrapper takes the scaled size, so native scrolling
+ * (one-finger drag with momentum on touch) pans. Two-finger pinch and Ctrl/⌘ + wheel zoom around
+ * the gesture's focal point via `onZoom`; the page itself never zooms.
  */
 export function FitBox({
   fit,
+  zoom,
+  mode = "contain",
   children,
   className,
   onScale,
+  onZoom,
   ...props
 }: {
-  fit: boolean;
+  /** Shorthand for `zoom={fit ? "fit" : 1}` (kept for callers without zoom state). */
+  fit?: boolean;
+  zoom?: Zoom;
+  mode?: "contain" | "width";
   children: ReactNode;
   className?: string;
   onScale?: (scale: number) => void;
+  /** Gesture zoom (pinch / Ctrl + wheel); the caller stores it and passes it back as `zoom`. */
+  onZoom?: (zoom: number) => void;
   "data-testid"?: string;
 }) {
+  const z: Zoom = zoom ?? (fit === false ? 1 : "fit");
   const outer = useRef<HTMLDivElement>(null);
+  const wrap = useRef<HTMLDivElement>(null);
   const inner = useRef<HTMLDivElement>(null);
   const [state, setState] = useState({ scale: 1, w: 0, h: 0 });
+  /** Focal point of the next zoom change (box coordinates); default: the box centre. */
+  const focus = useRef<Point | undefined>(undefined);
+  /** Last laid-out scale and content offset inside the scrolled area. */
+  const last = useRef<{ scale: number; offset: Point } | undefined>(undefined);
 
   useLayoutEffect(() => {
     const o = outer.current;
@@ -39,28 +68,123 @@ export function FitBox({
       const w = i.offsetWidth;
       const h = i.offsetHeight;
       const s =
-        fit && w && h
-          ? Math.max(
-              MIN_FIT_SCALE,
-              Math.min(1, (o.clientWidth - PAD) / w, (o.clientHeight - PAD) / h),
-            )
-          : 1;
-      const scale = Math.round(s * 1000) / 1000;
-      setState((p) => (p.scale === scale && p.w === w && p.h === h ? p : { scale, w, h }));
+        z === "fit"
+          ? fitScale({
+              contentW: w,
+              contentH: h,
+              boxW: o.clientWidth - PAD,
+              boxH: o.clientHeight - PAD,
+              mode,
+            })
+          : clampZoom(z);
+      setState((p) => (p.scale === s && p.w === w && p.h === h ? p : { scale: s, w, h }));
     };
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(o);
     ro.observe(i);
     return () => ro.disconnect();
-  }, [fit]);
+  }, [z, mode]);
+
+  // Keep the focal point fixed across a zoom change (pinch midpoint, wheel cursor, box centre).
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs once per committed scale
+  useLayoutEffect(() => {
+    const o = outer.current;
+    const wr = wrap.current;
+    if (!o || !wr) return;
+    const box = o.getBoundingClientRect();
+    const r = wr.getBoundingClientRect();
+    const offset = { x: r.left - box.left + o.scrollLeft, y: r.top - box.top + o.scrollTop };
+    const prev = last.current;
+    // Fit re-measures (resize, new content) keep the scroll position; explicit zooms keep the focus.
+    if (prev && prev.scale !== state.scale && (typeof z === "number" || focus.current)) {
+      const f = focus.current ?? { x: o.clientWidth / 2, y: o.clientHeight / 2 };
+      const next = zoomScroll(
+        { x: o.scrollLeft, y: o.scrollTop },
+        f,
+        prev.scale,
+        state.scale,
+        prev.offset,
+        offset,
+      );
+      o.scrollLeft = next.x;
+      o.scrollTop = next.y;
+    }
+    focus.current = undefined;
+    last.current = { scale: state.scale, offset };
+  }, [state.scale]);
 
   useLayoutEffect(() => onScale?.(state.scale), [onScale, state.scale]);
 
+  // Pinch (two fingers) and Ctrl/⌘ + wheel (trackpad pinch). Listeners are non-passive so the
+  // browser's page zoom never kicks in over the canvas.
+  const scaleRef = useRef(state.scale);
+  scaleRef.current = state.scale;
+  const onZoomRef = useRef(onZoom);
+  onZoomRef.current = onZoom;
+  useEffect(() => {
+    const o = outer.current;
+    if (!o) return;
+    let pinch: { dist: number; zoom: number } | undefined;
+    const pts = (e: TouchEvent): [Point, Point] | undefined => {
+      const a = e.touches[0];
+      const b = e.touches[1];
+      if (!a || !b) return undefined;
+      const box = o.getBoundingClientRect();
+      return [
+        { x: a.clientX - box.left, y: a.clientY - box.top },
+        { x: b.clientX - box.left, y: b.clientY - box.top },
+      ];
+    };
+    const start = (e: TouchEvent) => {
+      const p = pts(e);
+      if (!p || !onZoomRef.current) return;
+      pinch = { dist: distance(p[0], p[1]), zoom: scaleRef.current };
+    };
+    const move = (e: TouchEvent) => {
+      const p = pts(e);
+      if (!pinch || !p) return;
+      e.preventDefault();
+      const next = pinchZoom(pinch.zoom, pinch.dist, distance(p[0], p[1]));
+      if (next === scaleRef.current) return;
+      focus.current = midpoint(p[0], p[1]);
+      onZoomRef.current?.(next);
+    };
+    const end = (e: TouchEvent) => {
+      if (e.touches.length < 2) pinch = undefined;
+    };
+    const wheel = (e: WheelEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || !onZoomRef.current) return;
+      e.preventDefault();
+      const box = o.getBoundingClientRect();
+      focus.current = { x: e.clientX - box.left, y: e.clientY - box.top };
+      const next = clampZoom(scaleRef.current * Math.exp(-e.deltaY / 300));
+      onZoomRef.current(Math.round(next * 1000) / 1000);
+    };
+    o.addEventListener("touchstart", start, { passive: true });
+    o.addEventListener("touchmove", move, { passive: false });
+    o.addEventListener("touchend", end, { passive: true });
+    o.addEventListener("touchcancel", end, { passive: true });
+    o.addEventListener("wheel", wheel, { passive: false });
+    return () => {
+      o.removeEventListener("touchstart", start);
+      o.removeEventListener("touchmove", move);
+      o.removeEventListener("touchend", end);
+      o.removeEventListener("touchcancel", end);
+      o.removeEventListener("wheel", wheel);
+    };
+  }, []);
+
   return (
-    <div ref={outer} className={cn("min-h-0 overflow-auto", className)} {...props}>
+    <div
+      ref={outer}
+      className={cn("min-h-0 touch-pan-x touch-pan-y overflow-auto overscroll-contain", className)}
+      data-zoom={z}
+      {...props}
+    >
       <div className="flex min-h-full min-w-fit items-start justify-center p-3">
         <div
+          ref={wrap}
           style={
             state.w ? { width: state.w * state.scale, height: state.h * state.scale } : undefined
           }

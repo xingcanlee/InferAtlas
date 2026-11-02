@@ -51,21 +51,38 @@ export interface FigureTerminalProps extends React.ComponentProps<"div"> {
   /** Omit when the tensor's shape is unknown (the pill then shows only its name). */
   shape?: Shape | undefined;
   dtype?: string | undefined;
+  /**
+   * Placeholder terminal: the tensor is not in the data (e.g. an image input the arch.json does
+   * not list). Drawn muted, with `hint` explaining why.
+   */
+  muted?: boolean;
+  hint?: React.ReactNode;
 }
 
 /** Model input / output tensor drawn as a pill at either end of the spine. */
-export function FigureTerminal({ name, shape, dtype, className, ...props }: FigureTerminalProps) {
+export function FigureTerminal({
+  name,
+  shape,
+  dtype,
+  muted,
+  hint,
+  className,
+  ...props
+}: FigureTerminalProps) {
   return (
     <div
       data-slot="figure-terminal"
+      data-muted={muted || undefined}
       className={cn(
         "inline-flex h-6 items-center gap-2 rounded-full border border-dashed border-arch-frame-border bg-background px-3 text-[11px]",
+        muted && "text-muted-foreground",
         className,
       )}
       {...props}
     >
-      <span className="font-medium">{name}</span>
+      <span className={cn("font-medium", muted && "font-normal italic")}>{name}</span>
       {shape ? <ShapeLabel shape={shape} dtype={dtype} /> : null}
+      {hint ? <span className="text-[10px] text-muted-foreground">{hint}</span> : null}
     </div>
   );
 }

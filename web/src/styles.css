@@ -160,6 +160,12 @@
   #root {
     height: 100%;
   }
+  /* Mobile browsers: the dynamic viewport excludes the collapsing address bar. */
+  @supports (height: 100dvh) {
+    #root {
+      height: 100dvh;
+    }
+  }
   body {
     @apply bg-background text-foreground antialiased;
     font-family: var(--font-sans);
@@ -169,6 +175,15 @@
   .tabular {
     font-variant-numeric: tabular-nums;
   }
+}
+
+/* Safe-area aware horizontal padding (notches / rounded corners in landscape). */
+@utility safe-px {
+  padding-left: max(0.5rem, env(safe-area-inset-left));
+  padding-right: max(0.5rem, env(safe-area-inset-right));
+}
+@utility safe-pl {
+  padding-left: max(0.5rem, env(safe-area-inset-left));
 }
 
 /* React Flow chrome in our tokens */

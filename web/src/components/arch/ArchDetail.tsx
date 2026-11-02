@@ -28,12 +28,13 @@ import {
   layerCount,
   layerPath,
   layerRange,
+  notesAt,
   notesFor,
   RUNTIME_SYMBOLS,
   shortClass,
   stackItems,
   stageLabel,
-  subNoteTargets,
+  subNotes,
   uniqueNotes,
 } from "@/lib/arch";
 import { fmtBytes } from "@/lib/format";
@@ -192,8 +193,8 @@ export function NoteGroups({ notes }: { notes: ArchNote[] }) {
           >
             <header className="flex items-center gap-2 text-[11.5px]">
               <span className="font-mono">{g.kind ?? "general"}</span>
-              {warn.length ? <NoteBadge severity="warn" count={warn.length} /> : null}
-              {info.length ? <NoteBadge severity="info" count={info.length} /> : null}
+              {warn.length ? <NoteBadge severity="warn" count={warn.length} size="md" /> : null}
+              {info.length ? <NoteBadge severity="info" count={info.length} size="md" /> : null}
             </header>
             <NoteList notes={warn} withTarget />
             {info.length ? (
@@ -240,7 +241,7 @@ export function NoteList({ notes, withTarget }: { notes: ArchNote[]; withTarget?
             ) : null}
             <NoteText text={n.text} />
             {!withTarget && n.triage_kind ? (
-              <span className="ml-1.5 rounded border px-1 font-mono text-[10px] text-muted-foreground">
+              <span className="ml-1.5 rounded border px-1 font-mono text-[11px] text-muted-foreground">
                 {n.triage_kind}
               </span>
             ) : null}
@@ -370,11 +371,14 @@ export function LayerSelector({
   layer,
   onLayer,
   stackLabel,
+  touch = false,
 }: {
   total: number;
   layer: number | undefined;
   onLayer: (layer: number | undefined) => void;
   stackLabel?: string | null | undefined;
+  /** Touch layout: 40px targets, short total ("/ 43"). */
+  touch?: boolean;
 }) {
   const [text, setText] = useState(layer === undefined ? "" : String(layer));
   useEffect(() => setText(layer === undefined ? "" : String(layer)), [layer]);
@@ -391,15 +395,19 @@ export function LayerSelector({
         No decoder layers
       </span>
     );
+  const btn = touch ? "size-10" : "size-7";
   return (
-    <div className="flex items-center gap-1" data-testid="layer-selector">
-      <label htmlFor="arch-layer" className="mr-1 text-[12px] text-muted-foreground">
+    <div className="flex min-w-0 items-center gap-1" data-testid="layer-selector">
+      <label
+        htmlFor="arch-layer"
+        className={cn("mr-1 text-[12px] text-muted-foreground", touch && "sr-only")}
+      >
         Layer
       </label>
       <Button
         variant="outline"
         size="icon-sm"
-        className="size-7"
+        className={btn}
         aria-label="Previous layer"
         onClick={() => step(-1)}
         disabled={layer === 0}
@@ -410,7 +418,11 @@ export function LayerSelector({
         id="arch-layer"
         data-testid="layer-input"
         inputMode="numeric"
-        className="h-7 w-14 px-2 text-center font-mono text-[12px]"
+        className={cn(
+          "px-2 text-center font-mono",
+          // ≥ 16px on touch so iOS does not zoom the page when the field takes focus.
+          touch ? "h-10 w-14 text-[16px]" : "h-7 w-14 text-[12px]",
+        )}
         placeholder="—"
         value={text}
         onChange={(e) => setText(e.target.value)}
@@ -429,7 +441,7 @@ export function LayerSelector({
       <Button
         variant="outline"
         size="icon-sm"
-        className="size-7"
+        className={btn}
         aria-label="Next layer"
         onClick={() => step(1)}
         disabled={layer === total - 1}
@@ -437,10 +449,11 @@ export function LayerSelector({
         <ChevronRight className="size-3.5" />
       </Button>
       <span
-        className="ml-1 text-[11px] whitespace-nowrap text-muted-foreground"
+        className="ml-1 min-w-0 truncate text-[11px] whitespace-nowrap text-muted-foreground"
         data-testid="layer-total"
       >
-        of {total} layers{stackLabel ? ` · ${stackLabel}` : ""}
+        {touch ? `/ ${total}` : `of ${total} layers`}
+        {stackLabel && !touch ? ` · ${stackLabel}` : ""}
       </span>
     </div>
   );
@@ -610,7 +623,7 @@ export function LayerDetail({
               module={s.module}
               path={s.module ? layerPath(s.module, band, layer) : undefined}
               io={s.io}
-              notes={notesFor(arch, subNoteTargets(arch, band, s.id))}
+              notes={subNotes(arch, [band], s.id)}
               evaluate={evaluate}
               selected={sub === s.id}
             />
@@ -638,7 +651,7 @@ export function StageDetail({
         subtitle={`${stage.id} · ${stage.kind.replace("_", " ")}`}
         module={stage.module}
         io={stage.io}
-        notes={notesFor(arch, [stage.id])}
+        notes={notesAt(arch, [stage.id])}
         evaluate={evaluate}
       />
     </div>

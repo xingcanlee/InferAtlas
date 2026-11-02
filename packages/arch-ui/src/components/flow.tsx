@@ -18,13 +18,26 @@ const arrow = cva("relative flex w-full shrink-0 justify-center text-arch-wire",
 export interface FlowArrowProps extends React.ComponentProps<"div">, VariantProps<typeof arrow> {
   /** Drawn to the right of the wire, vertically centred (e.g. a ShapeLabel). */
   label?: React.ReactNode;
+  /**
+   * Side of the wire the label sits on. `left` keeps it clear of the corner badges (status /
+   * notes) of the node the arrow points into, which sit on its top-right corner.
+   */
+  labelSide?: "left" | "right";
   /** Plain wire without arrow head (e.g. a continuation segment). */
   plain?: boolean;
   dashed?: boolean;
 }
 
 /** Vertical wire with an arrow head pointing down the dataflow. */
-export function FlowArrow({ label, plain, dashed, length, className, ...props }: FlowArrowProps) {
+export function FlowArrow({
+  label,
+  labelSide = "right",
+  plain,
+  dashed,
+  length,
+  className,
+  ...props
+}: FlowArrowProps) {
   return (
     <div
       aria-hidden={label ? undefined : true}
@@ -53,7 +66,13 @@ export function FlowArrow({ label, plain, dashed, length, className, ...props }:
       {label ? (
         // On the canvas colour so wires never cross the text; node corner badges (later in
         // the DOM) still paint above a long label.
-        <div className="absolute top-1/2 left-[calc(50%+10px)] -translate-y-1/2 rounded-sm bg-arch-surface px-0.5 leading-none">
+        <div
+          data-label-side={labelSide}
+          className={cn(
+            "absolute top-1/2 -translate-y-1/2 rounded-sm bg-arch-surface px-0.5 leading-none whitespace-nowrap",
+            labelSide === "left" ? "right-[calc(50%+10px)]" : "left-[calc(50%+10px)]",
+          )}
+        >
           {label}
         </div>
       ) : null}

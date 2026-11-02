@@ -18,7 +18,9 @@ test("home matrix lists cells and opens a model", async ({ page }) => {
   await expect(page.getByTestId("matrix")).toBeVisible();
   await expect(page.locator('[data-status="ok"]').first()).toBeVisible();
   if (demo) await expect(page.locator('[data-status="triage"]').first()).toBeVisible();
-  await expect(page.locator('[data-status="missing"]').first()).toBeVisible();
+  // Structure first (v1.4 §1): cells lead with a coverage badge; version pairs without any built
+  // cell are not columns, so "missing" only shows inside a built column.
+  await expect(page.locator("[data-coverage]").first()).toBeVisible();
   await shot(page, "home");
   await page.getByTestId("cell-main-verified-qwen3-30b-a3b").click();
   await expect(page.getByTestId("model-title")).toHaveText("Qwen/Qwen3-30B-A3B");

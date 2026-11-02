@@ -14,6 +14,7 @@ import type {
   ArchNote,
   ArchStackStage,
   ArchSublayer,
+  ArchTensor,
   ExprEnv,
 } from "@inferatlas/contracts";
 import { tryEvaluate } from "./expr";
@@ -420,51 +421,90 @@ export function normalizeAttention(c: Attn): Attn {
 }
 
 const archNorm = new WeakMap<Arch, Arch>();
+const archPatches = new WeakMap<Arch, string[]>();
 
-/** Pre-v1.2 data has no `internals`; the contract makes it a required (possibly empty) list. */
-const fixIO = (io: ArchIO): ArchIO => (io.internals ? io : { ...io, internals: [] });
+/** Model-level info note kind added when `normalizeArch` had to patch the data. */
+export const NORMALISED_KIND = "ui_normalised";
+
+const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? "" : "s"}`;
 
 /**
  * Contract-compatible view of older `arch.json` (deprecated attention variants, missing v1.2
  * `internals` / `flags`, missing v1.1 `placement`); cached per object. Current generator output
- * passes through structurally unchanged.
+ * passes through structurally unchanged. Whatever had to be patched is recorded
+ * (`normalizePatches`), surfaced as a model-level info note ("Normalised for display: …") and,
+ * in development, logged with `console.warn`, so generator regressions stay visible.
  */
 export function normalizeArch(arch: Arch): Arch {
   const hit = archNorm.get(arch);
   if (hit) return hit;
-  const fix = (c: ArchComponent | null | undefined) =>
-    c?.kind === "attention" ? normalizeAttention(c) : c;
-  const out: Arch = {
-    ...arch,
-    flags: arch.flags ?? [],
-    notes: arch.notes ?? [],
-    stages: arch.stages.map((st) =>
-      st.kind === "stack"
-        ? {
-            ...st,
-            bands: st.bands.map((b) => ({
-              ...b,
-              block: {
-                ...b.block,
-                sublayers: b.block.sublayers.map((x) => ({
-                  ...x,
-                  io: fixIO(x.io),
-                  component: fix(x.component) ?? null,
-                })),
-              },
-            })),
-          }
-        : {
-            ...st,
-            io: fixIO(st.io),
-            component: fix(st.component) ?? null,
-            // Legacy default (v1.1 §5): `other` stages without a placement are side branches.
-            placement: st.placement ?? (st.kind === "other" ? "aside" : "spine"),
-          },
-    ),
+  const variants = new Map<string, number>();
+  let internals = 0;
+  let placement = 0;
+  const fix = (c: ArchComponent | null | undefined) => {
+    if (c?.kind !== "attention") return c;
+    const n = normalizeAttention(c);
+    if (n !== c) variants.set(c.variant, (variants.get(c.variant) ?? 0) + 1);
+    return n;
   };
+  const fixIO = (io: ArchIO): ArchIO => {
+    if (io.internals) return io;
+    internals++;
+    return { ...io, internals: [] };
+  };
+  const stages = arch.stages.map((st) => {
+    if (st.kind === "stack")
+      return {
+        ...st,
+        bands: st.bands.map((b) => ({
+          ...b,
+          block: {
+            ...b.block,
+            sublayers: b.block.sublayers.map((x) => ({
+              ...x,
+              io: fixIO(x.io),
+              component: fix(x.component) ?? null,
+            })),
+          },
+        })),
+      };
+    if (st.placement == null) placement++;
+    return {
+      ...st,
+      io: fixIO(st.io),
+      component: fix(st.component) ?? null,
+      // Legacy default (v1.1 §5): `other` stages without a placement are side branches.
+      placement: st.placement ?? (st.kind === "other" ? "aside" : "spine"),
+    };
+  });
+  const patches: string[] = [];
+  for (const [v, n] of variants)
+    patches.push(`${plural(n, "attention component")} with deprecated variant "${v}"`);
+  if (internals) patches.push(`${plural(internals, "IO record")} without internals`);
+  if (placement) patches.push(`${plural(placement, "stage")} without placement`);
+  if (!arch.flags) patches.push("missing flags");
+  if (!arch.notes) patches.push("missing notes");
+  const notes = [...(arch.notes ?? [])];
+  if (patches.length) {
+    notes.push({
+      severity: "info",
+      target: null,
+      text: `Normalised for display (older or non-conforming arch.json): ${patches.join("; ")}.`,
+      triage_kind: NORMALISED_KIND,
+    });
+    if (import.meta.env?.DEV)
+      console.warn(`[arch] normalised ${arch.model?.id ?? "arch.json"}: ${patches.join("; ")}`);
+  }
+  const out: Arch = { ...arch, flags: arch.flags ?? [], notes, stages: stages as Arch["stages"] };
   archNorm.set(arch, out);
+  archPatches.set(arch, patches);
   return out;
+}
+
+/** What `normalizeArch` patched in `arch` (empty for conforming data). */
+export function normalizePatches(arch: Arch): string[] {
+  normalizeArch(arch);
+  return archPatches.get(arch) ?? [];
 }
 
 // ----------------------------------------------------------------------------- symbols
@@ -515,27 +555,97 @@ export function evaluator(env: ExprEnv): (expr: string) => number | undefined {
 
 export const subTarget = (bandId: string, subId: string) => `${bandId}/${subId}`;
 
-/**
- * Note targets that describe sublayer `subId` of `band`: the emitter de-duplicates notes per
- * (class, kind) and targets the first band where the class occurs (v1.2 §2), so every band of
- * the same stack whose same-id sublayer has the same class shares those notes.
- */
-export function subNoteTargets(arch: Arch, band: ArchBand, subId: string): string[] {
-  const cls = band.block.sublayers.find((s) => s.id === subId)?.module?.class_name;
-  const stack = stacks(arch).find((s) => s.bands.includes(band));
-  const bands = stack && cls ? stack.bands : [band];
-  return bands
-    .filter(
-      (b) =>
-        b === band || b.block.sublayers.some((s) => s.id === subId && s.module?.class_name === cls),
-    )
-    .map((b) => subTarget(b.id, subId));
-}
-
+/** Raw lookup: notes whose `target` is one of `targets` (no class-level expansion). */
 export function notesFor(arch: Arch, targets: string[]): ArchNote[] {
   const set = new Set(targets);
   return arch.notes.filter((n) => n.target !== null && set.has(n.target));
 }
+
+/**
+ * v1.4 §2: note kinds that describe a **class**, not a place. The emitter de-duplicates them per
+ * (class, kind) and targets the first instance; they apply to every instance of that class in
+ * the model. Band-specific kinds (e.g. `golden_diff`) apply only to their target.
+ */
+export const CLASS_LEVEL_KINDS: ReadonlySet<string> = new Set([
+  "unknown_layer_class",
+  "unannotated_override",
+  "conditional_override",
+]);
+
+interface NoteSite {
+  cls: string | undefined;
+  generic: boolean;
+}
+
+/** Every place a note can target: module stages (`<stage id>`) and band sublayers. */
+function noteSites(arch: Arch): Map<string, NoteSite> {
+  const out = new Map<string, NoteSite>();
+  for (const st of arch.stages) {
+    if (st.kind === "stack") {
+      for (const b of st.bands)
+        for (const s of b.block.sublayers)
+          out.set(subTarget(b.id, s.id), {
+            cls: s.module?.class_name ?? undefined,
+            generic: s.component?.kind === "generic",
+          });
+    } else
+      out.set(st.id, {
+        cls: st.module?.class_name ?? undefined,
+        generic: st.component?.kind === "generic",
+      });
+  }
+  return out;
+}
+
+/** Class-level note (v1.4 §2), incl. the plain "generic component" info note of a class. */
+export function isClassLevelNote(note: ArchNote, site: NoteSite | undefined): boolean {
+  if (note.triage_kind) return CLASS_LEVEL_KINDS.has(note.triage_kind);
+  return note.severity === "info" && (!!site?.generic || /^Generic component\b/.test(note.text));
+}
+
+const noteIndexCache = new WeakMap<Arch, Map<string, ArchNote[]>>();
+
+/**
+ * Notes per target key, with class-level notes copied to every instance of their class. Model-
+ * level notes (`target: null`) are not indexed (see `modelNotes`).
+ */
+export function noteIndex(arch: Arch): Map<string, ArchNote[]> {
+  const hit = noteIndexCache.get(arch);
+  if (hit) return hit;
+  const sites = noteSites(arch);
+  const byClass = new Map<string, string[]>();
+  for (const [key, site] of sites)
+    if (site.cls) byClass.set(site.cls, [...(byClass.get(site.cls) ?? []), key]);
+  const out = new Map<string, ArchNote[]>();
+  const add = (key: string, n: ArchNote) => {
+    const list = out.get(key);
+    if (list) list.push(n);
+    else out.set(key, [n]);
+  };
+  for (const n of arch.notes) {
+    if (n.target === null) continue;
+    const site = sites.get(n.target);
+    const keys =
+      site?.cls && isClassLevelNote(n, site) ? (byClass.get(site.cls) ?? [n.target]) : [n.target];
+    for (const k of keys) add(k, n);
+  }
+  noteIndexCache.set(arch, out);
+  return out;
+}
+
+/** Notes that apply to any of `keys` (class-level notes included), in `arch.notes` order. */
+export function notesAt(arch: Arch, keys: string[]): ArchNote[] {
+  const idx = noteIndex(arch);
+  const hit = new Set(keys.flatMap((k) => idx.get(k) ?? []));
+  return arch.notes.filter((n) => hit.has(n));
+}
+
+/** Notes of sublayer `subId` in `bands` (a drawn band and the pattern members it stands for). */
+export const subNotes = (arch: Arch, bands: ArchBand[], subId: string): ArchNote[] =>
+  notesAt(
+    arch,
+    bands.map((b) => subTarget(b.id, subId)),
+  );
 
 /** De-duplicated by text: a note repeated on every member band is shown once. */
 export function uniqueNotes(notes: ArchNote[]): ArchNote[] {
@@ -643,6 +753,32 @@ export function encoderTitle(stages: Arch["stages"]): string {
   return /vision|visual|image|pixel|patch|\bvit\b/i.test(text) ? "Vision encoder" : "Encoder";
 }
 
+/**
+ * Every model input (v1.4 §3 `inputs`: multimodal models list e.g. `pixel_values` next to
+ * `input_ids`); falls back to the primary text `input` for data without the field.
+ */
+export function modelInputs(arch: Arch): ArchTensor[] {
+  const list = (arch as Arch & { inputs?: unknown }).inputs;
+  const ok = Array.isArray(list)
+    ? list.filter(
+        (t): t is ArchTensor =>
+          !!t &&
+          typeof t === "object" &&
+          typeof (t as ArchTensor).name === "string" &&
+          Array.isArray((t as ArchTensor).shape),
+      )
+    : [];
+  return ok.length ? ok : [arch.input];
+}
+
+/** mHC stream expansion / merge stages (v1.4 §4, v1.3 §2): `hc_expand`, `hc_head_op`. */
+export function mhcStageLabel(id: string): string | undefined {
+  const last = id.split(".").at(-1) ?? id;
+  if (/^hc_expand/i.test(last)) return "mHC expand (→ HC streams)";
+  if (/^hc_head/i.test(last)) return "mHC merge (HC streams →)";
+  return undefined;
+}
+
 const humanize = (id: string): string =>
   (id.split(".").at(-1) ?? id).replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
 
@@ -653,7 +789,7 @@ const humanize = (id: string): string =>
  */
 export function stageLabel(arch: Arch, stage: Arch["stages"][number]): string {
   const label = stage.label?.trim();
-  if (!label || label === stage.id) return humanize(stage.id);
+  if (!label || label === stage.id) return mhcStageLabel(stage.id) ?? humanize(stage.id);
   if (stage.kind !== "stack" && encoderStages(arch).includes(stage)) {
     if (/^(token embedding|final norm)$/i.test(label)) return humanize(stage.id);
   }

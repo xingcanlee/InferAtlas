@@ -52,8 +52,9 @@ import {
   keyInternals,
   layerRange,
   MAX_STACK_COLUMNS,
+  modelInputs,
   noteMarker,
-  notesFor,
+  notesAt,
   primaryStack,
   represented,
   type StackItem,
@@ -62,7 +63,7 @@ import {
   stackColumns,
   stackItems,
   stageLabel,
-  subNoteTargets,
+  subNotes,
   tokenEmbedding,
 } from "@/lib/arch";
 
@@ -232,17 +233,27 @@ function hyperStreams(band: ArchBand, evaluate: (e: string) => number | undefine
 }
 
 /**
- * Input pill of an encoder branch: the first stage's declared input, else a neutral label (the
- * contract has no model-level tensor for it; never invent a shape).
+ * Input pill of an encoder branch: the model's own extra input (v1.4 §3 `inputs`, e.g.
+ * `pixel_values`), else the first stage's declared input, else a muted placeholder that says it
+ * is not in the data (never invent a shape).
  */
-function encoderInput(stages: ArchStage[]): { name: string; shape?: string[]; dtype?: string } {
+function encoderInput(
+  arch: Arch,
+  stages: ArchStage[],
+): { name: string; shape?: string[]; dtype?: string; muted?: boolean; hint?: string } {
+  const extra = modelInputs(arch).find((t) => t.name !== arch.input.name);
+  if (extra) return extra;
   const first = stages[0];
   const t =
     first?.kind === "stack"
       ? first.bands[0]?.block.sublayers[0]?.io.inputs[0]
       : first?.io.inputs[0];
   if (t) return t;
-  return { name: encoderTitle(stages) === "Vision encoder" ? "image" : "input" };
+  return {
+    name: encoderTitle(stages) === "Vision encoder" ? "image" : "input",
+    muted: true,
+    hint: "(not in arch.json)",
+  };
 }
 
 const firstOut = (s: ArchStage): ArchTensor | undefined =>
@@ -274,7 +285,7 @@ export function ArchFigure({
       component={s.component ?? null}
       fallbackClass={s.module?.class_name ?? stageLabel(arch, s)}
       status={s.module?.status}
-      notes={noteMarker(notesFor(arch, [s.id]))}
+      notes={noteMarker(notesAt(arch, [s.id]))}
       selected={selection.stage === s.id}
       onSelect={() => onSelectStage(s.id)}
       label={`${stageLabel(arch, s)}: show details`}
@@ -283,14 +294,13 @@ export function ArchFigure({
   );
 
   const subGlyph = (items: StackItem[], band: ArchBand, sub: ArchSublayer) => {
-    const targets = represented(items, band).flatMap((b) => subNoteTargets(arch, b, sub.id));
     return (
       <ComponentGlyph
         key={sub.id}
         component={sub.component}
         fallbackClass={sub.module?.class_name ?? sub.role}
         status={sub.module?.status}
-        notes={noteMarker(notesFor(arch, targets))}
+        notes={noteMarker(subNotes(arch, represented(items, band), sub.id))}
         tensors={showInternals ? keyInternals(sub) : undefined}
         selected={selection.band === band && selection.sub === sub.id}
         onSelect={() => onSelectSub(band, sub.id)}
@@ -313,12 +323,7 @@ export function ArchFigure({
         post={post}
         streams={streams}
         status={sub.module?.status}
-        notes={noteMarker(
-          notesFor(
-            arch,
-            represented(items, band).flatMap((b) => subNoteTargets(arch, b, sub.id)),
-          ),
-        )}
+        notes={noteMarker(subNotes(arch, represented(items, band), sub.id))}
         onSelect={() => onSelectSub(band, sub.id)}
         selected={selection.band === band && selection.sub === sub.id}
         label={`${sub.id} (${layerRange(band.layers)}): show details`}
@@ -512,7 +517,7 @@ export function ArchFigure({
       .join(" → ");
     return (
       <>
-        <FigureTerminal {...encoderInput(stages)} data-testid="encoder-input" />
+        <FigureTerminal {...encoderInput(arch, stages)} data-testid="encoder-input" />
         <FlowArrow length="md" />
         <BlockStack
           title={encoderTitle(stages)}
@@ -524,21 +529,41 @@ export function ArchFigure({
           summary={<span className="block max-w-[var(--arch-col)] text-center">{summary}</span>}
           data-testid="encoder-branch"
         >
-          <Flow className="*:data-[slot=figure-node]:w-[var(--arch-col)]">{chain(stages)}</Flow>
+          <Flow className="*:data-[slot=figure-node]:w-[var(--arch-col)]">
+            {chain(stages, undefined, true)}
+          </Flow>
         </BlockStack>
       </>
     );
   };
 
-  /** Stages joined by arrows; an edge is annotated with the previous stage's output tensor. */
-  const chain = (stages: ArchStage[], from?: ArchStage): ReactNode[] =>
+  /** A module stage drawn with corner badges (status other than ruled, or warn notes). */
+  const badged = (s: ArchStage) =>
+    s.kind !== "stack" &&
+    ((!!s.module?.status && s.module.status !== "ruled") || !!noteMarker(notesAt(arch, [s.id])));
+
+  /**
+   * Stages joined by arrows; an edge is annotated with the previous stage's output tensor. The
+   * label never meets the corner badges of the node it points into: on the spine it moves to the
+   * left of the wire; in the narrow encoder column (full-width nodes) the edge gets longer.
+   */
+  const chain = (stages: ArchStage[], from?: ArchStage, column = false): ReactNode[] =>
     stages.flatMap((s, i) => {
       const prev = i ? stages[i - 1] : from;
       const t = prev ? firstOut(prev) : undefined;
+      const hasBadges = badged(s);
       // A collapsed secondary stack is narrow: a longer edge keeps its label off the legend.
-      const len = s.kind === "stack" && s !== primary ? "xl" : "md";
+      const len = (s.kind === "stack" && s !== primary) || (column && hasBadges) ? "xl" : "md";
       return [
-        t ? <TensorEdge key={`e-${s.id}`} shape={t.shape} name={t.name} length={len} /> : null,
+        t ? (
+          <TensorEdge
+            key={`e-${s.id}`}
+            shape={t.shape}
+            name={t.name}
+            length={len}
+            labelSide={hasBadges && !column ? "left" : "right"}
+          />
+        ) : null,
         s.kind === "stack" ? (
           stackView(s)
         ) : s.id === branchAt && others.length ? (

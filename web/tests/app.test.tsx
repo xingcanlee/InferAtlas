@@ -17,7 +17,21 @@ beforeAll(() => {
       ...(indexJson as unknown as Index),
       // A triage cell without a numeric bundle, like the release's blocked DeepSeek cells.
       cells: [
-        ...(indexJson as unknown as Index).cells,
+        // v1.4 §1: one cell carries structure coverage, the other relies on the neutral badge.
+        ...(indexJson as unknown as Index).cells.map((c) =>
+          c.model === "qwen3-8b" && c.data_path
+            ? {
+                ...c,
+                coverage: {
+                  sublayers_ruled: 4,
+                  sublayers_generic: 0,
+                  notes_warn: 2,
+                  notes_info: 1,
+                  arch: true,
+                },
+              }
+            : c,
+        ),
         {
           version: "main-verified",
           model: "qwen3-8b",
@@ -47,12 +61,22 @@ async function renderAt(hash: string) {
 }
 
 describe("app", { timeout: 20_000 }, () => {
-  it("renders the matrix with status badges", async () => {
+  it("leads the matrix with structure coverage; verification is secondary", async () => {
     await renderAt("#/");
     const table = await screen.findByTestId("matrix");
-    expect(within(table).getAllByText("ok").length).toBeGreaterThan(0);
-    expect(within(table).getByText("triage")).toBeInTheDocument();
-    expect(within(table).getAllByText("missing")).toHaveLength(2);
+    // Coverage from the index (v1.4) …
+    const covered = within(table).getByTestId("cell-main-verified-qwen3-8b");
+    expect(covered).toHaveTextContent("structure ✓ · 4/4 ruled");
+    expect(within(covered).getByTestId("warn-count")).toHaveTextContent("2");
+    expect(within(covered).getByTestId("verification")).toHaveTextContent("unverified · 2");
+    // … or a neutral badge when the index has none; never a "triage · N" badge.
+    const plain = within(table).getByTestId("cell-main-verified-qwen3-30b-a3b");
+    expect(within(plain).getByText("structure")).toBeInTheDocument();
+    expect(within(plain).getByTestId("verification")).toHaveTextContent("verified");
+    expect(within(table).queryByText("triage")).toBeNull();
+    // v0.32.0 has no built cell on A2: no column.
+    expect(within(table).queryByText("v0.32.0 pair")).toBeNull();
+    expect(within(table).queryAllByText("missing")).toHaveLength(0);
   });
 
   it("model page shows details and recomputes on parameter change", async () => {
