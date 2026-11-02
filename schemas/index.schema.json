@@ -3,6 +3,18 @@
     "IndexCell": {
       "additionalProperties": false,
       "properties": {
+        "coverage": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/IndexCoverage"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Structure coverage from arch.json, independent of numeric triage."
+        },
         "data_path": {
           "anyOf": [
             {
@@ -63,6 +75,49 @@
         "status"
       ],
       "title": "IndexCell",
+      "type": "object"
+    },
+    "IndexCoverage": {
+      "additionalProperties": false,
+      "properties": {
+        "arch": {
+          "description": "Whether architecture data is available.",
+          "title": "Arch",
+          "type": "boolean"
+        },
+        "notes_info": {
+          "description": "Architecture informational notes.",
+          "minimum": 0,
+          "title": "Notes Info",
+          "type": "integer"
+        },
+        "notes_warn": {
+          "description": "Architecture warning notes.",
+          "minimum": 0,
+          "title": "Notes Warn",
+          "type": "integer"
+        },
+        "sublayers_generic": {
+          "description": "Representative generic sublayers.",
+          "minimum": 0,
+          "title": "Sublayers Generic",
+          "type": "integer"
+        },
+        "sublayers_ruled": {
+          "description": "Representative semantic sublayers.",
+          "minimum": 0,
+          "title": "Sublayers Ruled",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "sublayers_ruled",
+        "sublayers_generic",
+        "notes_warn",
+        "notes_info",
+        "arch"
+      ],
+      "title": "IndexCoverage",
       "type": "object"
     },
     "IndexModel": {

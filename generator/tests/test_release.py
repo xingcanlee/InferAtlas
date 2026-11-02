@@ -85,12 +85,9 @@ def test_failure_is_deterministic_blocking_triage_and_site_cell(tmp_path, monkey
         code=3,
     )
     index = Index.model_validate(read_json(tmp_path / "data/index.json"))
-    cell = next(
-        c
-        for c in index.cells
-        if c.model == "qwen3-30b-a3b" and c.device == "A2" and c.version == "main-verified"
-    )
-    assert (cell.status, cell.triage_count, cell.data_path) == ("triage", 1, None)
+    # v1.4 omits pairs with no built structures, including failed-only cells.
+    assert index.versions == []
+    assert index.cells == []
 
 
 def test_null_snapshot_only_allowed_for_resolve_failures():

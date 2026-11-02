@@ -1027,7 +1027,25 @@ def site(
             validate_view(ir, view)
             for name, value in (("ir", ir), ("view", view), ("report", report), ("arch", arch)):
                 artifacts.append((relative / f"{name}.json", value))
+        coverage = None
+        if (directory / "ir.json").is_file():
+            subs = [
+                s
+                for stage in arch.stages
+                if stage.kind == "stack"
+                for band in stage.bands
+                for s in band.block.sublayers
+                if s.component is not None
+            ]
+            coverage = dict(
+                arch=True,
+                sublayers_ruled=sum(s.component.kind != "generic" for s in subs),
+                sublayers_generic=sum(s.component.kind == "generic" for s in subs),
+                notes_warn=sum(n.severity == "warn" for n in arch.notes),
+                notes_info=sum(n.severity == "info" for n in arch.notes),
+            )
         cells[key] = dict(
+            coverage=coverage,
             version=pair.id,
             model=model.id,
             device=device,
@@ -1038,7 +1056,10 @@ def site(
     if not cells:
         raise ValueError("no build outputs found; run inferatlas build first")
     devices = sorted({device.id for device in data.devices} | {c["device"] for c in cells.values()})
+    built_pairs = {key[0] for key, cell in cells.items() if cell["data_path"] is not None}
     for pair in data.version_pairs:
+        if pair.id not in built_pairs:
+            continue
         for model in data.models:
             for device in devices:
                 cells.setdefault(
@@ -1056,12 +1077,13 @@ def site(
         versions=[
             dict(id=p.id, label=p.id, vllm=p.vllm, ascend=p.ascend)
             for p in sorted(data.version_pairs, key=lambda p: p.id)
+            if p.id in built_pairs
         ],
         models=[
             dict(id=m.id, hf_id=m.hf_id, label=m.hf_id.split("/")[-1], family=m.family)
             for m in sorted(data.models, key=lambda m: m.id)
         ],
-        cells=[cells[k] for k in sorted(cells)],
+        cells=[cells[k] for k in sorted(cells) if k[0] in built_pairs],
     )
     if data_dir is not None:
         data_dir.parent.mkdir(parents=True, exist_ok=True)

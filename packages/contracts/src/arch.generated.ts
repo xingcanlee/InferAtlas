@@ -21,6 +21,10 @@ export type Name = string;
  */
 export type Shape = string[];
 /**
+ * All model inputs, including pixel_values for multimodal models; input remains the primary text input.
+ */
+export type Inputs = ArchTensor1[];
+/**
  * Extracted architecture class.
  */
 export type Architecture = string;
@@ -41,7 +45,7 @@ export type Id = string;
  */
 export type Severity = "info" | "warn";
 /**
- * Stage, band or sublayer id; null means whole model.
+ * Stage, band or sublayer id; null means whole model. For unknown_layer_class, unannotated_override, conditional_override and generic-component notes, target names the first instance and the note applies to every instance of that class. Other notes apply only to their target.
  */
 export type Target = string | null;
 /**
@@ -224,15 +228,15 @@ export type Id1 = string;
 /**
  * Dataflow inputs; empty when unknown.
  */
-export type Inputs = ArchTensor2[];
+export type Inputs1 = ArchTensor1[];
 /**
  * Tensors local to the component.
  */
-export type Internals = ArchTensor2[];
+export type Internals = ArchTensor1[];
 /**
  * Dataflow outputs; empty when unknown.
  */
-export type Outputs = ArchTensor2[];
+export type Outputs = ArchTensor1[];
 /**
  * Qualified baseline class name.
  */
@@ -244,7 +248,7 @@ export type Flags1 = string[];
 /**
  * Component subtree parameters in stable relative-name order.
  */
-export type Params = ArchTensor2[];
+export type Params = ArchTensor1[];
 /**
  * Extracted named_modules path.
  */
@@ -354,9 +358,10 @@ export interface Arch {
   device: Device;
   flags: Flags;
   input: ArchTensor;
+  inputs?: Inputs;
   model: ArchModel;
   notes: Notes;
-  output: ArchTensor1;
+  output: ArchTensor2;
   schema_version: SchemaVersion;
   stages: Stages;
   symbols: Symbols;
@@ -365,6 +370,11 @@ export interface Arch {
  * Whole-model token input.
  */
 export interface ArchTensor {
+  dtype: Dtype;
+  name: Name;
+  shape: Shape;
+}
+export interface ArchTensor1 {
   dtype: Dtype;
   name: Name;
   shape: Shape;
@@ -387,7 +397,7 @@ export interface ArchNote {
 /**
  * Whole-model logits output.
  */
-export interface ArchTensor1 {
+export interface ArchTensor2 {
   dtype: Dtype;
   name: Name;
   shape: Shape;
@@ -515,14 +525,9 @@ export interface ArchEmbedding {
  * Symbolic dataflow boundary.
  */
 export interface ArchIO {
-  inputs: Inputs;
+  inputs: Inputs1;
   internals: Internals;
   outputs: Outputs;
-}
-export interface ArchTensor2 {
-  dtype: Dtype;
-  name: Name;
-  shape: Shape;
 }
 export interface ArchModule {
   class_name: ClassName2;
@@ -561,7 +566,7 @@ export interface ArchModuleStage {
  * Symbolic dataflow boundary.
  */
 export interface ArchIO1 {
-  inputs: Inputs;
+  inputs: Inputs1;
   internals: Internals;
   outputs: Outputs;
 }

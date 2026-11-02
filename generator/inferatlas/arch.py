@@ -1,6 +1,7 @@
 """Architecture from CPU/meta facts; no forward execution or numeric verification gate."""
 
 import json
+import math
 import re
 from collections import Counter, defaultdict
 from itertools import groupby
@@ -180,9 +181,13 @@ def emit_arch(
                 tied=bool(cfg.get("tie_word_embeddings", False)),
             )
         activation = str(cfg.get("hidden_act", "silu"))
-        variant = {"silu": "swiglu", "swiglu": "swiglu", "gelu": "gelu", "geglu": "geglu"}.get(
-            activation, "other"
-        )
+        variant = {
+            "silu": "swiglu",
+            "swiglu": "swiglu",
+            "swigluoai": "swiglu",
+            "gelu": "gelu",
+            "geglu": "geglu",
+        }.get(activation, "other")
         if rule.kind == "mlp":
             down = next((m for m in subtree if m.path.endswith((".down_proj", ".fc2"))), None)
             own_intermediate = down.attrs.get("input_size") if down else None
@@ -230,7 +235,7 @@ def emit_arch(
                     else str(attrs.get("scoring_func", cfg.get("scoring_func", "softmax"))),
                     norm_topk=attrs.get("norm_topk_prob", cfg.get("norm_topk_prob")),
                     groups={"n_group": cfg["n_group"], "topk_group": cfg.get("topk_group", 1)}
-                    if cfg.get("n_group")
+                    if (cfg.get("n_group") or 0) > 1
                     else None,
                 ),
                 expert=ArchExpert(variant=variant, intermediate=intermediate),
@@ -280,6 +285,12 @@ def emit_arch(
                 )
                 if k in cfg
             }
+            if any(p.name == "sinks" for m in subtree for p in m.params):
+                extras["sinks"] = True
+            if any(m.path == module.path + ".indexer" for m in subtree):
+                extras["indexer"] = True
+                if module.class_name.endswith("MiniMaxM3SparseAttention"):
+                    extras["index_block_size"] = cfg["sparse_attention_config"]["sparse_block_size"]
             if "compress_ratio" in attrs:
                 extras["compress_ratio"] = attrs["compress_ratio"]
                 extras["indexer"] = any(
@@ -358,6 +369,74 @@ def emit_arch(
         raise ValueError(f"unsupported architecture rule kind: {rule.kind}")
 
     def boundary(module, comp):
+        name = module.path.rsplit(".", 1)[-1]
+        vision = any(k in module.path for k in ("vision", "visual", "multi_modal_projector"))
+        if vision and name in {
+            "patch_embedding",
+            "embeddings",
+            "vision_adapter",
+            "multi_modal_projector",
+            "patch_merge_mlp",
+        }:
+            symbols["P"] = ArchSymbol(
+                value=1024, description="Vision patch tokens before adapter/merger"
+            )
+            subtree = descendants(module)
+            projections = [
+                m
+                for m in subtree
+                if m.attrs.get("input_size") is not None and m.attrs.get("output_size") is not None
+            ]
+            weights = [
+                p for m in subtree for p in m.params if p.name == "weight" and len(p.shape) >= 2
+            ]
+            if name in {"patch_embedding", "embeddings"}:
+                cfg = extract.config.get("vision_config") or {}
+                width = (
+                    projections[0].attrs["output_size"]
+                    if projections
+                    else weights[0].shape[0]
+                    if weights
+                    else cfg.get("hidden_size", 0)
+                )
+                if "MiniMax" in module.class_name:
+                    patch_width = math.prod(weights[0].shape[1:])
+                    inp = tensor("pixel_values", ["P", str(patch_width)])
+                else:
+                    for key, value, desc in (
+                        ("B", 1, "Images in the batch"),
+                        ("C", cfg.get("num_channels", 3), "Image channels"),
+                        ("Himg", cfg.get("image_size", 336), "Image height"),
+                        ("Wimg", cfg.get("image_size", 336), "Image width"),
+                    ):
+                        symbols[key] = ArchSymbol(value=value, description=desc)
+                    inp = tensor("pixel_values", ["B", "C", "Himg", "Wimg"])
+                return ArchIO(inputs=[inp], outputs=[tensor("patch_features", ["P", str(width)])])
+            if projections:
+                first, last = projections[0], projections[-1]
+                # Reviewed adapters use pixel shuffle / spatial merge before their linears.
+                cfg = extract.config.get("vision_config") or {}
+                factor = (
+                    int(
+                        (cfg.get("img_token_compression_config") or {}).get("spatial_merge_size", 2)
+                    )
+                    ** 2
+                    if name == "patch_merge_mlp"
+                    else 1
+                )
+                if name == "vision_adapter":
+                    ratio = cfg.get("pixel_shuffle_ratio", 0.5)
+                    factor = int(1 / ratio**2)
+                rows = "P" if factor == 1 else f"cdiv(P,{factor})"
+                input_rows = "P"
+                if name == "multi_modal_projector" and "Llama4" in module.class_name:
+                    ratio = cfg.get("pixel_shuffle_ratio", 0.5)
+                    input_rows = rows = f"cdiv(P,{int(1 / ratio**2)})"
+                width = int(first.attrs["input_size"]) // factor
+                return ArchIO(
+                    inputs=[tensor("vision_features", [input_rows, str(width)])],
+                    outputs=[tensor("image_features", [rows, str(last.attrs["output_size"])])],
+                )
         if module.path.rsplit(".", 1)[-1] == "hc_head_op":
             symbols["HC"] = ArchSymbol(
                 value=int(config.get("hc_mult", 1)), description="Hyper-connection streams"
@@ -472,7 +551,19 @@ def emit_arch(
                 if comp.extras.get("indexer") or (
                     comp.variant == "mla" and comp.extras.get("index_topk")
                 ):
-                    internals.append(tensor("index_scores", ["T", f"cdiv(T,{ratio})"]))
+                    if comp.extras.get("index_block_size"):
+                        score = tensor(
+                            "index_scores",
+                            [
+                                f"max(1,{comp.heads_kv}/tp)",
+                                "T",
+                                f"round_up(cdiv(T,{comp.extras['index_block_size']}),16)",
+                            ],
+                        )
+                        score.dtype = "float32"
+                        internals.append(score)
+                    else:
+                        internals.append(tensor("index_scores", ["T", f"cdiv(T,{ratio})"]))
                 if comp.variant != "linear":
                     out("o", h)
             elif comp.kind in {"mlp", "moe"}:
@@ -487,7 +578,8 @@ def emit_arch(
                     e, k = "E" + suffix, "K" + suffix
                     symbols[e] = ArchSymbol(value=comp.experts, description="Routed experts")
                     symbols[k] = ArchSymbol(value=comp.top_k, description="Experts per token")
-                    out("router_logits", e)
+                    if comp.router.scoring != "hash":
+                        out("router_logits", e)
                     out("topk_ids", k, "int64")
                     out("topk_weights", k)
                     routed = f"T*dp*{k}/ep" if "dp" in symbols else f"T*{k}"
@@ -540,6 +632,8 @@ def emit_arch(
     def param_shape(m, p):
         shape = [str(d) for d in p.shape]
         cls = m.class_name.rsplit(".", 1)[-1]
+        if p.name == "sinks" and len(shape) == 1:
+            shape[0] = f"{p.shape[0] * extract.parallel.tp}/tp"
         tp = extract.parallel.tp
         local = m.path.rsplit(".", 1)[-1]
         text = not any(k in m.path for k in ("vision", "visual"))
@@ -731,8 +825,21 @@ def emit_arch(
                 ],
             )
         subs = []
+        vision_mlp = module.class_name.endswith("MiniMaxVLEncoderLayer")
         for child in ordered:
-            sub = sublayer(child, band_id)
+            name = child.path.rsplit(".", 1)[-1]
+            if vision_mlp and name in {"fc1", "act", "fc2"}:
+                if name != "fc1":
+                    continue
+                comp = ArchMLP(variant="gelu", intermediate=int(child.attrs["output_size"]))
+                ref = module_ref(module, comp, band_id + "/mlp")
+                ref.params = [p for p in ref.params if p.name.startswith(("fc1.", "fc2."))]
+                sub = ArchSublayer(
+                    id="mlp", role="ffn", component=comp, io=boundary(module, comp), module=ref
+                )
+            else:
+                sub = sublayer(child, band_id)
+
             subs.append(sub)
             if (residual in {"pre_norm", "post_norm"} and sub.role in {"mixer", "ffn"}) or (
                 residual == "sandwich"
@@ -910,7 +1017,28 @@ def emit_arch(
 
     def top(module):
         if module.path in stack_stages:
-            stages.append(stack_stages[module.path])
+            stack = stack_stages[module.path]
+            if any(b.block.residual == "hyper_connection" for b in stack.bands):
+                stages.append(
+                    ArchModuleStage(
+                        id=module.path + ":hc_expand",
+                        kind="other",
+                        label="Stream expansion (HC)",
+                        module=ArchModule(
+                            path=module.path.rpartition(".")[0],
+                            class_name=modules[module.path.rpartition(".")[0]].class_name,
+                            source=None,
+                            status="ruled",
+                            replaced=None,
+                            params=[],
+                        ),
+                        io=ArchIO(
+                            inputs=[tensor()],
+                            outputs=[tensor("residual_streams", ["T", "HC", "H"])],
+                        ),
+                    )
+                )
+            stages.append(stack)
             return
         if module.path in consumed:
             return
@@ -967,6 +1095,24 @@ def emit_arch(
         label = {"embedding": "Token embedding", "norm": "Final norm", "lm_head": "LM head"}.get(
             kind, module.path or module.class_name.rsplit(".", 1)[-1]
         )
+        name = module.path.rsplit(".", 1)[-1]
+        if any(k in module.path for k in ("vision", "visual", "multi_modal_projector")):
+            label = {
+                "patch_embedding": "Patch embedding",
+                "embeddings": "Patch embedding",
+                "vision_adapter": "Vision adapter",
+                "multi_modal_projector": "Multimodal projector",
+                "patch_merge_mlp": "Vision patch merger",
+            }.get(
+                name,
+                "Vision pre-norm"
+                if "pre" in name
+                else "Vision post-norm"
+                if kind == "norm"
+                else name.replace("_", " ").capitalize(),
+            )
+        if name == "hc_head_op":
+            label = "Stream merge (HC head)"
         stages.append(
             ArchModuleStage(
                 id=module.path or "root",
@@ -989,6 +1135,45 @@ def emit_arch(
     ]
     for root in roots:
         top(root)
+    mtp_count = int(config.get("num_nextn_predict_layers") or 0)
+    if "num_nextn_predict_layers" in config and mtp_count == 0:
+        notes.append(
+            ArchNote(
+                severity="info",
+                target=None,
+                text="Pinned config declares num_nextn_predict_layers = 0; no multi-token prediction branch is configured in this snapshot.",
+                triage_kind=None,
+            )
+        )
+    if mtp_count and not any(getattr(s, "placement", None) == "aside" for s in stages):
+        root = modules.get("", modules[min(modules)])
+        stages.append(
+            ArchModuleStage(
+                id="mtp",
+                kind="other",
+                placement="aside",
+                label=f"Multi-token prediction × {mtp_count}",
+                module=ArchModule(
+                    path=root.path,
+                    class_name=root.class_name,
+                    source=None,
+                    status="generic",
+                    replaced=None,
+                    params=[],
+                    flags=["config_only"],
+                ),
+                component=ArchGeneric(class_name=root.class_name, children=[]),
+                io=ArchIO(inputs=[tensor()], outputs=[tensor()]),
+            )
+        )
+        notes.append(
+            ArchNote(
+                severity="info",
+                target="mtp",
+                text=f"Config declares {mtp_count} next-token prediction layer(s); vLLM does not construct them in the main model. This aside is structural only; parameters and draft execution are not extracted.",
+                triage_kind=None,
+            )
+        )
     # Aside branches follow the complete spine regardless of registration order.
     stages.sort(key=lambda stage: getattr(stage, "placement", "spine") == "aside")
     seen = set()
@@ -1023,7 +1208,21 @@ def emit_arch(
                 + (f" for {symbol}" if symbol else "")
                 + (f": {detail}" if detail else ".")
             )
+        intentional_generic = bool(
+            symbol and symbol.rsplit(".", 1)[-1] in {"MHCPreOp", "MHCPostOp", "HCHeadOp"}
+        )
+        if intentional_generic:
+            continue
         changes_figure = target is not None and visible[target][1].kind == "generic"
+        if changes_figure:
+            notes[:] = [
+                n
+                for n in notes
+                if not (
+                    n.triage_kind is None
+                    and n.text.startswith("Generic component: " + symbol + ";")
+                )
+            ]
         notes.append(
             ArchNote(
                 severity="warn" if changes_figure else "info",
@@ -1050,6 +1249,29 @@ def emit_arch(
             ]:
                 for d in t.shape:
                     used.update(validate(d))
+    inputs = [ArchTensor(name="input_ids", shape=["T"], dtype="int64")]
+    for stage in stages:
+        if isinstance(stage, ArchModuleStage):
+            for inp in stage.io.inputs:
+                if inp.name == "pixel_values" and all(t.name != inp.name for t in inputs):
+                    inputs.append(inp)
+    if len(inputs) > 1:
+        if any("MiniMaxVLPatchEmbed" in m.class_name for m in extract.modules):
+            symbols.setdefault(
+                "B", ArchSymbol(value=1, description="Image/video grids in the batch")
+            )
+            inputs.append(ArchTensor(name="grid_thw", shape=["B", "3"], dtype="int64"))
+        notes.append(
+            ArchNote(
+                severity="info",
+                target=None,
+                text="Vision encoder image features are inserted at image-token positions in the text embeddings before the decoder stack; P counts pre-merge patch tokens.",
+                triage_kind=None,
+            )
+        )
+    for inp in inputs:
+        for dim in inp.shape:
+            used.update(validate(dim))
     used.update({"T", "V"})
     symbols = {k: v for k, v in symbols.items() if k in used}
     architectures = config.get("architectures", [])
@@ -1065,7 +1287,8 @@ def emit_arch(
         ),
         device=extract.snapshot.device,
         symbols=dict(sorted(symbols.items())),
-        input=ArchTensor(name="input_ids", shape=["T"], dtype="int64"),
+        inputs=inputs,
+        input=inputs[0],
         output=tensor("logits", ["T", "V"]),
         stages=stages,
         notes=sorted(

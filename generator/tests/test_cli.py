@@ -361,6 +361,12 @@ def test_site_gates_before_web_or_data_write(tmp_path, monkeypatch, status, incl
     if allowed:
         index = Index.model_validate(read_json(tmp_path / "data/index.json"))
         assert any(c.status == ("triage" if status == 2 else "ok") for c in index.cells)
+        assert len(index.versions) == 1
+        assert {c.version for c in index.cells} == {v.id for v in index.versions}
+        built = next(c for c in index.cells if c.data_path)
+        assert built.coverage.arch
+        assert built.coverage.sublayers_ruled > 0
+        assert built.coverage.sublayers_generic == 0
         if status == 2:
             assert any(c.data_path for c in index.cells if c.status == "triage")
             assert list((tmp_path / "data").rglob("arch.json"))
@@ -387,9 +393,8 @@ def test_site_triage_only_cell_never_publishes_numeric_artifacts(tmp_path, monke
         assert "must have blocking items" in result.output
     else:
         index = Index.model_validate(read_json(tmp_path / "data/index.json"))
-        cell = next(c for c in index.cells if c.status == "triage")
-        assert cell.data_path is None
-        assert cell.triage_count == len(read_json(directory / "triage.json")["items"])
+        assert index.versions == []
+        assert index.cells == []
         assert sorted(p.name for p in (tmp_path / "data").iterdir()) == [
             "hardware.json",
             "index.json",

@@ -708,7 +708,7 @@
               "type": "null"
             }
           ],
-          "description": "Stage, band or sublayer id; null means whole model.",
+          "description": "Stage, band or sublayer id; null means whole model. For unknown_layer_class, unannotated_override, conditional_override and generic-component notes, target names the first instance and the note applies to every instance of that class. Other notes apply only to their target.",
           "title": "Target"
         },
         "text": {
@@ -1127,6 +1127,14 @@
     "input": {
       "$ref": "#/$defs/ArchTensor",
       "description": "Whole-model token input."
+    },
+    "inputs": {
+      "description": "All model inputs, including pixel_values for multimodal models; input remains the primary text input.",
+      "items": {
+        "$ref": "#/$defs/ArchTensor"
+      },
+      "title": "Inputs",
+      "type": "array"
     },
     "model": {
       "$ref": "#/$defs/ArchModel",

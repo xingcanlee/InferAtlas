@@ -224,7 +224,9 @@ ArchStage = Annotated[ArchStackStage | ArchModuleStage, Field(discriminator="kin
 
 class ArchNote(Contract):
     severity: Literal["info", "warn"] = Field(description="Informational or review-needed badge.")
-    target: str | None = Field(description="Stage, band or sublayer id; null means whole model.")
+    target: str | None = Field(
+        description="Stage, band or sublayer id; null means whole model. For unknown_layer_class, unannotated_override, conditional_override and generic-component notes, target names the first instance and the note applies to every instance of that class. Other notes apply only to their target."
+    )
     text: str = Field(description="Stable explanation without timestamps or host paths.")
     triage_kind: str | None = Field(
         description="Original triage kind, or null for structure notes."
@@ -232,6 +234,13 @@ class ArchNote(Contract):
 
 
 class Arch(Contract):
+    # Keep old snapshots valid while requiring other serialized architecture defaults.
+    model_config = ConfigDict(
+        json_schema_extra=lambda schema: schema.update(
+            required=[name for name in schema.get("required", []) if name != "inputs"]
+        )
+    )
+
     flags: list[str] = Field(
         default_factory=list, description="Source representation and extraction limitations."
     )
@@ -239,6 +248,10 @@ class Arch(Contract):
     model: ArchModel = Field(description="Catalog identity and extracted architecture.")
     device: Device = Field(description="Extraction hardware profile.")
     symbols: dict[str, ArchSymbol] = Field(description="Symbol defaults used by tensor dimensions.")
+    inputs: list[ArchTensor] = Field(
+        default_factory=list,
+        description="All model inputs, including pixel_values for multimodal models; input remains the primary text input.",
+    )
     input: ArchTensor = Field(description="Whole-model token input.")
     output: ArchTensor = Field(description="Whole-model logits output.")
     stages: list[ArchStage] = Field(description="Top-level stages in dataflow order.")
@@ -248,7 +261,7 @@ class Arch(Contract):
     def references_and_expressions(self) -> "Arch":
         from inferatlas.expr import validate
 
-        ids, tensors = [], [self.input, self.output]
+        ids, tensors = [], [self.input, *self.inputs, self.output]
         for stage in self.stages:
             ids.append(stage.id)
             if isinstance(stage, ArchStackStage):

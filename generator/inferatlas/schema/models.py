@@ -915,7 +915,19 @@ class IndexModel(Contract):
     )
 
 
+class IndexCoverage(Contract):
+    sublayers_ruled: int = Field(ge=0, description="Representative semantic sublayers.")
+    sublayers_generic: int = Field(ge=0, description="Representative generic sublayers.")
+    notes_warn: int = Field(ge=0, description="Architecture warning notes.")
+    notes_info: int = Field(ge=0, description="Architecture informational notes.")
+    arch: bool = Field(description="Whether architecture data is available.")
+
+
 class IndexCell(Contract):
+    coverage: IndexCoverage | None = Field(
+        default=None,
+        description="Structure coverage from arch.json, independent of numeric triage.",
+    )
     version: str = Field(description="IndexVersion.id.")
     model: str = Field(description="IndexModel.id.")
     device: Device = Field(description="Extraction device used for this matrix cell.")

@@ -280,3 +280,11 @@ vllm.models.deepseek_v4.cpu.model.DeepseekV4DecoderLayer:
   - ffn_norm
   - ffn
   - mhc_post
+
+vllm.models.minimax_m3.common.vision_tower.MiniMaxVLEncoderLayer:
+  kind: decoder
+  residual: pre_norm
+  order: [layer_norm1, self_attn, layer_norm2, fc1, act, fc2]
+vllm.models.minimax_m3.nvidia.model.MiniMaxM3SparseAttention:
+  kind: attention
+  variant: other

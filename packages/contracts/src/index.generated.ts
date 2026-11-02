@@ -1,6 +1,26 @@
 /* Generated from schemas; edit generator/inferatlas/schema instead. */
 
 /**
+ * Whether architecture data is available.
+ */
+export type Arch = boolean;
+/**
+ * Architecture informational notes.
+ */
+export type NotesInfo = number;
+/**
+ * Architecture warning notes.
+ */
+export type NotesWarn = number;
+/**
+ * Representative generic sublayers.
+ */
+export type SublayersGeneric = number;
+/**
+ * Representative semantic sublayers.
+ */
+export type SublayersRuled = number;
+/**
  * Relative directory containing arch.json/ir.json/view.json/report.json; null only when no structure was extracted.
  */
 export type DataPath = string | null;
@@ -75,12 +95,23 @@ export interface Index {
   versions: Versions;
 }
 export interface IndexCell {
+  /**
+   * Structure coverage from arch.json, independent of numeric triage.
+   */
+  coverage?: IndexCoverage | null;
   data_path?: DataPath;
   device: Device;
   model: Model;
   status: Status;
   triage_count?: TriageCount;
   version: Version;
+}
+export interface IndexCoverage {
+  arch: Arch;
+  notes_info: NotesInfo;
+  notes_warn: NotesWarn;
+  sublayers_generic: SublayersGeneric;
+  sublayers_ruled: SublayersRuled;
 }
 export interface IndexModel {
   family: Family;

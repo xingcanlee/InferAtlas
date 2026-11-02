@@ -467,7 +467,7 @@ def test_v12_boundaries_generic_slots_and_note_deduplication(facts):
             else {"expert_gate_up", "expert_output", "shared_output"}
         )
     generic = [n for n in arch.notes if n.text.startswith("Generic component")]
-    assert len(generic) == 1
+    assert not generic  # The targeted warning already explains the generic class.
     unknown = [n for n in arch.notes if n.triage_kind == "unknown_layer_class"]
     assert len(unknown) == 1 and "vendor.UnknownAttention" in unknown[0].text
 
@@ -554,6 +554,12 @@ def test_deepseek_v4_hyper_connection_io_and_compression(facts):
     arch = architecture(facts)
     block = bands(arch)[0].block
     assert block.residual == "hyper_connection"
+    ids = [s.id for s in arch.stages]
+    expand = next(s for s in arch.stages if s.id == "model.layers:hc_expand")
+    assert ids.index(expand.id) < ids.index("model.layers")
+    assert expand.placement == "spine" and expand.label == "Stream expansion (HC)"
+    assert expand.io.inputs[0].shape == ["T", "H"]
+    assert expand.io.outputs[0].shape == ["T", "HC", "H"]
     names = [s.id for s in block.sublayers]
     assert names.index("mhc_pre_attn") < names.index("attn") < names.index("mhc_post_attn")
     assert names.index("mhc_pre_ffn") < names.index("ffn") < names.index("mhc_post_ffn")
@@ -680,3 +686,119 @@ def test_hash_router_uses_observed_lookup_table(facts):
         for b in result
         if b.layers[0] >= 2
     ] == ["hash", "sigmoid"]
+
+
+def test_v14_mtp_aside_is_explicitly_config_only(facts):
+    facts.config["num_nextn_predict_layers"] = 2
+    arch = architecture(facts)
+    mtp = arch.stages[-1]
+    assert mtp.id == "mtp" and mtp.placement == "aside"
+    assert mtp.module.flags == ["config_only"] and not mtp.module.params
+    assert any(n.target == "mtp" and "does not construct" in n.text for n in arch.notes)
+    assert arch.inputs == [arch.input]
+    facts.config["num_nextn_predict_layers"] = 0
+    arch = architecture(facts)
+    assert not any(s.id == "mtp" for s in arch.stages)
+    assert any("num_nextn_predict_layers = 0" in n.text for n in arch.notes)
+
+
+def test_v14_single_routing_group_and_hash_internals(facts):
+    facts.config.update(n_group=1, topk_group=1)
+    facts.modules.append(
+        ExtractModule(
+            path="model.layers.2.mlp.gate",
+            class_name="vendor.Gate",
+            params=[ExtractParam(name="tid2eid", shape=[32, 2], dtype="int32")],
+        )
+    )
+    arch = architecture(facts)
+    ffns = [
+        s
+        for b in bands(arch)
+        for s in b.block.sublayers
+        if s.component and s.component.kind == "moe"
+    ]
+    assert all(s.component.router.groups is None for s in ffns)
+    hashed = next(s for s in ffns if s.component.router.scoring == "hash")
+    assert "router_logits" not in {t.name for t in hashed.io.internals}
+    assert {"topk_ids", "topk_weights"} <= {t.name for t in hashed.io.internals}
+
+
+def test_v14_attention_sinks(facts):
+    module = next(m for m in facts.modules if m.path == "model.layers.0.self_attn")
+    module.params.append(ExtractParam(name="sinks", shape=[4], dtype="float32"))
+    attn = bands(architecture(facts))[0].block.sublayers[1]
+    assert attn.component.extras["sinks"] is True
+    assert any(p.name == "sinks" for p in attn.module.params)
+
+
+def test_v14_vision_ffn_group_and_pixel_input(facts):
+    facts.config["vision_config"] = {
+        "hidden_size": 8,
+        "intermediate_size": 32,
+        "hidden_act": "gelu",
+    }
+    root = "vision_model.layers.0"
+    prefix = "vllm.models.minimax_m3.common.vision_tower."
+    facts.modules.extend(
+        [
+            ExtractModule(path="vision_model", class_name="vendor.Vision"),
+            ExtractModule(
+                path="vision_model.layers", class_name="torch.nn.modules.container.ModuleList"
+            ),
+            ExtractModule(path=root, class_name=prefix + "MiniMaxVLEncoderLayer"),
+            ExtractModule(
+                path=root + ".fc1",
+                class_name="vllm.model_executor.layers.linear.ColumnParallelLinear",
+                attrs={"input_size": 8, "output_size": 32},
+            ),
+            ExtractModule(path=root + ".act", class_name="torch.nn.modules.activation.GELU"),
+            ExtractModule(
+                path=root + ".fc2",
+                class_name="vllm.model_executor.layers.linear.RowParallelLinear",
+                attrs={"input_size": 32, "output_size": 8},
+            ),
+            ExtractModule(
+                path="vision_model.patch_embedding",
+                class_name="vllm.model_executor.models.mllama4.Llama4UnfoldConvolution",
+            ),
+            ExtractModule(
+                path="vision_model.patch_embedding.linear",
+                class_name="vllm.model_executor.layers.linear.ColumnParallelLinear",
+                attrs={"input_size": 12, "output_size": 8},
+            ),
+        ]
+    )
+    arch = architecture(facts)
+    vision = next(s for s in arch.stages if s.id == "vision_model.layers")
+    block = vision.bands[0].block
+    assert block.residual == "pre_norm"
+    mlp = block.sublayers[0]
+    assert mlp.id == "mlp" and mlp.component.variant == "gelu"
+    assert mlp.io.inputs[0].shape == ["P", "8"]
+    assert mlp.io.internals[0].shape == ["P", "32/tp"]
+    assert not any(
+        n.severity == "warn" and n.target.startswith("vision_model.layers")
+        for n in arch.notes
+        if n.target
+    )
+    pixels = next(t for t in arch.inputs if t.name == "pixel_values")
+    assert pixels.shape == ["B", "C", "Himg", "Wimg"]
+    patch = next(s for s in arch.stages if s.id == "vision_model.patch_embedding")
+    assert patch.label == "Patch embedding" and patch.io.outputs[0].shape == ["P", "8"]
+
+
+def test_minimax_sparse_index_scores_are_per_head_blocks(facts):
+    facts.config["sparse_attention_config"] = {"sparse_block_size": 128}
+    module = next(m for m in facts.modules if m.path == "model.layers.0.self_attn")
+    module.class_name = "vllm.models.minimax_m3.nvidia.model.MiniMaxM3SparseAttention"
+    facts.modules.append(
+        ExtractModule(
+            path=module.path + ".indexer",
+            class_name="vllm.models.minimax_m3.common.indexer.MiniMaxM3Indexer",
+        )
+    )
+    attn = bands(architecture(facts))[0].block.sublayers[1]
+    score = next(t for t in attn.io.internals if t.name == "index_scores")
+    assert score.shape == ["max(1,4/tp)", "T", "round_up(cdiv(T,128),16)"]
+    assert score.dtype == "float32"

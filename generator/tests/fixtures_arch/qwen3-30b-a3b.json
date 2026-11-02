@@ -6,6 +6,13 @@
     "name": "input_ids",
     "shape": ["T"]
   },
+  "inputs": [
+    {
+      "dtype": "int64",
+      "name": "input_ids",
+      "shape": ["T"]
+    }
+  ],
   "model": {
     "architecture": "Qwen3MoeForCausalLM",
     "family": "moe",
