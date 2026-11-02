@@ -11,6 +11,7 @@ import {
   NARROW_QUERY,
   pinchZoom,
   stepZoom,
+  TOUCH_FIT_MIN,
   useMediaQuery,
   ZOOM_MAX,
   ZOOM_MIN,
@@ -19,8 +20,13 @@ import {
 
 describe("fitScale", () => {
   const base = { contentW: 1000, contentH: 2000, boxW: 400, boxH: 800 };
-  it("fits the width only on touch layouts (overview, scroll down)", () => {
-    expect(fitScale({ ...base, mode: "width" })).toBe(0.4);
+  it("fits the width on touch layouts, but not below the readable touch floor", () => {
+    expect(fitScale({ contentW: 500, contentH: 2000, boxW: 400, boxH: 800, mode: "width" })).toBe(
+      0.8,
+    );
+    // 0.4 would fit the width but wastes the screen height: floor, scroll sideways instead.
+    expect(fitScale({ ...base, mode: "width" })).toBe(TOUCH_FIT_MIN);
+    expect(fitScale({ ...base, mode: "width", min: 0.3 })).toBe(0.4);
   });
   it("fits both axes on desktop but never below the readable floor", () => {
     expect(fitScale({ ...base, mode: "contain" })).toBe(DESKTOP_FIT_MIN);
@@ -33,10 +39,17 @@ describe("fitScale", () => {
     expect(fitScale({ contentW: 0, contentH: 0, boxW: 400, boxH: 400, mode: "width" })).toBe(1);
     expect(fitScale({ contentW: 100, contentH: 100, boxW: -5, boxH: 400, mode: "width" })).toBe(1);
   });
-  it("clamps very wide content to the zoom floor", () => {
-    expect(fitScale({ contentW: 10_000, contentH: 10, boxW: 300, boxH: 300, mode: "width" })).toBe(
-      ZOOM_MIN,
-    );
+  it("clamps very wide content to the floor", () => {
+    expect(
+      fitScale({
+        contentW: 10_000,
+        contentH: 10,
+        boxW: 300,
+        boxH: 300,
+        mode: "width",
+        min: ZOOM_MIN,
+      }),
+    ).toBe(ZOOM_MIN);
   });
 });
 

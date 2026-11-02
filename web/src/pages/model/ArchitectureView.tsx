@@ -433,7 +433,6 @@ export function ArchitectureView({ arch: raw }: { arch: Arch }) {
         <FitBox
           zoom={zoom}
           onScale={setScale}
-          onZoom={setZoom}
           className="flex-1 bg-canvas"
           data-testid="arch-canvas"
         >

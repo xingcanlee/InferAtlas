@@ -45,7 +45,10 @@ export function FitBox({
   children: ReactNode;
   className?: string;
   onScale?: (scale: number) => void;
-  /** Gesture zoom (pinch / Ctrl + wheel); the caller stores it and passes it back as `zoom`. */
+  /**
+   * Gesture zoom (pinch / Ctrl + wheel); the caller stores it and passes it back as `zoom`. Omit
+   * it to leave those gestures to the browser (desktop page zoom).
+   */
   onZoom?: (zoom: number) => void;
   "data-testid"?: string;
 }) {
@@ -116,8 +119,40 @@ export function FitBox({
 
   useLayoutEffect(() => onScale?.(state.scale), [onScale, state.scale]);
 
-  // Pinch (two fingers) and Ctrl/⌘ + wheel (trackpad pinch). Listeners are non-passive so the
-  // browser's page zoom never kicks in over the canvas.
+  // Touch fit (`width`) may be wider than the box (fit floor): keep it top-aligned and centred on
+  // the spine while the fitted size settles (fonts, data), until the user pans or zooms; the Fit
+  // button re-centres.
+  const moved = useRef(false);
+  useLayoutEffect(() => {
+    if (z !== "fit") moved.current = true;
+    else moved.current = false;
+  }, [z]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: re-run when the fitted size settles
+  useLayoutEffect(() => {
+    const o = outer.current;
+    if (!o || z !== "fit" || mode !== "width" || !state.w || moved.current) return;
+    o.scrollLeft = Math.max(0, (o.scrollWidth - o.clientWidth) / 2);
+    o.scrollTop = 0;
+  }, [z, mode, state.w, state.h, state.scale]);
+  useEffect(() => {
+    const o = outer.current;
+    if (!o) return;
+    const touched = () => {
+      moved.current = true;
+    };
+    o.addEventListener("pointerdown", touched, { passive: true });
+    o.addEventListener("touchstart", touched, { passive: true });
+    o.addEventListener("wheel", touched, { passive: true });
+    return () => {
+      o.removeEventListener("pointerdown", touched);
+      o.removeEventListener("touchstart", touched);
+      o.removeEventListener("wheel", touched);
+    };
+  }, []);
+
+  // Pinch (two fingers) and Ctrl/⌘ + wheel (trackpad pinch), only when the caller handles zoom
+  // (`onZoom`, touch layouts): then the gesture zooms the figure instead of the page. Without
+  // `onZoom` (desktop) nothing is prevented and the browser's own page zoom keeps working.
   const scaleRef = useRef(state.scale);
   scaleRef.current = state.scale;
   const onZoomRef = useRef(onZoom);
@@ -136,9 +171,12 @@ export function FitBox({
         { x: b.clientX - box.left, y: b.clientY - box.top },
       ];
     };
+    // touchmove is non-passive only while two fingers are down, so one-finger pans stay fully
+    // passive (native scrolling is never blocked waiting for script).
     const start = (e: TouchEvent) => {
       const p = pts(e);
       if (!p || !onZoomRef.current) return;
+      if (!pinch) o.addEventListener("touchmove", move, { passive: false });
       pinch = { dist: distance(p[0], p[1]), zoom: scaleRef.current };
     };
     const move = (e: TouchEvent) => {
@@ -151,7 +189,9 @@ export function FitBox({
       onZoomRef.current?.(next);
     };
     const end = (e: TouchEvent) => {
-      if (e.touches.length < 2) pinch = undefined;
+      if (e.touches.length >= 2 || !pinch) return;
+      pinch = undefined;
+      o.removeEventListener("touchmove", move);
     };
     const wheel = (e: WheelEvent) => {
       if (!(e.ctrlKey || e.metaKey) || !onZoomRef.current) return;
@@ -162,7 +202,6 @@ export function FitBox({
       onZoomRef.current(Math.round(next * 1000) / 1000);
     };
     o.addEventListener("touchstart", start, { passive: true });
-    o.addEventListener("touchmove", move, { passive: false });
     o.addEventListener("touchend", end, { passive: true });
     o.addEventListener("touchcancel", end, { passive: true });
     o.addEventListener("wheel", wheel, { passive: false });

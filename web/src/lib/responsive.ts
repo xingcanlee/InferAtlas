@@ -43,6 +43,12 @@ export const useIsPhone = () => useMediaQuery(PHONE_QUERY);
 
 export const ZOOM_MIN = 0.2;
 export const ZOOM_MAX = 2.5;
+/**
+ * Touch fit floor: fitting a wide figure to a phone's width would shrink it to ~40% and leave
+ * most of the (tall) screen empty; below this the canvas scrolls sideways instead (centred on the
+ * spine, top-aligned) and the figure uses the height.
+ */
+export const TOUCH_FIT_MIN = 0.6;
 /** Desktop fit floor: the smallest figure text (10px) stays ≥ 9px effective. */
 export const DESKTOP_FIT_MIN = 0.9;
 
@@ -60,7 +66,8 @@ export interface FitInput {
   boxH: number;
   /**
    * `contain`: fit both axes, never below `min` (desktop: readable text, scroll beyond).
-   * `width`: fit the width only (touch: overview, scroll down, pinch to read).
+   * `width`: fit the width only, never below `min` (touch; default `TOUCH_FIT_MIN`): scroll
+   * down, and sideways for very wide figures; pinch to read.
    */
   mode: "contain" | "width";
   min?: number;
@@ -70,8 +77,8 @@ export interface FitInput {
 export function fitScale({ contentW, contentH, boxW, boxH, mode, min }: FitInput): number {
   if (!contentW || !contentH || boxW <= 0 || boxH <= 0) return 1;
   const sw = boxW / contentW;
-  const s = mode === "width" ? Math.min(1, sw) : Math.min(1, sw, boxH / contentH);
-  return round3(Math.max(min ?? (mode === "width" ? ZOOM_MIN : DESKTOP_FIT_MIN), s));
+  if (mode === "width") return round3(Math.min(1, Math.max(sw, min ?? TOUCH_FIT_MIN)));
+  return round3(Math.max(min ?? DESKTOP_FIT_MIN, Math.min(1, sw, boxH / contentH)));
 }
 
 /** Next zoom level for the +/− buttons (multiplicative steps, snapped to 100%). */

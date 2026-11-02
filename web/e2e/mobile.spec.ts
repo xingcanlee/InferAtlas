@@ -104,11 +104,22 @@ for (const model of MODELS) {
     await expect(fig).toBeVisible();
     await expect(page.locator('[data-layout="narrow"]')).toBeVisible();
     await noOverflow(page, model);
-    // Fit to width by default: the figure's width is inside the canvas.
+    // Fit to width by default, but never below the readable touch floor (0.6): wide figures
+    // scroll sideways inside the canvas (never the page), start top-aligned and centred.
     const canvas = await page.getByTestId("arch-canvas").boundingBox();
-    await expect
-      .poll(async () => (await fig.boundingBox())?.width ?? 1e9)
-      .toBeLessThanOrEqual((canvas?.width ?? 0) + 1);
+    const start = await scaleOf(page);
+    const box = await fig.boundingBox();
+    const fitsWidth = (box?.width ?? 1e9) <= (canvas?.width ?? 0) + 1;
+    expect(fitsWidth || start === 0.6, `fit ${start}`).toBe(true);
+    expect(start).toBeGreaterThanOrEqual(0.6);
+    expect((box?.y ?? 0) - (canvas?.y ?? 0)).toBeLessThan(40);
+    if (!fitsWidth) {
+      const s = await page.getByTestId("arch-canvas").evaluate((el) => ({
+        left: el.scrollLeft,
+        max: el.scrollWidth - el.clientWidth,
+      }));
+      expect(Math.abs(s.left - s.max / 2)).toBeLessThanOrEqual(2);
+    }
     // Thumb-size controls.
     for (const id of ["zoom-in", "zoom-out", "zoom-fit", "open-details", "arch-menu"])
       await tappable(page.getByTestId(id), id);

@@ -487,6 +487,26 @@ describe("contract v1.4 in the figure", { timeout: 20_000 }, () => {
   });
 });
 
+describe("canvas gestures", { timeout: 20_000 }, () => {
+  const ctrlWheel = (el: HTMLElement) => {
+    const ev = new WheelEvent("wheel", {
+      ctrlKey: true,
+      deltaY: -100,
+      bubbles: true,
+      cancelable: true,
+    });
+    el.dispatchEvent(ev);
+    return ev.defaultPrevented;
+  };
+  it("desktop leaves Ctrl/⌘ + wheel to the browser (page zoom)", async () => {
+    await renderAt("/m/main-verified/A2/qwen3-30b-a3b");
+    await screen.findByTestId("arch-figure");
+    const canvas = screen.getByTestId("arch-canvas");
+    expect(ctrlWheel(canvas)).toBe(false);
+    expect(canvas).toHaveAttribute("data-zoom", "fit");
+  });
+});
+
 describe("narrow screens", { timeout: 20_000 }, () => {
   const original = window.matchMedia;
   const useWidth = (width: number) => {
@@ -551,6 +571,15 @@ describe("narrow screens", { timeout: 20_000 }, () => {
     expect(canvas.getAttribute("data-zoom")).not.toBe("fit");
     await userEvent.click(screen.getByTestId("zoom-fit"));
     expect(canvas).toHaveAttribute("data-zoom", "fit");
+    // Touch layouts own the zoom gesture: Ctrl + wheel / trackpad pinch zooms the figure.
+    const ev = new WheelEvent("wheel", {
+      ctrlKey: true,
+      deltaY: -100,
+      bubbles: true,
+      cancelable: true,
+    });
+    canvas.dispatchEvent(ev);
+    expect(ev.defaultPrevented).toBe(true);
   });
 
   it("phones: the graph tab explains it needs a wider screen", async () => {
