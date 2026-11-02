@@ -56,10 +56,16 @@ describe("structure coverage", () => {
     expect(dense.arch).toBe(true);
     expect(dense.sublayers_generic).toBe(0);
     expect(dense.sublayers_ruled).toBeGreaterThan(0);
-    // DeepSeek-V4: the mHC ops are generic components with warnings.
+    // DeepSeek-V4: the reviewed mHC ops are generic components with info notes only (A2 cell,
+    // docs/progress/S3.md: 168 ruled / 168 generic / 0 warn / 8 info).
     const v4 = archCoverage(v4Json as unknown as Arch);
-    expect(v4.sublayers_generic).toBeGreaterThan(0);
-    expect(v4.notes_warn).toBe(3);
+    expect(v4).toEqual({
+      sublayers_ruled: 168,
+      sublayers_generic: 168,
+      notes_warn: 0,
+      notes_info: 8,
+      arch: true,
+    });
   });
 
   it("keeps numeric verification as a secondary wording", () => {

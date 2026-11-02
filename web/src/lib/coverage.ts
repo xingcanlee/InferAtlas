@@ -15,31 +15,28 @@ export interface CellCoverage {
   arch: boolean;
 }
 
-const isCount = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v) && v >= 0;
+/** The generated `IndexCoverage` (contract v1.4 §1), reached through `IndexCell`. */
+export type IndexCoverage = NonNullable<IndexCell["coverage"]>;
+
+const isCount = (v: number): boolean => Number.isFinite(v) && v >= 0;
 
 /**
- * `IndexCell.coverage` when the index carries a well-formed one (v1.4), else `undefined`. Read
- * defensively: older indexes do not have the field and the generated types may not either.
+ * `IndexCell.coverage` when the index carries a well-formed one (v1.4), else `undefined`. Older
+ * indexes omit the field (or set it to `null`); hand-written / stale JSON is still checked at
+ * runtime so a malformed record degrades to the neutral badge instead of rendering `NaN`.
  */
 export function cellCoverage(cell: IndexCell): CellCoverage | undefined {
-  const c = (cell as IndexCell & { coverage?: unknown }).coverage;
+  const c: IndexCoverage | null | undefined = cell.coverage;
   if (!c || typeof c !== "object") return undefined;
-  const o = c as Record<string, unknown>;
+  const { sublayers_ruled, sublayers_generic, notes_warn, notes_info, arch } = c;
   if (
-    !isCount(o.sublayers_ruled) ||
-    !isCount(o.sublayers_generic) ||
-    !isCount(o.notes_warn) ||
-    !isCount(o.notes_info) ||
-    typeof o.arch !== "boolean"
+    typeof arch !== "boolean" ||
+    ![sublayers_ruled, sublayers_generic, notes_warn, notes_info].every(
+      (v) => typeof v === "number" && isCount(v),
+    )
   )
     return undefined;
-  return {
-    sublayers_ruled: o.sublayers_ruled,
-    sublayers_generic: o.sublayers_generic,
-    notes_warn: o.notes_warn,
-    notes_info: o.notes_info,
-    arch: o.arch,
-  };
+  return { sublayers_ruled, sublayers_generic, notes_warn, notes_info, arch };
 }
 
 /**

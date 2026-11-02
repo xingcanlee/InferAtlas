@@ -123,7 +123,12 @@ export function HomePage() {
   const touch = useIsNarrow();
   const search = route.useSearch();
   const navigate = route.useNavigate();
-  const devices = devicesOf(index);
+  // Devices with only `missing` placeholder cells (nothing generated yet) are not offered.
+  const all = devicesOf(index);
+  const builtDevices = all.filter((d) =>
+    index.cells.some((c) => c.device === d && c.status !== "missing"),
+  );
+  const devices = builtDevices.length ? builtDevices : all;
   const device =
     search.device && devices.includes(search.device)
       ? search.device

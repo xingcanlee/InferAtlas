@@ -181,10 +181,11 @@ test("detail bottom sheet: open, select a layer, step, close", async ({ page }) 
     "data-selected",
     "true",
   );
-  // v1.4 §2: the class-level warning reaches the ffn mHC op.
-  await expect(
-    sheet.locator('[data-testid="sub-card-mhc_pre_ffn"] [data-severity="warn"]'),
-  ).toHaveCount(1);
+  // v1.4 §2: the class-level note (the reviewed mHC op's "Generic component" info) reaches the
+  // ffn mHC op, which is not its target.
+  const classNote = sheet.locator('[data-testid="sub-card-mhc_pre_ffn"] [data-severity="info"]');
+  await expect(classNote).toHaveCount(1);
+  await expect(classNote).toContainText("Generic component");
   await noOverflow(page, "sheet layer");
   expect(errors).toEqual([]);
 });

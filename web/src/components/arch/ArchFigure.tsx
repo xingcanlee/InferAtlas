@@ -28,6 +28,7 @@ import {
   PatternGroup,
   ResidualBranch,
   TensorEdge,
+  VariantBadge,
 } from "@inferatlas/arch-ui";
 import type {
   Arch,
@@ -48,13 +49,16 @@ import {
   encoderStages,
   encoderTitle,
   isAsideStage,
+  isConfigOnly,
   itemLayers,
   keyInternals,
   layerRange,
   MAX_STACK_COLUMNS,
+  mhcStageLabel,
   modelInputs,
   noteMarker,
   notesAt,
+  ownsModule,
   primaryStack,
   represented,
   type StackItem,
@@ -112,14 +116,67 @@ type GlyphProps = NodeMarkers & {
 };
 
 /** One contract Component → one arch-ui component. */
+/**
+ * How a generic / component-less stage is named in the figure (v1.4): its label ("Stream merge
+ * (HC head)", "Multi-token prediction × 1") before the class, the class only when the stage is
+ * that module (synthetic ops and config-only branches carry their containing model's class as
+ * provenance, which would read as the node's own class), and a tag: `config only` for branches
+ * the config declares but the model does not build, none for a ruled tensor op.
+ */
+interface StageNaming {
+  name?: string | undefined;
+  moduleClass?: string | undefined;
+  tag?: string | null | undefined;
+  /** Second line (config-only branches). */
+  caption?: string | undefined;
+  /** mHC stream expansion / merge: a one-line op on the wire (mHC-box height). */
+  compact?: boolean | undefined;
+}
+
+function genericStage(arch: Arch, s: ArchModuleStage): StageNaming | undefined {
+  if (s.component && s.component.kind !== "generic") return undefined;
+  const label = s.label?.trim();
+  const named = !!label && label !== s.id;
+  const own = ownsModule(s);
+  const configOnly = isConfigOnly(s);
+  const mhc = s.placement !== "aside" && mhcStageLabel(s.id) !== undefined;
+  if (!named && own && !configOnly && !mhc) return undefined;
+  return {
+    name: named ? stageLabel(arch, s) : undefined,
+    moduleClass: own || !named ? shortClass(s.module?.class_name) : undefined,
+    tag: configOnly || mhc || (!s.component && s.module?.status !== "generic") ? null : undefined,
+    caption: configOnly ? "config only · not built by vLLM" : undefined,
+    compact: mhc,
+  };
+}
+
 export function ComponentGlyph({
   component,
   fallbackClass,
+  stage,
   tensors,
   ...common
-}: { component: ArchComponent | null; fallbackClass?: string | undefined } & GlyphProps) {
+}: {
+  component: ArchComponent | null;
+  fallbackClass?: string | undefined;
+  /** Stage naming for generic / component-less stages (`genericStage`). */
+  stage?: StageNaming | undefined;
+} & GlyphProps) {
+  const tag =
+    stage?.tag === undefined ? undefined : stage.tag === null ? null : (
+      <VariantBadge>{stage.tag}</VariantBadge>
+    );
   if (!component)
-    return <Generic moduleClass={shortClass(fallbackClass) || "module"} {...common} />;
+    return (
+      <Generic
+        moduleClass={stage ? (stage.moduleClass ?? "") : shortClass(fallbackClass) || "module"}
+        name={stage?.name}
+        tag={tag}
+        caption={stage?.caption}
+        size={stage?.compact ? "xs" : undefined}
+        {...common}
+      />
+    );
   switch (component.kind) {
     case "norm":
       return <Norm variant={component.variant} {...common} />;
@@ -162,6 +219,7 @@ export function ComponentGlyph({
           window={num(x.sliding_window) ?? (x.sliding_window === true ? true : undefined)}
           compressRatio={num(x.compress_ratio)}
           indexer={x.indexer === true}
+          sinks={x.sinks === true}
           tensors={tensors}
           indexTopk={num(x.index_topk)}
           name={gdn ? "Gated DeltaNet" : undefined}
@@ -198,7 +256,11 @@ export function ComponentGlyph({
     case "generic":
       return (
         <Generic
-          moduleClass={shortClass(component.class_name)}
+          moduleClass={stage ? (stage.moduleClass ?? "") : shortClass(component.class_name)}
+          name={stage?.name}
+          tag={tag}
+          caption={stage?.caption}
+          size={stage?.compact ? "xs" : undefined}
           members={component.children.map((c) => ({ ...c, class_name: shortClass(c.class_name) }))}
           {...common}
         />
@@ -241,13 +303,16 @@ function encoderInput(
   arch: Arch,
   stages: ArchStage[],
 ): { name: string; shape?: string[]; dtype?: string; muted?: boolean; hint?: string } {
-  const extra = modelInputs(arch).find((t) => t.name !== arch.input.name);
-  if (extra) return extra;
   const first = stages[0];
   const t =
     first?.kind === "stack"
       ? first.bands[0]?.block.sublayers[0]?.io.inputs[0]
       : first?.io.inputs[0];
+  // v1.4 lists text + image inputs: the one the encoder's first stage consumes, else the first
+  // non-text input (MiniMax-M3: pixel_values, not grid_thw).
+  const extras = modelInputs(arch).filter((x) => x.name !== arch.input.name);
+  const extra = extras.find((x) => x.name === t?.name) ?? extras[0];
+  if (extra) return extra;
   if (t) return t;
   return {
     name: encoderTitle(stages) === "Vision encoder" ? "image" : "input",
@@ -284,6 +349,7 @@ export function ArchFigure({
       key={s.id}
       component={s.component ?? null}
       fallbackClass={s.module?.class_name ?? stageLabel(arch, s)}
+      stage={genericStage(arch, s)}
       status={s.module?.status}
       notes={noteMarker(notesAt(arch, [s.id]))}
       selected={selection.stage === s.id}
@@ -506,13 +572,17 @@ export function ArchFigure({
       (n, x) => n + (x.kind === "stack" ? x.bands.reduce((m, b) => m + b.count, 0) : 0),
       0,
     );
+    // v1.4 labels encoder stages ("Patch embedding", "Vision adapter"): the summary uses them;
+    // older data falls back to the component summary / class name.
     const summary = stages
       .map((x) =>
         x.kind === "stack"
           ? `${x.bands.reduce((m, b) => m + b.count, 0)}× ${[...new Set(x.bands.map(bandSummary))].join(" / ")}`
-          : x.component && x.component.kind !== "generic"
-            ? componentSummary(x.component, x.kind)
-            : shortClass(x.module.class_name),
+          : x.label && stageLabel(arch, x) === x.label.trim() && x.label !== x.id
+            ? x.label.trim()
+            : x.component && x.component.kind !== "generic"
+              ? componentSummary(x.component, x.kind)
+              : shortClass(x.module.class_name),
       )
       .join(" → ");
     return (
@@ -570,7 +640,14 @@ export function ArchFigure({
           <FigureBranch
             key={`branch-${s.id}`}
             node={stageGlyph(s)}
-            label={others.map((o) => stageLabel(arch, o)).join(" · ")}
+            // A named aside box carries its own label; the edge then names the tensor it reads.
+            label={others
+              .map((o) =>
+                genericStage(arch, o)?.name
+                  ? (o.io.inputs[0]?.name ?? stageLabel(arch, o))
+                  : stageLabel(arch, o),
+              )
+              .join(" · ")}
             branch={others.map(stageGlyph)}
             data-testid="figure-branch"
           />
@@ -611,7 +688,7 @@ export function ArchFigure({
     spine.push(input, ...chain(main));
   }
   spine.push(
-    <FlowArrow key="e-out" length="lg" />,
+    <FlowArrow key="e-out" length="md" />,
     <FigureTerminal
       key="output"
       name={arch.output.name}

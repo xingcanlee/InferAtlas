@@ -7,6 +7,7 @@
       "!!**/dist",
       "!!**/.venv",
       "!!**/.cache",
+      "!!.release-data",
       "!!**/dist-single",
       "!!web/public/data",
       "!!experiments",

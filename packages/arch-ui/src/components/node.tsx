@@ -20,6 +20,8 @@ export const figureNode = cva(
         plain: "border-border bg-card",
       },
       size: {
+        /** One-line wire op (e.g. an mHC stream expansion / merge on the spine), mHC-box height. */
+        xs: "min-h-[18px] justify-center gap-0 px-2 py-0 text-[10.5px]",
         sm: "min-h-6 gap-0.5 px-2 py-1 text-[11px]",
         md: "min-h-8 gap-0.5 px-2.5 py-1 text-[12px]",
       },

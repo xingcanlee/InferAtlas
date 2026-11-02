@@ -40,6 +40,14 @@ beforeAll(() => {
           triage_count: 3,
           data_path: null,
         },
+        // A device the pipeline lists but has not built anything for (release 310P / A3 / A5).
+        {
+          version: "main-verified",
+          model: "qwen3-8b",
+          device: "A5",
+          status: "missing",
+          data_path: null,
+        },
       ],
     },
     hardware: [],
@@ -77,6 +85,11 @@ describe("app", { timeout: 20_000 }, () => {
     // v0.32.0 has no built cell on A2: no column.
     expect(within(table).queryByText("v0.32.0 pair")).toBeNull();
     expect(within(table).queryAllByText("missing")).toHaveLength(0);
+    // Devices with only `missing` cells are not offered.
+    const devices = within(screen.getByTestId("device-switch"));
+    expect(devices.getByText("A2")).toBeInTheDocument();
+    expect(devices.getByText("H100")).toBeInTheDocument();
+    expect(devices.queryByText("A5")).toBeNull();
   });
 
   it("model page shows details and recomputes on parameter change", async () => {

@@ -771,9 +771,25 @@ export function modelInputs(arch: Arch): ArchTensor[] {
   return ok.length ? ok : [arch.input];
 }
 
+/**
+ * A stage is its own module when `module.path` is the stage id. v1.4 synthetic stages are not:
+ * the spine `hc_expand` is a tensor op whose provenance is the containing model, and a
+ * config-only MTP aside (flag `config_only`, empty path) names the model class it is declared by.
+ * Their class name must not be drawn as the node's class.
+ */
+export function ownsModule(stage: ArchModuleStage): boolean {
+  return !!stage.module?.path && stage.module.path === stage.id;
+}
+
+/** Declared by the model config but not constructed by vLLM (v1.4 MTP asides). */
+export function isConfigOnly(stage: ArchModuleStage): boolean {
+  return stage.module?.flags?.includes("config_only") ?? false;
+}
+
 /** mHC stream expansion / merge stages (v1.4 §4, v1.3 §2): `hc_expand`, `hc_head_op`. */
 export function mhcStageLabel(id: string): string | undefined {
-  const last = id.split(".").at(-1) ?? id;
+  // `model.hc_head_op`, `model.layers:hc_expand` (v1.4 synthetic spine expansion).
+  const last = id.split(/[.:]/).at(-1) ?? id;
   if (/^hc_expand/i.test(last)) return "mHC expand (→ HC streams)";
   if (/^hc_head/i.test(last)) return "mHC merge (HC streams →)";
   return undefined;

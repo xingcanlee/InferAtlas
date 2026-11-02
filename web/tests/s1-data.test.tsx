@@ -6,7 +6,7 @@
  */
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
-import type { Arch, ArchTensor } from "@inferatlas/contracts";
+import type { Arch, ArchTensor, Index } from "@inferatlas/contracts";
 import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { ArchFigure } from "@/components/arch/ArchFigure";
@@ -24,6 +24,7 @@ import {
   stacks,
   subTarget,
 } from "@/lib/arch";
+import { archCoverage, cellCoverage } from "@/lib/coverage";
 import v4TrimmedJson from "../../fixtures/arch-ui/s1/deepseek-v4-flash/arch.json";
 
 describe("S1 DeepSeek-V4-Flash (trimmed real output, H100)", () => {
@@ -177,4 +178,25 @@ describe.skipIf(files.length === 0)("S1 release data (all arch.json)", () => {
       for (const n of arch.notes) if (n.target) expect(ids, n.target).toContain(n.target);
     });
   }
+});
+
+// v1.4 §1: the index's structure coverage is what the UI derives from the cell's arch.json.
+const indexFile = dataDir ? join(dataDir, "index.json") : undefined;
+const index: Index | undefined =
+  indexFile && existsSync(indexFile) ? JSON.parse(readFileSync(indexFile, "utf8")) : undefined;
+
+describe.skipIf(!index)("S1 release data (index coverage)", () => {
+  it("every built cell carries coverage equal to archCoverage(arch.json)", () => {
+    const built = (index?.cells ?? []).filter((c) => c.status !== "missing");
+    expect(built.length).toBeGreaterThan(0);
+    for (const cell of built) {
+      const where = `${cell.version}/${cell.device}/${cell.model}`;
+      const cov = cellCoverage(cell);
+      expect(cov, where).toBeDefined();
+      const file = join(dataDir ?? "", (cell.data_path ?? "").replace(/^data\//, ""), "arch.json");
+      expect(existsSync(file), file).toBe(true);
+      const arch = JSON.parse(readFileSync(file, "utf8")) as Arch;
+      expect(archCoverage(normalizeArch(arch)), where).toEqual(cov);
+    }
+  });
 });

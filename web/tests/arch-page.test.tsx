@@ -6,6 +6,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import deepseekJson from "../../fixtures/arch-ui/deepseek-v3/arch.json";
 import v4Json from "../../fixtures/arch-ui/deepseek-v4-flash/arch.json";
+import gptOssJson from "../../fixtures/arch-ui/gpt-oss-120b/arch.json";
 import denseArchJson from "../../fixtures/arch-ui/qwen3-8b/arch.json";
 import moeArchJson from "../../fixtures/arch-ui/qwen3-30b-a3b/arch.json";
 import nextJson from "../../fixtures/arch-ui/qwen3-next-80b-a3b/arch.json";
@@ -63,37 +64,52 @@ function visionArch(): Arch {
 }
 
 /**
- * DeepSeek-V4 as contract v1.4 describes it: an explicit `hc_expand` spine stage before the
- * stack (mirroring `hc_head_op` after it).
+ * DeepSeek-V4 as it looked before the mHC ops were reviewed: unknown-class warnings on band 0's
+ * mHC reads/writes and on the HC head (class-level notes, v1.4 §2). The real v1.4 data carries
+ * info notes only.
  */
-function v4ExpandArch(): Arch {
+function v4UnreviewedArch(): Arch {
   const a = v4Json as unknown as Arch;
-  const head = a.stages.find((s) => s.id === "model.hc_head_op") as ArchModuleStage;
-  const expand = {
-    ...head,
-    id: "model.hc_expand",
-    label: "model.hc_expand",
-    io: {
-      inputs: [{ name: "hidden_states", shape: ["T", "H"], dtype: "bfloat16" }],
-      outputs: [{ name: "residual_streams", shape: ["T", "HC", "H"], dtype: "bfloat16" }],
-      internals: [],
-    },
-    module: { ...head.module, path: "model.hc_expand", class_name: "vllm.x.HCExpand" },
-    component: { kind: "generic" as const, class_name: "vllm.x.HCExpand", children: [] },
-  };
-  const at = a.stages.findIndex((s) => s.kind === "stack");
-  return { ...a, stages: [...a.stages.slice(0, at), expand, ...a.stages.slice(at)] } as Arch;
-}
-
-/** VLM with v1.4 `inputs` (pixel_values + input_ids). */
-function vlmInputsArch(): Arch {
-  const a = visionArch();
+  const warn = (target: string, op: string) => ({
+    severity: "warn" as const,
+    target,
+    text: `No architecture rule describes vllm.model_executor.layers.mhc.${op}; shown as a generic component.`,
+    triage_kind: "unknown_layer_class",
+  });
   return {
     ...a,
-    inputs: [
-      { name: "pixel_values", shape: ["B", "C", "Himg", "Wimg"], dtype: "bfloat16" },
-      a.input,
+    notes: [
+      ...a.notes,
+      warn("model.hc_head_op", "HCHeadOp"),
+      warn("model.layers:band:0/mhc_pre_attn", "MHCPreOp"),
+      warn("model.layers:band:0/mhc_post_attn", "MHCPostOp"),
     ],
+  } as Arch;
+}
+
+/**
+ * VLM as v1.4 data describes it (Llama-4 / MiniMax-M3): `inputs` lists the primary text input
+ * first, then the image tensors; encoder stages carry human labels.
+ */
+function vlmInputsArch(): Arch {
+  const a = visionArch();
+  const pixels = { name: "pixel_values", shape: ["P", "1176"], dtype: "bfloat16" };
+  const labels: Record<string, string> = {
+    "vision_model.patch_embedding": "Patch embedding",
+    multi_modal_projector: "Multimodal projector",
+  };
+  return {
+    ...a,
+    inputs: [a.input, pixels, { name: "grid_thw", shape: ["B", "3"], dtype: "int64" }],
+    stages: a.stages.map((s) =>
+      s.kind !== "stack" && labels[s.id]
+        ? {
+            ...s,
+            label: labels[s.id],
+            io: s.id === "vision_model.patch_embedding" ? { ...s.io, inputs: [pixels] } : s.io,
+          }
+        : s,
+    ),
   } as unknown as Arch;
 }
 
@@ -239,7 +255,7 @@ beforeAll(() => {
       [MIXED]: { arch: mixedArch() },
       [V4]: { arch: v4Json as unknown as Arch },
       [VLM]: { arch: visionArch() },
-      [V4X]: { arch: v4ExpandArch() },
+      [V4X]: { arch: v4UnreviewedArch() },
       [VLMI]: { arch: vlmInputsArch() },
     },
   };
@@ -320,7 +336,7 @@ describe("architecture page", { timeout: 20_000 }, () => {
   });
 
   it("shows notes and generic components without blocking the figure", async () => {
-    await renderAt("/m/main-verified/A2/deepseek-v4-flash");
+    await renderAt("/m/main-verified/H100/deepseek-v4-flash");
     const head = await screen.findByTestId("stage-model.hc_head_op");
     expect(head).toHaveTextContent("HCHeadOp");
     expect(
@@ -381,9 +397,12 @@ describe("architecture page", { timeout: 20_000 }, () => {
     expect(within(list).getAllByRole("button")).toHaveLength(3);
     expect(screen.getAllByTestId(/^band-model\.layers:band:[34]$/)).toHaveLength(2);
     expect(document.querySelectorAll("[data-slot=residual-bus]").length).toBe(2);
-    // v1.3 §3: targeted mHC warnings badge the mHC box like any sublayer.
+    // The reviewed mHC ops carry info notes only: no figure badge (panel-only).
     const mhc = screen.getByTestId("sub-model.layers:band:3-mhc_pre_attn");
-    expect(mhc.querySelector("[data-slot=note-badge]")).toHaveAttribute("data-severity", "warn");
+    expect(mhc.querySelector("[data-slot=note-badge]")).toBeNull();
+    expect(
+      within(screen.getByTestId("arch-overview")).queryByTestId("note-group-unknown_layer_class"),
+    ).toBeNull();
     // Single-layer members of a pattern group show no "1×".
     expect(
       within(screen.getByTestId("band-model.layers:band:3")).queryByText("repeated 1 times"),
@@ -461,7 +480,7 @@ describe("architecture page", { timeout: 20_000 }, () => {
 
 describe("contract v1.4 in the figure", { timeout: 20_000 }, () => {
   it("badges every mHC instance with the class-level warning", async () => {
-    await renderAt("/m/main-verified/A2/deepseek-v4-flash");
+    await renderAt("/m/main-verified/H100/deepseek-v4-flash");
     const fig = await screen.findByTestId("arch-figure");
     const ffn = within(fig).getAllByTestId(/^sub-.*-mhc_(pre|post)_ffn$/);
     expect(ffn.length).toBeGreaterThan(0);
@@ -469,21 +488,84 @@ describe("contract v1.4 in the figure", { timeout: 20_000 }, () => {
   });
 
   it("draws the hc_expand stage before the stack with the residual-stream edge", async () => {
-    await renderAt("/m/main-verified/H100/deepseek-v4-flash");
+    await renderAt("/m/main-verified/A2/deepseek-v4-flash");
     const fig = await screen.findByTestId("arch-figure");
-    const expand = within(fig).getByTestId("stage-model.hc_expand");
+    const expand = within(fig).getByTestId("stage-model.layers:hc_expand");
     const stack = within(fig).getByTestId("stage-model.layers");
+    const head = within(fig).getByTestId("stage-model.hc_head_op");
     expect(expand.compareDocumentPosition(stack) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(
-      within(screen.getByTestId("dataflow")).getByText("mHC expand (→ HC streams)"),
-    ).toBeInTheDocument();
+    expect(stack.compareDocumentPosition(head) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(fig).toHaveTextContent("residual_streams");
+    const flow = within(screen.getByTestId("dataflow"));
+    expect(flow.getByText("Stream expansion (HC)")).toBeInTheDocument();
+    expect(flow.getByText("Stream merge (HC head)")).toBeInTheDocument();
   });
 
   it("uses arch inputs for the encoder terminal, else a muted placeholder", async () => {
     await renderAt("/m/main-verified/H100/qwen3-next-80b-a3b");
     const input = await screen.findByTestId("encoder-input");
     expect(input).toHaveTextContent("pixel_values");
+    expect(input).toHaveTextContent("[P, 1176]");
     expect(input).not.toHaveAttribute("data-muted");
+    // Labelled encoder stages name the collapsed branch (not class names).
+    expect(screen.getByTestId("encoder-branch")).toHaveTextContent(
+      "Patch embedding → 36× GQA attn · dense MLP → Multimodal projector",
+    );
+  });
+
+  it("names synthetic and config-only stages without borrowing the model class", async () => {
+    await renderAt("/m/main-verified/A2/deepseek-v4-flash");
+    const fig = await screen.findByTestId("arch-figure");
+    // hc_expand: a ruled tensor op (provenance: the containing model), drawn as a one-line op.
+    const expand = within(fig).getByTestId("stage-model.layers:hc_expand");
+    expect(expand).toHaveTextContent("Stream expansion (HC)");
+    expect(expand).not.toHaveTextContent("DeepseekV4Model");
+    expect(expand).not.toHaveTextContent("generic");
+    // The HC head is its own (generic) module: label + class.
+    expect(within(fig).getByTestId("stage-model.hc_head_op")).toHaveTextContent(
+      "Stream merge (HC head)HCHeadOp",
+    );
+    // Config-only MTP aside: label + "config only", the branch edge names the tensor.
+    const mtp = within(fig).getByTestId("stage-mtp");
+    expect(mtp).toHaveTextContent("Multi-token prediction × 1");
+    expect(mtp).toHaveTextContent("config only");
+    expect(mtp).not.toHaveTextContent("DeepseekV4ForCausalLM");
+    expect(within(screen.getByTestId("figure-branch")).getByText("hidden_states")).toBeTruthy();
+    const flow = screen.getByTestId("dataflow");
+    expect(flow).not.toHaveTextContent("DeepseekV4ForCausalLM");
+    expect(flow).not.toHaveTextContent("DeepseekV4Model");
+    expect(flow).toHaveTextContent("Multi-token prediction × 1 config only");
+    // The detail card explains the provenance instead of listing it as the module.
+    await userEvent.click(expand);
+    const card = await screen.findByTestId("stage-card-model.layers:hc_expand");
+    expect(within(card).getByTestId("stage-provenance")).toHaveTextContent(
+      "Tensor operation inside model (DeepseekV4Model)",
+    );
+    expect(within(card).queryByTestId("module-path")).toBeNull();
+    await userEvent.click(mtp);
+    const mtpCard = await screen.findByTestId("stage-card-mtp");
+    expect(within(mtpCard).getByTestId("stage-provenance")).toHaveTextContent("Config only");
+  });
+});
+
+describe("attention extras", () => {
+  it("gpt-oss: learned sinks are a chip on the attention box", async () => {
+    const { ArchFigure } = await import("@/components/arch/ArchFigure");
+    const { archEnv, evaluator } = await import("@/lib/arch");
+    const arch = gptOssJson as unknown as Arch;
+    render(
+      <ArchFigure
+        arch={arch}
+        evaluate={evaluator(archEnv(arch, {}).env)}
+        selection={{}}
+        onSelectBand={() => {}}
+        onSelectSub={() => {}}
+        onSelectStage={() => {}}
+      />,
+    );
+    const attn = document.querySelectorAll('[data-component="attention"]');
+    expect(attn.length).toBeGreaterThan(0);
+    for (const el of attn) expect(el).toHaveTextContent("sinks");
   });
 });
 

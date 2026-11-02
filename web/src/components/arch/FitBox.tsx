@@ -16,7 +16,9 @@ import { cn } from "@/lib/utils";
  * figure text is 10px (chips, badges), so 0.9 keeps every label at ≥ 9px effective.
  */
 export const MIN_FIT_SCALE = DESKTOP_FIT_MIN;
-const PAD = 24;
+/** Canvas padding around the figure: p-3 on the sides, py-1 so tall figures keep 0.9. */
+const PAD_X = 24;
+const PAD_Y = 8;
 
 export type Zoom = number | "fit";
 
@@ -75,8 +77,8 @@ export function FitBox({
           ? fitScale({
               contentW: w,
               contentH: h,
-              boxW: o.clientWidth - PAD,
-              boxH: o.clientHeight - PAD,
+              boxW: o.clientWidth - PAD_X,
+              boxH: o.clientHeight - PAD_Y,
               mode,
             })
           : clampZoom(z);
@@ -221,7 +223,7 @@ export function FitBox({
       data-zoom={z}
       {...props}
     >
-      <div className="flex min-h-full min-w-fit items-start justify-center p-3">
+      <div className="flex min-h-full min-w-fit items-start justify-center px-3 py-1">
         <div
           ref={wrap}
           style={

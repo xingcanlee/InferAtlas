@@ -87,6 +87,13 @@ export interface GenericProps extends ComponentNodeProps {
   members?: readonly { name: string; class_name: string }[] | undefined;
   /** Caption under the class name. */
   caption?: React.ReactNode;
+  /**
+   * Human name of the node (e.g. a stage label "Stream merge (HC head)"), drawn before the class
+   * name. Without a `moduleClass` only the name is shown.
+   */
+  name?: React.ReactNode;
+  /** Tag next to the title; default `generic`, `null` for none (e.g. a ruled tensor op). */
+  tag?: React.ReactNode | null;
   maxChildren?: number;
 }
 
@@ -95,19 +102,31 @@ export function Generic({
   moduleClass,
   members: kids = [],
   caption,
+  name,
+  tag,
   maxChildren = 6,
   ...props
 }: GenericProps) {
   const shown = kids.slice(0, maxChildren);
   const more = kids.length - shown.length;
+  const cls = moduleClass ? <span className="font-mono text-[11px]">{moduleClass}</span> : null;
+  const title = name ? (
+    <>
+      {name}
+      {cls ? <span className="ml-1.5 font-normal text-muted-foreground">{cls}</span> : null}
+    </>
+  ) : (
+    cls
+  );
+  const badge = tag === undefined ? <VariantBadge>generic</VariantBadge> : tag;
   if (!kids.length && caption === undefined) {
     // Leaf generic (e.g. a custom op): one compact row, the caption moves to the tooltip.
     return (
       <FigureNode
         kind="generic"
         size="sm"
-        title={<span className="font-mono text-[11px]">{moduleClass}</span>}
-        badge={<VariantBadge>generic</VariantBadge>}
+        title={title}
+        badge={badge ?? undefined}
         data-component="generic"
         {...props}
       />
@@ -116,7 +135,8 @@ export function Generic({
   return (
     <FigureNode
       kind="generic"
-      title={<span className="font-mono text-[11px]">{moduleClass}</span>}
+      title={title}
+      badge={tag ?? undefined}
       subtitle={caption ?? "no lowering rule · generic"}
       data-component="generic"
       {...props}
@@ -239,6 +259,8 @@ export interface AttentionProps extends ComponentNodeProps {
   compressRatio?: number | undefined;
   /** A lightning indexer selects the attended tokens (sparse attention). */
   indexer?: boolean | undefined;
+  /** Learned attention sinks (per-head softmax sink logits, e.g. gpt-oss `extras.sinks`). */
+  sinks?: boolean | undefined;
   /** Key internal tensors drawn as small chips (q / k / v, latents). */
   tensors?: readonly { name: string; shape: readonly string[] }[] | undefined;
   /** Extra one-line description (e.g. `Gated DeltaNet · conv 4`). */
@@ -312,6 +334,7 @@ export function Attention({
   indexTopk,
   compressRatio,
   indexer,
+  sinks,
   tensors,
   detail,
   ...props
@@ -334,6 +357,7 @@ export function Attention({
       : indexTopk !== undefined
         ? `index top-${fmt(indexTopk)}`
         : undefined,
+    sinks ? "sinks" : undefined,
     rope,
     qkNorm ? "QK-Norm" : undefined,
     gated ? "out gate" : undefined,

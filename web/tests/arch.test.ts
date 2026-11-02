@@ -1,6 +1,6 @@
 /** lib/arch helpers over the real generator arch.json fixtures (fixtures/arch-ui, A2 cells). */
 
-import type { Arch, ArchBand, ArchBlock, ArchStackStage } from "@inferatlas/contracts";
+import type { Arch, ArchBand, ArchBlock, ArchNote, ArchStackStage } from "@inferatlas/contracts";
 import { describe, expect, it } from "vitest";
 import {
   allBands,
@@ -255,8 +255,17 @@ describe("symbols, paths and notes", () => {
   });
 
   it("collects notes per target and summarises their severity", () => {
-    // DeepSeek-V4: the generic mHC read carries an info + a warn note on the first band.
-    const n = notesFor(v4, ["model.layers:band:0/mhc_pre_attn"]);
+    // DeepSeek-V4: the reviewed generic mHC read carries an info note on the first band; a warn
+    // note on the same target (as an unknown class would add) badges the figure.
+    const target = "model.layers:band:0/mhc_pre_attn";
+    const warn: ArchNote = {
+      severity: "warn",
+      target,
+      text: "No architecture rule describes MHCPreOp; shown as a generic component.",
+      triage_kind: "unknown_layer_class",
+    };
+    expect(notesFor(v4, [target]).map((x) => x.severity)).toEqual(["info"]);
+    const n = notesFor({ ...v4, notes: [...v4.notes, warn] }, [target]);
     expect(n.map((x) => x.severity).sort()).toEqual(["info", "warn"]);
     // v1.2: figure badges count targeted warn notes only (the info note is panel-only).
     expect(noteMarker(n)).toEqual({ severity: "warn", count: 1 });
@@ -267,15 +276,22 @@ describe("symbols, paths and notes", () => {
   });
 
   it("groups notes by triage_kind, warn groups first, plain notes last", () => {
-    const groups = groupNotes(v4.notes);
+    const warn: ArchNote = {
+      severity: "warn",
+      target: "model.hc_head_op",
+      text: "No architecture rule describes HCHeadOp; shown as a generic component.",
+      triage_kind: "unknown_layer_class",
+    };
+    const groups = groupNotes([...v4.notes, warn]);
     expect(groups.map((g) => g.kind)).toEqual([
       "unknown_layer_class",
       "conditional_override",
       "missing_config",
       null,
     ]);
-    expect(groups[0]?.warn).toBe(3);
-    expect(groups.at(-1)?.notes).toHaveLength(3);
+    expect(groups[0]?.warn).toBe(1);
+    // Plain notes: the three reviewed mHC generic components and the config-only MTP aside.
+    expect(groups.at(-1)?.notes).toHaveLength(4);
   });
 });
 
@@ -359,6 +375,7 @@ describe("contract v1.2", () => {
   it("stages render in array (dataflow) order; aside stages leave the spine", () => {
     expect(spineStages(v4).map((s) => s.id)).toEqual([
       "model.embed_tokens",
+      "model.layers:hc_expand",
       "model.layers",
       "model.hc_head_op",
       "model.norm",

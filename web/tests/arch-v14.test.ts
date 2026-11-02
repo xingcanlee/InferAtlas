@@ -23,10 +23,32 @@ const stackOf = (a: Arch) => a.stages.find((s) => s.kind === "stack") as ArchSta
 describe("class-level notes (v1.4 §2)", () => {
   it("applies an unknown-class warning to every instance of the class", () => {
     const bands = stackOf(v4).bands;
-    // Emitted once, on band 0's mhc_pre_attn / mhc_post_attn …
-    for (const id of ["mhc_pre_ffn", "mhc_post_ffn", "mhc_pre_attn", "mhc_post_attn"])
+    const ids = ["mhc_pre_ffn", "mhc_post_ffn", "mhc_pre_attn", "mhc_post_attn"];
+    // Real data: the reviewed "Generic component" info notes are emitted once, on band 0's
+    // mhc_pre_attn / mhc_post_attn, and reach every instance of the class (panel-only, no badge).
+    for (const id of ids)
       for (const b of bands) {
-        const m = noteMarker(subNotes(v4, [b], id));
+        const notes = subNotes(v4, [b], id);
+        expect(
+          notes.map((n) => n.severity),
+          `${b.id}/${id}`,
+        ).toEqual(["info"]);
+        expect(noteMarker(notes)).toBeUndefined();
+      }
+    // An unknown-class warning on band 0 badges every instance of the class.
+    const warn = (op: string, id: string): ArchNote => ({
+      severity: "warn",
+      target: `${bands[0]?.id}/${id}`,
+      text: `No architecture rule describes vllm.model_executor.layers.mhc.${op}; shown as a generic component.`,
+      triage_kind: "unknown_layer_class",
+    });
+    const a = {
+      ...v4,
+      notes: [...v4.notes, warn("MHCPreOp", "mhc_pre_attn"), warn("MHCPostOp", "mhc_post_attn")],
+    } as Arch;
+    for (const id of ids)
+      for (const b of bands) {
+        const m = noteMarker(subNotes(a, [b], id));
         expect(m, `${b.id}/${id}`).toEqual({ severity: "warn", count: 1 });
       }
   });
@@ -120,9 +142,14 @@ describe("model inputs and mHC stages", () => {
 
   it("labels stream expansion / merge stages", () => {
     expect(mhcStageLabel("model.hc_expand")).toBe("mHC expand (→ HC streams)");
+    expect(mhcStageLabel("model.layers:hc_expand")).toBe("mHC expand (→ HC streams)");
     expect(mhcStageLabel("model.hc_head_op")).toBe("mHC merge (HC streams →)");
     expect(mhcStageLabel("model.norm")).toBeUndefined();
+    // v1.4 data labels both stages; the generator's label wins, the mHC wording is a fallback.
     const head = v4.stages.find((s) => s.id === "model.hc_head_op");
-    expect(head && stageLabel(v4, head)).toBe("mHC merge (HC streams →)");
+    expect(head && stageLabel(v4, head)).toBe("Stream merge (HC head)");
+    const expand = v4.stages.find((s) => s.id === "model.layers:hc_expand");
+    expect(expand && stageLabel(v4, expand)).toBe("Stream expansion (HC)");
+    if (head) expect(stageLabel(v4, { ...head, label: head.id })).toBe("mHC merge (HC streams →)");
   });
 });

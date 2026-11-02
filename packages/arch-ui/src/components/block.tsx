@@ -193,8 +193,9 @@ export function DecoderBlock({
       >
         <ResidualBus streams={streams} />
         {body}
+        {/* Same short arrows as inside the hyper branches (mHC blocks are the tallest). */}
         <div className="flex w-[var(--arch-col)] flex-col items-center">
-          <FlowArrow />
+          <FlowArrow length="sm" />
         </div>
       </div>
     );
@@ -521,7 +522,7 @@ export function BlockStack({
     <section
       data-slot="block-stack"
       className={cn(
-        "relative flex flex-col items-center rounded-2xl border border-dashed border-arch-frame-border px-4 pt-3 pb-3",
+        "relative flex flex-col items-center rounded-2xl border border-dashed border-arch-frame-border px-4 pt-3 pb-2.5",
         className,
       )}
       {...props}
@@ -567,7 +568,7 @@ export function BlockStack({
           {summary}
         </div>
       ) : layout === "column" ? (
-        <div className="flex flex-col items-center gap-3">{children}</div>
+        <div className="flex flex-col items-center gap-2">{children}</div>
       ) : (
         <div className="flex items-start justify-center gap-3">{withThen(children)}</div>
       )}

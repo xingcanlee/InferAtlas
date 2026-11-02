@@ -25,11 +25,13 @@ import {
   encoderStages,
   encoderTitle,
   groupNotes,
+  isConfigOnly,
   layerCount,
   layerPath,
   layerRange,
   notesAt,
   notesFor,
+  ownsModule,
   RUNTIME_SYMBOLS,
   shortClass,
   stackItems,
@@ -265,10 +267,13 @@ function ModuleCard({
   selected,
   testId,
   id,
+  provenance,
 }: {
   title: string;
   subtitle?: string | undefined;
   module: ArchModule | null;
+  /** The module fields are provenance (synthetic / config-only stage): shown instead of them. */
+  provenance?: string | undefined;
   path?: string | undefined;
   io: { inputs: ArchTensor[]; outputs: ArchTensor[]; internals?: ArchTensor[] | undefined };
   notes: ArchNote[];
@@ -295,7 +300,12 @@ function ModuleCard({
         {module ? <StatusBadge status={module.status} size="md" /> : null}
       </header>
       <div className="flex flex-col gap-2.5 px-3 py-2">
-        {module ? (
+        {provenance ? (
+          <p className="text-[11.5px] text-muted-foreground" data-testid="stage-provenance">
+            {provenance}
+          </p>
+        ) : null}
+        {module && !provenance ? (
           <div className="flex flex-col gap-0.5 text-[11.5px]">
             <div className="font-mono" data-testid="module-path">
               <QualifiedName name={path ?? module.path} />
@@ -634,6 +644,15 @@ export function LayerDetail({
   );
 }
 
+/** Why a v1.4 synthetic stage's module fields describe another module (`ownsModule`). */
+function stageProvenance(stage: ArchModuleStage): string | undefined {
+  if (isConfigOnly(stage))
+    return `Config only: declared by the model config but not constructed by vLLM (no parameters extracted). Declared by ${shortClass(stage.module.class_name)}.`;
+  if (!ownsModule(stage))
+    return `Tensor operation inside ${stage.module.path || "the model"} (${shortClass(stage.module.class_name)}); it has no module of its own.`;
+  return undefined;
+}
+
 export function StageDetail({
   arch,
   stage,
@@ -650,6 +669,7 @@ export function StageDetail({
         title={stageLabel(arch, stage) || componentSummary(stage.component ?? null, stage.kind)}
         subtitle={`${stage.id} · ${stage.kind.replace("_", " ")}`}
         module={stage.module}
+        provenance={stageProvenance(stage)}
         io={stage.io}
         notes={notesAt(arch, [stage.id])}
         evaluate={evaluate}
@@ -702,9 +722,13 @@ export function Overview({
           onClick={() => onStage(s.id)}
         >
           <span className="font-medium">{stageLabel(arch, s)}</span>{" "}
-          <span className="font-mono text-[11px] text-muted-foreground">
-            <span title={s.module.class_name}>{shortClass(s.module.class_name)}</span>
-          </span>
+          {isConfigOnly(s) ? (
+            <span className="text-[11px] text-muted-foreground">config only</span>
+          ) : ownsModule(s) ? (
+            <span className="font-mono text-[11px] text-muted-foreground">
+              <span title={s.module.class_name}>{shortClass(s.module.class_name)}</span>
+            </span>
+          ) : null}
         </button>
       )}
     </li>
